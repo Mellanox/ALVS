@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="com.ezchip.ezide.launchConfigurationType.sim">
+<booleanAttribute key="com.ezchip.ezide.sim.launch.LAUNCH_STAGES.LOAD_CONFIGURATION!" value="false"/>
+<stringAttribute key="USER_DEFINED_CONTROL_PLANE_APPLICATION" value="alvs_cp/Release/alvs_cp"/>
+<booleanAttribute key="USE_USER_DEFINED_CONTROL_PLANE_APPLICATION" value="true"/>
+<stringAttribute key="com.ezchip.ezide.host.launch.USER_DEFINED_CONTROL_PLANE_APPLICATION_ARGUMENTS!" value=""/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_CONNECTION_INFO_SOURCE!" value="STATIC"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_VPCI_INTERRUPT_PORT!" value="4510"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_VPCI_PORT!" value="4509"/>
+<stringAttribute key="com.ezchip.ezide.host.launch.configScriptArgs" value="${cp_ip} ${cp_agent_port} ${ezdk_base}"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.FRAME_IN_FOLDER!" value=""/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.NET_IF_CONNECT!" value="true"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SEARCH_ENTRIES_FILE!" value="demo_target/config/search_entries.xml"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SERIAL_CONSOLE_APP_CMD!" value="/usr/bin/xterm -title 'EZsim console' -e 'minicom -o -c on -w -p &lt;serial_if_name&gt;'"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SERIAL_IF_CONNECT!" value="true"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SERIAL_IF_CREATE!" value="true"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SERIAL_NAME!" value=""/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SERIAL_USER_DEFINED_COMMAND!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SERIAL_USER_DEFINED_NAME!" value="false"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.TAP_COMMAND!" value="${ezdk_base}/tools/EZtap/bin/EZtap_linux_x86_64 -ip 192.168.0.0 -mask 255.255.255.0"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.LINUX_CMD_LINE!" value=""/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SIM_ADDITIONAL_ARGS!" value=""/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK!" value="0x0000F"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_BMU_LOG!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_DESCRIPTORS_LOG!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_EZSIM_LOG!" value="true"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_FRAME_FLOW_LOG!" value="true"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_NDMA_LOG!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_PMU_LOG!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_PROBLEM_LOG!" value="true"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_REPORT_LOG!" value="true"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_SEARCH_LOG!" value="false"/>
+<booleanAttribute key="com.ezchip.ezide.sim.launch.SIM_LOG_MASK_ENABLE_TM_LOG!" value="false"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.SIM_SIMULATE_OPTION!" value="0"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.THREADS_PER_CORE_OPTION!" value="16"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="demo_target"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/demo_target"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
+</launchConfiguration>

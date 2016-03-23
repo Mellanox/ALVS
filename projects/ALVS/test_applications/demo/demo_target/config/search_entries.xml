@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfg:systemConfig version="2.0a" xmlns:cfg="NPS/cfg"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="cfg:EZSearchEntries">
+    <cfg:struct>
+       <cfg:entries>
+          <cfg:entry>
+             <cfg:StructId>0</cfg:StructId>
+             <cfg:Key>000000</cfg:Key>
+             <cfg:Result>0000000000180000</cfg:Result>
+             <cfg:Enforce/>
+          </cfg:entry>
+          <cfg:entry>
+             <cfg:StructId>0</cfg:StructId>
+             <cfg:Key>000001</cfg:Key>
+             <cfg:Result>0000000000280000</cfg:Result>
+             <cfg:Enforce/>
+          </cfg:entry>
+          <cfg:entry>
+             <cfg:StructId>0</cfg:StructId>
+             <cfg:Key>000002</cfg:Key>
+             <cfg:Result>0000000000380000</cfg:Result>
+             <cfg:Enforce/>
+          </cfg:entry>
+          <cfg:entry>
+             <cfg:StructId>0</cfg:StructId>
+             <cfg:Key>000003</cfg:Key>
+             <cfg:Result>0000000000480000</cfg:Result>
+             <cfg:Enforce/>
+          </cfg:entry>
+       </cfg:entries>
+    </cfg:struct>
+</cfg:systemConfig>

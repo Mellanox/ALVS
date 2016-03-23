@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="cdt.managedbuild.target.gnu.exe.0">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.target.gnu.exe.0" moduleId="org.eclipse.cdt.core.settings" name="Debug">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.target.gnu.exe.0" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug">
+					<folderInfo id="cdt.managedbuild.target.gnu.exe.0." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.1670042521" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug">
+							<targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.debug.2053281805" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.debug"/>
+							<builder buildPath="${workspace_loc:/alvs_cp}/Debug" id="cdt.managedbuild.target.gnu.builder.exe.debug.1051642468" name="Gnu Make Builder.Debug" superClass="cdt.managedbuild.target.gnu.builder.exe.debug"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.911538840" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1131376009" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug">
+								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.130634414" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1974192912" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.700432439" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
+								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.exe.debug.option.optimization.level.998396369" superClass="gnu.c.compiler.exe.debug.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.exe.debug.option.debugging.level.637630846" superClass="gnu.c.compiler.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.109945715" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/home/anat/workspace/alvs/workspace/alvs_cp/src"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/alvs/workspace/demo dp/src"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/env/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//dpe/dp/include"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1875465464" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.2011185663" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
+								<option id="gnu.c.link.option.libs.285547815" superClass="gnu.c.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value=":EZagt_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZagt-cp_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZcp_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZdev_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZenv_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":libjsonrpcc.a"/>
+									<listOptionValue builtIn="false" value=":libev.a"/>
+								</option>
+								<option id="gnu.c.link.option.paths.158922346" superClass="gnu.c.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/agt/agt/lib/"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/agt/agt-cp/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/cp/lib/"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/dev/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/env/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/jsonrpc-c/install/linux_x86_64/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/libev/install/linux_x86_64/lib/"/>
+								</option>
+								<option id="gnu.c.link.option.ldflags.1739950231" superClass="gnu.c.link.option.ldflags" value="-pthread -lm" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1977966654" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1268289066" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.92334253" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1689042343" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.target.gnu.exe.1">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.target.gnu.exe.1" moduleId="org.eclipse.cdt.core.settings" name="Release">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.target.gnu.exe.1" name="Release" parent="cdt.managedbuild.config.gnu.exe.release">
+					<folderInfo id="cdt.managedbuild.target.gnu.exe.1." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.release.2012630125" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.release">
+							<targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.release.1891566651" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.release"/>
+							<builder buildPath="${workspace_loc:/alvs_cp}/Release" id="cdt.managedbuild.target.gnu.builder.exe.release.160865206" name="Gnu Make Builder.Release" superClass="cdt.managedbuild.target.gnu.builder.exe.release"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.393348069" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.364923878" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release">
+								<option id="gnu.cpp.compiler.exe.release.option.optimization.level.901688830" superClass="gnu.cpp.compiler.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.exe.release.option.debugging.level.799135518" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.1625572778" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
+								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.exe.release.option.optimization.level.961774066" superClass="gnu.c.compiler.exe.release.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.exe.release.option.debugging.level.971804393" superClass="gnu.c.compiler.exe.release.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.1403712972" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/home/anat/workspace/alvs/workspace/alvs_cp/src"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/alvs/workspace/demo dp/src"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//cpe/env/include"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a//dpe/dp/include"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1308947910" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.172909211" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release">
+								<option id="gnu.c.link.option.libs.1237446221" superClass="gnu.c.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value=":EZagt_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZagt-cp_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZcp_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZdev_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":EZenv_linux_x86_64.a"/>
+									<listOptionValue builtIn="false" value=":libjsonrpcc.a"/>
+									<listOptionValue builtIn="false" value=":libev.a"/>
+								</option>
+								<option id="gnu.c.link.option.paths.384737740" superClass="gnu.c.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/agt/agt/lib/"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/agt/agt-cp/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/cp/lib/"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/dev/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/env/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/jsonrpc-c/install/linux_x86_64/lib"/>
+									<listOptionValue builtIn="false" value="/home/anat/workspace/solutions/sdk/EZdk-2.0a/cpe/libev/install/linux_x86_64/lib/"/>
+								</option>
+								<option id="gnu.c.link.option.ldflags.474905775" superClass="gnu.c.link.option.ldflags" value="-pthread -lm" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.481775754" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.643517606" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.613446302" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1803010430" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.pathentry"/>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="alvs_cp.cdt.managedbuild.target.gnu.exe.1675934024" name="Executable" projectType="cdt.managedbuild.target.gnu.exe"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.target.gnu.exe.0;cdt.managedbuild.target.gnu.exe.0.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.700432439;cdt.managedbuild.tool.gnu.c.compiler.input.1875465464">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.target.gnu.exe.1;cdt.managedbuild.target.gnu.exe.1.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.1625572778;cdt.managedbuild.tool.gnu.c.compiler.input.1308947910">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+	</storageModule>
+</cproject>
