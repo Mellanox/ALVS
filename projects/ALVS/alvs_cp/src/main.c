@@ -16,14 +16,19 @@
 #include <EZapiStruct.h>
 #include <EZapiPrm.h>
 #include <EZapiCP.h>
-#include <cli.h>
 
+#include <EZapiStruct.h>
+#include <EZagtRPC.h>
+#include <EZagtCPMain.h>
+#include <EZsocket.h>
+#include <EZenv.h>
+#include <EZdev.h>
 
+#include "utils.h"
 
 /******************************************************************************/
 
 extern EZbool           EZdevSim_WaitForInitSocket( EZui32 uiNumberOfConnections );
-extern unsigned int   agt_enabled;
 
 /******************************************************************************
 * Name:     init_cp
@@ -137,12 +142,8 @@ int       main( void )
       return ret_val;
    };
 
-   /**********************************/
-   /* Run menu for user input        */
-   /***************************** ****/
 
-   cp_menu_CLI();
-
+   while(1){}
    delete_cp();
    delete_board();
 
@@ -574,17 +575,7 @@ static
 status    delete_cp( void )
 {
    EZstatus   ez_ret_val = EZok;
-   status     ret_val = SUCCESS;
 
-   if( agt_enabled )
-   {
-      ret_val = delete_agt();
-      if( FAILED == ret_val )
-      {
-         printf("delete_cp: delete_agt failed.\n" );
-         return ret_val;
-      }
-   }
 
    ez_ret_val = EZapiCP_Delete( );
    if( EZrc_IS_ERROR( ez_ret_val ) )
