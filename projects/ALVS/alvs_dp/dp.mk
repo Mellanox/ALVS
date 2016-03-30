@@ -11,8 +11,21 @@ DP_C_SRCS = $(shell ls $(DP_BASE)src/*.c)
 DP_OBJS =$(DP_C_SRCS:.c=.o)
 DP_C_DEPS =$(DP_C_SRCS:.c=.d)
 
+DP_C_FLAGS := 
 
+ifndef DEBUG
+DP_C_FLAGS += -DNDEBUG -O2
+else
+DP_C_FLAGS += -O1 -g3 -ftree-ter  -gdwarf-2
+endif
+
+ifndef SIM
 DP_LIBS := -l:ezdp_linux_arc.a -l:ezframe_linux_arc.a -l:dpi_linux_arc.a -l:sft_linux_arc.a
+DP_C_FLAGS += 
+else
+DP_C_FLAGS += -DEZ_SIM
+DP_LIBS := -l:ezdp_linux_arc_sim.a -l:ezframe_linux_arc_sim.a -l:dpi_linux_arc_sim.a -l:sft_linux_arc_sim.a
+endif
 
 # Tool invocations
 alvs_dp: $(DP_OBJS) 
@@ -26,7 +39,7 @@ alvs_dp: $(DP_OBJS)
 %.o: %.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: ARC GNU C Compiler'
-	arceb-linux-gcc -DNDEBUG -O2 -Wall -c -fmessage-length=0 -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" $(DP_INC) -o "$@" "$<"
+	arceb-linux-gcc $(DP_C_FLAGS) -Wall -c -fmessage-length=0 -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" $(DP_INC) -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
