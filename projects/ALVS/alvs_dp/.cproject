@@ -18,7 +18,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.ide.debug.arc.sim.148933801." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.ide.1502696353" name="ARC DP" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.ide">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.543410235" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
-							<builder buildPath="${workspace_loc:/alvs_dp}/Debug-Sim" id="cdt.managedbuild.target.gnu.builder.ide.debug.arc.sim.1790671239" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.debug.arc.sim"/>
+							<builder buildPath="${workspace_loc:/alvs_dp}" command="make" id="cdt.managedbuild.target.gnu.builder.ide.debug.arc.sim.1790671239" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.debug.arc.sim"/>
 							<tool id="cdt.managedbuild.tool.gnu.arc.dp.debug_sim.c.compiler.605168817" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.dp.debug_sim.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.optimize" id="arc.c.compiler.option.optimization.level.1664965907" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.1395702554" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
@@ -60,7 +60,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.ide.release.arc.sim.1445577212." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.ide.821701185" name="ARC DP" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.ide">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.832153948" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
-							<builder buildPath="${workspace_loc:/alvs_dp}/Release-Sim" id="cdt.managedbuild.target.gnu.builder.ide.release.arc.sim.1102906360" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.release.arc.sim"/>
+							<builder buildPath="${workspace_loc:/alvs_dp}" command="make" id="cdt.managedbuild.target.gnu.builder.ide.release.arc.sim.1102906360" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.release.arc.sim"/>
 							<tool id="cdt.managedbuild.tool.gnu.arc.release_sim.c.compiler.1305168940" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.release_sim.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.1866852480" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.1638263550" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
@@ -102,7 +102,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.ide.debug.arc.chip.308481240." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.chip.debug.ide.35280339" name="ARC DP" superClass="cdt.managedbuild.toolchain.gnu.base.arc.chip.debug.ide">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.531294275" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
-							<builder buildPath="${workspace_loc:/alvs_dp}/Debug" id="cdt.managedbuild.target.gnu.builder.ide.debug.arc.chip.1308440803" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.debug.arc.chip"/>
+							<builder buildPath="${workspace_loc:/alvs_dp}" command="make" id="cdt.managedbuild.target.gnu.builder.ide.debug.arc.chip.1308440803" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.debug.arc.chip"/>
 							<tool id="cdt.managedbuild.tool.gnu.arc.dp.debug_chip.c.compiler.1778249814" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.dp.debug_chip.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.optimize" id="arc.c.compiler.option.optimization.level.372112783" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.2051816402" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
@@ -144,7 +144,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.ide.release.arc.chip.602478585." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.chip.release.ide.403912466" name="ARC DP" superClass="cdt.managedbuild.toolchain.gnu.base.arc.chip.release.ide">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.813205319" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
-							<builder buildPath="${workspace_loc:/alvs_dp}/Release" id="cdt.managedbuild.target.gnu.builder.ide.release.arc.chip.673161586" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.release.arc.chip"/>
+							<builder buildPath="${workspace_loc:/alvs_dp}" command="make" id="cdt.managedbuild.target.gnu.builder.ide.release.arc.chip.673161586" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.ide.release.arc.chip"/>
 							<tool id="cdt.managedbuild.tool.gnu.arc.release_chip.c.compiler.303963237" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.release_chip.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.291972704" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.1217547836" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
@@ -189,4 +189,18 @@
 		</scannerConfigBuildInfo>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/alvs_dp"/>
+		</configuration>
+		<configuration configurationName="Debug-Sim">
+			<resource resourceType="PROJECT" workspacePath="/alvs_dp"/>
+		</configuration>
+		<configuration configurationName="Release-Sim">
+			<resource resourceType="PROJECT" workspacePath="/alvs_dp"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/alvs_dp"/>
+		</configuration>
+	</storageModule>
 </cproject>
