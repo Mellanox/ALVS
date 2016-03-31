@@ -116,7 +116,7 @@ int       main( void )
    /************************************************/
    /* Initializing CP SDK host components          */
    /************************************************/
-
+   printf("init board...\n");
    ret_val = init_board();
    if ( FAILED == ret_val )
    {
@@ -124,6 +124,7 @@ int       main( void )
       return ret_val;
    }
 
+   printf("init cp...\n");
    ret_val = init_cp();
    if ( FAILED == ret_val )
    {
@@ -135,6 +136,7 @@ int       main( void )
    /* Initializing control plane components        */
    /************************************************/
 
+   printf("setup chip...\n");
    ret_val = setup_chip();
    if ( FAILED == ret_val )
    {
@@ -444,6 +446,7 @@ status    setup_chip( void )
       printf("setup_chip: EZapiChannel_Go failed.\n" );
       return FAILED;
    }
+   printf("Done\n" );
 
    return SUCCESS;
 }

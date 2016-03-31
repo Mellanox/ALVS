@@ -127,9 +127,7 @@ void		  packet_processing(void)
 
 		/* === Transmit Frame === */
 		/* transmit frame to the same input interface */
-		ezframe_send_to_if(  &frame,
-		                     logical_id,
-		                     0);
+		ezframe_send_to_tm(&frame,0,0,0,NULL,0);
 	} /* while (true) */
 }
 

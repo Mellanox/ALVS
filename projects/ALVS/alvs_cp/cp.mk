@@ -11,6 +11,11 @@ CP_OBJS =$(CP_C_SRCS:.c=.o)
 CP_C_DEPS =$(CP_C_SRCS:.c=.d)
 CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a
 
+ifndef DEBUG
+CP_C_FLAGS := -O3
+else
+CP_C_FLAGS := -O0 -g3
+endif
 
 # Tool invocations
 alvs_cp: $(CP_OBJS) $(USER_CP_OBJS)
@@ -24,7 +29,7 @@ alvs_cp: $(CP_OBJS) $(USER_CP_OBJS)
 %.o: %.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc $(CP_INC) -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	gcc $(CP_INC) $(CP_C_FLAGS) -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

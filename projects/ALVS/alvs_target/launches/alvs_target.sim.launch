@@ -63,5 +63,11 @@
 <stringAttribute key="com.ezchip.ezide.sim.launch.THREADS_PER_CORE_OPTION!" value="1"/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.WORK_FOLDER!" value="alvs_target/work"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="alvs_target"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/alvs_target"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
 <stringAttribute key="pythonConfigFile" value="alvs_target/config/config_main.py"/>
 </launchConfiguration>
