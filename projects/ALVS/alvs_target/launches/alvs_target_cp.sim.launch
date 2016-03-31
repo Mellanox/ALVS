@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="com.ezchip.ezide.launchConfigurationType.sim">
-<stringAttribute key="USER_DEFINED_CONTROL_PLANE_APPLICATION" value="/home/anat/workspace/solutions/sandbox/ALVS/projects/ALVS/alvs_cp/bin/alvs_cp"/>
+<stringAttribute key="USER_DEFINED_CONTROL_PLANE_APPLICATION" value="/home/anat/workspace/solutions/sandbox/ALVS/projects/ALVS/bin/alvs_cp"/>
 <booleanAttribute key="USE_USER_DEFINED_CONTROL_PLANE_APPLICATION" value="true"/>
 <stringAttribute key="com.ezchip.ezide.host.launch.LOG_LEVEL_INFO!" value=""/>
 <stringAttribute key="com.ezchip.ezide.host.launch.USER_DEFINED_CONTROL_PLANE_APPLICATION_ARGUMENTS!" value=""/>
