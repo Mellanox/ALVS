@@ -1,7 +1,7 @@
 RM := rm -rf
 ENV_BASE := ../..
 
-EZDK_BASE := $(ENV_BASE)/$(shell readlink $(ENV_BASE)/EZdk)
+EZDK_BASE := $(shell readlink $(ENV_BASE)/EZdk)
 PATH := $(PATH):$(abspath $(EZDK_BASE)ldk/toolchain/bin)
 
 DP_BIN := bin/alvs_dp
