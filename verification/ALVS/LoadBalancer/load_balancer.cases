@@ -4,17 +4,15 @@
         <Test>
             <info> basic </info>
             <name> basic </name>
-            <owner> oza </owner>
+            <owner> kobis </owner>
             
+            <!-- TODO delete the follwoing -->
             <tags> tools </tags>
             <tags> ACL </tags>
-            <tags> basic </tags>
-            
+            <tags> basic </tags>            
         </Test>
         <Case>
-                <!-- Change wrapper to run from git -->
-            <wrapper> LoadBalancerWrapper.py </wrapper>
-            <tout>  86400 </tout>
+            <tout>  300 </tout>
 
             <pre> </pre>
 
@@ -23,11 +21,33 @@
     </global>
     
     <case> 
+        <info> Simple test </info>
+        <name> SimpleTest </name>
+        
+        <tags> simple_test </tags>
+        
+        <!-- Change wrapper to run from git -->
+        <wrapper> LoadBalancerWrapper.py </wrapper>
+        <pre> </pre>
+
+        <cmd>
+             <params> 
+                 <static_args> --param hello_world </static_args>
+             </params> 
+        </cmd>
+
+        <post> </post>
+    </case>
+
+
+    <case> 
         <info> Load Balancer Basic </info>
         <name> LoadBalancerBasic </name>
         
         <tags> load_balancer_basic </tags>
         
+        <!-- Change wrapper to run from git -->
+        <wrapper> ClientWrapper.py </wrapper>
         <pre> </pre>
 
         <cmd>
