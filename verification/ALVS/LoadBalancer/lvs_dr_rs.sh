@@ -5,11 +5,12 @@ function usage()
 	cat <<EOF
 Usage: $script_name [VIP]
 This script runs host target with hello_packet_target input configuration
-VIP:        virtual IP address
+VIP:           virtual IP address
+server Name:   server name (used by index.xhml
 
 
 Examples:
-$script_name 192.168.1.100
+$script_name 192.168.1.100 nps001
 
 EOF
    exit 1
@@ -18,8 +19,9 @@ EOF
 
 function parse_cmd()
 {
-	test $# -ne 1 && usage
+	test $# -ne 2 && usage
 	vip=$1
+	servername=$2
 		
 	echo "virtual IP = $vip"	
 }
@@ -45,6 +47,9 @@ function setup_ipvs()
 
     echo "2" >/proc/sys/net/ipv4/conf/all/arp_announce
     echo "2" >/proc/sys/net/ipv4/conf/eth0/arp_announce
+
+    echo "set index.xml"
+    echo $servername >/var/www/html/index.html
 
 
 }
