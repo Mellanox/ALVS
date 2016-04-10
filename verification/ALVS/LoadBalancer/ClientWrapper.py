@@ -103,7 +103,7 @@ if __name__ == "__main__":
     print sys.argv
     print ''
     print '---M a i n   S t a r t e d---'
-    rc = main()
+    rc = True #main()
     if (rc == True):
         print '----M a i n   E n d e d successfully------'
     else:
