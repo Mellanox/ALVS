@@ -26,27 +26,18 @@
 
 /***************** global CMEM data *************************/
 
-bool cancel_frame_signal __cmem_var = false;
-      /**< cancel frame signal */
-
 ezframe_t			frame 								__cmem_var;
 		/**< Frame	*/
 
 uint8_t				frame_data[EZFRAME_BUF_DATA_SIZE] 	__cmem_var;
 		/**< Frame data buffer */
 
-bool cancel_frame_required(void) __fast_path_code;
-bool cancel_frame_required()
-{
-   return (cancel_frame_signal);
-}
-ezframe_cancel_required_register(cancel_frame_required);
 
 
 void  set_gracefull_stop(void);
 void  set_gracefull_stop()
 {
-   cancel_frame_signal = true;
+	ezframe_set_cancel_signal();
 }
 
 
@@ -96,7 +87,7 @@ void		  packet_processing(void)
 	while (true)
 	{
 		/* === Receive Frame === */
-		logical_id = ezframe_receive(&frame, 0);
+		logical_id = ezframe_receive(&frame, EZFRAME_HANDLE_FRAME_CANCEL);
 
 		/* ===  received cancel frame === */
 		if(unlikely(logical_id == -1))
@@ -141,8 +132,8 @@ int			main(void)
 	uint32_t  result;
 
 	/* listen to the SHUTDOWN signal to handle terminate signal from the simulator */
-	signal(SIGINT,  signal_terminate_handler);
-	signal(SIGTERM, signal_terminate_handler);
+	signal(SIGINT,  signal_terminate_handler_gracefully_stop);
+	signal(SIGTERM, signal_terminate_handler_gracefully_stop);
 	signal(SIGILL,  signal_terminate_handler);
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS,  signal_terminate_handler);
