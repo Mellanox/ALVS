@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import urllib2
 import sys
 from optparse import OptionParser
@@ -40,17 +42,17 @@ def main():
     parser.add_option("-s0", "--expect_res_server0", dest="expect_res_server0",
                       help="Expected response from server 0", default=0, type="int")
     parser.add_option("-s1", "--expect_res_server1", dest="expect_res_server1",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 1", default=0, type="int")
     parser.add_option("-s2", "--expect_res_server2", dest="expect_res_server2",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 2", default=0, type="int")
     parser.add_option("-s3", "--expect_res_server3", dest="expect_res_server3",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 3", default=0, type="int")
     parser.add_option("-s4", "--expect_res_server4", dest="expect_res_server4",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 4", default=0, type="int")
     parser.add_option("-s5", "--expect_res_server5", dest="expect_res_server5",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 5", default=0, type="int")
     parser.add_option("-s6", "--expect_res_server6", dest="expect_res_server6",
-                      help="Expected response from server 0", default=0, type="int")
+                      help="Expected response from server 6", default=0, type="int")
 
     (options, args) = parser.parse_args()
     if not options.http_ip:
