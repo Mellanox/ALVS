@@ -17,13 +17,12 @@ class LoadBalancerWrapper(StandaloneWrapper):
         super(LoadBalancerWrapper, self).configure_parser()
         self.add_cmd_argument('-i',  help='IP of the HTTP server')
         self.add_cmd_argument('-r',  help='Number of HTTP requests', default=1)
-        self.add_cmd_argument('-s0', help='Expected response from server 0', default=0)
-        self.add_cmd_argument('-s1', help='Expected response from server 1', default=0)
-        self.add_cmd_argument('-s2', help='Expected response from server 2', default=0)
-        self.add_cmd_argument('-s3', help='Expected response from server 3', default=0)
-        self.add_cmd_argument('-s4', help='Expected response from server 4', default=0)
-        self.add_cmd_argument('-s5', help='Expected response from server 5', default=0)
-        self.add_cmd_argument('-s6', help='Expected response from server 6', default=0)
+        self.add_cmd_argument('--s1', help='Expected response from server 1', default=0)
+        self.add_cmd_argument('--s2', help='Expected response from server 2', default=0)
+        self.add_cmd_argument('--s3', help='Expected response from server 3', default=0)
+        self.add_cmd_argument('--s4', help='Expected response from server 4', default=0)
+        self.add_cmd_argument('--s5', help='Expected response from server 5', default=0)
+        self.add_cmd_argument('--s6', help='Expected response from server 6', default=0)
         
 
 if __name__ == "__main__":
