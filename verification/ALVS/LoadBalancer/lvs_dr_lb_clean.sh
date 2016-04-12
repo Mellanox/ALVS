@@ -22,8 +22,6 @@ function clean_setup_ipvs()
 #              Main                     #
 #                                       #
 #########################################
-trap "exit" INT TERM
-trap "kill 0" EXIT
 clean_setup_ipvs
 echo "All done!"
 

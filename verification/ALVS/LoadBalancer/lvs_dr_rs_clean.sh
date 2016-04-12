@@ -31,9 +31,7 @@ function clean_setup_ipvs()
 #              Main                     #
 #                                       #
 #########################################
-trap "exit" INT TERM
-trap "kill 0" EXIT
-echo "Cleaning HTTP server setup for IPVS"
+cho "Cleaning HTTP server setup for IPVS"
 clean_setup_ipvs
 echo "All done!"
 

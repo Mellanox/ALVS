@@ -60,8 +60,6 @@ function setup_ipvs()
 #              Main                     #
 #                                       #
 #########################################
-trap "exit" INT TERM
-trap "kill 0" EXIT
 parse_cmd $@
 setup_ipvs
 echo "All done!"
