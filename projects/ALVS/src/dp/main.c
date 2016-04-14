@@ -14,80 +14,51 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <sys/wait.h>
 
 /* dp includes */
 #include <ezdp.h>
 #include <ezframe.h>
 
+/*internal includes*/
+#include "defs.h"
+#include "alvs_dp_defs.h"
+#include "cmem_defs.h"
+#include "nps_host.h"
+#include "nps_parse.h"
 
-/*****************  definitions  *************************/
-#define			__fast_path_code						__imem_1_cluster_func
+/******************************************************************************
+ * Globals
+ *****************************************************************************/
 
+alvs_cmem			cmem        __cmem_var;
+alvs_shared_cmem  	shared_cmem __cmem_shared_var;
 
-/***************** global CMEM data *************************/
-
-ezframe_t			frame 								__cmem_var;
-		/**< Frame	*/
-
-uint8_t				frame_data[EZFRAME_BUF_DATA_SIZE] 	__cmem_var;
-		/**< Frame data buffer */
-
-
-
-void  set_gracefull_stop(void);
-void  set_gracefull_stop()
-{
-	ezframe_set_cancel_signal();
-}
-
-
-/************************************************************************
- * \brief      signal terminate handler
- *
- * \note       assumes num_cpus==0 if and only if child process
- *
- * \return     void
- */
-void       signal_terminate_handler_gracefully_stop( int signum __unused );
-void       signal_terminate_handler_gracefully_stop( int signum __unused )
-{
-      set_gracefull_stop();
-}
-
-/************************************************************************
- * \brief      signal terminate handler
- *
- * \note       assumes num_cpus==0 if and only if child process
- *
- * \return     void
- */
-void       signal_terminate_handler( int signum __unused );
-void       signal_terminate_handler( int signum __unused )
-{
-   abort();
-}
+extern void			signal_terminate_handler( int signum );
+extern void       	signal_terminate_handler_gracefully_stop( int signum );
+extern void			add_run_cpus( char* processors_str );
+extern bool			is_child_process;
+extern uint32_t 	num_cpus;
+extern int32_t 		run_cpus[];
+extern uint32_t 	pids[];
 
  /******************************************************************************
  * \brief		Main packet processing function
  *
- *
  * \note		 Receive frame
- *				 Load (DMA) the first frame buffer to CMEM
- *				 Print "Hello Packet" message
- *				 Transmit the received frame to the port 0
- *
+
  * \return	  void
  */
 void		  packet_processing(void) __fast_path_code;
 void		  packet_processing(void)
 {
-	uint8_t *frame_base;
 	int32_t logical_id;
 
 	while (true)
 	{
 		/* === Receive Frame === */
-		logical_id = ezframe_receive(&frame, EZFRAME_HANDLE_FRAME_CANCEL);
+		logical_id = ezframe_receive(&cmem.frame, EZFRAME_HANDLE_FRAME_CANCEL);
 
 		/* ===  received cancel frame === */
 		if(unlikely(logical_id == -1))
@@ -96,40 +67,147 @@ void		  packet_processing(void)
 		}
 
 		/* === Check validity of received frame === */
-		if(ezframe_valid(&frame) != 0)
+		if(ezframe_valid(&cmem.frame) != 0)
 		{
-			printf("Frame is invalid - Free frame \n");
-			ezframe_free(&frame, 0);
+			printf("Frame is invalid - send to host!\n");
+			send_frame_to_host(ALVS_EZFRAME_VALIDATION_FAIL);
 			continue;
 		}
 
-		/* === Load Data of first frame buffer === */
-		frame_base = ezframe_load_buf(&frame, frame_data, NULL, 0);
-
-		/* === Print hello packet message === */
-		printf("!!!Hello Packet!!!\n");
-		printf("		Packet length: %d\n", ezframe_get_len(&frame));
-		printf("		Packet data: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x  ...\n",
-				frame_base[0],  frame_base[1],  frame_base[2],  frame_base[3],
-				frame_base[4],  frame_base[5],  frame_base[6],  frame_base[7],
-				frame_base[8],  frame_base[9],  frame_base[10], frame_base[11],
-				frame_base[12], frame_base[13], frame_base[14], frame_base[15]);
-
-
-		/* === Transmit Frame === */
-		/* transmit frame to the same input interface */
-		ezframe_send_to_tm(&frame,0,0,0,NULL,0);
+		parse_and_validate_frame(logical_id);
 	} /* while (true) */
 }
 
+/******************************************************************************
+ * \brief		 Initialize shared CMEM constructor
+ *
+ * \return	  true/false (success / failed )
+ */
+bool init_shared_cmem( void );
+bool init_shared_cmem( void )
+{
+	uint32_t  result __unused;
 
+	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
+
+	/*Init services DB*/
+	result =  ezdp_init_hash_struct_desc(ALVS_STRUCT_ID_SERVICES,
+	                                     &shared_cmem.services_struct_desc,
+	                                     cmem.service_hash_wa,
+										 sizeof(cmem.service_hash_wa));
+	if (result != 0)
+	{
+		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_SERVICES, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	result =  ezdp_validate_hash_struct_desc( &shared_cmem.services_struct_desc,
+	                                  	  	  true,
+											  sizeof(struct alvs_service_key),
+											  sizeof(struct alvs_services_result),
+											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_services_result),sizeof(struct alvs_service_key))));
+	if (result != 0)
+	{
+		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_SERVICES, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	/*Init arp DB*/
+	result =  ezdp_init_hash_struct_desc(ALVS_STRUCT_ID_ARP,
+	                                     &shared_cmem.arp_struct_desc,
+	                                     cmem.arp_hash_wa,
+										 sizeof(cmem.arp_hash_wa));
+	if (result != 0)
+	{
+		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_ARP, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	result =  ezdp_validate_hash_struct_desc( &shared_cmem.arp_struct_desc,
+	                                  	  	  true,
+											  sizeof(struct alvs_arp_key),
+											  sizeof(struct alvs_arp_result),
+											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_arp_result),sizeof(struct alvs_arp_key))));
+	if (result != 0)
+	{
+		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_ARP, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	return true;
+}
+
+
+/******************************************************************************
+ * \brief		 Call back function for Initializing memory
+ *
+ * \return	  true/false (success / failed )
+ */
+bool init_memory( enum ezdp_data_mem_space    data_ms_type, uintptr_t user_data __unused);
+bool init_memory( enum ezdp_data_mem_space    data_ms_type, uintptr_t user_data __unused)
+{
+	switch (data_ms_type)
+	{
+	case EZDP_SHARED_CMEM_DATA:
+		return init_shared_cmem();
+
+	default:
+		return true;
+	}
+}
+
+/************************************************************************
+ * \brief	Parses the run-time arguments of the application.
+ *
+ * \return	void
+ */
+static
+void		parse_arguments(int argc,
+							char **argv,
+							uint32_t *num_cpus_set_p)
+{
+	int idx;
+	(*num_cpus_set_p) = 0;
+
+	for ( idx = 1 ; idx < argc ; )
+	{
+		if ( argv[ idx ][ 0 ] == '-' )
+		{
+			if ( strcmp( argv[ idx ], "-run_cpus" ) == 0 )
+			{
+				add_run_cpus( argv[ idx+1 ] );
+				(*num_cpus_set_p) = 1;
+				idx += 2;
+			}
+			else
+			{
+				printf("An unrecognized argument was found: %s\n", argv[ idx ]);
+				idx++;
+			}
+		}
+		else
+		{
+			printf("An unrecognized argument was found: %s\n", argv[ idx ]);
+			idx++;
+		}
+	}
+}
 
 /******************************************************************************
 * \brief		 Main function
 */
-int			main(void)
+int			main( int argc, char **argv )
 {
-	uint32_t  result;
+	struct ezdp_mem_section_info   mem_info;
+	int32_t                        cpid = 0;
+	uint32_t                       idx;
+	int32_t                        status;
+	uint32_t                       num_cpus_set;
+	uint32_t                       result;
 
 	/* listen to the SHUTDOWN signal to handle terminate signal from the simulator */
 	signal(SIGINT,  signal_terminate_handler_gracefully_stop);
@@ -137,40 +215,131 @@ int			main(void)
 	signal(SIGILL,  signal_terminate_handler);
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS,  signal_terminate_handler);
+	signal(SIGCHLD, SIG_IGN);
 
-    result = ezdp_sync_cp();
+	is_child_process = false;
+
+	/* Parse the run-time arguments */
+	parse_arguments( argc, argv, &num_cpus_set );
+
+	result = ezdp_sync_cp();
 	if(result != 0)
 	{
-		printf("ezdp_sync_cp failed. result %d %s\n", result, ezdp_get_err_msg());
-		return EXIT_FAILURE;
+		printf("ezdp_sync_cp failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
+		exit(1);
+	}
+
+	/* get memory section info */
+	ezdp_get_mem_section_info(&mem_info, 0);
+
+	/* print memory section info */
+	printf("%s\n", ezdp_mem_section_info_str(&mem_info));
+
+	/* validate that at least 256 bytes thread cache is enabled*/
+	if(mem_info.cache_size < 256)
+	{
+		printf("Too many cmem variables. Thread cache size is zero. private_cmem_size is %d shared_cmem_size is %d. Exiting... \n",
+				mem_info.private_cmem_size, mem_info.shared_cmem_size);
+		exit(1);
 	}
 
 	result = ezdp_init_global(0);
 	if(result != 0)
 	{
-		printf("ezdp_init_global failed. result %d %s\n", result, ezdp_get_err_msg());
-		return EXIT_FAILURE;
+		printf("ezdp_init_global failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
+		exit(1);
 	}
 
-	/* init the dp/application, bind to processor 0 */
-	result = ezdp_init_local( 0 , 16, NULL, 0, 0);
-	if(result != 0)
+	if ( !num_cpus_set )
 	{
-		printf("ezdp_init_local failed. result %d %s\n", result, ezdp_get_err_msg());
-		return EXIT_FAILURE;
+		/* run single process on processor 0*/
+		num_cpus = 1;
+
+		/* init the application */
+		result = ezdp_init_local( 0 , 16, init_memory, 0, 0);
+		if( result != 0 )
+		{
+			printf("ezdp_init_local failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
+			exit(1);
+		}
+		result = ezframe_init_local();
+		if ( result != 0 )
+		{
+			printf("ezframe_init_local failed. %d; %s. Exiting... \n", result, ezdp_get_err_msg());
+			exit(1);
+		}
+
+		/* call to packet processing function */
+		ezdp_run(&packet_processing, num_cpus);
+
+		return 0;
 	}
 
-	result = ezframe_init_local();
-	if (result != 0)
+	if ( num_cpus == 1 )
 	{
-		printf("ezframe_init_local failed. result %d %s\n", result, ezdp_get_err_msg());
-		return EXIT_FAILURE;
+		/* init the application */
+		result = ezdp_init_local( 0 , run_cpus[0], init_memory, 0, 0);
+		if( result != 0 )
+		{
+			printf("ezdp_init_local failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
+			exit(1);
+		}
+		result = ezframe_init_local();
+		if ( result != 0 )
+		{
+			printf("ezframe_init_local failed. %d; %s. Exiting... \n", result, ezdp_get_err_msg());
+			exit(1);
+		}
+
+		/* call to packet processing function */
+		ezdp_run(&packet_processing, num_cpus);
+
+		return 0;
 	}
 
-	/* call to packet processing function */
-	ezdp_run(&packet_processing, 0 );
+	for ( idx = 0; idx < num_cpus; idx++ )
+	{
+		cpid = fork();
 
-	return EXIT_SUCCESS;
+		if ( cpid == -1) /* error */
+		{
+			perror("Error creating child process - fork fail\n");
+			exit(1);
+		}
+
+		if ( cpid  == 0 ) 	/* code executed by child */
+		{
+			/* this will mark this process as a child process */
+			is_child_process = true;
+
+			/* init the dp/application */
+			result = ezdp_init_local( 0 , run_cpus[idx], init_memory, 0, 0);
+			if( result != 0 )
+			{
+				printf("ezdp_init_local failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
+				exit(1);
+			}
+			result = ezframe_init_local();
+			if ( result != 0 )
+			{
+				printf("ezframe_init_local failed. %d; %s. Exiting... \n", result, ezdp_get_err_msg());
+				exit(1);
+			}
+			/* call to packet processing function */
+			ezdp_run(&packet_processing, num_cpus );
+
+			return 0;
+		}
+		pids[idx] = cpid;
+	}
+
+	/* code executed by parent */
+	for ( idx = 0; idx < num_cpus; idx++ )
+	{
+		wait(&status);
+	}
+
+	return 0;
 }
 
 
