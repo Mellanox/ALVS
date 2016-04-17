@@ -17,6 +17,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Linux includes */
+#include <net/ethernet.h>
+#include <netinet/in.h>
+
 /* dp includes */
 #include <ezdp_search_defs.h>
 
