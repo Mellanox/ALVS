@@ -29,47 +29,19 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef ALVS_CLASSIFIER_H_
-#define ALVS_CLASSIFIER_H_
-
-#include "nw_routing.h"
+#ifndef NW_HOST_H_
+#define NW_HOST_H_
 
 /******************************************************************************
- * \brief	  do service classification  - 3 tuple - DIP, dest port and IP protocol
+ * \brief	  send frames to host
  * \return	  void
  */
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr);
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr)
+static __always_inline
+void nw_send_frame_to_host(void)
 {
-	 uint32_t						rc;
-	 uint32_t						found_result_size;
-	 struct  alvs_service_result    *service_res_ptr;
-	 struct tcphdr *tcp_hdr = (struct tcphdr*)((uint8_t*)ip_hdr + sizeof(struct iphdr));
-
-
-	 cmem.service_key.service_address 	= ip_hdr->daddr;
-	 cmem.service_key.service_protocol 	= ip_hdr->protocol;
-	 cmem.service_key.service_port	  	= tcp_hdr->dest;
-
-	 rc = ezdp_lookup_hash_entry(&shared_cmem.services_struct_desc,
-								 (void*)&cmem.service_key,
-								 sizeof(struct alvs_service_key),
-								 (void **)&service_res_ptr,
-								 &found_result_size,
-								 0,
-								 cmem.service_hash_wa,
-								 sizeof(cmem.service_hash_wa));
-
-	if (rc == 0)
-	{
-		nw_do_route(frame_base, service_res_ptr->real_server_ip);
-	}
-	else
-	{
-		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION, DP_NUM_COUNTERS_PER_INTERFACE, 1);
-		nw_send_frame_to_host();
-		return;
-	}
+	ezframe_send_to_if(	&cmem.frame,
+						ALVS_HOST_OUTPUT_CHANNEL_ID,
+						0);
 }
 
-#endif /* ALVS_CLASSIFIER_H_ */
+#endif /* NW_HOST_H_ */

@@ -29,47 +29,85 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef ALVS_CLASSIFIER_H_
-#define ALVS_CLASSIFIER_H_
 
-#include "nw_routing.h"
+
+#ifndef NW_ROUTING_H_
+#define NW_ROUTING_H_
+
+#include "nw_host.h"
+#include "nw_interface.h"
 
 /******************************************************************************
- * \brief	  do service classification  - 3 tuple - DIP, dest port and IP protocol
+ * \brief	  send frames to network ports
  * \return	  void
  */
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr);
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr)
+static __always_inline
+void nw_send_frame_to_network_interface(void)
+{
+	ezframe_send_to_if(	&cmem.frame,
+						cmem.mac_decode_result.da_sa_hash & 0x3,
+						0);
+}
+
+
+/******************************************************************************
+ * \brief	  perform arp lookup and modify l2 header before transmission
+ * \return	  void
+ */
+static __always_inline
+void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 {
 	 uint32_t						rc;
 	 uint32_t						found_result_size;
-	 struct  alvs_service_result    *service_res_ptr;
-	 struct tcphdr *tcp_hdr = (struct tcphdr*)((uint8_t*)ip_hdr + sizeof(struct iphdr));
+	 struct  alvs_arp_result   		*arp_res_ptr;
 
 
-	 cmem.service_key.service_address 	= ip_hdr->daddr;
-	 cmem.service_key.service_protocol 	= ip_hdr->protocol;
-	 cmem.service_key.service_port	  	= tcp_hdr->dest;
+	 cmem.arp_key.real_server_address 	= dest_ip;
 
-	 rc = ezdp_lookup_hash_entry(&shared_cmem.services_struct_desc,
-								 (void*)&cmem.service_key,
-								 sizeof(struct alvs_service_key),
-								 (void **)&service_res_ptr,
+	 rc = ezdp_lookup_hash_entry(&shared_cmem.arp_struct_desc,
+								 (void*)&cmem.arp_key,
+								 sizeof(struct alvs_arp_key),
+								 (void **)&arp_res_ptr,
 								 &found_result_size,
 								 0,
-								 cmem.service_hash_wa,
-								 sizeof(cmem.service_hash_wa));
+								 cmem.arp_hash_wa,
+								 sizeof(cmem.arp_hash_wa));
 
 	if (rc == 0)
 	{
-		nw_do_route(frame_base, service_res_ptr->real_server_ip);
+		struct ether_addr *dmac = (struct ether_addr *)frame_base;
+
+		//change dst mac
+		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
+
+		//copy src mac
+		nw_interface_lookup(arp_res_ptr->output_logical_id);
+		ezdp_mem_copy(dmac+sizeof(struct ether_addr), cmem.interface_result.mac_addres.ether_addr_octet, sizeof(struct ether_addr));
+
+		/* Store modified segment data */
+		rc = ezframe_store_buf(&cmem.frame,
+							   frame_base,
+							   ezframe_get_buf_len(&cmem.frame),
+							   0);
+		nw_send_frame_to_network_interface();
 	}
 	else
 	{
-		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP, DP_NUM_COUNTERS_PER_INTERFACE, 1);
 		nw_send_frame_to_host();
 		return;
 	}
 }
 
-#endif /* ALVS_CLASSIFIER_H_ */
+
+/******************************************************************************
+ * \brief	  peform nw route
+ * \return	  void
+ */
+static __always_inline
+void nw_do_route(uint8_t* frame_base, in_addr_t	dest_ip)
+{
+	nw_arp_processing(frame_base, dest_ip);
+}
+
+#endif /* NW_ROUTING_H_ */

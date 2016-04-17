@@ -29,47 +29,55 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef ALVS_CLASSIFIER_H_
-#define ALVS_CLASSIFIER_H_
-
-#include "nw_routing.h"
+#ifndef NW_INTERFACE_H_
+#define NW_INTERFACE_H_
 
 /******************************************************************************
- * \brief	  do service classification  - 3 tuple - DIP, dest port and IP protocol
+ * \brief	  interface lookup
  * \return	  void
  */
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr);
-void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr)
+static __always_inline
+uint32_t nw_interface_lookup(int32_t logical_id)
 {
-	 uint32_t						rc;
-	 uint32_t						found_result_size;
-	 struct  alvs_service_result    *service_res_ptr;
-	 struct tcphdr *tcp_hdr = (struct tcphdr*)((uint8_t*)ip_hdr + sizeof(struct iphdr));
-
-
-	 cmem.service_key.service_address 	= ip_hdr->daddr;
-	 cmem.service_key.service_protocol 	= ip_hdr->protocol;
-	 cmem.service_key.service_port	  	= tcp_hdr->dest;
-
-	 rc = ezdp_lookup_hash_entry(&shared_cmem.services_struct_desc,
-								 (void*)&cmem.service_key,
-								 sizeof(struct alvs_service_key),
-								 (void **)&service_res_ptr,
-								 &found_result_size,
-								 0,
-								 cmem.service_hash_wa,
-								 sizeof(cmem.service_hash_wa));
-
-	if (rc == 0)
-	{
-		nw_do_route(frame_base, service_res_ptr->real_server_ip);
-	}
-	else
-	{
-		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION, DP_NUM_COUNTERS_PER_INTERFACE, 1);
-		nw_send_frame_to_host();
-		return;
-	}
+	return  ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
+									logical_id,
+									&cmem.interface_result,
+									sizeof(struct  dp_interface_result),
+									0);
 }
 
-#endif /* ALVS_CLASSIFIER_H_ */
+/******************************************************************************
+ * \brief	  get interface dp path
+ * \return	  enum dp_path_type
+ */
+static __always_inline
+enum dp_path_type nw_interface_get_dp_path(int32_t logical_id)
+{
+	if (ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
+								logical_id,
+								&cmem.interface_result,
+								sizeof(struct  dp_interface_result),
+								0))
+	{
+		return cmem.interface_result.path_type;
+	}
+	return DP_PATH_NOT_VALID;
+}
+
+/******************************************************************************
+ * \brief	  increment interface stat counter by value
+ * \return	  void
+ */
+static __always_inline
+void nw_interface_inc_statistic_counter(uint8_t logical_id, uint32_t counter_id, uint16_t counters_per_interface, uint32_t value)
+{
+	struct ezdp_sum_addr temp_stat_address;
+
+	printf("frame send to logical ID = %d. counter ID = %d\n", logical_id, counter_id);
+
+	temp_stat_address.raw_data = shared_cmem.nw_interface_stats_base_address.raw_data;
+	temp_stat_address.element_index += (counters_per_interface << logical_id) + counter_id;
+	ezdp_add_posted_ctr_async(temp_stat_address.raw_data, value);
+}
+
+#endif /* ALVS_INTERFACE_H_ */

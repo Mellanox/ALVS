@@ -1,13 +1,33 @@
-/***************************************************************************
+/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
 *
-*						  Copyright by EZchip Technologies, 2012
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
 *
+* 1. Redistributions of source code must retain the above copyright
+*    notice, this list of conditions and the following disclaimer.
+* 2. Redistributions in binary form must reproduce the above copyright
+*    notice, this list of conditions and the following disclaimer in the
+*    documentation and/or other materials provided with the distribution.
+* 3. Neither the names of the copyright holders nor the names of its
+*    contributors may be used to endorse or promote products derived from
+*    this software without specific prior written permission.
 *
-*  Project:	 	NPS400 template application
-*  File:		main.c
-*  Desc:		Hello Packet in NPS
+* Alternatively, this software may be distributed under the terms of the
+* GNU General Public License ("GPL") version 2 as published by the Free
+* Software Foundation.
 *
-****************************************************************************/
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
 
 
 /* system includes */
@@ -25,8 +45,10 @@
 #include "defs.h"
 #include "alvs_dp_defs.h"
 #include "cmem_defs.h"
-#include "nps_host.h"
-#include "nps_parse.h"
+#include "nw_routing.h"
+#include "nw_host.h"
+#include "nw_parse.h"
+
 
 /******************************************************************************
  * Globals
@@ -70,11 +92,12 @@ void		  packet_processing(void)
 		if(ezframe_valid(&cmem.frame) != 0)
 		{
 			printf("Frame is invalid - send to host!\n");
-			send_frame_to_host(ALVS_EZFRAME_VALIDATION_FAIL);
+			nw_interface_inc_statistic_counter(logical_id, ALVS_EZFRAME_VALIDATION_FAIL, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_send_frame_to_host();
 			continue;
 		}
 
-		parse_and_validate_frame(logical_id);
+		nw_recieve_parse_frame(logical_id);
 	} /* while (true) */
 }
 
@@ -89,6 +112,27 @@ bool init_shared_cmem( void )
 	uint32_t  result __unused;
 
 	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
+
+	/*Init interfaces DB*/
+	result =  ezdp_init_table_struct_desc(ALVS_STRUCT_ID_INTERFACES,
+										 &shared_cmem.interface_struct_desc,
+										 cmem.table_work_area,
+										 sizeof(cmem.table_work_area));
+	if (result != 0)
+	{
+		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_INTERFACES, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	result =  ezdp_validate_table_struct_desc( &shared_cmem.interface_struct_desc,
+											  sizeof(struct dp_interface_result));
+	if (result != 0)
+	{
+		printf("ezdp_validate_table_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
+				ALVS_STRUCT_ID_INTERFACES, result, ezdp_get_err_msg());
+		return false;
+	}
 
 	/*Init services DB*/
 	result =  ezdp_init_hash_struct_desc(ALVS_STRUCT_ID_SERVICES,
@@ -105,8 +149,8 @@ bool init_shared_cmem( void )
 	result =  ezdp_validate_hash_struct_desc( &shared_cmem.services_struct_desc,
 	                                  	  	  true,
 											  sizeof(struct alvs_service_key),
-											  sizeof(struct alvs_services_result),
-											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_services_result),sizeof(struct alvs_service_key))));
+											  sizeof(struct alvs_service_result),
+											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_result),sizeof(struct alvs_service_key))));
 	if (result != 0)
 	{
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
@@ -137,6 +181,11 @@ bool init_shared_cmem( void )
 				ALVS_STRUCT_ID_ARP, result, ezdp_get_err_msg());
 		return false;
 	}
+
+	/*init stats addresses*/
+	shared_cmem.nw_interface_stats_base_address.mem_type		= EZDP_EXTERNAL_MS;
+	shared_cmem.nw_interface_stats_base_address.msid 			= ALVS_STATISTICS_MSID;
+	shared_cmem.nw_interface_stats_base_address.element_index 	= 0;
 
 	return true;
 }
