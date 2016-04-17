@@ -45,7 +45,6 @@ bool alvs_create_if_mapping(void)
 	EZstatus ez_ret_val;
 	EZapiChannel_EthIFParams eth_if_params;
 	EZapiChannel_EthRXChannelParams eth_rx_channel_params;
-	EZapiChannel_PMUQueueParams pmu_queue_params;
 
 	/* Configure external interfaces */
 	for(ind = 0; ind < ALVS_EXT_IF_NUM; ind++) {
@@ -111,4 +110,7 @@ bool alvs_create_if_mapping(void)
 
 	/* Configure PMU queues */
 	// Do nothing - Keep defaults
+
+
+	return true;
 }

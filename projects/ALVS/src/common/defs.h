@@ -133,7 +133,7 @@ struct  dp_interface_result
 			/*byte2-3*/
 			uint16_t										default_vlan				;
 			/*byte4-9*/
-			struct ether_addr         						mac_addres			     	;
+			struct ether_addr         						mac_address			     	;
 			/*byte10-15*/
 			uint8_t										 	rsrv[6];
 		}__packed;

@@ -82,7 +82,7 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 
 		//copy src mac
 		nw_interface_lookup(arp_res_ptr->output_logical_id);
-		ezdp_mem_copy(dmac+sizeof(struct ether_addr), cmem.interface_result.mac_addres.ether_addr_octet, sizeof(struct ether_addr));
+		ezdp_mem_copy(dmac+sizeof(struct ether_addr), cmem.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */
 		rc = ezframe_store_buf(&cmem.frame,
