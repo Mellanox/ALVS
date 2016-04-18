@@ -38,6 +38,7 @@
 #include "interface.h"
 #include "memory.h"
 #include "search.h"
+#include "protocol_decode.h"
 
 #include "nw_db_manager.h"
 

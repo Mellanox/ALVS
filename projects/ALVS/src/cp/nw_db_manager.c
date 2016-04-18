@@ -169,7 +169,7 @@ void nw_db_manager_arp_table_init()
 		/* Add neighbor to table */
 		printf("Add neighbor to table IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 		neighbor_to_arp_entry(neighbor, &key, &result);
-		ret_code = alvs_add_arp_entry(&key, &result);
+		ret_code = add_arp_entry(&key, &result);
 		if(!ret_code){
 			printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 		}
@@ -195,7 +195,7 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 	case NL_ACT_NEW:
 		printf("Added neighbor to table    IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 		neighbor_to_arp_entry(neighbor, &key, &result);
-		ret_code = alvs_add_arp_entry(&key, &result);
+		ret_code = add_arp_entry(&key, &result);
 		if(!ret_code){
 			printf("Error - cannot add entry to ARP table \n");
 		}
@@ -203,7 +203,7 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 	case NL_ACT_DEL:
 		printf("Delete neighbor from table IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 		neighbor_to_arp_entry(neighbor, &key, &result);
-		ret_code = alvs_delete_arp_entry(&key);
+		ret_code = delete_arp_entry(&key);
 		if(!ret_code){
 			printf("Error - cannot remove entry from ARP table \n");
 		}
@@ -219,7 +219,7 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct alvs_arp_key *key
 	key->real_server_address = *(uint32_t*)nl_addr_get_binary_addr(rtnl_neigh_get_dst(neighbor));
 	memcpy ( result->dest_mac_addr.ether_addr_octet , nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)) , 6);
 	//TODO: what is the output channel ???
-	result->output_logical_id = 0;
+	result->base_output_channel = 0;
 }
 
 char* addr_to_str(struct nl_addr *addr)
