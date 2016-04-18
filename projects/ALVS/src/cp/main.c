@@ -30,6 +30,7 @@
 */
 
 #include <stdint.h>
+#include <signal.h>
 #include <EZenv.h>
 #include <EZdev.h>
 
@@ -38,7 +39,7 @@
 #include "memory.h"
 #include "search.h"
 
-
+#include "nw_db_manager.h"
 
 /******************************************************************************/
 
@@ -60,15 +61,26 @@ bool delete_board( void );
 static
 bool setup_chip( void );
 
-/******************************************************************************/
+void signal_terminate_handler( int signum );
 
+/******************************************************************************/
+bool    is_main_process = true;
+bool    is_nw_db_manager_process = false;
+/******************************************************************************/
 
 int main( void )
 {
+	int32_t                        cpid;
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
 	daemon(0,0);
+	/* listen to the SHUTDOWN signal to handle terminate signal */
+	signal(SIGINT,  signal_terminate_handler);
+	signal(SIGTERM, signal_terminate_handler);
+	signal(SIGILL,  signal_terminate_handler);
+	signal(SIGSEGV, signal_terminate_handler);
+	signal(SIGBUS,  signal_terminate_handler);
 
 	/************************************************/
 	/* Initializing CP SDK host components          */
@@ -99,10 +111,25 @@ int main( void )
 		return 1;
 	}
 
-	while(1){}
-	delete_agt();
-	delete_cp();
-	delete_board();
+
+	/************************************************/
+	/* Start network DB manager process             */
+	/************************************************/
+	cpid = fork();
+	if (cpid == -1){
+		perror("Error creating child process - fork fail\n");
+		exit(1);
+	}
+	if (cpid  == 0){
+		is_main_process = false;
+		is_nw_db_manager_process = true;
+		nw_db_manager_process();
+	}
+
+
+	while(true){
+		sleep(0xFFFFFFFF);
+	}
 
 	return 0;
 }
@@ -329,4 +356,25 @@ bool delete_board( void )
    }
 
    return true;
+}
+
+/************************************************************************
+ * \brief      signal terminate handler
+ *
+ * \return     void
+ */
+void       signal_terminate_handler( int signum )
+{
+	if(is_main_process){
+		delete_agt();
+		delete_cp();
+		delete_board();
+		/* kill all other processes */
+		killpg(0, SIGTERM);
+	}
+
+	if(is_nw_db_manager_process){
+		nw_db_manager_delete();
+	}
+	exit(0);
 }

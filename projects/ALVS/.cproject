@@ -30,6 +30,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.582659251" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -90,6 +91,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.2115221000" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -150,6 +152,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1081299083" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -210,6 +213,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1503465901" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -270,6 +274,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1925840411" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -330,6 +335,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.150872860" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -390,6 +396,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1638144460" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -450,6 +457,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.182737329" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -518,6 +526,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1120258284" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
@@ -578,6 +587,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.622217215" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>

@@ -33,6 +33,8 @@
 #define DEFS_H_
 
 /* system includes */
+#include <netinet/in.h>
+#include <net/ethernet.h>
 #include <stdint.h>
 #include <stdbool.h>
 
