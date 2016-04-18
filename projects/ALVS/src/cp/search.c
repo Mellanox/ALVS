@@ -30,8 +30,14 @@
 */
 
 #include "search.h"
+#include "memory.h"
+#include "interface.h"
 #include <string.h>
+#include <stdio.h>
 #include <EZapiStruct.h>
+
+static
+uint32_t db_index[ALVS_STRUCT_ID_LAST];
 
 bool create_classification_db(void)
 {
@@ -71,9 +77,9 @@ bool create_classification_db(void)
 		return false;
 	}
 
-	hash_mem_mng_params.uiMainTableSpaceIndex = 0;
-	hash_mem_mng_params.uiSigSpaceIndex = 0;
-	hash_mem_mng_params.uiResSpaceIndex = 0;
+	hash_mem_mng_params.uiMainTableSpaceIndex = db_index[ALVS_STRUCT_ID_SERVICES];
+	hash_mem_mng_params.uiSigSpaceIndex = db_index[ALVS_STRUCT_ID_SERVICES];
+	hash_mem_mng_params.uiResSpaceIndex = db_index[ALVS_STRUCT_ID_SERVICES];
 
 	ez_ret_val = EZapiStruct_Config(ALVS_STRUCT_ID_SERVICES, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
@@ -121,13 +127,100 @@ bool create_arp_db(void)
 		return false;
 	}
 
-	hash_mem_mng_params.uiMainTableSpaceIndex = 0;
-	hash_mem_mng_params.uiSigSpaceIndex = 0;
-	hash_mem_mng_params.uiResSpaceIndex = 0;
+	hash_mem_mng_params.uiMainTableSpaceIndex = db_index[ALVS_STRUCT_ID_ARP];
+	hash_mem_mng_params.uiSigSpaceIndex = db_index[ALVS_STRUCT_ID_ARP];
+	hash_mem_mng_params.uiResSpaceIndex = db_index[ALVS_STRUCT_ID_ARP];
 
 	ez_ret_val = EZapiStruct_Config(ALVS_STRUCT_ID_ARP, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
+	}
+
+	return true;
+}
+
+bool create_if_db(void)
+{
+	EZstatus ez_ret_val;
+	EZapiStruct_StructParams struct_params;
+	EZapiStruct_TableMemMngParams table_mem_mng_params;
+
+	memset(&struct_params, 0, sizeof(struct_params));
+
+	ez_ret_val = EZapiStruct_Status(ALVS_STRUCT_ID_INTERFACES, EZapiStruct_StatCmd_GetStructParams, &struct_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	struct_params.bEnable = TRUE;
+	struct_params.eStructType = EZapiStruct_StructType_TABLE;
+	struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
+	struct_params.uiKeySize = sizeof(struct dp_interface_key);
+	struct_params.uiResultSize = sizeof(struct dp_interface_result);
+	struct_params.uiMaxEntries = 256;
+
+	ez_ret_val = EZapiStruct_Config(ALVS_STRUCT_ID_INTERFACES, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	memset(&table_mem_mng_params, 0, sizeof(table_mem_mng_params));
+
+	ez_ret_val = EZapiStruct_Status(ALVS_STRUCT_ID_INTERFACES, EZapiStruct_StatCmd_GetTableMemMngParams, &table_mem_mng_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	table_mem_mng_params.uiSpaceIndex = db_index[ALVS_STRUCT_ID_INTERFACES];
+
+	ez_ret_val = EZapiStruct_Config (ALVS_STRUCT_ID_INTERFACES, EZapiStruct_ConfigCmd_SetTableMemMngParams, &table_mem_mng_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+
+	/* Add entries to interface DB */
+	struct dp_interface_key if_key;
+	struct dp_interface_result if_result;
+	FILE *fd;
+	uint32_t ind;
+
+	fd = fopen("/sys/class/net/eth0/address","r");
+	if(fd == NULL) {
+		return false;
+	}
+	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
+	       &if_result.mac_address.ether_addr_octet[0],
+	       &if_result.mac_address.ether_addr_octet[1],
+	       &if_result.mac_address.ether_addr_octet[2],
+	       &if_result.mac_address.ether_addr_octet[3],
+	       &if_result.mac_address.ether_addr_octet[4],
+	       &if_result.mac_address.ether_addr_octet[5]);
+	fclose(fd);
+
+	if_key.logical_id = HOST_IF_LOGICAL_ID;
+	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
+	if (add_if_entry(&if_key, &if_result) == false) {
+		return false;
+	}
+
+	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
+	if (NW_IF_LAG_ENABLED == false) {
+		for (ind = 0; ind < NW_IF_NUM; ind++) {
+			if_key.logical_id = NW_IF_BASE_LOGICAL_ID + ind;
+			if (add_if_entry(&if_key, &if_result)) {
+				return false;
+			}
+		}
+	}
+	else {
+		if_key.logical_id = NW_IF_LAG_LOGICAL_ID;
+		if (add_if_entry(&if_key, &if_result) == false){
+			return false;
+		}
 	}
 
 	return true;
@@ -141,6 +234,9 @@ bool create_all_dbs(void)
 	if(create_arp_db() == false) {
 		return false;
 	}
+	if(create_if_db() == false) {
+		return false;
+	}
 
 	return true;
 }
@@ -150,6 +246,27 @@ bool load_partition()
 	EZstatus ez_ret_val;
 
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool add_if_entry(struct dp_interface_key *key, struct dp_interface_result *result)
+{
+	EZstatus ez_ret_val;
+	EZapiEntry entry;
+
+	memset(&entry, 0, sizeof(entry));
+
+	entry.uiKeySize = sizeof(struct dp_interface_key);
+	entry.pucKey = (void*)key;
+	entry.uiResultSize = sizeof(struct dp_interface_result);
+	entry.pucResult = (void*)result;
+
+	ez_ret_val = EZapiStruct_AddEntry(ALVS_STRUCT_ID_INTERFACES, NULL, &entry, NULL);
+
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
@@ -241,14 +358,35 @@ bool create_search_mem_partition(void)
 {
 	EZstatus ez_ret_val;
 	EZapiChannel_ExtMemSpaceParams ext_mem_space_params;
+	EZapiChannel_IntMemSpaceParams int_mem_space_params;
+
+	/* configure x1 search MSID in IMEM for interface DB */
+	memset(&int_mem_space_params, 0, sizeof(int_mem_space_params));
+
+	int_mem_space_params.uiIndex = get_imem_index();
+	ez_ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIntMemSpaceParams, &int_mem_space_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	int_mem_space_params.bEnable = true;
+	int_mem_space_params.eType = EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH;
+	int_mem_space_params.uiSize = 4096;
+
+	ez_ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIntMemSpaceParams, &int_mem_space_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+	db_index[ALVS_STRUCT_ID_INTERFACES] = int_mem_space_params.uiIndex;
+
 
 	/* configure msid0 in EMEM for classification & ARP DBs */
 	memset(&ext_mem_space_params, 0, sizeof(ext_mem_space_params));
 
-	ext_mem_space_params.uiIndex = 0;
+	ext_mem_space_params.uiIndex = get_emem_index();
 	ez_ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetExtMemSpaceParams, &ext_mem_space_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-			return false;
+		return false;
 	}
 
 	ext_mem_space_params.bEnable = true;
@@ -258,8 +396,10 @@ bool create_search_mem_partition(void)
 
 	ez_ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetExtMemSpaceParams, &ext_mem_space_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-			return false;
+		return false;
 	}
+	db_index[ALVS_STRUCT_ID_SERVICES] = ext_mem_space_params.uiIndex;
+	db_index[ALVS_STRUCT_ID_ARP] = ext_mem_space_params.uiIndex;
 
 	return true;
 }

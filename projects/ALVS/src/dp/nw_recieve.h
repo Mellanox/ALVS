@@ -123,7 +123,7 @@ void nw_recieve_and_parse_frame(int32_t logical_id)
 	else if (path_type == DP_PATH_SEND_TO_NW_APP || path_type == DP_PATH_SEND_TO_NW_NA) /*APP NW PATH*/
 	{
 		/*currently send frame to network without any change or any other operations*/
-		nw_send_frame_to_network_interface(DEFAULT_NW_OUPUT_CHANNEL);
+		nw_send_frame_to_network_interface(DEFAULT_NW_OUTPUT_CHANNEL);
 	}
 	else if (path_type == DP_PATH_SEND_TO_HOST_NA) /*NA HOST PATH*/
 	{

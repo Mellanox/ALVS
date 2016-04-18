@@ -36,6 +36,7 @@
 
 #include "agt.h"
 #include "interface.h"
+#include "protocol_decode.h"
 #include "memory.h"
 #include "search.h"
 #include "protocol_decode.h"

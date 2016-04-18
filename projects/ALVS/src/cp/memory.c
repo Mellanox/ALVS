@@ -33,7 +33,28 @@
 #include "search.h"
 #include <string.h>
 
+static
+uint32_t imem_sizes[NUM_OF_MSIDS][2] = {
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, HALF_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, HALF_CLUSTER_DATA_SIZE},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, X1_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, X1_CLUSTER_DATA_SIZE},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, X2_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, X2_CLUSTER_DATA_SIZE},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, X4_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, X4_CLUSTER_DATA_SIZE},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, X16_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, X16_CLUSTER_DATA_SIZE},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, ALL_CLUSTER_CODE_SIZE},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, ALL_CLUSTER_DATA_SIZE} };
+
 uint32_t get_imem_index(void)
+{
+	static uint32_t index = 0;
+	return index++;
+}
+
+uint32_t get_emem_index(void)
 {
 	static uint32_t index = 0;
 	return index++;

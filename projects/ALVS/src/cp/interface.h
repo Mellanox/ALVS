@@ -34,9 +34,14 @@
 
 #include <stdbool.h>
 
-#define		EXT_IF_NUM                 4
-#define		EXT_IF_TYPE                EZapiChannel_EthIFType_100GE
-#define		EXT_IF_LAG_ENABLED         false
+#define HOST_IF_SIDE          1
+#define HOST_IF_ENGINE        0
+#define HOST_IF_NUMBER        0
+#define HOST_IF_LOGICAL_ID    128
+
+#define NW_IF_SIDE            0
+#define NW_IF_BASE_LOGICAL_ID 0
+#define NW_IF_LAG_LOGICAL_ID  NW_IF_BASE_LOGICAL_ID
 
 bool create_if_mapping(void);
 

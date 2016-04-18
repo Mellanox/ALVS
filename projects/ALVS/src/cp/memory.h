@@ -37,37 +37,11 @@
 #include <EZapiChannel.h>
 
 #define NUM_OF_MSIDS               12
-#define HALF_CLUSTER_CODE_SIZE     0
-#define HALF_CLUSTER_DATA_SIZE     0
-#define X1_CLUSTER_CODE_SIZE       0
-#define X1_CLUSTER_DATA_SIZE       0
-#define X2_CLUSTER_CODE_SIZE       0
-#define X2_CLUSTER_DATA_SIZE       0
-#define X4_CLUSTER_CODE_SIZE       0
-#define X4_CLUSTER_DATA_SIZE       0
-#define X16_CLUSTER_CODE_SIZE      0
-#define X16_CLUSTER_DATA_SIZE      0
-#define ALL_CLUSTER_CODE_SIZE      0
-#define ALL_CLUSTER_DATA_SIZE      0
-
-static
-uint32_t imem_sizes[NUM_OF_MSIDS][2] = {
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, HALF_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, HALF_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, X1_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, X1_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, X2_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, X2_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, X4_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, X4_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, X16_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, X16_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, ALL_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, ALL_CLUSTER_DATA_SIZE} };
 
 bool create_mem_partition(void);
 
 uint32_t get_imem_index(void);
+uint32_t get_emem_index(void);
 
 
 #endif /* _MEMORY_H_ */

@@ -31,13 +31,8 @@
 
 #include <stdint.h>
 #include "interface.h"
+#include "conf.h"
 #include <EZapiChannel.h>
-
-#define HOST_IF_SIDE    1
-#define HOST_IF_ENGINE  0
-#define HOST_IF_NUMBER  0
-
-#define NW_IF_SIDE      0
 
 bool create_if_mapping(void)
 {
@@ -47,10 +42,10 @@ bool create_if_mapping(void)
 	EZapiChannel_EthRXChannelParams eth_rx_channel_params;
 
 	/* Configure external interfaces */
-	for(ind = 0; ind < EXT_IF_NUM; ind++) {
+	for(ind = 0; ind < NW_IF_NUM; ind++) {
 		eth_if_params.uiSide = NW_IF_SIDE;
 		eth_if_params.uiIFEngine = ind;
-		eth_if_params.eEthIFType = EXT_IF_TYPE;
+		eth_if_params.eEthIFType = NW_IF_TYPE;
 		eth_if_params.uiIFNumber = 0;
 
 		ez_ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthIFParams, &eth_if_params);
@@ -70,7 +65,7 @@ bool create_if_mapping(void)
 
 		eth_rx_channel_params.uiSide = NW_IF_SIDE;
 		eth_rx_channel_params.uiIFEngine  = ind;
-		eth_rx_channel_params.eEthIFType  = EXT_IF_TYPE;
+		eth_rx_channel_params.eEthIFType  = NW_IF_TYPE;
 		eth_rx_channel_params.uiIFNumber  = 0;
 		eth_rx_channel_params.uiRXChannel = 0;
 
@@ -79,7 +74,12 @@ bool create_if_mapping(void)
 			return false;
 		}
 
-		eth_rx_channel_params.uiLogicalID = ind;
+		if(NW_IF_LAG_ENABLED) {
+			eth_rx_channel_params.uiLogicalID = NW_IF_LAG_LOGICAL_ID;
+		}
+		else {
+			eth_rx_channel_params.uiLogicalID = NW_IF_BASE_LOGICAL_ID + ind;
+		}
 
 		ez_ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
@@ -107,10 +107,17 @@ bool create_if_mapping(void)
 		return false;
 	}
 
+	ez_ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthRXChannelParams, &eth_rx_channel_params);
+	if (EZrc_IS_ERROR (ez_ret_val)) {
+		return false;
+	}
 
-	/* Configure PMU queues */
-	// Do nothing - Keep defaults
+	eth_rx_channel_params.uiLogicalID = HOST_IF_LOGICAL_ID;
 
+	ez_ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
 
 	return true;
 }

@@ -79,7 +79,10 @@ void		  packet_processing(void)
 	uint8_t * my_mac;
 
 	//before packet processing task save my mac address to shared cmem
-	if ((my_mac = nw_interface_get_mac_address(ALVS_NETWORK_PORT_LOGICAL_ID)) != NULL)
+	// TODO - This code is for my MAC performance optimization for POC.
+	//        In future my MAC will not be stored in shared CMEM. but will be retrieved from interface lookup result.
+	//        For POC logical ID 0 will always be configured.
+	if ((my_mac = nw_interface_get_mac_address(0)) != NULL)
 	{
 		ezdp_mem_copy(shared_cmem.my_mac.ether_addr_octet, my_mac, sizeof(struct ether_addr));
 	}

@@ -29,25 +29,24 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _SEARCH_H_
-#define _SEARCH_H_
+#ifndef _CONF_H_
+#define _CONF_H_
 
-#include "defs.h"
+#define	NW_IF_NUM                 4
+#define	NW_IF_TYPE                EZapiChannel_EthIFType_100GE
+#define	NW_IF_LAG_ENABLED         false
 
-#define MAX_ENTRIES     65536
+#define HALF_CLUSTER_CODE_SIZE    0
+#define HALF_CLUSTER_DATA_SIZE    0
+#define X1_CLUSTER_CODE_SIZE      0
+#define X1_CLUSTER_DATA_SIZE      0
+#define X2_CLUSTER_CODE_SIZE      0
+#define X2_CLUSTER_DATA_SIZE      0
+#define X4_CLUSTER_CODE_SIZE      0
+#define X4_CLUSTER_DATA_SIZE      0
+#define X16_CLUSTER_CODE_SIZE     0
+#define X16_CLUSTER_DATA_SIZE     0
+#define ALL_CLUSTER_CODE_SIZE     0
+#define ALL_CLUSTER_DATA_SIZE     0
 
-bool create_all_dbs(void);
-bool create_classification_db(void);
-bool create_arp_db(void);
-bool load_partition(void);
-
-bool add_if_entry(struct dp_interface_key *key, struct dp_interface_result *result);
-bool add_classification_entry(struct alvs_service_key *key, struct alvs_service_result *result);
-bool add_arp_entry(struct alvs_arp_key *key, struct alvs_arp_result *result);
-
-bool delete_classification_entry(struct alvs_service_key *key);
-bool delete_arp_entry(struct alvs_arp_key *key);
-
-bool create_search_mem_partition(void);
-
-#endif /* _SEARCH_H_ */
+#endif /* _CONF_H_ */
