@@ -29,45 +29,51 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _MEMORY_H_
-#define _MEMORY_H_
-
-#include <stdint.h>
-#include <stdbool.h>
+#include "protocol_decode.h"
+#include <stdio.h>
+#include <string.h>
 #include <EZapiChannel.h>
 
-#define NUM_OF_MSIDS               12
-#define HALF_CLUSTER_CODE_SIZE     0
-#define HALF_CLUSTER_DATA_SIZE     0
-#define X1_CLUSTER_CODE_SIZE       0
-#define X1_CLUSTER_DATA_SIZE       0
-#define X2_CLUSTER_CODE_SIZE       0
-#define X2_CLUSTER_DATA_SIZE       0
-#define X4_CLUSTER_CODE_SIZE       0
-#define X4_CLUSTER_DATA_SIZE       0
-#define X16_CLUSTER_CODE_SIZE      0
-#define X16_CLUSTER_DATA_SIZE      0
-#define ALL_CLUSTER_CODE_SIZE      0
-#define ALL_CLUSTER_DATA_SIZE      0
+bool configure_my_mac(void)
+{
+	EZstatus retVal;
+	FILE* fd;
+	EZapiChannel_ProtocolDecoderParams sProtocolDecoderParams;
 
-static
-uint32_t imem_sizes[NUM_OF_MSIDS][2] = {
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, HALF_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, HALF_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, X1_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, X1_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, X2_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, X2_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, X4_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, X4_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, X16_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, X16_CLUSTER_DATA_SIZE},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, ALL_CLUSTER_CODE_SIZE},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, ALL_CLUSTER_DATA_SIZE} };
+	memset(&sProtocolDecoderParams, 0, sizeof( sProtocolDecoderParams));
 
-bool create_mem_partition(void);
+	sProtocolDecoderParams.uiProfile = 0;
 
-uint32_t get_imem_index(void);
+	retVal = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetProtocolDecoderParams, &sProtocolDecoderParams);
+	if (EZrc_IS_ERROR(retVal)) {
+		return false;
+	}
 
+	fd = fopen("/sys/class/net/eth0/address","r");
+	if(fd == NULL) {
+		return false;
+	}
+	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
+	       &sProtocolDecoderParams.aucDestMACAddressLow[0],
+	       &sProtocolDecoderParams.aucDestMACAddressLow[1],
+	       &sProtocolDecoderParams.aucDestMACAddressLow[2],
+	       &sProtocolDecoderParams.aucDestMACAddressLow[3],
+	       &sProtocolDecoderParams.aucDestMACAddressLow[4],
+	       &sProtocolDecoderParams.aucDestMACAddressLow[5]);
+	fclose(fd);
 
-#endif /* _MEMORY_H_ */
+	sProtocolDecoderParams.aucDestMACAddressHigh[0] = sProtocolDecoderParams.aucDestMACAddressLow[0];
+	sProtocolDecoderParams.aucDestMACAddressHigh[1] = sProtocolDecoderParams.aucDestMACAddressLow[1];
+	sProtocolDecoderParams.aucDestMACAddressHigh[2] = sProtocolDecoderParams.aucDestMACAddressLow[2];
+	sProtocolDecoderParams.aucDestMACAddressHigh[3] = sProtocolDecoderParams.aucDestMACAddressLow[3];
+	sProtocolDecoderParams.aucDestMACAddressHigh[4] = sProtocolDecoderParams.aucDestMACAddressLow[4];
+	sProtocolDecoderParams.aucDestMACAddressHigh[5] = sProtocolDecoderParams.aucDestMACAddressLow[5];
+
+	retVal = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetProtocolDecoderParams, &sProtocolDecoderParams);
+
+	if (EZrc_IS_ERROR(retVal)) {
+		return false;
+	}
+
+	return true;
+}

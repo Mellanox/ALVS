@@ -34,10 +34,10 @@
 
 #include <stdbool.h>
 
-#define		ALVS_EXT_IF_NUM                 4
-#define		ALVS_EXT_IF_TYPE                EZapiChannel_EthIFType_100GE
-#define		ALVS_EXT_IF_LAG_ENABLED         false
+#define		EXT_IF_NUM                 4
+#define		EXT_IF_TYPE                EZapiChannel_EthIFType_100GE
+#define		EXT_IF_LAG_ENABLED         false
 
-bool alvs_create_if_mapping(void);
+bool create_if_mapping(void);
 
 #endif /* _INTERFACE_H_ */

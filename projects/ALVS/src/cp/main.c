@@ -43,7 +43,7 @@
 /******************************************************************************/
 
 extern EZbool
-EZdevSim_WaitForInitSocket( EZui32 uiNumberOfConnections );
+EZdevSim_WaitForInitSocket(EZui32 uiNumberOfConnections);
 
 static
 bool init_cp( void );
@@ -124,13 +124,17 @@ bool setup_chip( void )
 	/************************************************/
 	/* Created state:                               */
 	/* --------------                               */
-	/* 2. Create interfaces mapping                 */
-	/* 3. Create memory partition                   */
+	/* 1. Create interfaces mapping                 */
+	/* 2. Create memory partition                   */
+	/* 3. Configure my MAC                          */
 	/************************************************/
-	if (alvs_create_if_mapping() == false) {
+	if (create_if_mapping() == false) {
 		return 1;
 	}
-	if (alvs_create_mem_partition() == false) {
+	if (create_mem_partition() == false) {
+		return 1;
+	}
+	if (configure_my_mac() == false) {
 		return 1;
 	}
 
@@ -164,10 +168,10 @@ bool setup_chip( void )
 	/* 1. Create search_structures                  */
 	/* 2. Load partition                            */
 	/************************************************/
-	if (alvs_create_all_dbs() == false) {
+	if (create_all_dbs() == false) {
 		return 1;
 	}
-	if (alvs_load_partition() == false) {
+	if (load_partition() == false) {
 		return 1;
 	}
 
