@@ -84,6 +84,18 @@ enum dp_path_type
 #define 	ALVS_STATISTICS_MSID			7	//TODO - roee add to configuration - set which value you want on EMEM for posted stats
 #define 	DP_NUM_COUNTERS_PER_INTERFACE	256
 
+//Number of lag members is hard coded and depended on compilation flag. in case user configures LAG need to enable this flag.
+#ifdef 		LAG_ENABLE
+	#define		DEFAULT_NW_OUPUT_CHANNEL	0
+	#define 	NUM_OF_LAG_MEMBERS			4
+	#define 	LAG_HASH_MASK				0x3
+#else
+	#define		DEFAULT_NW_OUPUT_CHANNEL	0
+	#define 	NUM_OF_LAG_MEMBERS			0
+	#define 	LAG_HASH_MASK				0x0
+#endif
+
+
 /**********************************************************************************************************************************
  * ALVS Search struct definitions - TODO auto  generate struct defs via CTOP gen
  **********************************************************************************************************************************/
@@ -221,7 +233,7 @@ struct  alvs_arp_result
 				/**< bits reserved for HW respond */
 			unsigned										 /* reserved */			 : 4;
 			/*byte1*/
-			uint8_t											output_logical_id			;
+			uint8_t											base_output_channel  		;
 			/*byte2-7*/
 			struct ether_addr         						dest_mac_addr		     	;
 		}__packed;

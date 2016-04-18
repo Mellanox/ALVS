@@ -53,15 +53,25 @@ uint32_t nw_interface_lookup(int32_t logical_id)
 static __always_inline
 enum dp_path_type nw_interface_get_dp_path(int32_t logical_id)
 {
-	if (ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
-								logical_id,
-								&cmem.interface_result,
-								sizeof(struct  dp_interface_result),
-								0))
+	if (nw_interface_lookup(logical_id) == 0)
 	{
 		return cmem.interface_result.path_type;
 	}
 	return DP_PATH_NOT_VALID;
+}
+
+/******************************************************************************
+ * \brief	  get interface mac address
+ * \return	  pointer to mac address
+ */
+static __always_inline
+u_int8_t * nw_interface_get_mac_address(int32_t logical_id)
+{
+	if (nw_interface_lookup(logical_id) == 0)
+	{
+		return cmem.interface_result.mac_address.ether_addr_octet;
+	}
+	return NULL;
 }
 
 /******************************************************************************
@@ -78,6 +88,16 @@ void nw_interface_update_statistic_counter(uint8_t logical_id, uint32_t counter_
 	temp_stat_address.raw_data = shared_cmem.nw_interface_stats_base_address.raw_data;
 	temp_stat_address.element_index += ((logical_id * DP_NUM_COUNTERS_PER_INTERFACE) << 1) + counter_id;
 	ezdp_dual_add_posted_ctr_async(temp_stat_address.raw_data, cmem.frame.job_desc.frame_desc.frame_length, 1);
+}
+
+/******************************************************************************
+ * \brief	  update interface stat counter
+ * \return	  void
+ */
+static __always_inline
+uint32_t nw_interface_calc_output_channel_id(uint8_t base_output_channel)
+{
+	return base_output_channel + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK);
 }
 
 #endif /* ALVS_INTERFACE_H_ */

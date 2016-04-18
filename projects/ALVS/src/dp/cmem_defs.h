@@ -74,6 +74,7 @@ typedef struct
 	ezdp_hash_struct_desc_t		services_struct_desc;
 	ezdp_hash_struct_desc_t		arp_struct_desc;
 	struct ezdp_sum_addr		nw_interface_stats_base_address;
+	struct ether_addr         	my_mac;
 }__packed alvs_shared_cmem;
 
 extern alvs_shared_cmem  shared_cmem __cmem_shared_var;

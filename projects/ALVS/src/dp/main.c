@@ -47,7 +47,7 @@
 #include "cmem_defs.h"
 #include "nw_routing.h"
 #include "nw_host.h"
-#include "nw_parse.h"
+#include "nw_recieve.h"
 
 
 /******************************************************************************
@@ -76,6 +76,18 @@ void		  packet_processing(void) __fast_path_code;
 void		  packet_processing(void)
 {
 	int32_t logical_id;
+	uint8_t * my_mac;
+
+	//before packet processing task save my mac address to shared cmem
+	if ((my_mac = nw_interface_get_mac_address(ALVS_NETWORK_PORT_LOGICAL_ID)) != NULL)
+	{
+		ezdp_mem_copy(shared_cmem.my_mac.ether_addr_octet, my_mac, sizeof(struct ether_addr));
+	}
+	else
+	{
+		printf("Error! fail to found my mac address in interface table!\n");
+		exit(0);
+	}
 
 	while (true)
 	{
@@ -97,7 +109,7 @@ void		  packet_processing(void)
 			continue;
 		}
 
-		nw_recieve_parse_frame(logical_id);
+		nw_recieve_and_parse_frame(logical_id);
 	} /* while (true) */
 }
 

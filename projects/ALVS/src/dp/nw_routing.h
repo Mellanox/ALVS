@@ -42,10 +42,10 @@
  * \return	  void
  */
 static __always_inline
-void nw_send_frame_to_network_interface(void)
+void nw_send_frame_to_network_interface(uint32_t	output_channel_id)
 {
 	ezframe_send_to_if(	&cmem.frame,
-						cmem.mac_decode_result.da_sa_hash & 0x3,
+						output_channel_id,
 						0);
 }
 
@@ -77,19 +77,17 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 	{
 		struct ether_addr *dmac = (struct ether_addr *)frame_base;
 
-		//change dst mac
+		//copy dst mac
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-
 		//copy src mac
-		nw_interface_lookup(arp_res_ptr->output_logical_id);
-		ezdp_mem_copy(dmac+sizeof(struct ether_addr), cmem.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
+		ezdp_mem_copy(dmac+sizeof(struct ether_addr), shared_cmem.my_mac.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */
 		rc = ezframe_store_buf(&cmem.frame,
 							   frame_base,
 							   ezframe_get_buf_len(&cmem.frame),
 							   0);
-		nw_send_frame_to_network_interface();
+		nw_send_frame_to_network_interface(nw_interface_calc_output_channel_id(arp_res_ptr->base_output_channel));
 	}
 	else
 	{

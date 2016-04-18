@@ -40,7 +40,7 @@
  * \return	  void
  */
 static __always_inline
-void nw_recieve_parse_frame(int32_t logical_id)
+void nw_recieve_and_parse_frame(int32_t logical_id)
 {
 	uint8_t	*frame_base;
 
@@ -123,7 +123,7 @@ void nw_recieve_parse_frame(int32_t logical_id)
 	else if (path_type == DP_PATH_SEND_TO_NW_APP || path_type == DP_PATH_SEND_TO_NW_NA) /*APP NW PATH*/
 	{
 		/*currently send frame to network without any change or any other operations*/
-		nw_send_frame_to_network_interface();
+		nw_send_frame_to_network_interface(DEFAULT_NW_OUPUT_CHANNEL);
 	}
 	else if (path_type == DP_PATH_SEND_TO_HOST_NA) /*NA HOST PATH*/
 	{
@@ -134,6 +134,9 @@ void nw_recieve_parse_frame(int32_t logical_id)
 	else
 	{
 		printf("Error! no match in interface lookup!!\n");
+		/*currently send frame to host without any change or any other operations*/
+		nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NO_VALID_ROUTE);
+		nw_send_frame_to_host();
 	}
 }
 
