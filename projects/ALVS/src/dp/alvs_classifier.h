@@ -66,7 +66,7 @@ void alvs_service_classification(uint8_t* frame_base, struct iphdr  *ip_hdr)
 	}
 	else
 	{
-		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION);
 		nw_send_frame_to_host();
 		return;
 	}

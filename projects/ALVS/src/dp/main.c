@@ -92,7 +92,7 @@ void		  packet_processing(void)
 		if(ezframe_valid(&cmem.frame) != 0)
 		{
 			printf("Frame is invalid - send to host!\n");
-			nw_interface_inc_statistic_counter(logical_id, ALVS_EZFRAME_VALIDATION_FAIL, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_EZFRAME_VALIDATION_FAIL);
 			nw_send_frame_to_host();
 			continue;
 		}

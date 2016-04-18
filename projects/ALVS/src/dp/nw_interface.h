@@ -65,19 +65,19 @@ enum dp_path_type nw_interface_get_dp_path(int32_t logical_id)
 }
 
 /******************************************************************************
- * \brief	  increment interface stat counter by value
+ * \brief	  update interface stat counter
  * \return	  void
  */
 static __always_inline
-void nw_interface_inc_statistic_counter(uint8_t logical_id, uint32_t counter_id, uint16_t counters_per_interface, uint32_t value)
+void nw_interface_update_statistic_counter(uint8_t logical_id, uint32_t counter_id)
 {
 	struct ezdp_sum_addr temp_stat_address;
 
 	printf("frame send to logical ID = %d. counter ID = %d\n", logical_id, counter_id);
 
 	temp_stat_address.raw_data = shared_cmem.nw_interface_stats_base_address.raw_data;
-	temp_stat_address.element_index += (counters_per_interface << logical_id) + counter_id;
-	ezdp_add_posted_ctr_async(temp_stat_address.raw_data, value);
+	temp_stat_address.element_index += ((logical_id * DP_NUM_COUNTERS_PER_INTERFACE) << 1) + counter_id;
+	ezdp_dual_add_posted_ctr_async(temp_stat_address.raw_data, cmem.frame.job_desc.frame_desc.frame_length, 1);
 }
 
 #endif /* ALVS_INTERFACE_H_ */

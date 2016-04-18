@@ -61,7 +61,7 @@ void nw_recieve_parse_frame(int32_t logical_id)
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem.mac_decode_result.error_codes.decode_error))
 		{
-			nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_MAC_ERROR, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_MAC_ERROR);
 			nw_send_frame_to_host();
 			return;
 		}
@@ -69,7 +69,7 @@ void nw_recieve_parse_frame(int32_t logical_id)
 		/*check if my_mac is set*/
 		if (unlikely(!cmem.mac_decode_result.control.my_mac))
 		{
-			nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_NOT_MY_MAC, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_MY_MAC);
 			nw_send_frame_to_host();
 			return;
 		}
@@ -86,7 +86,7 @@ void nw_recieve_parse_frame(int32_t logical_id)
 		/*check if ipv4 frame*/
 		if (*((uint16_t*)next_et) != ETHERTYPE_IP)
 		{
-			nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_NOT_IPV4, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_IPV4);
 			nw_send_frame_to_host();
 			return;
 		}
@@ -102,14 +102,14 @@ void nw_recieve_parse_frame(int32_t logical_id)
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem.ipv4_decode_result.error_codes.decode_error))
 		{
-			nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_IPV4_ERROR, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_IPV4_ERROR);
 			nw_send_frame_to_host();
 			return;
 		}
 
 		if (ip_ptr->protocol != IPPROTO_TCP && ip_ptr->protocol != IPPROTO_UDP)
 		{
-			nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_NOT_UDP_AND_TCP, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_UDP_AND_TCP);
 			nw_send_frame_to_host();
 			return;
 		}
@@ -128,7 +128,7 @@ void nw_recieve_parse_frame(int32_t logical_id)
 	else if (path_type == DP_PATH_SEND_TO_HOST_NA) /*NA HOST PATH*/
 	{
 		/*currently send frame to host without any change or any other operations*/
-		nw_interface_inc_statistic_counter(logical_id, ALVS_PACKET_NO_VALID_ROUTE, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+		nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NO_VALID_ROUTE);
 		nw_send_frame_to_host();
 	}
 	else

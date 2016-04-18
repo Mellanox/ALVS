@@ -93,7 +93,7 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 	}
 	else
 	{
-		nw_interface_inc_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP, DP_NUM_COUNTERS_PER_INTERFACE, 1);
+		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP);
 		nw_send_frame_to_host();
 		return;
 	}
