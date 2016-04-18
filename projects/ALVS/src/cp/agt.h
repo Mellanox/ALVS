@@ -35,10 +35,10 @@
 #include <stdbool.h>
 #include <EZagtRPC.h>
 
-#define		ALVS_AGT_PORT                 1234
+#define		AGT_PORT                 1234
 
-bool alvs_create_agt(void);
-bool alvs_delete_agt(void);
+bool create_agt(void);
+bool delete_agt(void);
 
 static
 EZagtRPCServer host_server;

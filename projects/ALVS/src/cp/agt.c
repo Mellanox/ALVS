@@ -39,13 +39,13 @@ void EZhost_RPCJSONTask(void)
    EZagtRPC_ServerRun(host_server);
 }
 
-bool alvs_create_agt(void)
+bool create_agt(void)
 {
 	EZtask task;
 	bool ez_ret_val;
 
 	/* Create rpc server for given port */
-	host_server = EZagtRPC_CreateServer(ALVS_AGT_PORT);
+	host_server = EZagtRPC_CreateServer(AGT_PORT);
 	if(host_server == NULL) {
 		return false;
 	}
@@ -71,7 +71,7 @@ bool alvs_create_agt(void)
 	return true;
 }
 
-bool alvs_delete_agt(void)
+bool delete_agt(void)
 {
 	EZagtRPC_ServerStop( host_server );
 	EZosTask_Delay(10);

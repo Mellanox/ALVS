@@ -33,6 +33,7 @@
 #include <EZenv.h>
 #include <EZdev.h>
 
+#include "agt.h"
 #include "interface.h"
 #include "memory.h"
 #include "search.h"
@@ -72,12 +73,12 @@ int main( void )
 	/************************************************/
 	/* Initializing CP SDK host components          */
 	/************************************************/
-	printf("init board...\n");
+	printf("Init board...\n");
 	if (init_board() == false) {
 		return 1;
 	}
 
-	printf("init cp...\n");
+	printf("Init cp...\n");
 	if (init_cp() == false) {
 		return 1;
 	}
@@ -85,13 +86,21 @@ int main( void )
 	/************************************************/
 	/* Initializing control plane components        */
 	/************************************************/
-	printf("setup chip...\n");
-	if ( setup_chip() == false ) {
+	printf("Setup chip...\n");
+	if (setup_chip() == false) {
 		return 1;
-	};
+	}
 
+	/************************************************/
+	/* Enable AGT debug agent interface             */
+	/************************************************/
+	printf("Create AGT...");
+	if (create_agt() == false) {
+		return 1;
+	}
 
 	while(1){}
+	delete_agt();
 	delete_cp();
 	delete_board();
 
@@ -118,8 +127,12 @@ bool setup_chip( void )
 	/* 2. Create interfaces mapping                 */
 	/* 3. Create memory partition                   */
 	/************************************************/
-	alvs_create_if_mapping();
-	alvs_create_mem_partition();
+	if (alvs_create_if_mapping() == false) {
+		return 1;
+	}
+	if (alvs_create_mem_partition() == false) {
+		return 1;
+	}
 
 	/************************************************/
 	/* power-up channel                             */
@@ -151,8 +164,12 @@ bool setup_chip( void )
 	/* 1. Create search_structures                  */
 	/* 2. Load partition                            */
 	/************************************************/
-	alvs_create_all_dbs();
-	alvs_load_partition();
+	if (alvs_create_all_dbs() == false) {
+		return 1;
+	}
+	if (alvs_load_partition() == false) {
+		return 1;
+	}
 
 	/************************************************/
 	/* finalize channel                             */
@@ -219,73 +236,57 @@ bool init_cp( void )
 }
 
 static
-bool init_board( void )
+bool init_board(void)
 {
 #ifndef EZ_CPU_ARC
-   EZdev_PlatformParams  platform_params;
-   EZstatus              ez_ret_val;
-   EZc8                  cKernelModule[16];
-   FILE                  *fd;
-   EZbool                bIsRealChip = FALSE;
+	EZdev_PlatformParams platform_params;
+	EZstatus ez_ret_val;
+	EZc8 cKernelModule[16];
+	FILE *fd;
+	EZbool bIsRealChip = FALSE;
 
-   fd = popen("lsmod | grep nps_cp", "r");
+	fd = popen("lsmod | grep nps_cp", "r");
 
-   if ( ( fd != NULL ) )
-   {
-      if ( fread( cKernelModule,  1,  sizeof (cKernelModule), fd ) > 0 )
-      {
+   if ((fd != NULL)) {
+      if (fread(cKernelModule, 1, sizeof (cKernelModule), fd) > 0) {
          bIsRealChip = TRUE;
       }
-      else
-      {
-         bIsRealChip = FALSE;
-      }
-
       pclose( fd );
    }
-   else
-   {
-      bIsRealChip = FALSE;
+
+   if (bIsRealChip) {
+	printf ("nps_cp module is loaded. Running on real chip.\n");
+	platform_params.ePlatform = EZdev_Platform_UIO;
+	/* Set chip type. */
+	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
+
+	/* Initialize the DEV component */
+	ez_ret_val = EZdev_Create(&platform_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("init_board: EZdev_Create failed.\n" );
+		return false;
+	}
    }
+   else {
+	printf ("nps_cp module is not loaded. Running on simulator.\n");
+	/* Connect to simulator */
+	/* Set platform SIM */
+	platform_params.ePlatform = EZdev_Platform_SIM;
+	/* Set chip type. */
+	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
 
-   if ( bIsRealChip )
-   {
-      printf ("nps_cp module is loaded. Running on real chip.\n");
-      platform_params.ePlatform = EZdev_Platform_UIO;
-      /* Set chip type. */
-      platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
+	/* Initialize the DEV component */
+	ez_ret_val = EZdev_Create( &platform_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+	 printf("init_board: EZdev_Create failed.\n" );
+	 return false;
+	}
 
-      /* Initialize the DEV component */
-      ez_ret_val = EZdev_Create( &platform_params );
-      if ( EZrc_IS_ERROR( ez_ret_val ) )
-      {
-         printf("init_board: EZdev_Create failed.\n" );
-         return false;
-      }
-   }
-   else
-   {
-      printf ("nps_cp module is not loaded. Running on simulator.\n");
-      /* Connect to simulator */
-      /* Set platform SIM */
-      platform_params.ePlatform = EZdev_Platform_SIM;
-      /* Set chip type. */
-      platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
-
-      /* Initialize the DEV component */
-      ez_ret_val = EZdev_Create( &platform_params );
-      if ( EZrc_IS_ERROR( ez_ret_val ) )
-      {
-         printf("init_board: EZdev_Create failed.\n" );
-         return false;
-      }
-
-      ez_ret_val = EZdevSim_WaitForInitSocket( 1 );
-      if ( EZrc_IS_ERROR( ez_ret_val ) )
-      {
-         printf("init_board: EZdevSim_WaitForInitSocket failed.\n" );
-         return false;
-      }
+	ez_ret_val = EZdevSim_WaitForInitSocket(1);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
+		return false;
+	}
    }
 #endif
 
@@ -293,20 +294,18 @@ bool init_board( void )
 }
 
 static
-bool delete_cp( void )
+bool delete_cp(void)
 {
-   EZstatus   ez_ret_val = EZok;
+   EZstatus ez_ret_val;
 
-   ez_ret_val = EZapiCP_Delete( );
-   if( EZrc_IS_ERROR( ez_ret_val ) )
-   {
+   ez_ret_val = EZapiCP_Delete();
+   if(EZrc_IS_ERROR(ez_ret_val)) {
       printf("delete_cp: EZapiCP_Delete failed.\n" );
       return false;
    }
 
    ez_ret_val = EZenv_Delete();
-   if ( EZrc_IS_ERROR( ez_ret_val ) )
-   {
+   if (EZrc_IS_ERROR( ez_ret_val)) {
       printf("delete_cp: EZenv_Delete failed.\n" );
       return false;
    }
@@ -317,12 +316,11 @@ bool delete_cp( void )
 static
 bool delete_board( void )
 {
-   EZstatus     ez_ret_val = EZok;
+   EZstatus ez_ret_val;
 
    ez_ret_val = EZdev_Delete();
-   if ( EZrc_IS_ERROR( ez_ret_val ) )
-   {
-      printf("delete_board: EZdev_Delete failed.\n" );
+   if (EZrc_IS_ERROR(ez_ret_val)) {
+      printf("delete_board: EZdev_Delete failed.\n");
       return false;
    }
 
