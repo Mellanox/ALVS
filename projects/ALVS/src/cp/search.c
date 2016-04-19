@@ -325,6 +325,7 @@ bool initialize_dbs(void)
 
 	fd = fopen("/sys/class/net/eth0/address","r");
 	if(fd == NULL) {
+		printf("initialize_dbs: Opening eth address file failed.\n");
 		return false;
 	}
 	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
@@ -339,13 +340,15 @@ bool initialize_dbs(void)
 	if_key.logical_id = INFRA_HOST_IF_LOGICAL_ID;
 	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
 	if (add_if_entry(&if_key, &if_result) == false) {
+		printf("initialize_dbs: Adding host if entry to if DB failed.\n");
 		return false;
 	}
 
 	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
 	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
 		if_key.logical_id = INFRA_NW_IF_BASE_LOGICAL_ID + ind;
-		if (add_if_entry(&if_key, &if_result)) {
+		if (add_if_entry(&if_key, &if_result) == false) {
+			printf("initialize_dbs: Adding NW if (%d) entry to if DB failed.\n",ind);
 			return false;
 		}
 	}
