@@ -35,11 +35,8 @@
 #include <EZdev.h>
 
 #include "agt.h"
-#include "interface.h"
-#include "protocol_decode.h"
-#include "memory.h"
+#include "infrastructure.h"
 #include "search.h"
-#include "protocol_decode.h"
 
 #include "nw_db_manager.h"
 
@@ -76,7 +73,7 @@ int main( void )
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
-	daemon(0,0);
+//	daemon(0,1);
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT,  signal_terminate_handler);
 	signal(SIGTERM, signal_terminate_handler);
@@ -89,12 +86,12 @@ int main( void )
 	/************************************************/
 	printf("Init board...\n");
 	if (init_board() == false) {
-		return 1;
+		exit(1);
 	}
 
 	printf("Init cp...\n");
 	if (init_cp() == false) {
-		return 1;
+		exit(1);
 	}
 
 	/************************************************/
@@ -102,15 +99,15 @@ int main( void )
 	/************************************************/
 	printf("Setup chip...\n");
 	if (setup_chip() == false) {
-		return 1;
+		exit(1);
 	}
 
 	/************************************************/
 	/* Enable AGT debug agent interface             */
 	/************************************************/
-	printf("Create AGT...");
+	printf("Create AGT...\n");
 	if (create_agt() == false) {
-		return 1;
+		exit(1);
 	}
 
 
@@ -128,7 +125,6 @@ int main( void )
 		nw_db_manager_process();
 	}
 
-
 	while(true){
 		sleep(0xFFFFFFFF);
 	}
@@ -145,8 +141,10 @@ bool setup_chip( void )
 	/************************************************/
 	/* Create channel                               */
 	/************************************************/
+	printf("Creating channel...\n");
 	ez_ret_val = EZapiChannel_Create(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("setup_chip: EZapiChannel_Create failed.\n");
 		return false;
 	}
 
@@ -157,81 +155,100 @@ bool setup_chip( void )
 	/* 2. Create memory partition                   */
 	/* 3. Configure my MAC                          */
 	/************************************************/
-	if (create_if_mapping() == false) {
-		return 1;
+	printf("Created state...\n");
+	if (infra_create_if_mapping() == false) {
+		printf("setup_chip: infra_create_if_mapping failed.\n");
+		return false;
 	}
-	if (create_mem_partition() == false) {
-		return 1;
+	if (infra_create_mem_partition() == false) {
+		printf("setup_chip: infra_create_mem_partition failed.\n");
+		return false;
 	}
-	if (configure_my_mac() == false) {
-		return 1;
+	if (infra_configure_protocol_decode() == false) {
+		printf("setup_chip: infra_configure_protocol_decode failed.\n");
+		return false;
 	}
 
 	/************************************************/
-	/* power-up channel                             */
+	/* Power-up channel                             */
 	/************************************************/
+	printf("Power-up channel...\n");
 	for(pup_phase = 1; pup_phase <= 4; pup_phase++) {
 		ez_ret_val = EZapiChannel_PowerUp(0, pup_phase);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("setup_chip: EZapiChannel_PowerUp phase %u failed.\n", pup_phase);
 			return false;
 		}
 	}
 
 	/************************************************/
-	/* powered-up state:                            */
+	/* Powered-up state:                            */
 	/* --------------                               */
 	/* Do nothing                                   */
 	/************************************************/
+	printf("Powered-up state...\n");
 
 	/************************************************/
-	/* initialize channel                           */
+	/* Initialize channel                           */
 	/************************************************/
+	printf("Initialize channel...\n");
 	ez_ret_val = EZapiChannel_Initialize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("setup_chip: EZapiChannel_Initialize failed.\n");
 		return false;
 	}
 
 	/************************************************/
-	/* initialized state:                           */
+	/* Initialized state:                           */
 	/* --------------                               */
 	/* 1. Create search_structures                  */
 	/* 2. Load partition                            */
 	/************************************************/
+	printf("Initialized state...\n");
 	if (create_all_dbs() == false) {
-		return 1;
+		printf("setup_chip: create_all_dbs failed.\n");
+		return false;
 	}
 	if (load_partition() == false) {
-		return 1;
+		printf("setup_chip: load_partition failed.\n");
+		return false;
 	}
-
-	/************************************************/
-	/* finalize channel                             */
-	/************************************************/
-	ez_ret_val = EZapiChannel_Finalize(0);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
+	if (initialize_dbs() == false) {
+		printf("setup_chip: initialize_dbs failed.\n");
 		return false;
 	}
 
 	/************************************************/
-	/* finalized state:                             */
+	/* Finalize channel                             */
+	/************************************************/
+	printf("Finalize channel...\n");
+	ez_ret_val = EZapiChannel_Finalize(0);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("setup_chip: EZapiChannel_Finalize failed.\n");
+		return false;
+	}
+
+	/************************************************/
+	/* Finalized state:                             */
 	/* --------------                               */
 	/* Do nothing                                   */
 	/************************************************/
+	printf("Finalized state...\n");
 
 	/************************************************/
-	/* channel GO                                   */
+	/* Channel GO                                   */
 	/************************************************/
+	printf("Channel GO...\n");
 	ez_ret_val = EZapiChannel_Go(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("setup_chip: EZapiChannel_Go failed.\n");
 		return false;
 	}
 
 	/************************************************/
-	/* running state:                               */
-	/* --------------                               */
-	/* 1. ALVS daemon                               */
+	/* Running state:                               */
 	/************************************************/
-
+	printf("Running state...\n");
 
 	return true;
 }

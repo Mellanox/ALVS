@@ -45,9 +45,7 @@
 /* dp includes */
 #include <ezdp_search_defs.h>
 
-/* configuration */
-#include "conf.h"
-
+#include "struct_ids.h"
 
 /**********************************************************************************************************************************
  * Miscellaneous definitions
@@ -89,7 +87,7 @@ enum dp_path_type
 #define 	DP_NUM_COUNTERS_PER_INTERFACE	256
 
 //Number of lag members is hard coded and depended on compilation flag. in case user configures LAG need to enable this flag.
-#if (NW_IF_LAG_ENABLED == true)
+#ifdef NW_IF_LAG_ENABLED
 	#define		DEFAULT_NW_OUTPUT_CHANNEL	0
 	#define 	NUM_OF_LAG_MEMBERS			4
 	#define 	LAG_HASH_MASK				0x3
@@ -103,18 +101,6 @@ enum dp_path_type
 /**********************************************************************************************************************************
  * ALVS Search struct definitions - TODO auto  generate struct defs via CTOP gen
  **********************************************************************************************************************************/
-
-enum alvs_struct_id
-{
-	ALVS_STRUCT_ID_INTERFACES			= 0,
-	ALVS_STRUCT_ID_LAG					= 1,
-	ALVS_STRUCT_ID_CONNECTIONS 			= 2,
-	ALVS_STRUCT_ID_SERVICES 			= 3,
-	ALVS_STRUCT_ID_SERVERS	 			= 4,
-	ALVS_STRUCT_ID_FIB		 			= 5,
-	ALVS_STRUCT_ID_ARP		 			= 6,
-	ALVS_STRUCT_ID_LAST
-};
 
 /*********************************
  * Interfaces DB defs

@@ -29,24 +29,21 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _CONF_H_
-#define _CONF_H_
+#ifndef _INFRASTRUCTURE_H_
+#define _INFRASTRUCTURE_H_
 
-#define	NW_IF_NUM                 4
-#define	NW_IF_TYPE                EZapiChannel_EthIFType_100GE
-#define	NW_IF_LAG_ENABLED         false
+#include <stdbool.h>
 
-#define HALF_CLUSTER_CODE_SIZE    0
-#define HALF_CLUSTER_DATA_SIZE    0
-#define X1_CLUSTER_CODE_SIZE      0
-#define X1_CLUSTER_DATA_SIZE      0
-#define X2_CLUSTER_CODE_SIZE      0
-#define X2_CLUSTER_DATA_SIZE      0
-#define X4_CLUSTER_CODE_SIZE      0
-#define X4_CLUSTER_DATA_SIZE      0
-#define X16_CLUSTER_CODE_SIZE     0
-#define X16_CLUSTER_DATA_SIZE     0
-#define ALL_CLUSTER_CODE_SIZE     0
-#define ALL_CLUSTER_DATA_SIZE     0
+#define INFRA_HOST_IF_SIDE          1
+#define INFRA_HOST_IF_ENGINE        0
+#define INFRA_HOST_IF_NUMBER        0
+#define INFRA_HOST_IF_LOGICAL_ID    128
 
-#endif /* _CONF_H_ */
+#define INFRA_NW_IF_SIDE            0
+#define INFRA_NW_IF_BASE_LOGICAL_ID 0
+
+bool infra_create_if_mapping(void);
+bool infra_create_mem_partition(void);
+bool infra_configure_protocol_decode(void);
+
+#endif /* _INTERFACE_H_ */

@@ -29,11 +29,18 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _PROTOCOL_DECODE_H_
-#define _PROTOCOL_DECODE_H_
+#ifndef STRUCT_IDS_H_
+#define STRUCT_IDS_H_
 
-#include <stdbool.h>
+enum alvs_struct_id {
+	ALVS_STRUCT_ID_INTERFACES            = 0,
+	ALVS_STRUCT_ID_LAG                   = 1,
+	ALVS_STRUCT_ID_CONNECTIONS           = 2,
+	ALVS_STRUCT_ID_SERVICES              = 3,
+	ALVS_STRUCT_ID_SERVERS               = 4,
+	ALVS_STRUCT_ID_FIB                   = 5,
+	ALVS_STRUCT_ID_ARP                   = 6,
+	ALVS_NUM_OF_STRUCT_IDS
+};
 
-bool configure_my_mac(void);
-
-#endif /* _PROTOCOL_DECODE_H_ */
+#endif /* STRUCT_IDS_H_ */

@@ -29,20 +29,32 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _INTERFACE_H_
-#define _INTERFACE_H_
+#ifndef _INFRASTRUCTURE_CONF_H_
+#define _INFRASTRUCTURE_CONF_H_
 
-#include <stdbool.h>
+/* Interfaces */
+#define	INFRA_NW_IF_NUM               4
+#define	INFRA_NW_IF_TYPE              EZapiChannel_EthIFType_100GE
 
-#define HOST_IF_SIDE          1
-#define HOST_IF_ENGINE        0
-#define HOST_IF_NUMBER        0
-#define HOST_IF_LOGICAL_ID    128
+/* Memory spaces */
+#define HALF_CLUSTER_DATA_SIZE        0
+#define X1_CLUSTER_DATA_SIZE          0
+#define X2_CLUSTER_DATA_SIZE          0
+#define X4_CLUSTER_DATA_SIZE          0
+#define X16_CLUSTER_DATA_SIZE         1024
+#define ALL_CLUSTER_DATA_SIZE         0
+#define EMEM_DATA_NO_ECC_SIZE         0
+#define EMEM_DATA_IN_BAND_SIZE        0
+#define EMEM_DATA_OUT_OF_BAND_SIZE    0
 
-#define NW_IF_SIDE            0
-#define NW_IF_BASE_LOGICAL_ID 0
-#define NW_IF_LAG_LOGICAL_ID  NW_IF_BASE_LOGICAL_ID
+#define HALF_CLUSTER_SEARCH_SIZE      0
+#define X1_CLUSTER_SEARCH_SIZE        4
+#define X2_CLUSTER_SEARCH_SIZE        0
+#define X4_CLUSTER_SEARCH_SIZE        0
+#define X16_CLUSTER_SEARCH_SIZE       0
+#define ALL_CLUSTER_SEARCH_SIZE       0
+#define EMEM_SEARCH_SIZE              256
 
-bool create_if_mapping(void);
+/* Statistics */
 
-#endif /* _INTERFACE_H_ */
+#endif /* _INFRASTRUCTURE_CONF_H_ */

@@ -39,6 +39,7 @@
 bool create_all_dbs(void);
 bool create_classification_db(void);
 bool create_arp_db(void);
+bool initialize_dbs(void);
 bool load_partition(void);
 
 bool add_if_entry(struct dp_interface_key *key, struct dp_interface_result *result);
@@ -47,7 +48,5 @@ bool add_arp_entry(struct alvs_arp_key *key, struct alvs_arp_result *result);
 
 bool delete_classification_entry(struct alvs_service_key *key);
 bool delete_arp_entry(struct alvs_arp_key *key);
-
-bool create_search_mem_partition(void);
 
 #endif /* _SEARCH_H_ */
