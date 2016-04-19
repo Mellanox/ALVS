@@ -174,9 +174,8 @@ void nw_db_manager_arp_table_init()
 			printf("Add neighbor to table IP = %s MAC = %s type= %d state = %d\n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)), rtnl_neigh_get_type(neighbor), rtnl_neigh_get_state(neighbor));
 			neighbor_to_arp_entry(neighbor, &key, &result);
 			ret_code = add_arp_entry(&key, &result);
-			printf("entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 			if(!ret_code){
-				printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
+				printf("Error - cannot add entry to ARP table key= 0x%08X result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 			}
 		}
 		/* Next neighbor */
@@ -202,21 +201,20 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 			printf("Add neighbor to table    IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 			neighbor_to_arp_entry(neighbor, &key, &result);
 			ret_code = add_arp_entry(&key, &result);
-			printf("entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 			if(!ret_code){
-				printf("Error - cannot add entry to ARP table \n");
+				printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 			}
 			break;
 		case NL_ACT_DEL:
-			printf("Delete neighbor from table IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
+			printf("Delete neighbor from table IP = %s MAC = %s \n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 			neighbor_to_arp_entry(neighbor, &key, &result);
 			ret_code = delete_arp_entry(&key);
 			if(!ret_code){
-				printf("Error - cannot remove entry from ARP table \n");
+				printf("Error - cannot remove entry from ARP table key= 0x%X08 \n", key.real_server_address);
 			}
 			break;
 		case NL_ACT_CHANGE:
-			printf("Change neighbor in table IP = %s MAC = %s state = %d\n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)), rtnl_neigh_get_state(neighbor));
+			printf("Change neighbor in table IP = %s MAC = %s state = %d\n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)), rtnl_neigh_get_state(neighbor));
 			break;
 		}
 

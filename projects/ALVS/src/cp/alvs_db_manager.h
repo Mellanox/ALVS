@@ -31,10 +31,10 @@
 *
 */
 
-#ifndef CP_NW_DB_MANAGER_H_
-#define CP_NW_DB_MANAGER_H_
+#ifndef CP_ALVS_DB_MANAGER_H_
+#define CP_ALVS_DB_MANAGER_H_
 
-void nw_db_manager_process(void);
-void nw_db_manager_delete(void);
+void alvs_db_manager_process(void);
+void alvs_db_manager_delete(void);
 
-#endif /* CP_NW_DB_MANAGER_H_ */
+#endif /* CP_ALVS_DB_MANAGER_H_ */

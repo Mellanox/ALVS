@@ -39,6 +39,7 @@
 #include "search.h"
 
 #include "nw_db_manager.h"
+#include "alvs_db_manager.h"
 
 /******************************************************************************/
 
@@ -65,6 +66,7 @@ void signal_terminate_handler( int signum );
 /******************************************************************************/
 bool    is_main_process = true;
 bool    is_nw_db_manager_process = false;
+bool    is_alvs_db_manager_process = false;
 /******************************************************************************/
 
 int main( void )
@@ -123,6 +125,20 @@ int main( void )
 		is_main_process = false;
 		is_nw_db_manager_process = true;
 		nw_db_manager_process();
+	}
+
+	/************************************************/
+	/* Start ALVS DB manager process             */
+	/************************************************/
+	cpid = fork();
+	if (cpid == -1){
+		perror("Error creating child process - fork fail\n");
+		exit(1);
+	}
+	if (cpid  == 0){
+		is_main_process = false;
+		is_alvs_db_manager_process = true;
+		alvs_db_manager_process();
 	}
 
 	while(true){
@@ -392,10 +408,8 @@ void       signal_terminate_handler( int signum)
 		/* kill all other processes */
 		killpg(0, SIGTERM);
 	}
-
 	if(is_nw_db_manager_process){
 		printf("Received interrupt in nw_db_manager process %d\n", signum);
-
 		if(signum != SIGTERM){
 			/* kill all other processes */
 			kill (getppid(), SIGTERM);
@@ -403,6 +417,17 @@ void       signal_terminate_handler( int signum)
 		}
 		else{
 			nw_db_manager_delete();
+		}
+	}
+	if(is_alvs_db_manager_process){
+		printf("Received interrupt in alvs_db_manager process %d\n", signum);
+		if(signum != SIGTERM){
+			/* kill all other processes */
+			kill (getppid(), SIGTERM);
+			sleep(0x1FFFFFFF);
+		}
+		else{
+			alvs_db_manager_delete();
 		}
 	}
 	exit(0);
