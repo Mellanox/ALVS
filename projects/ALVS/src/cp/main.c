@@ -382,9 +382,10 @@ bool delete_board( void )
  *
  * \return     void
  */
-void       signal_terminate_handler( int signum )
+void       signal_terminate_handler( int signum)
 {
 	if(is_main_process){
+		printf("Received interrupt in main process %d\n", signum);
 		delete_agt();
 		delete_cp();
 		delete_board();
@@ -393,7 +394,16 @@ void       signal_terminate_handler( int signum )
 	}
 
 	if(is_nw_db_manager_process){
-		nw_db_manager_delete();
+		printf("Received interrupt in nw_db_manager process %d\n", signum);
+
+		if(signum != SIGTERM){
+			/* kill all other processes */
+			kill (getppid(), SIGTERM);
+			sleep(0x1FFFFFFF);
+		}
+		else{
+			nw_db_manager_delete();
+		}
 	}
 	exit(0);
 }
