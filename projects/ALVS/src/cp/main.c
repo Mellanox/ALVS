@@ -61,12 +61,22 @@ bool delete_board( void );
 static
 bool setup_chip( void );
 
+void main_process_delete( void );
 void signal_terminate_handler( int signum );
 
+enum object_type{
+	object_type_board,
+	object_type_cp,
+	object_type_agt,
+	object_type_nw_db_manager,
+	object_type_alvs_db_manager,
+	object_type_count
+};
 /******************************************************************************/
 bool    is_main_process = true;
 bool    is_nw_db_manager_process = false;
 bool    is_alvs_db_manager_process = false;
+bool 	is_object_allocated[object_type_count];
 /******************************************************************************/
 
 int main( void )
@@ -83,16 +93,19 @@ int main( void )
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS,  signal_terminate_handler);
 
+	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
 	/* Initializing CP SDK host components          */
 	/************************************************/
 	printf("Init board...\n");
 	if (init_board() == false) {
+		main_process_delete();
 		exit(1);
 	}
 
 	printf("Init cp...\n");
 	if (init_cp() == false) {
+		main_process_delete();
 		exit(1);
 	}
 
@@ -101,6 +114,7 @@ int main( void )
 	/************************************************/
 	printf("Setup chip...\n");
 	if (setup_chip() == false) {
+		main_process_delete();
 		exit(1);
 	}
 
@@ -109,9 +123,10 @@ int main( void )
 	/************************************************/
 	printf("Create AGT...\n");
 	if (create_agt() == false) {
+		main_process_delete();
 		exit(1);
 	}
-
+	is_object_allocated[object_type_agt] = true;
 
 	/************************************************/
 	/* Start network DB manager process             */
@@ -119,11 +134,13 @@ int main( void )
 	cpid = fork();
 	if (cpid == -1){
 		perror("Error creating child process - fork fail\n");
+		main_process_delete();
 		exit(1);
 	}
 	if (cpid  == 0){
 		is_main_process = false;
 		is_nw_db_manager_process = true;
+		is_object_allocated[object_type_nw_db_manager] = true;
 		nw_db_manager_process();
 	}
 
@@ -133,11 +150,13 @@ int main( void )
 	cpid = fork();
 	if (cpid == -1){
 		perror("Error creating child process - fork fail\n");
-		exit(1);
+		main_process_delete();
+		killpg(0, SIGTERM);
 	}
 	if (cpid  == 0){
 		is_main_process = false;
 		is_alvs_db_manager_process = true;
+		is_object_allocated[object_type_alvs_db_manager] = true;
 		alvs_db_manager_process();
 	}
 
@@ -297,6 +316,7 @@ bool init_cp( void )
 	if(EZrc_IS_ERROR( ez_ret_val)) {
 		return false;
 	}
+	is_object_allocated[object_type_cp] = true;
 
 	return true;
 }
@@ -355,42 +375,40 @@ bool init_board(void)
 	}
    }
 #endif
-
+   is_object_allocated[object_type_board] = true;
    return true;
 }
 
-static
-bool delete_cp(void)
+static bool delete_cp(void)
 {
-   EZstatus ez_ret_val;
+	EZstatus ez_ret_val;
 
-   ez_ret_val = EZapiCP_Delete();
-   if(EZrc_IS_ERROR(ez_ret_val)) {
-      printf("delete_cp: EZapiCP_Delete failed.\n" );
-      return false;
-   }
+	ez_ret_val = EZapiCP_Delete();
+	if(EZrc_IS_ERROR(ez_ret_val)) {
+		printf("delete_cp: EZapiCP_Delete failed.\n" );
+		return false;
+	}
 
-   ez_ret_val = EZenv_Delete();
-   if (EZrc_IS_ERROR( ez_ret_val)) {
-      printf("delete_cp: EZenv_Delete failed.\n" );
-      return false;
-   }
+	ez_ret_val = EZenv_Delete();
+	if (EZrc_IS_ERROR( ez_ret_val)) {
+		printf("delete_cp: EZenv_Delete failed.\n" );
+		return false;
+	}
 
-   return true;
+	return true;
 }
 
-static
-bool delete_board( void )
+static bool delete_board( void )
 {
-   EZstatus ez_ret_val;
+	EZstatus ez_ret_val;
 
-   ez_ret_val = EZdev_Delete();
-   if (EZrc_IS_ERROR(ez_ret_val)) {
-      printf("delete_board: EZdev_Delete failed.\n");
-      return false;
-   }
+	ez_ret_val = EZdev_Delete();
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("delete_board: EZdev_Delete failed.\n");
+		return false;
+	}
 
-   return true;
+	return true;
 }
 
 /************************************************************************
@@ -402,12 +420,7 @@ void       signal_terminate_handler( int signum)
 {
 	if(is_main_process){
 		printf("Received interrupt in main process %d\n", signum);
-		if(signum == SIGTERM){
-			printf("kill CP\n");
-			delete_agt();
-			delete_cp();
-			delete_board();
-		}
+		main_process_delete();
 		/* kill all other processes */
 		killpg(0, SIGTERM);
 	}
@@ -418,7 +431,8 @@ void       signal_terminate_handler( int signum)
 			kill (getppid(), SIGTERM);
 			sleep(0x1FFFFFFF);
 		}
-		else{
+		if(is_object_allocated[object_type_nw_db_manager]){
+			is_object_allocated[object_type_nw_db_manager] = false;
 			nw_db_manager_delete();
 		}
 	}
@@ -429,9 +443,28 @@ void       signal_terminate_handler( int signum)
 			kill (getppid(), SIGTERM);
 			sleep(0x1FFFFFFF);
 		}
-		else{
+		if(is_object_allocated[object_type_alvs_db_manager]){
+			is_object_allocated[object_type_alvs_db_manager] = false;
 			alvs_db_manager_delete();
 		}
 	}
 	exit(0);
+}
+void main_process_delete( void )
+{
+	if(is_object_allocated[object_type_agt]){
+		is_object_allocated[object_type_agt] = false;
+		printf("Delete AGT\n");
+		delete_agt();
+	}
+	if(is_object_allocated[object_type_cp]){
+		is_object_allocated[object_type_cp] = false;
+		printf("Delete CP\n");
+		delete_cp();
+	}
+	if(is_object_allocated[object_type_board]){
+		is_object_allocated[object_type_board] = false;
+		printf("Delete board\n");
+		delete_board();
+	}
 }
