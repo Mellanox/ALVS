@@ -25,6 +25,7 @@
 #include <EZdev.h>
 
 #include "utils.h"
+#include "agt.h"
 
 /******************************************************************************/
 
@@ -131,6 +132,14 @@ int       main( void )
       printf("main: init_cp failed.\n");
       return ret_val;
    }
+
+	/************************************************/
+	/* Enable AGT debug agent interface             */
+	/************************************************/
+	printf("Create AGT...\n");
+	if (create_agt() == false) {
+		exit(1);
+	}
 
    /************************************************/
    /* Initializing control plane components        */
