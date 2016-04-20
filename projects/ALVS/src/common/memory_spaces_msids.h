@@ -29,18 +29,24 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _AGT_H_
-#define _AGT_H_
+#ifndef MEMORY_SPACES_MSIDS_H_
+#define MEMORY_SPACES_MSIDS_H_
 
-#include <stdbool.h>
-#include <EZagtRPC.h>
+/* Data MSIDs */
+#define HALF_CLUSTER_DATA_MSID        0x2
+#define X1_CLUSTER_DATA_MSID          0x4
+#define X2_CLUSTER_DATA_MSID          0x6
+#define X4_CLUSTER_DATA_MSID          0x8
+#define X16_CLUSTER_DATA_MSID         0xa
+#define ALL_CLUSTER_DATA_MSID         0xc
+#define EMEM_DATA_NO_ECC_MSID         0x0
+#define EMEM_DATA_IN_BAND_MSID        0x1
+#define EMEM_DATA_OUT_OF_BAND_MSID    0x2
 
-#define		AGT_PORT                 1234
+/* Statistics MSIDs */
+#define EMEM_STATISTICS_POSTED_MSID   0x3
 
-bool create_agt(void);
-bool delete_agt(void);
+/* Search MSIDs */
+#define EMEM_SEARCH_MSID              0x4
 
-static
-EZagtRPCServer host_server;
-
-#endif /* _AGT_H_ */
+#endif /* MEMORY_SPACES_MSIDS_H_ */

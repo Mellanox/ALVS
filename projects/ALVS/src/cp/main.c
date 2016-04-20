@@ -33,9 +33,12 @@
 #include <signal.h>
 #include <EZenv.h>
 #include <EZdev.h>
+#include <EZagtCPMain.h>
+#include <EZosTask.h>
+#include <EZagtRPC.h>
 
-#include "agt.h"
 #include "infrastructure.h"
+#include "infrastructure_conf.h"
 #include "search.h"
 
 #include "nw_db_manager.h"
@@ -47,22 +50,16 @@ extern EZbool
 EZdevSim_WaitForInitSocket(EZui32 uiNumberOfConnections);
 
 static
-bool init_cp( void );
+bool init(void);
 
 static
-bool init_board( void );
-
-static
-bool delete_cp( void );
-
-static
-bool delete_board( void );
+bool setup_chip(void);
 
 static
 bool setup_chip( void );
 
 void main_process_delete( void );
-void signal_terminate_handler( int signum );
+void signal_terminate_handler(int signum);
 
 enum object_type{
 	object_type_board,
@@ -73,13 +70,14 @@ enum object_type{
 	object_type_count
 };
 /******************************************************************************/
-bool    is_main_process = true;
-bool    is_nw_db_manager_process = false;
-bool    is_alvs_db_manager_process = false;
-bool 	is_object_allocated[object_type_count];
+bool is_main_process = true;
+bool is_nw_db_manager_process = false;
+bool is_alvs_db_manager_process = false;
+bool is_object_allocated[object_type_count];
+EZagtRPCServer host_server;
 /******************************************************************************/
 
-int main( void )
+int main(void)
 {
 	int32_t                        cpid;
 	/************************************************/
@@ -95,16 +93,10 @@ int main( void )
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
-	/* Initializing CP SDK host components          */
+	/* Initialize board, CP SDK host components     */
+	/* and AGT debug agent interface                */
 	/************************************************/
-	printf("Init board...\n");
-	if (init_board() == false) {
-		main_process_delete();
-		exit(1);
-	}
-
-	printf("Init cp...\n");
-	if (init_cp() == false) {
+	if (init() == false) {
 		main_process_delete();
 		exit(1);
 	}
@@ -117,16 +109,6 @@ int main( void )
 		main_process_delete();
 		exit(1);
 	}
-
-	/************************************************/
-	/* Enable AGT debug agent interface             */
-	/************************************************/
-	printf("Create AGT...\n");
-	if (create_agt() == false) {
-		main_process_delete();
-		exit(1);
-	}
-	is_object_allocated[object_type_agt] = true;
 
 	/************************************************/
 	/* Start network DB manager process             */
@@ -199,6 +181,10 @@ bool setup_chip( void )
 		printf("setup_chip: infra_create_mem_partition failed.\n");
 		return false;
 	}
+	if (infra_create_statistics() == false) {
+		printf("setup_chip: infra_create_statistics failed.\n");
+		return false;
+	}
 	if (infra_configure_protocol_decode() == false) {
 		printf("setup_chip: infra_configure_protocol_decode failed.\n");
 		return false;
@@ -252,6 +238,10 @@ bool setup_chip( void )
 		printf("setup_chip: initialize_dbs failed.\n");
 		return false;
 	}
+	if (infra_initialize_statistics() == false) {
+		printf("setup_chip: initialize_statistics failed.\n");
+		return false;
+	}
 
 	/************************************************/
 	/* Finalize channel                             */
@@ -289,124 +279,108 @@ bool setup_chip( void )
 }
 
 static
-bool init_cp( void )
+void EZhost_RPCJSONTask(void)
+{
+   EZagtRPC_ServerRun(host_server);
+}
+
+static
+bool init(void)
 {
 	EZstatus ez_ret_val;
+	EZtask task;
+	EZdev_PlatformParams platform_params;
+	uint8_t kernel_module[16];
+	FILE *fd;
+	bool is_real_chip = false;
+
+	printf("Init board...\n");
+	/* Determine if we are running on real chip or simulator */
+	fd = popen("lsmod | grep nps_cp", "r");
+	if ((fd != NULL)) {
+		if (fread(kernel_module, 1, sizeof (kernel_module), fd) > 0) {
+			is_real_chip = TRUE;
+		}
+		pclose(fd);
+	}
+
+	/* Initialize EZdev */
+	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
+	if (is_real_chip) {
+		platform_params.ePlatform = EZdev_Platform_UIO;
+	}
+	else
+	{
+		platform_params.ePlatform = EZdev_Platform_SIM;
+	}
+	ez_ret_val = EZdev_Create(&platform_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("init_board: EZdev_Create failed.\n" );
+		return false;
+	}
+
+	if(is_real_chip == false) {
+		/* Wait for simulator to connect to socket */
+		ez_ret_val = EZdevSim_WaitForInitSocket(1);
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
+			return false;
+		}
+	}
 
 	/************************************************/
-	/* Create Env                                   */
+	/* Initialize Env                               */
 	/************************************************/
+	printf("Initialize Env...\n");
 	ez_ret_val = EZenv_Create();
 	if (EZrc_IS_ERROR( ez_ret_val)) {
 		return false;
 	}
 
 	/************************************************/
-	/* Create CP library                            */
+	/* Create and run CP library                    */
 	/************************************************/
+	printf("Create CP library...\n");
 	ez_ret_val = EZapiCP_Create( );
 	if(EZrc_IS_ERROR( ez_ret_val)) {
 		return false;
 	}
 
-	/************************************************/
-	/* Run CP library                               */
-	/************************************************/
+	printf("Run CP library...\n");
 	ez_ret_val = EZapiCP_Go();
 	if(EZrc_IS_ERROR( ez_ret_val)) {
 		return false;
 	}
 	is_object_allocated[object_type_cp] = true;
 
-	return true;
-}
-
-static
-bool init_board(void)
-{
-#ifndef EZ_CPU_ARC
-	EZdev_PlatformParams platform_params;
-	EZstatus ez_ret_val;
-	EZc8 cKernelModule[16];
-	FILE *fd;
-	EZbool bIsRealChip = FALSE;
-
-	fd = popen("lsmod | grep nps_cp", "r");
-
-   if ((fd != NULL)) {
-      if (fread(cKernelModule, 1, sizeof (cKernelModule), fd) > 0) {
-         bIsRealChip = TRUE;
-      }
-      pclose( fd );
-   }
-
-   if (bIsRealChip) {
-	printf ("nps_cp module is loaded. Running on real chip.\n");
-	platform_params.ePlatform = EZdev_Platform_UIO;
-	/* Set chip type. */
-	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
-
-	/* Initialize the DEV component */
-	ez_ret_val = EZdev_Create(&platform_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("init_board: EZdev_Create failed.\n" );
-		return false;
-	}
-   }
-   else {
-	printf ("nps_cp module is not loaded. Running on simulator.\n");
-	/* Connect to simulator */
-	/* Set platform SIM */
-	platform_params.ePlatform = EZdev_Platform_SIM;
-	/* Set chip type. */
-	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
-
-	/* Initialize the DEV component */
-	ez_ret_val = EZdev_Create( &platform_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-	 printf("init_board: EZdev_Create failed.\n" );
-	 return false;
-	}
-
-	ez_ret_val = EZdevSim_WaitForInitSocket(1);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
-		return false;
-	}
-   }
-#endif
-   is_object_allocated[object_type_board] = true;
-   return true;
-}
-
-static bool delete_cp(void)
-{
-	EZstatus ez_ret_val;
-
-	ez_ret_val = EZapiCP_Delete();
-	if(EZrc_IS_ERROR(ez_ret_val)) {
-		printf("delete_cp: EZapiCP_Delete failed.\n" );
+	/************************************************/
+	/* Enable AGT debug agent interface             */
+	/************************************************/
+	printf("Create AGT...\n");
+	/* Create rpc server for given port */
+	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
+	if(host_server == NULL) {
 		return false;
 	}
 
-	ez_ret_val = EZenv_Delete();
+	/* Register standard CP commands */
+	ez_ret_val = EZagt_RegisterFunctions(host_server);
+	if ( EZrc_IS_ERROR( ez_ret_val ) ) {
+		return false;
+	}
+
+	/* Register standard CP commands */
+	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR( ez_ret_val)) {
-		printf("delete_cp: EZenv_Delete failed.\n" );
 		return false;
 	}
 
-	return true;
-}
-
-static bool delete_board( void )
-{
-	EZstatus ez_ret_val;
-
-	ez_ret_val = EZdev_Delete();
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("delete_board: EZdev_Delete failed.\n");
+	/* Create task for run rpc-json commands  */
+	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000, (EZosTask_Spawn_FuncPtr)EZhost_RPCJSONTask, 0);
+	if(task == EZosTask_INVALID_TASK) {
 		return false;
 	}
+	is_object_allocated[object_type_agt] = true;
 
 	return true;
 }
@@ -443,7 +417,7 @@ void       signal_terminate_handler( int signum)
 			kill (getppid(), SIGTERM);
 			sleep(0x1FFFFFFF);
 		}
-		if(is_object_allocated[object_type_alvs_db_manager]){
+		if(is_object_allocated[object_type_alvs_db_manager]) {
 			is_object_allocated[object_type_alvs_db_manager] = false;
 			alvs_db_manager_delete();
 		}
@@ -452,19 +426,34 @@ void       signal_terminate_handler( int signum)
 }
 void main_process_delete( void )
 {
-	if(is_object_allocated[object_type_agt]){
+	EZstatus ez_ret_val;
+
+	if(is_object_allocated[object_type_agt]) {
 		is_object_allocated[object_type_agt] = false;
 		printf("Delete AGT\n");
-		delete_agt();
+		EZagtRPC_ServerStop( host_server );
+		EZosTask_Delay(10);
+		EZagtRPC_ServerDestroy( host_server );
 	}
-	if(is_object_allocated[object_type_cp]){
+	if(is_object_allocated[object_type_cp]) {
 		is_object_allocated[object_type_cp] = false;
 		printf("Delete CP\n");
-		delete_cp();
+		ez_ret_val = EZapiCP_Delete();
+		if(EZrc_IS_ERROR(ez_ret_val)) {
+			printf("delete_cp: EZapiCP_Delete failed.\n" );
+		}
+
+		ez_ret_val = EZenv_Delete();
+		if (EZrc_IS_ERROR( ez_ret_val)) {
+			printf("delete_cp: EZenv_Delete failed.\n" );
+		}
 	}
-	if(is_object_allocated[object_type_board]){
+	if(is_object_allocated[object_type_board]) {
 		is_object_allocated[object_type_board] = false;
 		printf("Delete board\n");
-		delete_board();
+		ez_ret_val = EZdev_Delete();
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("delete_board: EZdev_Delete failed.\n");
+		}
 	}
 }

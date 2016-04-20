@@ -32,29 +32,37 @@
 #ifndef _INFRASTRUCTURE_CONF_H_
 #define _INFRASTRUCTURE_CONF_H_
 
+/* AGT port */
+#define INFRA_AGT_PORT                      1234
+
+/* Host interface */
+#define INFRA_HOST_INTERFACE                "eth2"
+
 /* Interfaces */
-#define	INFRA_NW_IF_NUM               4
-#define	INFRA_NW_IF_TYPE              EZapiChannel_EthIFType_100GE
+#define	INFRA_NW_IF_NUM                     4
+#define	INFRA_NW_IF_TYPE                    EZapiChannel_EthIFType_10GE
 
 /* Memory spaces */
-#define HALF_CLUSTER_DATA_SIZE        0
-#define X1_CLUSTER_DATA_SIZE          0
-#define X2_CLUSTER_DATA_SIZE          0
-#define X4_CLUSTER_DATA_SIZE          0
-#define X16_CLUSTER_DATA_SIZE         1024
-#define ALL_CLUSTER_DATA_SIZE         0
-#define EMEM_DATA_NO_ECC_SIZE         0
-#define EMEM_DATA_IN_BAND_SIZE        0
-#define EMEM_DATA_OUT_OF_BAND_SIZE    0
+#define INFRA_HALF_CLUSTER_DATA_SIZE        0
+#define INFRA_X1_CLUSTER_DATA_SIZE          0
+#define INFRA_X2_CLUSTER_DATA_SIZE          0
+#define INFRA_X4_CLUSTER_DATA_SIZE          0
+#define INFRA_X16_CLUSTER_DATA_SIZE         0
+#define INFRA_ALL_CLUSTER_DATA_SIZE         0
+#define INFRA_EMEM_DATA_NO_ECC_SIZE         0
+#define INFRA_EMEM_DATA_IN_BAND_SIZE        0
+#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    0
 
-#define HALF_CLUSTER_SEARCH_SIZE      0
-#define X1_CLUSTER_SEARCH_SIZE        4
-#define X2_CLUSTER_SEARCH_SIZE        0
-#define X4_CLUSTER_SEARCH_SIZE        0
-#define X16_CLUSTER_SEARCH_SIZE       0
-#define ALL_CLUSTER_SEARCH_SIZE       0
-#define EMEM_SEARCH_SIZE              256
+#define INFRA_HALF_CLUSTER_SEARCH_SIZE      0
+#define INFRA_X1_CLUSTER_SEARCH_SIZE        4
+#define INFRA_X2_CLUSTER_SEARCH_SIZE        0
+#define INFRA_X4_CLUSTER_SEARCH_SIZE        0
+#define INFRA_X16_CLUSTER_SEARCH_SIZE       0
+#define INFRA_ALL_CLUSTER_SEARCH_SIZE       0
+#define INFRA_EMEM_SEARCH_SIZE              256
 
 /* Statistics */
+#define INFRA_STATS_POSTED_GROUP_SIZE       (120*1024)
+#define INFRA_STATS_POSTED_NUM              (16*1024)
 
 #endif /* _INFRASTRUCTURE_CONF_H_ */

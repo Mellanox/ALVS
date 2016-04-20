@@ -199,7 +199,7 @@ bool init_shared_cmem( void )
 
 	/*init stats addresses*/
 	shared_cmem.nw_interface_stats_base_address.mem_type		= EZDP_EXTERNAL_MS;
-	shared_cmem.nw_interface_stats_base_address.msid 			= ALVS_STATISTICS_MSID;
+	shared_cmem.nw_interface_stats_base_address.msid 			= EMEM_STATISTICS_POSTED_MSID;
 	shared_cmem.nw_interface_stats_base_address.element_index 	= 0;
 
 	return true;

@@ -46,6 +46,7 @@
 #include <ezdp_search_defs.h>
 
 #include "struct_ids.h"
+#include "memory_spaces_msids.h"
 
 /**********************************************************************************************************************************
  * Miscellaneous definitions
@@ -83,7 +84,6 @@ enum dp_path_type
 
 #define 	ALVS_HOST_OUTPUT_CHANNEL_ID		0 | 1<<8  //TODO - roee please update with real channel ID of host interface
 
-#define 	ALVS_STATISTICS_MSID			7	//TODO - roee add to configuration - set which value you want on EMEM for posted stats
 #define 	DP_NUM_COUNTERS_PER_INTERFACE	256
 
 //Number of lag members is hard coded and depended on compilation flag. in case user configures LAG need to enable this flag.

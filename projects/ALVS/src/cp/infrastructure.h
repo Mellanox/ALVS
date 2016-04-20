@@ -44,6 +44,9 @@
 
 bool infra_create_if_mapping(void);
 bool infra_create_mem_partition(void);
+bool infra_create_statistics(void);
 bool infra_configure_protocol_decode(void);
 
-#endif /* _INTERFACE_H_ */
+bool infra_initialize_statistics(void);
+
+#endif /* _INFRASTRUCTURE_H_ */

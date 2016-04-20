@@ -323,7 +323,7 @@ bool initialize_dbs(void)
 	FILE *fd;
 	uint32_t ind;
 
-	fd = fopen("/sys/class/net/eth0/address","r");
+	fd = fopen("/sys/class/net/"INFRA_HOST_INTERFACE"/address","r");
 	if(fd == NULL) {
 		printf("initialize_dbs: Opening eth address file failed.\n");
 		return false;
