@@ -58,7 +58,8 @@ void nw_db_manager_arp_table_init(void);
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data);
 void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct alvs_arp_key *key, struct alvs_arp_result *result);
 char* addr_to_str(struct nl_addr *addr);
-
+void add_entry_to_arp_table(struct rtnl_neigh *neighbor);
+void remove_entry_from_arp_table(struct rtnl_neigh *neighbor);
 /* Globals Definition */
 struct nl_cache_mngr* network_cache_mngr;
 
@@ -152,9 +153,6 @@ void nw_db_manager_arp_table_init()
 	int ret,i;
 	struct nl_cache   *neighbor_cache;
 	struct rtnl_neigh *neighbor = rtnl_neigh_alloc();
-	struct alvs_arp_result result;
-	struct alvs_arp_key key;
-	bool ret_code;
 	struct nl_cache* filtered_neighbor_cache;
 
 	/* Allocate neighbor (ARP) cache */
@@ -171,12 +169,7 @@ void nw_db_manager_arp_table_init()
 	for (i = 0; neighbor != NULL ; i++){
 		if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
 			/* Add neighbor to table */
-			printf("Add neighbor to table IP = %s MAC = %s type= %d state = %d\n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)), rtnl_neigh_get_type(neighbor), rtnl_neigh_get_state(neighbor));
-			neighbor_to_arp_entry(neighbor, &key, &result);
-			ret_code = add_arp_entry(&key, &result);
-			if(!ret_code){
-				printf("Error - cannot add entry to ARP table key= 0x%08X result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
-			}
+			add_entry_to_arp_table(neighbor);
 		}
 		/* Next neighbor */
 		neighbor=(struct rtnl_neigh *)nl_cache_get_next((struct nl_object*)neighbor);
@@ -192,30 +185,25 @@ void nw_db_manager_arp_table_init()
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data)
 {
 	struct rtnl_neigh *neighbor = (struct rtnl_neigh *)obj;
-	if(rtnl_neigh_get_family(neighbor) == AF_INET && !(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
-		struct alvs_arp_result result;
-		struct alvs_arp_key key;
-		bool ret_code;
+	if(rtnl_neigh_get_family(neighbor) == AF_INET){
 		switch(action){
 		case NL_ACT_NEW:
-			printf("Add neighbor to table    IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
-			neighbor_to_arp_entry(neighbor, &key, &result);
-			ret_code = add_arp_entry(&key, &result);
-			if(!ret_code){
-				printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
+			if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
+				add_entry_to_arp_table(neighbor);
 			}
 			break;
 		case NL_ACT_DEL:
-			printf("Delete neighbor from table IP = %s MAC = %s \n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
-			neighbor_to_arp_entry(neighbor, &key, &result);
-			ret_code = delete_arp_entry(&key);
-			if(!ret_code){
-				printf("Error - cannot remove entry from ARP table key= 0x%X08 \n", key.real_server_address);
+			if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
+				remove_entry_from_arp_table(neighbor);
 			}
 			break;
 		case NL_ACT_CHANGE:
-			printf("Change neighbor in table IP = %s MAC = %s state = %d\n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)), rtnl_neigh_get_state(neighbor));
-			break;
+			if(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE){
+				remove_entry_from_arp_table(neighbor);
+			}
+			else{
+				add_entry_to_arp_table(neighbor);
+			}
 		}
 
 	}
@@ -223,10 +211,14 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 
 void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct alvs_arp_key *key, struct alvs_arp_result *result)
 {
-	key->real_server_address = *(uint32_t*)nl_addr_get_binary_addr(rtnl_neigh_get_dst(neighbor));
-	memcpy ( result->dest_mac_addr.ether_addr_octet , nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)) , 6);
-	//TODO: what is the output channel ???
-	result->base_output_channel = 0;
+	if(key){
+		key->real_server_address = *(uint32_t*)nl_addr_get_binary_addr(rtnl_neigh_get_dst(neighbor));
+	}
+	if(result){
+		memcpy ( result->dest_mac_addr.ether_addr_octet , nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)) , 6);
+		//TODO: what is the output channel ???
+		result->base_output_channel = 0;
+	}
 }
 
 char* addr_to_str(struct nl_addr *addr)
@@ -238,4 +230,24 @@ char* addr_to_str(struct nl_addr *addr)
 	i%=4;
 	memset(buf,0,sizeof(bufs[0]));
 	return nl_addr2str(addr, buf , sizeof(bufs[0]));
+}
+
+void add_entry_to_arp_table(struct rtnl_neigh *neighbor)
+{
+	struct alvs_arp_result result;
+	struct alvs_arp_key key;
+	printf("Add neighbor to table    IP = %s MAC = %s \n " , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
+	neighbor_to_arp_entry(neighbor, &key, &result);
+	if(!add_arp_entry(&key, &result)){
+		printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
+	}
+}
+void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
+{
+	struct alvs_arp_key key;
+	printf("Delete neighbor from table IP = %s MAC = %s \n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
+	neighbor_to_arp_entry(neighbor, &key, NULL);
+	if(!delete_arp_entry(&key)){
+		printf("Error - cannot remove entry from ARP table key= 0x%X08 \n", key.real_server_address);
+	}
 }

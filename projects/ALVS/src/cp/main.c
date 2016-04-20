@@ -402,9 +402,12 @@ void       signal_terminate_handler( int signum)
 {
 	if(is_main_process){
 		printf("Received interrupt in main process %d\n", signum);
-		delete_agt();
-		delete_cp();
-		delete_board();
+		if(signum == SIGTERM){
+			printf("kill CP\n");
+			delete_agt();
+			delete_cp();
+			delete_board();
+		}
 		/* kill all other processes */
 		killpg(0, SIGTERM);
 	}
