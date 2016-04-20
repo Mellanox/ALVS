@@ -56,12 +56,12 @@ static
 bool setup_chip(void);
 
 static
-bool setup_chip( void );
+bool setup_chip(void);
 
-void main_process_delete( void );
+void main_process_delete(void);
 void signal_terminate_handler(int signum);
 
-enum object_type{
+enum object_type {
 	object_type_board,
 	object_type_cp,
 	object_type_agt,
@@ -114,12 +114,12 @@ int main(void)
 	/* Start network DB manager process             */
 	/************************************************/
 	cpid = fork();
-	if (cpid == -1){
+	if (cpid == -1) {
 		perror("Error creating child process - fork fail\n");
 		main_process_delete();
 		exit(1);
 	}
-	if (cpid  == 0){
+	if (cpid  == 0) {
 		is_main_process = false;
 		is_nw_db_manager_process = true;
 		is_object_allocated[object_type_nw_db_manager] = true;
@@ -130,19 +130,19 @@ int main(void)
 	/* Start ALVS DB manager process             */
 	/************************************************/
 	cpid = fork();
-	if (cpid == -1){
+	if (cpid == -1) {
 		perror("Error creating child process - fork fail\n");
 		main_process_delete();
 		killpg(0, SIGTERM);
 	}
-	if (cpid  == 0){
+	if (cpid  == 0) {
 		is_main_process = false;
 		is_alvs_db_manager_process = true;
 		is_object_allocated[object_type_alvs_db_manager] = true;
 		alvs_db_manager_process();
 	}
 
-	while(true){
+	while(true) {
 		sleep(0xFFFFFFFF);
 	}
 
@@ -392,27 +392,27 @@ bool init(void)
  */
 void       signal_terminate_handler( int signum)
 {
-	if(is_main_process){
+	if(is_main_process) {
 		printf("Received interrupt in main process %d\n", signum);
 		main_process_delete();
 		/* kill all other processes */
 		killpg(0, SIGTERM);
 	}
-	if(is_nw_db_manager_process){
+	if(is_nw_db_manager_process) {
 		printf("Received interrupt in nw_db_manager process %d\n", signum);
-		if(signum != SIGTERM){
+		if(signum != SIGTERM) {
 			/* kill all other processes */
 			kill (getppid(), SIGTERM);
 			sleep(0x1FFFFFFF);
 		}
-		if(is_object_allocated[object_type_nw_db_manager]){
+		if(is_object_allocated[object_type_nw_db_manager]) {
 			is_object_allocated[object_type_nw_db_manager] = false;
 			nw_db_manager_delete();
 		}
 	}
-	if(is_alvs_db_manager_process){
+	if(is_alvs_db_manager_process) {
 		printf("Received interrupt in alvs_db_manager process %d\n", signum);
-		if(signum != SIGTERM){
+		if(signum != SIGTERM) {
 			/* kill all other processes */
 			kill (getppid(), SIGTERM);
 			sleep(0x1FFFFFFF);
