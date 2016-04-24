@@ -106,8 +106,8 @@ bool create_arp_db(void)
 	struct_params.bEnable = true;
 	struct_params.eStructType = EZapiStruct_StructType_HASH;
 	struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
-	struct_params.uiKeySize         = sizeof(struct alvs_arp_key);
-	struct_params.uiResultSize      = sizeof(struct alvs_arp_result);
+	struct_params.uiKeySize         = sizeof(struct nw_arp_key);
+	struct_params.uiResultSize      = sizeof(struct nw_arp_result);
 	struct_params.uiMaxEntries      = MAX_ENTRIES;
 	struct_params.sChannelMap.bSingleDest = true;
 	struct_params.sChannelMap.uDest.uiChannel = 0;
@@ -257,16 +257,16 @@ bool add_classification_entry(struct alvs_service_key *key, struct alvs_service_
 	return true;
 }
 
-bool add_arp_entry(struct alvs_arp_key *key, struct alvs_arp_result *result)
+bool add_arp_entry(struct nw_arp_key *key, struct nw_arp_result *result)
 {
 	EZstatus ez_ret_val;
 	EZapiEntry entry;
 
 	memset(&entry, 0, sizeof(entry));
 
-	entry.uiKeySize = sizeof(struct alvs_arp_key);
+	entry.uiKeySize = sizeof(struct nw_arp_key);
 	entry.pucKey = (void*)key;
-	entry.uiResultSize = sizeof(struct alvs_arp_result);
+	entry.uiResultSize = sizeof(struct nw_arp_result);
 	entry.pucResult = (void*)result;
 
 	ez_ret_val = EZapiStruct_AddEntry(ALVS_STRUCT_ID_ARP, NULL, &entry, NULL);
@@ -285,7 +285,7 @@ bool delete_classification_entry(struct alvs_service_key *key)
 
 	memset(&entry, 0, sizeof(entry));
 
-	entry.uiKeySize = sizeof(struct alvs_arp_key);
+	entry.uiKeySize = sizeof(struct alvs_service_key);
 	entry.pucKey = (void*)key;
 
 	ez_ret_val = EZapiStruct_DeleteEntry(ALVS_STRUCT_ID_SERVICES, NULL, &entry, NULL);
@@ -297,14 +297,14 @@ bool delete_classification_entry(struct alvs_service_key *key)
 	return true;
 }
 
-bool delete_arp_entry(struct alvs_arp_key *key)
+bool delete_arp_entry(struct nw_arp_key *key)
 {
 	EZstatus ez_ret_val;
 	EZapiEntry entry;
 
 	memset(&entry, 0, sizeof(entry));
 
-	entry.uiKeySize = sizeof(struct alvs_arp_key);
+	entry.uiKeySize = sizeof(struct nw_arp_key);
 	entry.pucKey = (void*)key;
 
 	ez_ret_val = EZapiStruct_DeleteEntry(ALVS_STRUCT_ID_ARP, NULL, &entry, NULL);
@@ -355,3 +355,4 @@ bool initialize_dbs(void)
 
 	return true;
 }
+

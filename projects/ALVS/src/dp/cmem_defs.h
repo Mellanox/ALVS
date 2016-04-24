@@ -49,14 +49,14 @@ typedef struct
 	/**< Result of Decode MAC */
 	struct alvs_service_key				service_key							;
 	/**< service key */
-	struct alvs_arp_key					arp_key								;
+	struct nw_arp_key					arp_key								;
 	/**< arp key */
 	struct  dp_interface_result			interface_result					;
 	/**< interface result */
    	union
    	{
    		char	service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))];
-   		char	arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_arp_result), sizeof(struct alvs_arp_key))];
+   		char	arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
    		char    table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
    	};
 }__packed alvs_cmem;

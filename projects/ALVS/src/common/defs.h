@@ -197,23 +197,23 @@ CASSERT(sizeof(struct alvs_service_result) == ALVS_SERVICE_RESULT_SIZE*sizeof(ui
  * arp DB defs
  *********************************/
 
-#define ALVS_ARP_RESULT_SIZE	2	//words
-#define ALVS_ARP_KEY_SIZE		4   //bytes
+#define NW_ARP_RESULT_SIZE	2	//words
+#define NW_ARP_KEY_SIZE		4   //bytes
 
 /*key*/
-struct alvs_arp_key
+struct nw_arp_key
 {
 	in_addr_t	real_server_address;
 };
 
-CASSERT(sizeof(struct alvs_arp_key) == ALVS_ARP_KEY_SIZE);
+CASSERT(sizeof(struct nw_arp_key) == NW_ARP_KEY_SIZE);
 
 /*result*/
-struct  alvs_arp_result
+struct  nw_arp_result
 {
 	union
 	{
-		uint32_t	raw_data[ALVS_ARP_RESULT_SIZE];
+		uint32_t	raw_data[NW_ARP_RESULT_SIZE];
 
 		struct
 		{
@@ -230,7 +230,7 @@ struct  alvs_arp_result
 	};
 };
 
-CASSERT(sizeof(struct alvs_arp_result) == ALVS_ARP_RESULT_SIZE*sizeof(uint32_t));
+CASSERT(sizeof(struct nw_arp_result) == NW_ARP_RESULT_SIZE*sizeof(uint32_t));
 
 /**********************************************************************************************************************************
  * ALVS statistics definitions

@@ -59,14 +59,14 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 {
 	 uint32_t						rc;
 	 uint32_t						found_result_size;
-	 struct  alvs_arp_result   		*arp_res_ptr;
+	 struct  nw_arp_result   		*arp_res_ptr;
 
 
 	 cmem.arp_key.real_server_address 	= dest_ip;
 
 	 rc = ezdp_lookup_hash_entry(&shared_cmem.arp_struct_desc,
 								 (void*)&cmem.arp_key,
-								 sizeof(struct alvs_arp_key),
+								 sizeof(struct nw_arp_key),
 								 (void **)&arp_res_ptr,
 								 &found_result_size,
 								 0,

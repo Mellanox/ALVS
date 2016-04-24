@@ -62,7 +62,7 @@ void alvs_db_manager_classification_table_init(void);
 void alvs_db_manager_process()
 {
 //	printf("alvs_db_manager_init ... \n");
-//	nw_db_manager_init();
+//	alvs_db_manager_init();
 	printf("alvs_db_manager_table_init ... \n");
 	alvs_db_manager_table_init();
 }
@@ -96,12 +96,12 @@ void alvs_db_manager_classification_table_init()
 	struct alvs_service_result result;
 	bool ret_code;
 
-	key.service_address = 0xc86b890a; //10.137.107.200
-	key.service_port = 80;
+	key.service_address = htonl(0xc86b890a); //10.137.107.200
+	key.service_port = htons(80);
 	key.service_protocol = IPPROTO_TCP;
 	memset(&result, 0, sizeof(struct  alvs_service_result));
-	result.real_server_ip = 0x066b890a; //10.137.107.6
-	printf("Add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6\n");
+	result.real_server_ip = htonl(0x066b890a); //10.137.107.6
+	printf("Add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6 0x%08X\n", result.real_server_ip);
 	ret_code = add_classification_entry(&key, &result);
 	if(!ret_code){
 		printf("Error - cannot add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6\n");

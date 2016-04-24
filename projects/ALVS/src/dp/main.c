@@ -187,9 +187,9 @@ bool init_shared_cmem( void )
 
 	result =  ezdp_validate_hash_struct_desc( &shared_cmem.arp_struct_desc,
 	                                  	  	  true,
-											  sizeof(struct alvs_arp_key),
-											  sizeof(struct alvs_arp_result),
-											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_arp_result),sizeof(struct alvs_arp_key))));
+											  sizeof(struct nw_arp_key),
+											  sizeof(struct nw_arp_result),
+											  sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct nw_arp_result),sizeof(struct nw_arp_key))));
 	if (result != 0)
 	{
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s \n",
