@@ -43,8 +43,7 @@
 enum infra_imem_spaces_params {
 	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
 	INFRA_IMEM_SPACES_PARAMS_SIZE               = 1,
-	INFRA_IMEM_SPACES_PARAMS_MSID               = 2,
-	INFRA_IMEM_SPACES_PARAMS_INDEX              = 3,
+	INFRA_IMEM_SPACES_PARAMS_INDEX              = 2,
 	INFRA_NUM_OF_IMEM_SPACES_PARAMS
 };
 
@@ -64,36 +63,29 @@ enum infra_emem_spaces_params {
 #define INFRA_X16_CLUSTER_CODE_SIZE 0
 #define INFRA_ALL_CLUSTER_CODE_SIZE 1024
 
-#define HALF_CLUSTER_CODE_MSID        0x3
-#define X1_CLUSTER_CODE_MSID          0x5
-#define X2_CLUSTER_CODE_MSID          0x7
-#define X4_CLUSTER_CODE_MSID          0x9
-#define X16_CLUSTER_CODE_MSID         0xb
-#define ALL_CLUSTER_CODE_MSID         0xd
-
 #define NUM_OF_INT_MEMORY_SPACES 18
 #define NUM_OF_EXT_MEMORY_SPACES 4
 
 static
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, HALF_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, HALF_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, 0, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, X1_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_X1_CLUSTER_DATA_SIZE, X1_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_X2_CLUSTER_CODE_SIZE, X2_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_X2_CLUSTER_DATA_SIZE, X2_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_X2_CLUSTER_SEARCH_SIZE, 0, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_X4_CLUSTER_CODE_SIZE, X4_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_X4_CLUSTER_DATA_SIZE, X4_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_X16_CLUSTER_CODE_SIZE, X16_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_X16_CLUSTER_DATA_SIZE, X16_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_X16_CLUSTER_SEARCH_SIZE, 0, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, ALL_CLUSTER_CODE_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, ALL_CLUSTER_DATA_MSID, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, 0, 0}
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_X1_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_X2_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_X2_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_X2_CLUSTER_SEARCH_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_X4_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_X4_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_X16_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_X16_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_X16_CLUSTER_SEARCH_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, 0}
 };
 
 static
@@ -104,6 +96,9 @@ uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_P
 		{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID, 0}
 };
 
+#define get_type1(type) EZapiChannel_EthIFType_##type
+#define get_type(type) get_type1(type)
+
 bool infra_create_if_mapping(void)
 {
 	uint32_t ind;
@@ -113,10 +108,10 @@ bool infra_create_if_mapping(void)
 
 	/* Configure external interfaces */
 	for(ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
-		eth_if_params.uiSide = INFRA_NW_IF_SIDE;
-		eth_if_params.uiIFEngine = ind;
-		eth_if_params.eEthIFType = INFRA_NW_IF_TYPE;
-		eth_if_params.uiIFNumber = 0;
+		eth_if_params.uiSide = network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE];
+		eth_if_params.uiIFEngine = network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT] / 12;
+		eth_if_params.eEthIFType = get_type(INFRA_NW_IF_TYPE);
+		eth_if_params.uiIFNumber = network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT] % 12;
 
 		ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthIFParams, &eth_if_params);
 		if (EZrc_IS_ERROR(ret_val)) {
@@ -133,10 +128,10 @@ bool infra_create_if_mapping(void)
 		}
 
 
-		eth_rx_channel_params.uiSide = INFRA_NW_IF_SIDE;
-		eth_rx_channel_params.uiIFEngine  = ind;
-		eth_rx_channel_params.eEthIFType  = INFRA_NW_IF_TYPE;
-		eth_rx_channel_params.uiIFNumber  = 0;
+		eth_rx_channel_params.uiSide = network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE];
+		eth_rx_channel_params.uiIFEngine  = network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT] / 12;
+		eth_rx_channel_params.eEthIFType  = get_type(INFRA_NW_IF_TYPE);
+		eth_rx_channel_params.uiIFNumber  = network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT] % 12;
 		eth_rx_channel_params.uiRXChannel  = 0;
 
 		ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthRXChannelParams, &eth_rx_channel_params);
@@ -144,7 +139,7 @@ bool infra_create_if_mapping(void)
 			return false;
 		}
 
-		eth_rx_channel_params.uiLogicalID = INFRA_NW_IF_BASE_LOGICAL_ID + ind;
+		eth_rx_channel_params.uiLogicalID = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
 
 		ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 		if (EZrc_IS_ERROR(ret_val)) {
@@ -154,9 +149,9 @@ bool infra_create_if_mapping(void)
 
 	/* Configure interface to host */
 	eth_if_params.uiSide = INFRA_HOST_IF_SIDE;
-	eth_if_params.uiIFEngine = INFRA_HOST_IF_ENGINE;
+	eth_if_params.uiIFEngine = INFRA_HOST_IF_PORT / 12;
 	eth_if_params.eEthIFType = EZapiChannel_EthIFType_10GE;
-	eth_if_params.uiIFNumber = INFRA_HOST_IF_NUMBER;
+	eth_if_params.uiIFNumber = INFRA_HOST_IF_PORT % 12;
 
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthIFParams, &eth_if_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -173,9 +168,9 @@ bool infra_create_if_mapping(void)
 	}
 
 	eth_rx_channel_params.uiSide = INFRA_HOST_IF_SIDE;
-	eth_rx_channel_params.uiIFEngine  = INFRA_HOST_IF_ENGINE;
+	eth_rx_channel_params.uiIFEngine  = INFRA_HOST_IF_PORT / 12;
 	eth_rx_channel_params.eEthIFType  = EZapiChannel_EthIFType_10GE;
-	eth_rx_channel_params.uiIFNumber  = INFRA_HOST_IF_NUMBER;
+	eth_rx_channel_params.uiIFNumber  = INFRA_HOST_IF_PORT % 12;
 	eth_rx_channel_params.uiRXChannel  = 0;
 
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthRXChannelParams, &eth_rx_channel_params);

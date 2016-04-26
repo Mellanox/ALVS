@@ -36,14 +36,6 @@
 #include <stdint.h>
 #include "struct_ids.h"
 
-#define INFRA_HOST_IF_SIDE          1
-#define INFRA_HOST_IF_ENGINE        0
-#define INFRA_HOST_IF_NUMBER        0
-#define INFRA_HOST_IF_LOGICAL_ID    128
-
-#define INFRA_NW_IF_SIDE            0
-#define INFRA_NW_IF_BASE_LOGICAL_ID 0
-
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
 	INFRA_X1_CLUSTER_SEARCH_HEAP,
