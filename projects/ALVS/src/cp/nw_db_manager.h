@@ -34,8 +34,8 @@
 #ifndef CP_NW_DB_MANAGER_H_
 #define CP_NW_DB_MANAGER_H_
 
-void nw_db_manager_process(void);
-void nw_db_manager_delete(void);
+void nw_db_manager_main(void);
 bool nw_db_constructor(void);
+void nw_db_manager_set_cancel_thread(void);
 
 #endif /* CP_NW_DB_MANAGER_H_ */

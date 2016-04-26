@@ -39,6 +39,7 @@
 
 /* linux includes */
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 /* libnl-3 includes */
 //#include <netlink/netlink.h>
@@ -51,7 +52,10 @@
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 
+bool is_alvs_db_manager_cancel_thread = false;
 
+void alvs_db_manager_delete(void);
+void alvs_db_manager_init(void);
 void alvs_db_manager_table_init(void);
 void alvs_db_manager_classification_table_init(void);
 
@@ -60,12 +64,29 @@ void alvs_db_manager_classification_table_init(void);
  *
  * \return	  void
  */
-void alvs_db_manager_process()
+void alvs_db_manager_main()
 {
-//	printf("alvs_db_manager_init ... \n");
-//	alvs_db_manager_init();
+	printf("alvs_db_manager_init ... \n");
+	alvs_db_manager_init();
 	printf("alvs_db_manager_table_init ... \n");
 	alvs_db_manager_table_init();
+	while(!is_alvs_db_manager_cancel_thread){
+		sleep(5);
+	}
+	alvs_db_manager_delete();
+}
+
+void alvs_db_manager_set_cancel_thread()
+{
+	is_alvs_db_manager_cancel_thread = true;
+}
+
+void alvs_db_manager_init()
+{
+	sigset_t sigs_to_block;
+	sigemptyset(&sigs_to_block);
+	sigaddset(&sigs_to_block, SIGTERM);
+	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 }
 
 /******************************************************************************

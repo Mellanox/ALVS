@@ -34,8 +34,8 @@
 #ifndef CP_ALVS_DB_MANAGER_H_
 #define CP_ALVS_DB_MANAGER_H_
 
-void alvs_db_manager_process(void);
-void alvs_db_manager_delete(void);
+void alvs_db_manager_main(void);
+void alvs_db_manager_set_cancel_thread(void);
 bool alvs_db_constructor(void);
 
 #endif /* CP_ALVS_DB_MANAGER_H_ */

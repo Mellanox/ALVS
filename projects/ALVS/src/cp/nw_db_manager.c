@@ -39,6 +39,7 @@
 
 /* linux includes */
 #include <stdio.h>
+#include <signal.h>
 
 /* libnl-3 includes */
 #include <netlink/netlink.h>
@@ -54,6 +55,7 @@
 
 /* Function Definition */
 void nw_db_manager_init(void);
+void nw_db_manager_delete(void);
 void nw_db_manager_table_init(void);
 void nw_db_manager_poll(void);
 void nw_db_manager_if_table_init(void);
@@ -61,12 +63,14 @@ void nw_db_manager_arp_table_init(void);
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data);
 void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, struct nw_arp_result *result);
 char* addr_to_str(struct nl_addr *addr);
-void add_entry_to_arp_table(struct rtnl_neigh *neighbor);
-void remove_entry_from_arp_table(struct rtnl_neigh *neighbor);
+bool add_entry_to_arp_table(struct rtnl_neigh *neighbor);
+bool remove_entry_from_arp_table(struct rtnl_neigh *neighbor);
+void table_operation_retry(bool (*f_pointer)(void*), void *param);
+
 /* Globals Definition */
 struct nl_cache_mngr* network_cache_mngr;
-
-#define NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE (NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP)
+bool is_nw_db_manager_cancel_thread = false;
+#define NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE (NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP | NUD_NONE)
 
 
 /******************************************************************************
@@ -74,7 +78,7 @@ struct nl_cache_mngr* network_cache_mngr;
  *
  * \return	  void
  */
-void nw_db_manager_process()
+void nw_db_manager_main()
 {
 	printf("nw_db_manager_init ... \n");
 	nw_db_manager_init();
@@ -82,6 +86,12 @@ void nw_db_manager_process()
 	nw_db_manager_table_init();
 	printf("nw_db_manager_poll ... \n");
 	nw_db_manager_poll();
+	nw_db_manager_delete();
+}
+
+void nw_db_manager_set_cancel_thread()
+{
+	is_nw_db_manager_cancel_thread = true;
 }
 
 /******************************************************************************
@@ -91,6 +101,11 @@ void nw_db_manager_process()
  */
 void nw_db_manager_init()
 {
+	sigset_t sigs_to_block;
+	sigemptyset(&sigs_to_block);
+	sigaddset(&sigs_to_block, SIGTERM);
+	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+
 	/* Allocate cache manager */
 	network_cache_mngr = NULL;
 	nl_cache_mngr_alloc(NULL , NETLINK_ROUTE , 0 , &network_cache_mngr);
@@ -129,18 +144,14 @@ void nw_db_manager_table_init()
 void nw_db_manager_poll()
 {
 	int err;
-	/* Get waiting updates received since previous cache read */
-	err = nl_cache_mngr_data_ready(network_cache_mngr);
-	if (err < 0 && err != -NLE_INTR){
-		printf("ERROR - Get data ready failed: %s", nl_geterror(err));
-		return;
-	}
-	/* Poll on cache updates */
-	while(1){
-		err = nl_cache_mngr_poll(network_cache_mngr, 0x1FFFFFFF);
+	while(!is_nw_db_manager_cancel_thread){
+		/* Get waiting updates received since previous cache read */
+		err = nl_cache_mngr_data_ready(network_cache_mngr);
+		/* Poll on cache updates */
+		err = nl_cache_mngr_poll(network_cache_mngr, 0x1000);
 		if (err < 0 && err != -NLE_INTR){
 			printf("ERROR - Polling failed: %s", nl_geterror(err));
-			return;
+			exit(1);
 		}
 	}
 }
@@ -208,6 +219,9 @@ void nw_db_manager_arp_table_init()
 		printf("Unable to add cache route/neigh: %s", nl_geterror(ret));
 		exit(1);
 	}
+	/* Take only IPv4 entries.
+	 * TODO: when adding IPv6 entries, this should be revisited.
+	 * */
 	rtnl_neigh_set_family(neighbor,AF_INET);
 	filtered_neighbor_cache = nl_cache_subset(neighbor_cache,(struct nl_object*)neighbor);
 
@@ -216,7 +230,9 @@ void nw_db_manager_arp_table_init()
 	for (i = 0; neighbor != NULL ; i++){
 		if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
 			/* Add neighbor to table */
-			add_entry_to_arp_table(neighbor);
+			if(!add_entry_to_arp_table(neighbor)){
+				table_operation_retry((bool (*)(void*))add_entry_to_arp_table, (void*)neighbor);
+			}
 		}
 		/* Next neighbor */
 		neighbor=(struct rtnl_neigh *)nl_cache_get_next((struct nl_object*)neighbor);
@@ -232,24 +248,35 @@ void nw_db_manager_arp_table_init()
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data)
 {
 	struct rtnl_neigh *neighbor = (struct rtnl_neigh *)obj;
+	/* Take only IPv4 entries.
+	 * TODO: when adding IPv6 entries, this should be revisited.
+	 * */
 	if(rtnl_neigh_get_family(neighbor) == AF_INET){
 		switch(action){
 		case NL_ACT_NEW:
 			if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
-				add_entry_to_arp_table(neighbor);
+				if(!add_entry_to_arp_table(neighbor)){
+					table_operation_retry((bool (*)(void*))add_entry_to_arp_table, (void*)neighbor);
+				}
 			}
 			break;
 		case NL_ACT_DEL:
 			if(!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)){
-				remove_entry_from_arp_table(neighbor);
+				if(!remove_entry_from_arp_table(neighbor)){
+					table_operation_retry((bool (*)(void*))remove_entry_from_arp_table, (void*)neighbor);
+				}
 			}
 			break;
 		case NL_ACT_CHANGE:
 			if(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE){
-				remove_entry_from_arp_table(neighbor);
+				if(!remove_entry_from_arp_table(neighbor)){
+					table_operation_retry((bool (*)(void*))remove_entry_from_arp_table, (void*)neighbor);
+				}
 			}
 			else{
-				add_entry_to_arp_table(neighbor);
+				if(!add_entry_to_arp_table(neighbor)){
+					table_operation_retry((bool (*)(void*))add_entry_to_arp_table, (void*)neighbor);
+				}
 			}
 		}
 
@@ -280,7 +307,7 @@ char* addr_to_str(struct nl_addr *addr)
 	return nl_addr2str(addr, buf , sizeof(bufs[0]));
 }
 
-void add_entry_to_arp_table(struct rtnl_neigh *neighbor)
+bool add_entry_to_arp_table(struct rtnl_neigh *neighbor)
 {
 	struct nw_arp_result result;
 	struct nw_arp_key key;
@@ -288,16 +315,40 @@ void add_entry_to_arp_table(struct rtnl_neigh *neighbor)
 	neighbor_to_arp_entry(neighbor, &key, &result);
 	if(!infra_add_entry(ALVS_STRUCT_ID_ARP, &key, sizeof(key), &result, sizeof(result))){
 		printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x \n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
+		return false;
 	}
+	return true;
 }
-void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
+
+bool remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 {
 	struct nw_arp_key key;
 	printf("Delete neighbor from table IP = %s MAC = %s \n" , addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 	neighbor_to_arp_entry(neighbor, &key, NULL);
 	if(!infra_delete_entry(ALVS_STRUCT_ID_ARP, &key, sizeof(key))){
 		printf("Error - cannot remove entry from ARP table key= 0x%X08 \n", key.real_server_address);
+		return false;
 	}
+	return true;
+}
+
+void table_operation_retry(bool (*f_pointer)(void*), void *param)
+{
+//TODO: need to decide on what to do here
+//	int32_t cpid;
+//	cpid = fork();
+//	if (cpid == -1) {
+//		perror("Error creating child process - fork fail\n");
+//		nw_db_manager_delete();
+//		exit(1);
+//	}
+//	if (cpid  == 0) {
+//		is_main_nw_db_manager_main = false;
+//		do{
+//			sleep(1);
+//		} while(!f_pointer(param));
+//		exit(0);
+//	}
 }
 
 bool nw_db_constructor(void)

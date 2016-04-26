@@ -29,7 +29,7 @@ CP_C_FLAGS += -DLITTLE_ENDIAN
 make_cp: $(CP_OBJS) $(USER_CP_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -lnl-3 -lnl-route-3 -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread -lm $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(USER_CP_OBJS) $(CP_LIBS)
+	gcc -lpthread -lnl-3 -lnl-route-3 -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread -lm $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(USER_CP_OBJS) $(CP_LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

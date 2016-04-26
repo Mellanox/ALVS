@@ -29,6 +29,7 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <pthread.h>
 #include <stdint.h>
 #include <signal.h>
 #include <EZenv.h>
@@ -58,9 +59,7 @@ bool setup_chip(void);
 
 static
 bool setup_chip(void);
-
-void main_process_delete(void);
-
+void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
 
 enum object_type {
@@ -80,16 +79,15 @@ bool (*db_constructors[DB_CONSTRUCTORS_NUM])(void) =
 	};
 
 /******************************************************************************/
-bool is_main_process = true;
-bool is_nw_db_manager_process = false;
-bool is_alvs_db_manager_process = false;
+pthread_t nw_db_manager_thread;
+pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
 EZagtRPCServer host_server;
 /******************************************************************************/
 
 int main(void)
 {
-	int32_t                        cpid;
+	int rc;
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
@@ -107,7 +105,7 @@ int main(void)
 	/* and AGT debug agent interface                */
 	/************************************************/
 	if (init() == false) {
-		main_process_delete();
+		main_thread_graceful_stop();
 		exit(1);
 	}
 
@@ -116,45 +114,44 @@ int main(void)
 	/************************************************/
 	printf("Setup chip...\n");
 	if (setup_chip() == false) {
-		main_process_delete();
+		main_thread_graceful_stop();
 		exit(1);
 	}
 
 	/************************************************/
-	/* Start network DB manager process             */
+	/* Start network DB manager main thread         */
 	/************************************************/
-	cpid = fork();
-	if (cpid == -1) {
-		perror("Error creating child process - fork fail\n");
-		main_process_delete();
+	if ((rc = pthread_create(&nw_db_manager_thread, NULL, (void * (*)(void *))nw_db_manager_main,NULL))) {
+		perror("error: pthread_create failed for network DB manager\n");
+		main_thread_graceful_stop();
 		exit(1);
 	}
-	if (cpid  == 0) {
-		is_main_process = false;
-		is_nw_db_manager_process = true;
-		is_object_allocated[object_type_nw_db_manager] = true;
-		nw_db_manager_process();
-	}
+	is_object_allocated[object_type_nw_db_manager] = true;
 
 	/************************************************/
-	/* Start ALVS DB manager process             */
+	/* Start ALVS DB manager main thread            */
 	/************************************************/
-	cpid = fork();
-	if (cpid == -1) {
-		perror("Error creating child process - fork fail\n");
-		main_process_delete();
-		killpg(0, SIGTERM);
+	if ((rc = pthread_create(&alvs_db_manager_thread, NULL, (void * (*)(void *))alvs_db_manager_main, NULL))) {
+		perror("error: pthread_create failed for ALVS DB manager\n");
+		main_thread_graceful_stop();
+		exit(1);
 	}
-	if (cpid  == 0) {
-		is_main_process = false;
-		is_alvs_db_manager_process = true;
-		is_object_allocated[object_type_alvs_db_manager] = true;
-		alvs_db_manager_process();
-	}
+	is_object_allocated[object_type_alvs_db_manager] = true;
 
-	while(true) {
-		sleep(0xFFFFFFFF);
-	}
+	/************************************************/
+	/* Wait for signal                              */
+	/************************************************/
+	sigset_t mask, oldmask;
+	/* Set up the mask of signals to temporarily block. */
+	sigemptyset (&mask);
+	sigaddset (&mask, SIGTERM);
+	/* Wait for a signal to arrive. */
+	sigprocmask (SIG_BLOCK, &mask, &oldmask);
+	sigsuspend (&oldmask);
+	sigprocmask (SIG_UNBLOCK, &mask, NULL);
+
+
+	main_thread_graceful_stop();
 
 	return 0;
 }
@@ -347,6 +344,7 @@ bool init(void)
 	if (EZrc_IS_ERROR( ez_ret_val)) {
 		return false;
 	}
+	is_object_allocated[object_type_board] = true;
 
 	/************************************************/
 	/* Create and run CP library                    */
@@ -398,46 +396,42 @@ bool init(void)
 
 /************************************************************************
  * \brief      signal terminate handler
- *
+ *             Only main thread can receive SIGTERM signal
+ *             and perform graceful stop.
  * \return     void
  */
 void       signal_terminate_handler( int signum)
 {
-	if(is_main_process) {
-		printf("Received interrupt in main process %d\n", signum);
-		main_process_delete();
-		/* kill all other processes */
-		killpg(0, SIGTERM);
+	if(signum != SIGTERM) {
+		raise(SIGTERM);
+		sleep(2);
 	}
-	if(is_nw_db_manager_process) {
-		printf("Received interrupt in nw_db_manager process %d\n", signum);
-		if(signum != SIGTERM) {
-			/* kill all other processes */
-			kill (getppid(), SIGTERM);
-			sleep(0x1FFFFFFF);
-		}
-		if(is_object_allocated[object_type_nw_db_manager]) {
-			is_object_allocated[object_type_nw_db_manager] = false;
-			nw_db_manager_delete();
-		}
+	else{
+		main_thread_graceful_stop();
+		exit(0);
 	}
-	if(is_alvs_db_manager_process) {
-		printf("Received interrupt in alvs_db_manager process %d\n", signum);
-		if(signum != SIGTERM) {
-			/* kill all other processes */
-			kill (getppid(), SIGTERM);
-			sleep(0x1FFFFFFF);
-		}
-		if(is_object_allocated[object_type_alvs_db_manager]) {
-			is_object_allocated[object_type_alvs_db_manager] = false;
-			alvs_db_manager_delete();
-		}
-	}
-	exit(0);
 }
-void main_process_delete( void )
+/************************************************************************
+ * \brief      graceful stop performed in main thread only
+ *             shuts down other threads if needed
+ * \return     void
+ */
+void main_thread_graceful_stop( void )
 {
 	EZstatus ez_ret_val;
+
+	if(is_object_allocated[object_type_nw_db_manager]) {
+		printf("Shut down thread nw_db_manager \n");
+		nw_db_manager_set_cancel_thread();
+		is_object_allocated[object_type_nw_db_manager] = false;
+	}
+	if(is_object_allocated[object_type_alvs_db_manager]) {
+		printf("Shut down thread alvs_db_manager \n");
+		alvs_db_manager_set_cancel_thread();
+		is_object_allocated[object_type_alvs_db_manager] = false;
+	}
+	pthread_join(nw_db_manager_thread,NULL);
+	pthread_join(alvs_db_manager_thread,NULL);
 
 	if(is_object_allocated[object_type_agt]) {
 		is_object_allocated[object_type_agt] = false;
@@ -453,7 +447,6 @@ void main_process_delete( void )
 		if(EZrc_IS_ERROR(ez_ret_val)) {
 			printf("delete_cp: EZapiCP_Delete failed.\n" );
 		}
-
 		ez_ret_val = EZenv_Delete();
 		if (EZrc_IS_ERROR( ez_ret_val)) {
 			printf("delete_cp: EZenv_Delete failed.\n" );
