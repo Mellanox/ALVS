@@ -24,6 +24,7 @@ DP_C_FLAGS += -DNDEBUG -O2
 else
 DP_C_FLAGS += -O1 -g3 -ftree-ter  -gdwarf-2
 endif
+DP_C_FLAGS += -DBIG_ENDIAN
 
 ifndef SIM
 DP_LIBS := -l:ezdp_linux_arc.a -l:ezframe_linux_arc.a -l:dpi_linux_arc.a -l:sft_linux_arc.a

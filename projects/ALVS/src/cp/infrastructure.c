@@ -212,8 +212,7 @@ bool infra_create_mem_partition(void)
 	EZapiChannel_ExtMemSpaceParams ext_mem_space_params;
 	uint32_t ind;
 
-	for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++)
-	{
+	for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
 		if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_SIZE] > 0) {
 			memset(&int_mem_space_params, 0, sizeof(int_mem_space_params));
 
@@ -237,8 +236,7 @@ bool infra_create_mem_partition(void)
 		}
 	}
 
-	for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++)
-	{
+	for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
 		if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_SIZE] > 0) {
 			memset(&ext_mem_space_params, 0, sizeof(ext_mem_space_params));
 

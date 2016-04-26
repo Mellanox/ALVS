@@ -23,6 +23,7 @@ CP_C_FLAGS := -O3
 else
 CP_C_FLAGS := -O0 -g3
 endif
+CP_C_FLAGS += -DLITTLE_ENDIAN
 
 # Tool invocations
 make_cp: $(CP_OBJS) $(USER_CP_OBJS)
