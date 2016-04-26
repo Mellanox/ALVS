@@ -39,15 +39,16 @@
 
 #include "infrastructure.h"
 #include "infrastructure_conf.h"
-#include "search.h"
 
 #include "nw_db_manager.h"
 #include "alvs_db_manager.h"
 
+#include "defs.h"
+
 /******************************************************************************/
 
-extern EZbool
-EZdevSim_WaitForInitSocket(EZui32 uiNumberOfConnections);
+extern
+EZbool EZdevSim_WaitForInitSocket(EZui32 uiNumberOfConnections);
 
 static
 bool init(void);
@@ -59,6 +60,7 @@ static
 bool setup_chip(void);
 
 void main_process_delete(void);
+
 void signal_terminate_handler(int signum);
 
 enum object_type {
@@ -69,6 +71,14 @@ enum object_type {
 	object_type_alvs_db_manager,
 	object_type_count
 };
+
+#define DB_CONSTRUCTORS_NUM 2
+bool (*db_constructors[DB_CONSTRUCTORS_NUM])(void) =
+	{
+		&nw_db_constructor,
+		&alvs_db_constructor
+	};
+
 /******************************************************************************/
 bool is_main_process = true;
 bool is_nw_db_manager_process = false;
@@ -152,6 +162,7 @@ int main(void)
 static
 bool setup_chip( void )
 {
+	uint32_t ind;
 	uint32_t pup_phase;
 	EZstatus ez_ret_val;
 
@@ -170,7 +181,8 @@ bool setup_chip( void )
 	/* --------------                               */
 	/* 1. Create interfaces mapping                 */
 	/* 2. Create memory partition                   */
-	/* 3. Configure my MAC                          */
+	/* 3. Create statistics                         */
+	/* 4. Configure my MAC                          */
 	/************************************************/
 	printf("Created state...\n");
 	if (infra_create_if_mapping() == false) {
@@ -224,18 +236,17 @@ bool setup_chip( void )
 	/* --------------                               */
 	/* 1. Create search_structures                  */
 	/* 2. Load partition                            */
+	/* 3. Initialize statistics                     */
 	/************************************************/
 	printf("Initialized state...\n");
-	if (create_all_dbs() == false) {
-		printf("setup_chip: create_all_dbs failed.\n");
-		return false;
+	for(ind = 0; ind < DB_CONSTRUCTORS_NUM; ind++) {
+		if (db_constructors[ind]() == false) {
+			printf("setup_chip: db_constructor[%d] failed.\n",ind);
+			return false;
+		}
 	}
 	if (load_partition() == false) {
 		printf("setup_chip: load_partition failed.\n");
-		return false;
-	}
-	if (initialize_dbs() == false) {
-		printf("setup_chip: initialize_dbs failed.\n");
 		return false;
 	}
 	if (infra_initialize_statistics() == false) {

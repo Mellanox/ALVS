@@ -36,7 +36,7 @@
 #define INFRA_AGT_PORT                      1234
 
 /* Host interface */
-#define INFRA_HOST_INTERFACE                "eth2"
+#define INFRA_HOST_INTERFACE                "eth0"
 
 /* Interfaces */
 #define	INFRA_NW_IF_NUM                     4

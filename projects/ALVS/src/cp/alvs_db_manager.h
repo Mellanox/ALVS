@@ -36,5 +36,6 @@
 
 void alvs_db_manager_process(void);
 void alvs_db_manager_delete(void);
+bool alvs_db_constructor(void);
 
 #endif /* CP_ALVS_DB_MANAGER_H_ */

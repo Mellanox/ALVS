@@ -38,28 +38,31 @@
 #include <stdio.h>
 #include <EZapiChannel.h>
 #include <EZapiStat.h>
+#include <EZapiStruct.h>
 
 enum infra_imem_spaces_params {
-	INFRA_IMEM_SPACES_PARAMS_TYPE             = 0,
-	INFRA_IMEM_SPACES_PARAMS_SIZE             = 1,
-	INFRA_IMEM_SPACES_PARAMS_MSID             = 2,
+	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
+	INFRA_IMEM_SPACES_PARAMS_SIZE               = 1,
+	INFRA_IMEM_SPACES_PARAMS_MSID               = 2,
+	INFRA_IMEM_SPACES_PARAMS_INDEX              = 3,
 	INFRA_NUM_OF_IMEM_SPACES_PARAMS
 };
 
 enum infra_emem_spaces_params {
-	INFRA_EMEM_SPACES_PARAMS_TYPE             = 0,
-	INFRA_EMEM_SPACES_PARAMS_PROTECTION       = 1,
-	INFRA_EMEM_SPACES_PARAMS_SIZE             = 2,
-	INFRA_EMEM_SPACES_PARAMS_MSID             = 3,
+	INFRA_EMEM_SPACES_PARAMS_TYPE               = 0,
+	INFRA_EMEM_SPACES_PARAMS_PROTECTION         = 1,
+	INFRA_EMEM_SPACES_PARAMS_SIZE               = 2,
+	INFRA_EMEM_SPACES_PARAMS_MSID               = 3,
+	INFRA_EMEM_SPACES_PARAMS_INDEX              = 4,
 	INFRA_NUM_OF_EMEM_SPACES_PARAMS
 };
 
 #define INFRA_HALF_CLUSTER_CODE_SIZE 0
-#define INFRA_X1_CLUSTER_CODE_SIZE 0
+#define INFRA_X1_CLUSTER_CODE_SIZE 64
 #define INFRA_X2_CLUSTER_CODE_SIZE 0
 #define INFRA_X4_CLUSTER_CODE_SIZE 0
 #define INFRA_X16_CLUSTER_CODE_SIZE 0
-#define INFRA_ALL_CLUSTER_CODE_SIZE 0
+#define INFRA_ALL_CLUSTER_CODE_SIZE 1024
 
 #define HALF_CLUSTER_CODE_MSID        0x3
 #define X1_CLUSTER_CODE_MSID          0x5
@@ -73,32 +76,32 @@ enum infra_emem_spaces_params {
 
 static
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, HALF_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, HALF_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, X1_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_X1_CLUSTER_DATA_SIZE, X1_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_X2_CLUSTER_CODE_SIZE, X2_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_X2_CLUSTER_DATA_SIZE, X2_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_X2_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_X4_CLUSTER_CODE_SIZE, X4_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_X4_CLUSTER_DATA_SIZE, X4_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_X16_CLUSTER_CODE_SIZE, X16_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_X16_CLUSTER_DATA_SIZE, X16_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_X16_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, ALL_CLUSTER_CODE_MSID},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, ALL_CLUSTER_DATA_MSID},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, 0}
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, HALF_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, HALF_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, 0, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, X1_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_X1_CLUSTER_DATA_SIZE, X1_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_X2_CLUSTER_CODE_SIZE, X2_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_X2_CLUSTER_DATA_SIZE, X2_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_X2_CLUSTER_SEARCH_SIZE, 0, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_X4_CLUSTER_CODE_SIZE, X4_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_X4_CLUSTER_DATA_SIZE, X4_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_X16_CLUSTER_CODE_SIZE, X16_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_X16_CLUSTER_DATA_SIZE, X16_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_X16_CLUSTER_SEARCH_SIZE, 0, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, ALL_CLUSTER_CODE_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, ALL_CLUSTER_DATA_MSID, 0},
+		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, 0, 0}
 };
 
 static
 uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_NONE, INFRA_EMEM_DATA_NO_ECC_SIZE, EMEM_DATA_NO_ECC_MSID},
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_IN_BAND, INFRA_EMEM_DATA_IN_BAND_SIZE, EMEM_DATA_IN_BAND_MSID},
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_DATA_OUT_OF_BAND_MSID},
-		{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID}
+		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_NONE, INFRA_EMEM_DATA_NO_ECC_SIZE, EMEM_DATA_NO_ECC_MSID, 0},
+		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_IN_BAND, INFRA_EMEM_DATA_IN_BAND_SIZE, EMEM_DATA_IN_BAND_MSID, 0},
+		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_DATA_OUT_OF_BAND_MSID, 0},
+		{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID, 0}
 };
 
 bool infra_create_if_mapping(void)
@@ -228,6 +231,9 @@ bool infra_create_mem_partition(void)
 			if (EZrc_IS_ERROR(ret_val)) {
 				return false;
 			}
+
+			imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX] = int_mem_space_params.uiIndex;
+			printf("IMEM %d is in index %d\n",ind,int_mem_space_params.uiIndex);
 		}
 	}
 
@@ -252,6 +258,9 @@ bool infra_create_mem_partition(void)
 			if (EZrc_IS_ERROR(ret_val)) {
 				return false;
 			}
+
+			emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX] = ext_mem_space_params.uiIndex;
+			printf("EMEM %d is in index %d and msid %d.\n",ind,ext_mem_space_params.uiIndex,ext_mem_space_params.uiMSID);
 		}
 	}
 
@@ -374,6 +383,242 @@ bool infra_initialize_statistics(void)
 	}
 
 	free(posted_counter_config.pasCounters);
+
+	return true;
+}
+
+uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
+{
+	uint32_t ind;
+	uint32_t mem_type = 0;
+	switch (search_mem_heap) {
+	case INFRA_HALF_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH;
+		break;
+	case INFRA_X1_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH;
+		break;
+	case INFRA_X2_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH;
+		break;
+	case INFRA_X4_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH;
+		break;
+	case INFRA_X16_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH;
+		break;
+	case INFRA_ALL_CLUSTER_SEARCH_HEAP:
+		mem_type = EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH;
+		break;
+	case INFRA_EMEM_SEARCH_HEAP:
+		mem_type = EZapiChannel_ExtMemSpaceType_SEARCH;
+		break;
+	}
+
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+		for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
+			if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_TYPE] == mem_type) {
+				return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
+			}
+		}
+	}
+	else {
+		for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
+			if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE] == mem_type) {
+				return imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX];
+			}
+		}
+	}
+
+	// Should not get here
+	return 0;
+}
+
+bool infra_create_hash(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params)
+{
+	EZstatus ez_ret_val;
+	EZapiStruct_StructParams struct_params;
+	EZapiStruct_HashParams hash_params;
+	EZapiStruct_HashMemMngParams hash_mem_mng_params;
+
+	/* Configure the struct parameters */
+	memset(&struct_params, 0, sizeof(struct_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetStructParams, &struct_params);
+	if (EZrc_IS_ERROR (ez_ret_val)) {
+		return false;
+	}
+
+	struct_params.bEnable = true;
+	struct_params.eStructType = EZapiStruct_StructType_HASH;
+	struct_params.uiKeySize = params->key_size;
+	struct_params.uiResultSize = params->result_size;
+	struct_params.uiMaxEntries = params->max_num_of_entries;
+	struct_params.sChannelMap.bSingleDest = true;
+	struct_params.sChannelMap.uDest.uiChannel = 0;
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
+	}
+	else {
+		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
+	}
+
+	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
+	if (EZrc_IS_ERROR (ez_ret_val)) {
+		return false;
+	}
+
+
+	/* Configure the hash parameters */
+	memset(&hash_params, 0, sizeof(hash_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashParams, &hash_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	hash_params.bSingleCycle = true;
+	if (params->updated_from_dp == true) {
+		hash_params.eUpdateMode = true;
+		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
+	}
+	else {
+		hash_params.eUpdateMode = false;
+		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
+	}
+
+	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashParams, &hash_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+
+	/* Configure the HASH memory management parameters */
+	memset(&hash_mem_mng_params, 0, sizeof( hash_mem_mng_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashMemMngParams, &hash_mem_mng_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
+	}
+	else {
+		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
+	}
+	hash_mem_mng_params.uiMainTableSpaceIndex = index_of(search_mem_heap);
+	hash_mem_mng_params.uiSigSpaceIndex = index_of(search_mem_heap);
+	hash_mem_mng_params.uiResSpaceIndex = index_of(search_mem_heap);
+
+	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool infra_create_table(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params)
+{
+	EZstatus ez_ret_val;
+	EZapiStruct_StructParams struct_params;
+	EZapiStruct_TableMemMngParams table_mem_mng_params;
+
+	memset(&struct_params, 0, sizeof(struct_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetStructParams, &struct_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	struct_params.bEnable = true;
+	struct_params.eStructType = EZapiStruct_StructType_TABLE;
+	struct_params.uiKeySize = params->key_size;
+	struct_params.uiResultSize = params->result_size;
+	struct_params.uiMaxEntries = params->max_num_of_entries;
+	struct_params.sChannelMap.bSingleDest = true;
+	struct_params.sChannelMap.uDest.uiChannel = 0;
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
+	}
+	else {
+		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
+	}
+
+	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	memset(&table_mem_mng_params, 0, sizeof(table_mem_mng_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetTableMemMngParams, &table_mem_mng_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	table_mem_mng_params.uiSpaceIndex = index_of(search_mem_heap);;
+
+	ez_ret_val = EZapiStruct_Config (struct_id, EZapiStruct_ConfigCmd_SetTableMemMngParams, &table_mem_mng_params);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool load_partition()
+{
+	EZstatus ez_ret_val;
+
+	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool infra_add_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
+{
+	EZstatus ez_ret_val;
+	EZapiEntry entry;
+
+	memset(&entry, 0, sizeof(entry));
+
+	entry.uiKeySize = key_size;
+	entry.pucKey = key;
+	entry.uiResultSize = result_size;
+	entry.pucResult = result;
+
+	ez_ret_val = EZapiStruct_AddEntry(struct_id, NULL, &entry, NULL);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool infra_delete_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size)
+{
+	EZstatus ez_ret_val;
+	EZapiEntry entry;
+
+	memset(&entry, 0, sizeof(entry));
+
+	entry.uiKeySize = key_size;
+	entry.pucKey = key;
+
+	ez_ret_val = EZapiStruct_DeleteEntry(struct_id, NULL, &entry, NULL);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
 
 	return true;
 }
