@@ -191,7 +191,7 @@ void nw_db_manager_if_table_init(void)
 
 	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
 	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
-		if_key.logical_id = INFRA_NW_IF_BASE_LOGICAL_ID + ind;
+		if_key.logical_id = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
 		if (infra_add_entry(ALVS_STRUCT_ID_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			printf("initialize_dbs: Adding NW if (%d) entry to if DB failed.\n",ind);
 			return;
