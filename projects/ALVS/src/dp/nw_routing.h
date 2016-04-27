@@ -38,48 +38,43 @@
 #include "nw_interface.h"
 
 /******************************************************************************
- * \brief	  send frames to network ports
- * \return	  void
+ * \brief         send frames to network ports
+ * \return        void
  */
 static __always_inline
-void nw_send_frame_to_network_interface(uint32_t	output_channel_id)
+void nw_send_frame_to_network_interface(uint32_t output_channel_id)
 {
-	ezframe_send_to_if(	&cmem.frame,
-						output_channel_id,
-						0);
+	ezframe_send_to_if(&cmem.frame, output_channel_id, 0);
 }
 
 
 /******************************************************************************
- * \brief	  perform arp lookup and modify l2 header before transmission
- * \return	  void
+ * \brief         perform arp lookup and modify l2 header before transmission
+ * \return        void
  */
 static __always_inline
-void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
+void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
 {
-	 uint32_t						rc;
-	 uint32_t						found_result_size;
-	 struct  nw_arp_result   		*arp_res_ptr;
+	 uint32_t rc;
+	 uint32_t found_result_size;
+	 struct nw_arp_result *arp_res_ptr;
 
 
-	 cmem.arp_key.real_server_address 	= dest_ip;
+	 cmem.arp_key.real_server_address = dest_ip;
 
 	 rc = ezdp_lookup_hash_entry(&shared_cmem.arp_struct_desc,
-								 (void*)&cmem.arp_key,
-								 sizeof(struct nw_arp_key),
-								 (void **)&arp_res_ptr,
-								 &found_result_size,
-								 0,
-								 cmem.arp_hash_wa,
-								 sizeof(cmem.arp_hash_wa));
+				     (void *)&cmem.arp_key,
+				     sizeof(struct nw_arp_key),
+				     (void **)&arp_res_ptr, &found_result_size,
+				     0, cmem.arp_hash_wa,
+				     sizeof(cmem.arp_hash_wa));
 
-	if (rc == 0)
-	{
+	if (rc == 0) {
 		struct ether_addr *dmac = (struct ether_addr *)frame_base;
 
-		//copy dst mac
+		/*copy dst mac*/
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-		//copy src mac
+		/*copy src mac*/
 		ezdp_mem_copy(dmac+sizeof(struct ether_addr), shared_cmem.my_mac.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */
@@ -88,9 +83,7 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 							   ezframe_get_buf_len(&cmem.frame),
 							   0);
 		nw_send_frame_to_network_interface(nw_interface_calc_output_channel_id(arp_res_ptr->base_output_channel));
-	}
-	else
-	{
+	} else {
 		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP);
 		nw_send_frame_to_host();
 		return;
@@ -99,11 +92,11 @@ void nw_arp_processing(uint8_t* frame_base, in_addr_t	dest_ip)
 
 
 /******************************************************************************
- * \brief	  peform nw route
- * \return	  void
+ * \brief         peform nw route
+ * \return        void
  */
 static __always_inline
-void nw_do_route(uint8_t* frame_base, in_addr_t	dest_ip)
+void nw_do_route(uint8_t *frame_base, in_addr_t dest_ip)
 {
 	nw_arp_processing(frame_base, dest_ip);
 }

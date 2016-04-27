@@ -31,9 +31,9 @@
 * POSSIBILITY OF SUCH DAMAGE.
 *
 *
-*  Project:	 	NPS400 ALVS application
-*  File:		alvs_db_manager.c
-*  Desc:		Performs the main process of ALVS DB management
+*  Project:             NPS400 ALVS application
+*  File:                alvs_db_manager.c
+*  Desc:                Performs the main process of ALVS DB management
 *
 ****************************************************************************/
 
@@ -42,17 +42,17 @@
 #include <signal.h>
 #include <string.h>
 /* libnl-3 includes */
-//#include <netlink/netlink.h>
-//#include <netlink/cache.h>
-//#include <netlink/route/neighbour.h>
-//#include <netlink/route/route.h>
+/* #include <netlink/netlink.h> */
+/* #include <netlink/cache.h> */
+/* #include <netlink/route/neighbour.h> */
+/* #include <netlink/route/route.h> */
 
 /* Project includes */
 #include "defs.h"
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 
-bool is_alvs_db_manager_cancel_thread = false;
+bool is_alvs_db_manager_cancel_thread;
 
 void alvs_db_manager_delete(void);
 void alvs_db_manager_init(void);
@@ -60,72 +60,73 @@ void alvs_db_manager_table_init(void);
 void alvs_db_manager_classification_table_init(void);
 
 /******************************************************************************
- * \brief	  Main ALVS process
+ * \brief         Main ALVS process
  *
- * \return	  void
+ * \return        void
  */
-void alvs_db_manager_main()
+void alvs_db_manager_main(void)
 {
-	printf("alvs_db_manager_init ... \n");
+	printf("alvs_db_manager_init...\n");
 	alvs_db_manager_init();
-	printf("alvs_db_manager_table_init ... \n");
+	printf("alvs_db_manager_table_init...\n");
 	alvs_db_manager_table_init();
-	while(!is_alvs_db_manager_cancel_thread){
+	while (!is_alvs_db_manager_cancel_thread) {
 		sleep(5);
 	}
 	alvs_db_manager_delete();
 }
 
-void alvs_db_manager_set_cancel_thread()
+void alvs_db_manager_set_cancel_thread(void)
 {
 	is_alvs_db_manager_cancel_thread = true;
 }
 
-void alvs_db_manager_init()
+void alvs_db_manager_init(void)
 {
 	sigset_t sigs_to_block;
+
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 }
 
 /******************************************************************************
- * \brief	  Delete
+ * \brief         Delete
  *
- * \return	  void
+ * \return        void
  */
-void alvs_db_manager_delete()
+void alvs_db_manager_delete(void)
 {
 }
 
 /******************************************************************************
- * \brief	  Initialization of all tables handled by the DB manager
+ * \brief         Initialization of all tables handled by the DB manager
  *
- * \return	  void
+ * \return        void
  */
-void alvs_db_manager_table_init()
+void alvs_db_manager_table_init(void)
 {
 	alvs_db_manager_classification_table_init();
 }
 /******************************************************************************
- * \brief	  Initialization of classification table
+ * \brief         Initialization of classification table
  *
- * \return	  void
+ * \return        void
  */
-void alvs_db_manager_classification_table_init()
+void alvs_db_manager_classification_table_init(void)
 {
 	struct alvs_service_key key;
 	struct alvs_service_result result;
 	bool ret_code;
 
-	key.service_address = htonl(0xc86b890a); //10.137.107.200
+	key.service_address = htonl(0xc86b890a); /* 10.137.107.200 */
 	key.service_port = htons(80);
 	key.service_protocol = IPPROTO_TCP;
 	memset(&result, 0, sizeof(struct alvs_service_result));
-	result.real_server_ip = htonl(0x066b890a); //10.137.107.6
+	result.real_server_ip = htonl(0x066b890a); /* 10.137.107.6 */
 	printf("Add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6 0x%08X\n", result.real_server_ip);
 	ret_code = infra_add_entry(ALVS_STRUCT_ID_SERVICES, &key, sizeof(key), &result, sizeof(result));
-	if(!ret_code){
+	if (!ret_code) {
 		printf("Error - cannot add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6\n");
 	}
 }
@@ -138,7 +139,7 @@ bool alvs_db_constructor(void)
 
 	hash_params.key_size = sizeof(struct alvs_service_key);
 	hash_params.result_size = sizeof(struct alvs_service_result);
-	hash_params.max_num_of_entries = 65536;  // TODO - define?
+	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.updated_from_dp = false;
 	if (infra_create_hash(ALVS_STRUCT_ID_SERVICES, INFRA_EMEM_SEARCH_HEAP, &hash_params) == false) {
 		return false;

@@ -48,9 +48,9 @@
 #include "struct_ids.h"
 #include "memory_spaces_msids.h"
 
-/**********************************************************************************************************************************
+/*************************************************************************
  * Miscellaneous definitions
- **********************************************************************************************************************************/
+ *************************************************************************/
 
 extern bool cancel_frame_signal;
 
@@ -72,17 +72,23 @@ enum alvs_scheduler_type {
 };
 
 enum dp_path_type {
-	DP_PATH_SEND_TO_NW_NA        = 0,  //send to nw interface with no application logic - short circuit
-	DP_PATH_SEND_TO_HOST_NA      = 1,  //send to host interface with no application logic - short circuit
-	DP_PATH_SEND_TO_NW_APP       = 2,  //send to nw interface with application logic
-	DP_PATH_SEND_TO_HOST_APP     = 3,  //send to host interface with application logic
+	DP_PATH_SEND_TO_NW_NA        = 0,
+	/* Send to nw interface without application logic - short circuit */
+	DP_PATH_SEND_TO_HOST_NA      = 1,
+	/* Send to host interface without application logic - short circuit */
+	DP_PATH_SEND_TO_NW_APP       = 2,
+	/* Send to nw interface with application logic */
+	DP_PATH_SEND_TO_HOST_APP     = 3,
+	/* Send to host interface with application logic */
 };
 
-#define 	DP_PATH_NOT_VALID               4
-#define 	ALVS_HOST_OUTPUT_CHANNEL_ID     (0 | (1<<8))  //TODO - roee please update with real channel ID of host interface
-#define 	DP_NUM_COUNTERS_PER_INTERFACE   256
+#define DP_PATH_NOT_VALID               4
+/* TODO - roee please update with real channel ID of host interface */
+#define ALVS_HOST_OUTPUT_CHANNEL_ID     (0 | (1<<8))
+#define DP_NUM_COUNTERS_PER_INTERFACE   256
 
-//Number of lag members is hard coded and depended on compilation flag. in case user configures LAG need to enable this flag.
+/* Number of lag members is hard coded and depended on compilation flag. */
+/* in case user configures LAG need to enable this flag. */
 #ifdef NW_IF_LAG_ENABLED
 #	define DEFAULT_NW_OUTPUT_CHANNEL            0
 #	define NUM_OF_LAG_MEMBERS                   4
@@ -93,9 +99,9 @@ enum dp_path_type {
 #	define LAG_HASH_MASK                        0x0
 #endif
 
-/**********************************************************************************************************************************
- * ALVS Search struct definitions - TODO auto  generate struct defs via CTOP gen
- **********************************************************************************************************************************/
+/*************************************************************************
+ * ALVS Search struct definitions
+ *************************************************************************/
 
 /*********************************
  * Interfaces DB defs
@@ -110,17 +116,19 @@ struct dp_interface_key {
 struct dp_interface_result {
 	/*byte0*/
 #ifdef BIG_ENDIAN
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             oper_status        : 1;
-	enum dp_path_type    path_type          : 2;
-	unsigned             is_vlan            : 1;
+	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+
+	unsigned           oper_status   : 1;
+	enum dp_path_type  path_type     : 2;
+	unsigned           is_vlan       : 1;
 #else
-	unsigned             is_vlan            : 1;
-	enum dp_path_type    path_type          : 2;
-	unsigned             oper_status        : 1;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned           is_vlan       : 1;
+	enum dp_path_type  path_type     : 2;
+	unsigned           oper_status   : 1;
+
+	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
 	uint8_t              lag_id;
@@ -138,37 +146,39 @@ struct dp_interface_result {
  *********************************/
 
 /*key*/
-struct alvs_service_key
-{
+struct alvs_service_key {
 	in_addr_t service_address;
 	uint16_t  service_port;
 	uint8_t   service_protocol;
-}__packed;
+} __packed;
 
 /*result*/
 struct alvs_service_result {
 	/*byte0*/
 #ifdef BIG_ENDIAN
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /* reserved */     : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
 #else
-	unsigned             /* reserved */     : 4;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	unsigned             /* reserved */     : 8;
+	unsigned             /*reserved*/  : 8;
 	/*byte2-3*/
 	uint16_t             service_id;
 	/*byte4*/
 	enum alvs_scheduler_type sched_type;
 	/*byte5-7*/
-	unsigned             rs_head_index  : 24; //pointer/index to head of attached list of real-servers(rs)
+	unsigned             rs_head_index : 24;
+	/* Pointer or index to head of attached list of real-servers(rs) */
 	/*byte8-11*/
-	struct ezdp_sum_addr sched_data; //sched data pointer
+	struct ezdp_sum_addr sched_data;
+	/* Sched data pointer */
 	/*byte12-15*/
-	in_addr_t            real_server_ip; //TEMP field for POC only!
+	in_addr_t            real_server_ip;
+	/* TEMP field for POC only! */
 };
 
 /*********************************
@@ -184,13 +194,13 @@ struct nw_arp_key {
 struct nw_arp_result {
 	/*byte0*/
 #ifdef BIG_ENDIAN
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /* reserved */     : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
 #else
-	unsigned             /* reserved */     : 4;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /*reserved*/       : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
 	uint8_t              base_output_channel;
@@ -198,8 +208,8 @@ struct nw_arp_result {
 	struct ether_addr    dest_mac_addr;
 };
 
-/**********************************************************************************************************************************
+/*************************************************************************
  * ALVS statistics definitions
- **********************************************************************************************************************************/
+ *************************************************************************/
 
 #endif /* DEFS_H_ */

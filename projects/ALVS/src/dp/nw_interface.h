@@ -33,50 +33,46 @@
 #define NW_INTERFACE_H_
 
 /******************************************************************************
- * \brief	  interface lookup
- * \return	  void
+ * \brief         interface lookup
+ * \return        void
  */
 static __always_inline
 uint32_t nw_interface_lookup(int32_t logical_id)
 {
-	return  ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
-									logical_id,
-									&cmem.interface_result,
-									sizeof(struct  dp_interface_result),
-									0);
+	return ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
+				       logical_id, &cmem.interface_result,
+				       sizeof(struct  dp_interface_result), 0);
 }
 
 /******************************************************************************
- * \brief	  get interface dp path
- * \return	  enum dp_path_type
+ * \brief         get interface dp path
+ * \return        enum dp_path_type
  */
 static __always_inline
 enum dp_path_type nw_interface_get_dp_path(int32_t logical_id)
 {
-	if (nw_interface_lookup(logical_id) == 0)
-	{
+	if (nw_interface_lookup(logical_id) == 0) {
 		return cmem.interface_result.path_type;
 	}
 	return DP_PATH_NOT_VALID;
 }
 
 /******************************************************************************
- * \brief	  get interface mac address
- * \return	  pointer to mac address
+ * \brief         get interface mac address
+ * \return        pointer to mac address
  */
 static __always_inline
-u_int8_t * nw_interface_get_mac_address(int32_t logical_id)
+u_int8_t *nw_interface_get_mac_address(int32_t logical_id)
 {
-	if (nw_interface_lookup(logical_id) == 0)
-	{
+	if (nw_interface_lookup(logical_id) == 0) {
 		return cmem.interface_result.mac_address.ether_addr_octet;
 	}
 	return NULL;
 }
 
 /******************************************************************************
- * \brief	  update interface stat counter
- * \return	  void
+ * \brief         update interface stat counter
+ * \return        void
  */
 static __always_inline
 void nw_interface_update_statistic_counter(uint8_t logical_id, uint32_t counter_id)
@@ -91,8 +87,8 @@ void nw_interface_update_statistic_counter(uint8_t logical_id, uint32_t counter_
 }
 
 /******************************************************************************
- * \brief	  update interface stat counter
- * \return	  void
+ * \brief         update interface stat counter
+ * \return        void
  */
 static __always_inline
 uint32_t nw_interface_calc_output_channel_id(uint8_t base_output_channel)

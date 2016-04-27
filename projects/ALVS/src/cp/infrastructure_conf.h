@@ -40,7 +40,7 @@
 
 /* Interfaces */
 #define	INFRA_NW_IF_NUM                     4
-#define	INFRA_NW_IF_TYPE                    10GE
+#define	INFRA_NW_IF_TYPE                    EZapiChannel_EthIFType_10GE
 
 /* Host interface parameters */
 #define INFRA_HOST_IF_SIDE          1

@@ -72,8 +72,7 @@ enum object_type {
 };
 
 #define DB_CONSTRUCTORS_NUM 2
-bool (*db_constructors[DB_CONSTRUCTORS_NUM])(void) =
-	{
+bool (*db_constructors[DB_CONSTRUCTORS_NUM])(void) = {
 		&nw_db_constructor,
 		&alvs_db_constructor
 	};
@@ -91,13 +90,15 @@ int main(void)
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
-//	daemon(0,1);
+#ifdef ALVS_DAEMON
+	daemon(0, 1);
+#endif
 	/* listen to the SHUTDOWN signal to handle terminate signal */
-	signal(SIGINT,  signal_terminate_handler);
+	signal(SIGINT, signal_terminate_handler);
 	signal(SIGTERM, signal_terminate_handler);
-	signal(SIGILL,  signal_terminate_handler);
+	signal(SIGILL, signal_terminate_handler);
 	signal(SIGSEGV, signal_terminate_handler);
-	signal(SIGBUS,  signal_terminate_handler);
+	signal(SIGBUS, signal_terminate_handler);
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
@@ -121,7 +122,9 @@ int main(void)
 	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/
-	if ((rc = pthread_create(&nw_db_manager_thread, NULL, (void * (*)(void *))nw_db_manager_main,NULL))) {
+	rc = pthread_create(&nw_db_manager_thread, NULL,
+			    (void * (*)(void *))nw_db_manager_main, NULL);
+	if (rc != 0) {
 		perror("error: pthread_create failed for network DB manager\n");
 		main_thread_graceful_stop();
 		exit(1);
@@ -131,7 +134,9 @@ int main(void)
 	/************************************************/
 	/* Start ALVS DB manager main thread            */
 	/************************************************/
-	if ((rc = pthread_create(&alvs_db_manager_thread, NULL, (void * (*)(void *))alvs_db_manager_main, NULL))) {
+	rc = pthread_create(&alvs_db_manager_thread, NULL,
+			    (void * (*)(void *))alvs_db_manager_main, NULL);
+	if (rc != 0) {
 		perror("error: pthread_create failed for ALVS DB manager\n");
 		main_thread_graceful_stop();
 		exit(1);
@@ -143,12 +148,12 @@ int main(void)
 	/************************************************/
 	sigset_t mask, oldmask;
 	/* Set up the mask of signals to temporarily block. */
-	sigemptyset (&mask);
-	sigaddset (&mask, SIGTERM);
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGTERM);
 	/* Wait for a signal to arrive. */
-	sigprocmask (SIG_BLOCK, &mask, &oldmask);
-	sigsuspend (&oldmask);
-	sigprocmask (SIG_UNBLOCK, &mask, NULL);
+	sigprocmask(SIG_BLOCK, &mask, &oldmask);
+	sigsuspend(&oldmask);
+	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 
 	main_thread_graceful_stop();
@@ -157,7 +162,7 @@ int main(void)
 }
 
 static
-bool setup_chip( void )
+bool setup_chip(void)
 {
 	uint32_t ind;
 	uint32_t pup_phase;
@@ -203,7 +208,7 @@ bool setup_chip( void )
 	/* Power-up channel                             */
 	/************************************************/
 	printf("Power-up channel...\n");
-	for(pup_phase = 1; pup_phase <= 4; pup_phase++) {
+	for (pup_phase = 1; pup_phase <= 4; pup_phase++) {
 		ez_ret_val = EZapiChannel_PowerUp(0, pup_phase);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
 			printf("setup_chip: EZapiChannel_PowerUp phase %u failed.\n", pup_phase);
@@ -236,9 +241,9 @@ bool setup_chip( void )
 	/* 3. Initialize statistics                     */
 	/************************************************/
 	printf("Initialized state...\n");
-	for(ind = 0; ind < DB_CONSTRUCTORS_NUM; ind++) {
+	for (ind = 0; ind < DB_CONSTRUCTORS_NUM; ind++) {
 		if (db_constructors[ind]() == false) {
-			printf("setup_chip: db_constructor[%d] failed.\n",ind);
+			printf("setup_chip: db_constructor[%d] failed.\n", ind);
 			return false;
 		}
 	}
@@ -289,7 +294,7 @@ bool setup_chip( void )
 static
 void EZhost_RPCJSONTask(void)
 {
-   EZagtRPC_ServerRun(host_server);
+	EZagtRPC_ServerRun(host_server);
 }
 
 static
@@ -305,29 +310,27 @@ bool init(void)
 	printf("Init board...\n");
 	/* Determine if we are running on real chip or simulator */
 	fd = popen("lsmod | grep nps_cp", "r");
-	if ((fd != NULL)) {
-		if (fread(kernel_module, 1, sizeof (kernel_module), fd) > 0) {
-			is_real_chip = TRUE;
+	if (fd != NULL) {
+		if (fread(kernel_module, 1, sizeof(kernel_module), fd) > 0) {
+			is_real_chip = true;
 		}
 		pclose(fd);
 	}
 
 	/* Initialize EZdev */
 	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
-	if (is_real_chip) {
+	if (is_real_chip == true) {
 		platform_params.ePlatform = EZdev_Platform_UIO;
-	}
-	else
-	{
+	} else {
 		platform_params.ePlatform = EZdev_Platform_SIM;
 	}
 	ez_ret_val = EZdev_Create(&platform_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("init_board: EZdev_Create failed.\n" );
+		printf("init_board: EZdev_Create failed.\n");
 		return false;
 	}
 
-	if(is_real_chip == false) {
+	if (is_real_chip == false) {
 		/* Wait for simulator to connect to socket */
 		ez_ret_val = EZdevSim_WaitForInitSocket(1);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
@@ -341,7 +344,7 @@ bool init(void)
 	/************************************************/
 	printf("Initialize Env...\n");
 	ez_ret_val = EZenv_Create();
-	if (EZrc_IS_ERROR( ez_ret_val)) {
+	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
 	is_object_allocated[object_type_board] = true;
@@ -350,14 +353,14 @@ bool init(void)
 	/* Create and run CP library                    */
 	/************************************************/
 	printf("Create CP library...\n");
-	ez_ret_val = EZapiCP_Create( );
-	if(EZrc_IS_ERROR( ez_ret_val)) {
+	ez_ret_val = EZapiCP_Create();
+	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
 
 	printf("Run CP library...\n");
 	ez_ret_val = EZapiCP_Go();
-	if(EZrc_IS_ERROR( ez_ret_val)) {
+	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
 	is_object_allocated[object_type_cp] = true;
@@ -368,25 +371,26 @@ bool init(void)
 	printf("Create AGT...\n");
 	/* Create rpc server for given port */
 	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
-	if(host_server == NULL) {
+	if (host_server == NULL) {
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagt_RegisterFunctions(host_server);
-	if ( EZrc_IS_ERROR( ez_ret_val ) ) {
+	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
-	if (EZrc_IS_ERROR( ez_ret_val)) {
+	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
 
 	/* Create task for run rpc-json commands  */
-	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000, (EZosTask_Spawn_FuncPtr)EZhost_RPCJSONTask, 0);
-	if(task == EZosTask_INVALID_TASK) {
+	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
+			      (EZosTask_Spawn_FuncPtr)EZhost_RPCJSONTask, 0);
+	if (task == EZosTask_INVALID_TASK) {
 		return false;
 	}
 	is_object_allocated[object_type_agt] = true;
@@ -400,13 +404,12 @@ bool init(void)
  *             and perform graceful stop.
  * \return     void
  */
-void       signal_terminate_handler( int signum)
+void signal_terminate_handler(int signum)
 {
-	if(signum != SIGTERM) {
+	if (signum != SIGTERM) {
 		raise(SIGTERM);
 		sleep(2);
-	}
-	else{
+	} else {
 		main_thread_graceful_stop();
 		exit(0);
 	}
@@ -416,43 +419,43 @@ void       signal_terminate_handler( int signum)
  *             shuts down other threads if needed
  * \return     void
  */
-void main_thread_graceful_stop( void )
+void main_thread_graceful_stop(void)
 {
 	EZstatus ez_ret_val;
 
-	if(is_object_allocated[object_type_nw_db_manager]) {
-		printf("Shut down thread nw_db_manager \n");
+	if (is_object_allocated[object_type_nw_db_manager]) {
+		printf("Shut down thread nw_db_manager.\n");
 		nw_db_manager_set_cancel_thread();
 		is_object_allocated[object_type_nw_db_manager] = false;
 	}
-	if(is_object_allocated[object_type_alvs_db_manager]) {
-		printf("Shut down thread alvs_db_manager \n");
+	if (is_object_allocated[object_type_alvs_db_manager]) {
+		printf("Shut down thread alvs_db_manager.\n");
 		alvs_db_manager_set_cancel_thread();
 		is_object_allocated[object_type_alvs_db_manager] = false;
 	}
-	pthread_join(nw_db_manager_thread,NULL);
-	pthread_join(alvs_db_manager_thread,NULL);
+	pthread_join(nw_db_manager_thread, NULL);
+	pthread_join(alvs_db_manager_thread, NULL);
 
-	if(is_object_allocated[object_type_agt]) {
+	if (is_object_allocated[object_type_agt]) {
 		is_object_allocated[object_type_agt] = false;
 		printf("Delete AGT\n");
-		EZagtRPC_ServerStop( host_server );
+		EZagtRPC_ServerStop(host_server);
 		EZosTask_Delay(10);
-		EZagtRPC_ServerDestroy( host_server );
+		EZagtRPC_ServerDestroy(host_server);
 	}
-	if(is_object_allocated[object_type_cp]) {
+	if (is_object_allocated[object_type_cp]) {
 		is_object_allocated[object_type_cp] = false;
 		printf("Delete CP\n");
 		ez_ret_val = EZapiCP_Delete();
-		if(EZrc_IS_ERROR(ez_ret_val)) {
-			printf("delete_cp: EZapiCP_Delete failed.\n" );
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("delete_cp: EZapiCP_Delete failed.\n");
 		}
 		ez_ret_val = EZenv_Delete();
-		if (EZrc_IS_ERROR( ez_ret_val)) {
-			printf("delete_cp: EZenv_Delete failed.\n" );
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("delete_cp: EZenv_Delete failed.\n");
 		}
 	}
-	if(is_object_allocated[object_type_board]) {
+	if (is_object_allocated[object_type_board]) {
 		is_object_allocated[object_type_board] = false;
 		printf("Delete board\n");
 		ez_ret_val = EZdev_Delete();

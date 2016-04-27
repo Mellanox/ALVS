@@ -36,103 +36,87 @@
 #include "nw_interface.h"
 
 /******************************************************************************
- * \brief	  Parse and validate frame
- * \return	  void
+ * \brief         Parse and validate frame
+ * \return        void
  */
 static __always_inline
 void nw_recieve_and_parse_frame(int32_t logical_id)
 {
 	uint8_t	*frame_base;
+	uint8_t *next_et;
 
 	enum dp_path_type path_type = nw_interface_get_dp_path(logical_id);
 
-	if (path_type == DP_PATH_SEND_TO_HOST_APP)
-	{
-		uint8_t* next_et;
-
+	if (path_type == DP_PATH_SEND_TO_HOST_APP) {
 		/* === Load Data of first frame buffer === */
-		frame_base = ezframe_load_buf(&cmem.frame, cmem.frame_data, NULL, 0);
+		frame_base = ezframe_load_buf(&cmem.frame, cmem.frame_data,
+					      NULL, 0);
 
 		/* decode mac to ensure it is valid */
-		ezdp_decode_mac(frame_base,
-						MAX_DECODE_SIZE,
-						&cmem.mac_decode_result);
+		ezdp_decode_mac(frame_base, MAX_DECODE_SIZE,
+				&cmem.mac_decode_result);
 
 		/*in case of any error send frame to host*/
-		if (unlikely(cmem.mac_decode_result.error_codes.decode_error))
-		{
+		if (unlikely(cmem.mac_decode_result.error_codes.decode_error)) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_MAC_ERROR);
 			nw_send_frame_to_host();
 			return;
 		}
 
 		/*check if my_mac is set*/
-		if (unlikely(!cmem.mac_decode_result.control.my_mac))
-		{
+		if (unlikely(!cmem.mac_decode_result.control.my_mac)) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_MY_MAC);
 			nw_send_frame_to_host();
 			return;
 		}
 
 		/*skip vlan tags and check next ethertype*/
-		next_et = frame_base + sizeof(struct ether_addr) + sizeof(struct ether_addr); //skip l2 addr
+		next_et = frame_base + sizeof(struct ether_addr) + sizeof(struct ether_addr);
 
-		//check if vlan and then skip
-		if (cmem.mac_decode_result.number_of_tags)
-		{
+		/*check if vlan and then skip*/
+		if (cmem.mac_decode_result.number_of_tags) {
 			next_et += (4 << cmem.mac_decode_result.number_of_tags);
 		}
 
 		/*check if ipv4 frame*/
-		if (*((uint16_t*)next_et) != ETHERTYPE_IP)
-		{
+		if (*((uint16_t *)next_et) != ETHERTYPE_IP) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_IPV4);
 			nw_send_frame_to_host();
 			return;
 		}
 
-		struct iphdr  *ip_ptr = (struct iphdr*)(next_et + sizeof(uint16_t));
+		struct iphdr *ip_ptr = (struct iphdr *)(next_et + sizeof(uint16_t));
 
 		/*skip L2 and validate IP is ok*/
-		ezdp_decode_ipv4((uint8_t*)ip_ptr,
-						 sizeof(struct iphdr),
-						 cmem.frame.job_desc.frame_desc.frame_length,
-						 &cmem.ipv4_decode_result);
+		ezdp_decode_ipv4((uint8_t *)ip_ptr, sizeof(struct iphdr),
+				 cmem.frame.job_desc.frame_desc.frame_length,
+				 &cmem.ipv4_decode_result);
 
 		/*in case of any error send frame to host*/
-		if (unlikely(cmem.ipv4_decode_result.error_codes.decode_error))
-		{
+		if (unlikely(cmem.ipv4_decode_result.error_codes.decode_error)) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_IPV4_ERROR);
 			nw_send_frame_to_host();
 			return;
 		}
 
-		if (ip_ptr->protocol != IPPROTO_TCP && ip_ptr->protocol != IPPROTO_UDP)
-		{
+		if (ip_ptr->protocol != IPPROTO_TCP && ip_ptr->protocol != IPPROTO_UDP) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_UDP_AND_TCP);
 			nw_send_frame_to_host();
 			return;
 		}
 
-		//check if need to check validity of TCP/UDP
-
+		/*check if need to check validity of TCP/UDP */
 
 		/*frame is OK, let's start classification - TODO change from hard coded to process ID from interface */
-		alvs_service_classification( frame_base, ip_ptr);
-	}
-	else if (path_type == DP_PATH_SEND_TO_NW_APP || path_type == DP_PATH_SEND_TO_NW_NA) /*APP NW PATH*/
-	{
+		alvs_service_classification(frame_base, ip_ptr);
+	} else if (path_type == DP_PATH_SEND_TO_NW_APP || path_type == DP_PATH_SEND_TO_NW_NA) { /*APP NW PATH*/
 		/*currently send frame to network without any change or any other operations*/
 		nw_send_frame_to_network_interface(DEFAULT_NW_OUTPUT_CHANNEL);
-	}
-	else if (path_type == DP_PATH_SEND_TO_HOST_NA) /*NA HOST PATH*/
-	{
+	} else if (path_type == DP_PATH_SEND_TO_HOST_NA) { /*NA HOST PATH*/
 		/*currently send frame to host without any change or any other operations*/
 		nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NO_VALID_ROUTE);
 		nw_send_frame_to_host();
-	}
-	else
-	{
+	} else {
 		printf("Error! no match in interface lookup!!\n");
 		/*currently send frame to host without any change or any other operations*/
 		nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NO_VALID_ROUTE);

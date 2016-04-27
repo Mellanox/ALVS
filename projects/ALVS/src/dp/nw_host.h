@@ -33,15 +33,13 @@
 #define NW_HOST_H_
 
 /******************************************************************************
- * \brief	  send frames to host
- * \return	  void
+ * \brief         send frames to host
+ * \return        void
  */
 static __always_inline
 void nw_send_frame_to_host(void)
 {
-	ezframe_send_to_if(	&cmem.frame,
-						ALVS_HOST_OUTPUT_CHANNEL_ID,
-						0);
+	ezframe_send_to_if(&cmem.frame, ALVS_HOST_OUTPUT_CHANNEL_ID, 0);
 }
 
 #endif /* NW_HOST_H_ */

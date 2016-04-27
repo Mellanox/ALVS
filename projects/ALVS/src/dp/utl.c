@@ -44,10 +44,7 @@
 
 #include "defs.h"
 
-
-#define MAX_NUM_OF_CPUS          4096
-
-
+#define MAX_NUM_OF_CPUS 4096
 
 /****** global variable ***********/
 bool      is_child_process;
@@ -57,12 +54,11 @@ uint32_t  pids[MAX_NUM_OF_CPUS];
 
 
 void  set_gracefull_stop(void);
-void  set_gracefull_stop()
+void  set_gracefull_stop(void)
 {
 	ezframe_set_cancel_signal();
 }
 
-
 /************************************************************************
  * \brief      signal terminate handler
  *
@@ -70,18 +66,15 @@ void  set_gracefull_stop()
  *
  * \return     void
  */
-void       signal_terminate_handler_gracefully_stop( int signum __unused );
-void       signal_terminate_handler_gracefully_stop( int signum __unused )
+void signal_terminate_handler_gracefully_stop(int signum __unused);
+void signal_terminate_handler_gracefully_stop(int signum __unused)
 {
-   if( (is_child_process == true ) || ( num_cpus == 1 ))
-   {
-      set_gracefull_stop();
-   }
-   else
-   {
-      killpg(0, SIGTERM);
-      exit(0);
-   }
+	if ((is_child_process == true) || (num_cpus == 1)) {
+		set_gracefull_stop();
+	} else {
+		killpg(0, SIGTERM);
+		exit(0);
+	}
 }
 
 /************************************************************************
@@ -91,24 +84,23 @@ void       signal_terminate_handler_gracefully_stop( int signum __unused )
  *
  * \return     void
  */
-void       signal_terminate_handler( int signum );
-void       signal_terminate_handler( int signum )
+void signal_terminate_handler(int signum);
+void signal_terminate_handler(int signum)
 {
-   if (signum != SIGTERM)
-   {
-      /* kill all other processes */
-      killpg(0, SIGTERM);
-   }
-   abort();
+	if (signum != SIGTERM) {
+		/* kill all other processes */
+		killpg(0, SIGTERM);
+	}
+	abort();
 }
 
 
 /************************************************************************/
 /*                           parse run_cpus                             */
-//***********************************************************************/
+/************************************************************************/
 
 /****** macros ***********/
-#define howmany(x,y) (((x)+((y)-1))/(y))
+#define howmany(x, y) (((x)+((y)-1))/(y))
 #define bitsperlong (8 * sizeof(unsigned long))
 #define longsperbits(n) howmany(n, bitsperlong)
 
@@ -122,7 +114,6 @@ struct bitmask {
 
 
 /****** functions ***********/
-
 struct bitmask *bitmask_alloc(unsigned int n);
 struct bitmask *bitmask_alloc(unsigned int n)
 {
@@ -168,6 +159,7 @@ struct bitmask *bitmask_clearall(struct bitmask *bmp);
 struct bitmask *bitmask_clearall(struct bitmask *bmp)
 {
 	unsigned int i;
+
 	for (i = 0; i < bmp->size; i++)
 		_setbit(bmp, i, 0);
 	return bmp;
@@ -192,18 +184,15 @@ static const char *nexttoken(const char *q,  int sep)
 }
 
 extern uint32_t num_cpus;
-static int cstr_to_cpuset(struct bitmask *mask, const char* str)
+static int cstr_to_cpuset(struct bitmask *mask, const char *str)
 {
-	const char *p, *q;
-	q = str;
+	const char *p, *q = str;
 	int rc;
-
 
 	num_cpus = 0;
 	bitmask_clearall(mask);
 
-	while (p = q, q = nexttoken(q, ','), p)
-	{
+	while (p = q, q = nexttoken(q, ','), p) {
 		unsigned int a;	/* beginning of range */
 		unsigned int b;	/* end of range */
 		unsigned int s;	/* stride */
@@ -211,51 +200,44 @@ static int cstr_to_cpuset(struct bitmask *mask, const char* str)
 
 		/* get next CPU-ID or first CPU ID in the range */
 		rc = sscanf(p, "%4u", &a);
-		if (rc < 1)
-		{
+		if (rc < 1) {
 			/* ERROR: expecting number in the string */
 			return 1;
 		}
 
 		/* init */
-		b = a;	                // in case of no range, end of the range equal the begining
-		s = 1;                   // one stride
-		c1 = nexttoken(p, '-');  // next '-' char
-		c2 = nexttoken(p, ',');  // next ',' char
+		b = a;	                /* in case of no range, end of the range equal the begining */
+		s = 1;                   /* one stride */
+		c1 = nexttoken(p, '-');  /* next '-' char */
+		c2 = nexttoken(p, ',');  /* next ',' char */
 
 		/* check if the next tocken is a range */
-		if (c1 != NULL && (c2 == NULL || c1 < c2))
-		{
+		if (c1 != NULL && (c2 == NULL || c1 < c2)) {
 			/* hanldle a range */
 
 			/* get the last CPU ID in the range */
 			rc = sscanf(c1, "%4u", &b);
-			if (rc < 1)
-			{
+			if (rc < 1) {
 				/* ERROR: expecting number in the string */
 				return 1;
 			}
 
 			c1 = nexttoken(c1, ':');
 			if (c1 != NULL && (c2 == NULL || c1 < c2))
-				if (sscanf(c1, "%10u", &s) < 1) {
+				if (sscanf(c1, "%10u", &s) < 1)
 					return 1;
-			}
 		}
 
 		/* checker */
-		if (!(a <= b))
-		{
+		if (!(a <= b)) {
 			/* ERROR: end of the range must not be lower than the beginning of the range */
 			return 1;
 		}
 
 		/* add the range */
-		while (a <= b)
-		{
-			if ( bitmask_isbitset(mask, a) == 0)
-			{
-				run_cpus[num_cpus] = a; // cpu_id
+		while (a <= b) {
+			if (bitmask_isbitset(mask, a) == 0) {
+				run_cpus[num_cpus] = a; /* cpu_id */
 				num_cpus++;
 			}
 			bitmask_setbit(mask, a);
@@ -281,8 +263,8 @@ static int cstr_to_cpuset(struct bitmask *mask, const char* str)
  *
  * \return     None
  */
-void add_run_cpus( const char* processors_str );
-void add_run_cpus( const char* processors_str )
+void add_run_cpus(const char *processors_str);
+void add_run_cpus(const char *processors_str)
 {
 	struct bitmask  *new_mask;
 	uint32_t        rc;
@@ -293,16 +275,14 @@ void add_run_cpus( const char* processors_str )
 	 * cpumask_t if the user's mask is shorter.
 	 */
 	new_mask = bitmask_alloc(MAX_NUM_OF_CPUS);
-	if (!new_mask)
-	{
-		printf ("bitmask_alloc failed\n");
+	if (!new_mask) {
+		printf("bitmask_alloc failed\n");
 		exit(1);
 	}
 
 	rc = cstr_to_cpuset(new_mask, processors_str);
-	if (rc != 0)
-	{
-		printf ("cstr_to_cpuset failed\n");
+	if (rc != 0) {
+		printf("cstr_to_cpuset failed\n");
 		exit(1);
 	}
 }

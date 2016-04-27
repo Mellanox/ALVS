@@ -39,7 +39,7 @@
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
 	INFRA_X1_CLUSTER_SEARCH_HEAP,
-        INFRA_X2_CLUSTER_SEARCH_HEAP,
+	INFRA_X2_CLUSTER_SEARCH_HEAP,
 	INFRA_X4_CLUSTER_SEARCH_HEAP,
 	INFRA_X16_CLUSTER_SEARCH_HEAP,
 	INFRA_ALL_CLUSTER_SEARCH_HEAP,
@@ -66,10 +66,16 @@ bool infra_configure_protocol_decode(void);
 
 bool infra_initialize_statistics(void);
 
-bool infra_create_hash(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params);
-bool infra_create_table(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params);
-bool infra_add_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size);
-bool infra_delete_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size);
+bool infra_create_hash(enum alvs_struct_id struct_id,
+		       enum infra_search_mem_heaps search_mem_heap,
+		       struct infra_hash_params *params);
+bool infra_create_table(enum alvs_struct_id struct_id,
+			enum infra_search_mem_heaps search_mem_heap,
+			struct infra_table_params *params);
+bool infra_add_entry(enum alvs_struct_id struct_id, void *key,
+		     uint32_t key_size, void *result, uint32_t result_size);
+bool infra_delete_entry(enum alvs_struct_id struct_id, void *key,
+			uint32_t key_size);
 bool load_partition(void);
 
 #endif /* _INFRASTRUCTURE_H_ */

@@ -31,51 +31,46 @@
 
 /***************** global CMEM data *************************/
 
-
-
 /***********************************************************************//**
  * \struct  alvs_cmem
  * \brief
  **************************************************************************/
-typedef struct
-{
-	ezframe_t							frame 								;
+struct alvs_cmem {
+	ezframe_t                             frame;
 	/**< Frame	*/
-	uint8_t								frame_data[EZFRAME_BUF_DATA_SIZE] 	;
+	uint8_t                               frame_data[EZFRAME_BUF_DATA_SIZE];
 	/**< Frame data buffer */
-	struct ezdp_decode_mac_result	 	mac_decode_result					;
+	struct ezdp_decode_mac_result         mac_decode_result;
 	/**< Result of Decode MAC */
-	struct ezdp_decode_ipv4_result	 	ipv4_decode_result					;
+	struct ezdp_decode_ipv4_result        ipv4_decode_result;
 	/**< Result of Decode MAC */
-	struct alvs_service_key				service_key							;
+	struct alvs_service_key               service_key;
 	/**< service key */
-	struct nw_arp_key					arp_key								;
+	struct nw_arp_key                     arp_key;
 	/**< arp key */
-	struct  dp_interface_result			interface_result					;
+	struct  dp_interface_result           interface_result;
 	/**< interface result */
-   	union
-   	{
-   		char	service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))];
-   		char	arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
-   		char    table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
-   	};
-}__packed alvs_cmem;
+	union {
+		char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))];
+		char arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
+		char table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
+	};
+} __packed;
 
-extern alvs_cmem  cmem __cmem_var;
+extern struct alvs_cmem  cmem __cmem_var;
 
 /***********************************************************************//**
  * \struct  alvs_shared_cmem
  * \brief
  **************************************************************************/
 
-typedef struct
-{
-	ezdp_table_struct_desc_t	interface_struct_desc;
-	ezdp_hash_struct_desc_t		services_struct_desc;
-	ezdp_hash_struct_desc_t		arp_struct_desc;
-	struct ezdp_sum_addr		nw_interface_stats_base_address;
-	struct ether_addr         	my_mac;
-}__packed alvs_shared_cmem;
+struct alvs_shared_cmem {
+	ezdp_table_struct_desc_t    interface_struct_desc;
+	ezdp_hash_struct_desc_t	    services_struct_desc;
+	ezdp_hash_struct_desc_t	    arp_struct_desc;
+	struct ezdp_sum_addr        nw_interface_stats_base_address;
+	struct ether_addr           my_mac;
+} __packed;
 
-extern alvs_shared_cmem  shared_cmem __cmem_shared_var;
+extern struct alvs_shared_cmem  shared_cmem __cmem_shared_var;
 
