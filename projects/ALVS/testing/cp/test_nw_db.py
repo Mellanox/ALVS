@@ -154,3 +154,9 @@ print "*** ARP test PASSED ***"
 print "========================"
 print ""
 read_classification_table()
+
+
+try:
+    os.remove(fname)
+except OSError:
+    pass

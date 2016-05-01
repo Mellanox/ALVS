@@ -225,7 +225,7 @@ void nw_db_manager_arp_table_init(void)
 		exit(1);
 	}
 	/* Take only IPv4 entries.
-	 * TODO: when adding IPv6 entries, this should be revisited.
+	 * TODO: when adding IPv6 capabilities, this should be revisited.
 	 */
 	rtnl_neigh_set_family(neighbor, AF_INET);
 	filtered_neighbor_cache = nl_cache_subset(neighbor_cache, (struct nl_object *)neighbor);
@@ -254,7 +254,7 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 {
 	struct rtnl_neigh *neighbor = (struct rtnl_neigh *)obj;
 	/* Take only IPv4 entries.
-	 * TODO: when adding IPv6 entries, this should be revisited.
+	 * TODO: when adding IPv6 capabilities, this should be revisited.
 	 */
 	if (rtnl_neigh_get_family(neighbor) == AF_INET) {
 		switch (action) {
@@ -290,7 +290,7 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, struct nw_arp_result *result)
 {
 	if (key) {
-		key->real_server_address = htonl(*(uint32_t *)nl_addr_get_binary_addr(rtnl_neigh_get_dst(neighbor)));
+		key->real_server_address = *(uint32_t *)nl_addr_get_binary_addr(rtnl_neigh_get_dst(neighbor));
 	}
 	if (result) {
 		memcpy(result->dest_mac_addr.ether_addr_octet, nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)), 6);
