@@ -49,15 +49,9 @@
 /******************************************************************************/
 
 extern
-EZbool EZdevSim_WaitForInitSocket(EZui32 uiNumberOfConnections);
+bool EZdevSim_WaitForInitSocket(uint32_t num_of_connection);
 
-static
 bool init(void);
-
-static
-bool setup_chip(void);
-
-static
 bool setup_chip(void);
 void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
@@ -161,7 +155,6 @@ int main(void)
 	return 0;
 }
 
-static
 bool setup_chip(void)
 {
 	uint32_t ind;
@@ -292,12 +285,11 @@ bool setup_chip(void)
 }
 
 static
-void EZhost_RPCJSONTask(void)
+void run_agt_server(void)
 {
 	EZagtRPC_ServerRun(host_server);
 }
 
-static
 bool init(void)
 {
 	EZstatus ez_ret_val;
@@ -389,7 +381,7 @@ bool init(void)
 
 	/* Create task for run rpc-json commands  */
 	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
-			      (EZosTask_Spawn_FuncPtr)EZhost_RPCJSONTask, 0);
+			      (EZosTask_Spawn_FuncPtr)run_agt_server, 0);
 	if (task == EZosTask_INVALID_TASK) {
 		return false;
 	}
