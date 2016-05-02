@@ -1,0 +1,8 @@
+#
+*.d
+*.o
+*.exe
+bin/*
+*/bin/*
+target/work/*
+.pydevproject

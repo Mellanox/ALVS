@@ -18,18 +18,22 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe.2097543685" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1710694827" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
-							<builder buildPath="${workspace_loc:/ALVS}" command="make" id="cdt.managedbuild.target.gnu.builder.exe.debug.arc.sim.663803830" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.debug.arc.sim"/>
+							<builder buildPath="${workspace_loc:/ALVS}" command="make" id="cdt.managedbuild.target.gnu.builder.exe.debug.arc.sim.663803830" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.debug.arc.sim">
+								<outputEntries>
+									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name=""/>
+								</outputEntries>
+							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1300230153" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.optimize" id="arc.c.compiler.option.optimization.level.1201481633" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.409846852" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.1398113126" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/dpe/dp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/dpe/frame/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/env/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/cp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/dev/include"/>
 									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.582659251" superClass="com.ezchip.ezide.toolchain.input"/>
@@ -42,22 +46,20 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.451671302" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
 								<option id="gnu.both.asm.option.include.paths.1035755042" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/dpe/dp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/dpe/frame/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/env/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/cp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1655717909" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.289442948" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
 						</toolChain>
 					</folderInfo>
-					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -117,7 +119,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -178,7 +180,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -239,7 +241,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -300,7 +302,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -361,7 +363,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -422,7 +424,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -491,7 +493,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -552,7 +554,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -613,7 +615,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
