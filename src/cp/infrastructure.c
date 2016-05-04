@@ -261,7 +261,7 @@ bool infra_create_mem_partition(void)
 bool infra_configure_protocol_decode(void)
 {
 	EZstatus ret_val;
-	FILE *fd;
+	struct ether_addr my_mac;
 	EZapiChannel_ProtocolDecoderParams protocol_decoder_params;
 
 	memset(&protocol_decoder_params, 0, sizeof(protocol_decoder_params));
@@ -273,29 +273,16 @@ bool infra_configure_protocol_decode(void)
 		return false;
 	}
 
-#ifdef EZ_SIM
-	fd = fopen("/sys/class/net/eth0/address", "r");
-#else
-	fd = fopen("/sys/class/net/eth2/address", "r");
-#endif
-	if (fd == NULL) {
+	if (infra_get_my_mac(&my_mac) == false) {
 		return false;
 	}
-	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
-	       &protocol_decoder_params.aucDestMACAddressLow[0],
-	       &protocol_decoder_params.aucDestMACAddressLow[1],
-	       &protocol_decoder_params.aucDestMACAddressLow[2],
-	       &protocol_decoder_params.aucDestMACAddressLow[3],
-	       &protocol_decoder_params.aucDestMACAddressLow[4],
-	       &protocol_decoder_params.aucDestMACAddressLow[5]);
-	fclose(fd);
 
-	protocol_decoder_params.aucDestMACAddressHigh[0] = protocol_decoder_params.aucDestMACAddressLow[0];
-	protocol_decoder_params.aucDestMACAddressHigh[1] = protocol_decoder_params.aucDestMACAddressLow[1];
-	protocol_decoder_params.aucDestMACAddressHigh[2] = protocol_decoder_params.aucDestMACAddressLow[2];
-	protocol_decoder_params.aucDestMACAddressHigh[3] = protocol_decoder_params.aucDestMACAddressLow[3];
-	protocol_decoder_params.aucDestMACAddressHigh[4] = protocol_decoder_params.aucDestMACAddressLow[4];
-	protocol_decoder_params.aucDestMACAddressHigh[5] = protocol_decoder_params.aucDestMACAddressLow[5];
+	protocol_decoder_params.aucDestMACAddressHigh[0] = my_mac.ether_addr_octet[0];
+	protocol_decoder_params.aucDestMACAddressHigh[1] = my_mac.ether_addr_octet[1];
+	protocol_decoder_params.aucDestMACAddressHigh[2] = my_mac.ether_addr_octet[2];
+	protocol_decoder_params.aucDestMACAddressHigh[3] = my_mac.ether_addr_octet[3];
+	protocol_decoder_params.aucDestMACAddressHigh[4] = my_mac.ether_addr_octet[4];
+	protocol_decoder_params.aucDestMACAddressHigh[5] = my_mac.ether_addr_octet[5];
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetProtocolDecoderParams, &protocol_decoder_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -664,3 +651,25 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 
 	return true;
 }
+
+bool infra_get_my_mac(struct ether_addr *my_mac)
+{
+	FILE *fd;
+
+#ifdef EZ_SIM
+	fd = fopen("/sys/class/net/eth0/address", "r");
+#else
+	fd = fopen("/sys/class/net/eth2/address", "r");
+#endif
+	if (fd == NULL) {
+		return false;
+	}
+	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
+	       &my_mac->ether_addr_octet[0], &my_mac->ether_addr_octet[1],
+	       &my_mac->ether_addr_octet[2],  &my_mac->ether_addr_octet[3],
+	       &my_mac->ether_addr_octet[4],  &my_mac->ether_addr_octet[5]);
+	fclose(fd);
+
+	return true;
+}
+

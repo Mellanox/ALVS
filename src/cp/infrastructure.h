@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <net/ethernet.h>
 
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
@@ -63,6 +64,8 @@ bool infra_powered_up(void);
 bool infra_initialized(void);
 bool infra_finalized(void);
 bool infra_running(void);
+
+bool infra_get_my_mac(struct ether_addr *my_mac);
 
 bool infra_create_hash(uint32_t struct_id,
 		       enum infra_search_mem_heaps search_mem_heap,

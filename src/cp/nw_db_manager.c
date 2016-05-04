@@ -171,31 +171,17 @@ void nw_db_manager_if_table_init(void)
 {
 	struct nw_if_key if_key;
 	struct nw_if_result if_result;
-	FILE *fd;
 	uint32_t ind;
 
-#ifdef EZ_SIM
-	fd = fopen("/sys/class/net/eth0/address", "r");
-#else
-	fd = fopen("/sys/class/net/eth2/address", "r");
-#endif
-	if (fd == NULL) {
-		printf("initialize_dbs: Opening eth address file failed.\n");
+	if (infra_get_my_mac(&if_result.mac_address) == false) {
+		printf("nw_db_manager_if_table_init: Retrieving my MAC failed.\n");
 		exit(1);
 	}
-	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
-	       &if_result.mac_address.ether_addr_octet[0],
-	       &if_result.mac_address.ether_addr_octet[1],
-	       &if_result.mac_address.ether_addr_octet[2],
-	       &if_result.mac_address.ether_addr_octet[3],
-	       &if_result.mac_address.ether_addr_octet[4],
-	       &if_result.mac_address.ether_addr_octet[5]);
-	fclose(fd);
 
 	if_key.logical_id = INFRA_HOST_IF_LOGICAL_ID;
 	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		printf("initialize_dbs: Adding host if entry to if DB failed.\n");
+		printf("nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
 		exit(1);
 	}
 
@@ -203,7 +189,7 @@ void nw_db_manager_if_table_init(void)
 	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
 		if_key.logical_id = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-			printf("initialize_dbs: Adding NW if (%d) entry to if DB failed.\n", ind);
+			printf("nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);
 			exit(1);
 		}
 	}
