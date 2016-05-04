@@ -80,7 +80,7 @@ void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
 							   frame_base,
 							   ezframe_get_buf_len(&cmem.frame),
 							   0);
-		nw_send_frame_to_network_interface(nw_interface_calc_output_channel_id(arp_res_ptr->base_output_channel));
+		nw_send_frame_to_network_interface(nw_interface_calc_output_channel_id(arp_res_ptr->base_logical_id));
 	} else {
 		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP);
 		nw_send_frame_to_host();

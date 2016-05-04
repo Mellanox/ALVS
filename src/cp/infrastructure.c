@@ -27,6 +27,12 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                infrastructure.c
+*  Desc:                Implementation of infrastructure API.
+*
 */
 
 #include "infrastructure.h"
@@ -40,6 +46,11 @@
 #include <EZapiChannel.h>
 #include <EZapiStat.h>
 #include <EZapiStruct.h>
+#include <EZagtCPMain.h>
+#include <EZosTask.h>
+#include <EZagtRPC.h>
+
+EZagtRPCServer host_server;
 
 enum infra_imem_spaces_params {
 	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
@@ -135,7 +146,7 @@ bool infra_create_if_mapping(void)
 			return false;
 		}
 
-		eth_rx_channel_params.uiLogicalID = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
+		eth_rx_channel_params.uiLogicalID = INFRA_BASE_LOGICAL_ID + ind;
 
 		ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 		if (EZrc_IS_ERROR(ret_val)) {
@@ -174,7 +185,7 @@ bool infra_create_if_mapping(void)
 		return false;
 	}
 
-	eth_rx_channel_params.uiLogicalID = INFRA_HOST_IF_LOGICAL_ID;
+	eth_rx_channel_params.uiLogicalID = INFRA_BASE_LOGICAL_ID + INFRA_NW_IF_NUM;
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -671,5 +682,45 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	fclose(fd);
 
 	return true;
+}
+
+bool infra_enable_agt(void)
+{
+	EZstatus ez_ret_val;
+	EZtask task;
+
+	/* Create rpc server for given port */
+	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
+	if (host_server == NULL) {
+		return false;
+	}
+
+	/* Register standard CP commands */
+	ez_ret_val = EZagt_RegisterFunctions(host_server);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	/* Register standard CP commands */
+	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	/* Create task for run rpc-json commands  */
+	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
+			      (EZosTask_Spawn_FuncPtr)EZagtRPC_ServerRun, host_server);
+	if (task == EZosTask_INVALID_TASK) {
+		return false;
+	}
+
+	return true;
+}
+
+void infra_disable_agt(void)
+{
+	EZagtRPC_ServerStop(host_server);
+	EZosTask_Delay(10);
+	EZagtRPC_ServerDestroy(host_server);
 }
 

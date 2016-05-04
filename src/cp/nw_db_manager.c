@@ -178,7 +178,7 @@ void nw_db_manager_if_table_init(void)
 		exit(1);
 	}
 
-	if_key.logical_id = INFRA_HOST_IF_LOGICAL_ID;
+	if_key.logical_id = INFRA_BASE_LOGICAL_ID + INFRA_NW_IF_NUM;
 	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		printf("nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
@@ -187,7 +187,7 @@ void nw_db_manager_if_table_init(void)
 
 	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
 	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
-		if_key.logical_id = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
+		if_key.logical_id = INFRA_BASE_LOGICAL_ID + ind;
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			printf("nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);
 			exit(1);
@@ -286,8 +286,7 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, 
 	if (result) {
 		memcpy(result->dest_mac_addr.ether_addr_octet, nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)), 6);
 
-		/* TODO: what is the output channel ??? */
-		result->base_output_channel = 0;
+		result->base_logical_id = INFRA_BASE_LOGICAL_ID;
 	}
 }
 

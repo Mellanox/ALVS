@@ -27,6 +27,12 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                infrastructure_conf.h
+*  Desc:                Infrastructure configuration file
+*
 */
 
 #ifndef _INFRASTRUCTURE_CONF_H_
@@ -48,41 +54,35 @@
 /* Host interface parameters */
 #define INFRA_HOST_IF_SIDE          1
 #define INFRA_HOST_IF_PORT          24
-#define INFRA_HOST_IF_LOGICAL_ID    152
 
 /* Network interface #0 parameters */
 #define INFRA_NW_IF_0_SIDE          0
 #define INFRA_NW_IF_0_PORT          0
-#define INFRA_NW_IF_0_LOGICAL_ID    0
 
 /* Network interface #1 parameters */
 #define INFRA_NW_IF_1_SIDE          0
 #define INFRA_NW_IF_1_PORT          12
-#define INFRA_NW_IF_1_LOGICAL_ID    1
 
 /* Network interface #2 parameters */
 #define INFRA_NW_IF_2_SIDE          1
 #define INFRA_NW_IF_2_PORT          0
-#define INFRA_NW_IF_2_LOGICAL_ID    2
 
 /* Network interface #3 parameters */
 #define INFRA_NW_IF_3_SIDE          1
 #define INFRA_NW_IF_3_PORT          12
-#define INFRA_NW_IF_3_LOGICAL_ID    3
 
 enum infra_interface_params {
 	INFRA_INTERFACE_PARAMS_SIDE             = 0,
 	INFRA_INTERFACE_PARAMS_PORT             = 1,
-	INFRA_INTERFACE_PARAMS_LOGICAL_ID       = 2,
 	INFRA_NUM_OF_INTERFACE_PARAMS
 };
 
 static
 uint32_t network_interface_params[INFRA_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
-		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT, INFRA_NW_IF_0_LOGICAL_ID},
-		{INFRA_NW_IF_1_SIDE, INFRA_NW_IF_1_PORT, INFRA_NW_IF_1_LOGICAL_ID},
-		{INFRA_NW_IF_2_SIDE, INFRA_NW_IF_2_PORT, INFRA_NW_IF_2_LOGICAL_ID},
-		{INFRA_NW_IF_3_SIDE, INFRA_NW_IF_3_PORT, INFRA_NW_IF_3_LOGICAL_ID}
+		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
+		{INFRA_NW_IF_1_SIDE, INFRA_NW_IF_1_PORT},
+		{INFRA_NW_IF_2_SIDE, INFRA_NW_IF_2_PORT},
+		{INFRA_NW_IF_3_SIDE, INFRA_NW_IF_3_PORT}
 };
 
 /* Memory spaces */

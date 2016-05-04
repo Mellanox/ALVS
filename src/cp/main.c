@@ -27,6 +27,11 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                main.c
+*  Desc:                Main thread configuration.
 */
 
 #include <pthread.h>
@@ -34,9 +39,6 @@
 #include <signal.h>
 #include <EZenv.h>
 #include <EZdev.h>
-#include <EZagtCPMain.h>
-#include <EZosTask.h>
-#include <EZagtRPC.h>
 
 #include "infrastructure.h"
 #include "infrastructure_conf.h"
@@ -71,7 +73,6 @@ enum object_type {
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
-EZagtRPCServer host_server;
 /******************************************************************************/
 
 int main(void)
@@ -259,20 +260,10 @@ bool nps_bringup(void)
 	return true;
 }
 
-#ifdef AGT_ENABLED
-void run_agt_server(void)
-{
-	EZagtRPC_ServerRun(host_server);
-}
-#endif
-
 bool nps_init(void)
 {
 	EZstatus ez_ret_val;
 	EZdev_PlatformParams platform_params;
-#ifdef AGT_ENABLED
-	EZtask task;
-#endif
 
 	/************************************************/
 	/* Initialize EZdev                             */
@@ -329,31 +320,12 @@ bool nps_init(void)
 	/************************************************/
 	/* Enable AGT debug agent interface             */
 	/************************************************/
-	printf("Create AGT...\n");
-	/* Create rpc server for given port */
-	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
-	if (host_server == NULL) {
+	printf("Enable AGT...\n");
+	if (infra_enable_agt() == false) {
+		printf("infra_enable_agt: infra_enable_agt failed.\n");
 		return false;
 	}
 
-	/* Register standard CP commands */
-	ez_ret_val = EZagt_RegisterFunctions(host_server);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Register standard CP commands */
-	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Create task for run rpc-json commands  */
-	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
-			      (EZosTask_Spawn_FuncPtr)run_agt_server, 0);
-	if (task == EZosTask_INVALID_TASK) {
-		return false;
-	}
 	is_object_allocated[object_type_agt] = true;
 #endif
 
@@ -401,9 +373,7 @@ void main_thread_graceful_stop(void)
 	if (is_object_allocated[object_type_agt]) {
 		is_object_allocated[object_type_agt] = false;
 		printf("Delete AGT\n");
-		EZagtRPC_ServerStop(host_server);
-		EZosTask_Delay(10);
-		EZagtRPC_ServerDestroy(host_server);
+		infra_disable_agt();
 	}
 	if (is_object_allocated[object_type_cp]) {
 		is_object_allocated[object_type_cp] = false;

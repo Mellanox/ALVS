@@ -27,6 +27,12 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                infrastructure.h
+*  Desc:                Infrastructure API.
+*
 */
 
 #ifndef _INFRASTRUCTURE_H_
@@ -35,6 +41,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <net/ethernet.h>
+
+#define INFRA_BASE_LOGICAL_ID 0
 
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
@@ -64,6 +72,9 @@ bool infra_powered_up(void);
 bool infra_initialized(void);
 bool infra_finalized(void);
 bool infra_running(void);
+
+bool infra_enable_agt(void);
+void infra_disable_agt(void);
 
 bool infra_get_my_mac(struct ether_addr *my_mac);
 

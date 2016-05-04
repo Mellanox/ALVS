@@ -114,7 +114,7 @@ struct nw_arp_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	uint8_t              base_output_channel;
+	uint8_t              base_logical_id;
 	/*byte2-7*/
 	struct ether_addr    dest_mac_addr;
 };
