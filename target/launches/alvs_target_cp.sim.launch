@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="com.ezchip.ezide.launchConfigurationType.sim">
-<stringAttribute key="USER_DEFINED_CONTROL_PLANE_APPLICATION" value="bin/alvs_cp"/>
+<stringAttribute key="USER_DEFINED_CONTROL_PLANE_APPLICATION" value="bin/alvs_cp_sim"/>
 <booleanAttribute key="USE_USER_DEFINED_CONTROL_PLANE_APPLICATION" value="true"/>
 <stringAttribute key="com.ezchip.ezide.host.launch.LOG_LEVEL_INFO!" value=""/>
 <stringAttribute key="com.ezchip.ezide.host.launch.USER_DEFINED_CONTROL_PLANE_APPLICATION_ARGUMENTS!" value=""/>
-<stringAttribute key="com.ezchip.ezide.host.launch.configScriptArgs" value="${cp_ip} ${cp_agent_port} ${ezdk_base}"/>
+<stringAttribute key="com.ezchip.ezide.host.launch.configScriptArgs" value=""/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_AGENT_PORT!" value="1234"/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_CONNECTION_INFO_SOURCE!" value="STATIC"/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.CONTROL_PLANE_HOST_NAME!" value="127.0.0.1"/>
@@ -61,7 +61,7 @@
 <stringAttribute key="com.ezchip.ezide.sim.launch.SIM_SIMULATE_OPTION!" value="0"/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.TAP_COMMAND!" value="${ezdk_base}/tools/EZtap/bin/EZtap_linux_x86_64 -ip 192.168.0.0 -mask 255.255.255.0"/>
 <stringAttribute key="com.ezchip.ezide.sim.launch.THREADS_PER_CORE_OPTION!" value="16"/>
-<stringAttribute key="com.ezchip.ezide.sim.launch.WORK_FOLDER!" value="alvs_target/work"/>
+<stringAttribute key="com.ezchip.ezide.sim.launch.WORK_FOLDER!" value="target/work"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="alvs_target"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/alvs_target"/>
@@ -69,5 +69,5 @@
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="4"/>
 </listAttribute>
-<stringAttribute key="pythonConfigFile" value="demo_target/config/config_main.py"/>
+<stringAttribute key="pythonConfigFile" value=""/>
 </launchConfiguration>

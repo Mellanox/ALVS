@@ -48,5 +48,24 @@ enum alvs_to_host_cause_id {
 	ALVS_CAUSE_ID_LAST
 };
 
+#define __fast_path_code __imem_1_cluster_func
+#define __slow_path_code __imem_all_cluster_func
+
+#define DP_PATH_NOT_VALID               4
+/* TODO - roee please update with real channel ID of host interface */
+#define ALVS_HOST_OUTPUT_CHANNEL_ID     (0 | (1<<8))
+#define DP_NUM_COUNTERS_PER_INTERFACE   256
+
+/* Number of lag members is hard coded and depended on compilation flag. */
+/* in case user configures LAG need to enable this flag. */
+#ifdef NW_IF_LAG_ENABLED
+#	define DEFAULT_NW_OUTPUT_CHANNEL            0
+#	define NUM_OF_LAG_MEMBERS                   4
+#	define LAG_HASH_MASK                        0x3
+#else
+#	define DEFAULT_NW_OUTPUT_CHANNEL            0
+#	define NUM_OF_LAG_MEMBERS                   0
+#	define LAG_HASH_MASK                        0x0
+#endif
 
 #endif /* ALVS_DP_DEFS_H_ */

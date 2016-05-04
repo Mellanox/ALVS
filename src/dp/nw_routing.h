@@ -29,8 +29,6 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-
 #ifndef NW_ROUTING_H_
 #define NW_ROUTING_H_
 

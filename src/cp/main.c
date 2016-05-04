@@ -48,11 +48,13 @@
 
 /******************************************************************************/
 
+#ifdef EZ_SIM
 extern
 bool EZdevSim_WaitForInitSocket(uint32_t num_of_connection);
+#endif
 
-bool init(void);
-bool setup_chip(void);
+bool nps_init(void);
+bool nps_bringup(void);
 void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
 
@@ -65,12 +67,6 @@ enum object_type {
 	object_type_count
 };
 
-#define DB_CONSTRUCTORS_NUM 2
-bool (*db_constructors[DB_CONSTRUCTORS_NUM])(void) = {
-		&nw_db_constructor,
-		&alvs_db_constructor
-	};
-
 /******************************************************************************/
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
@@ -81,11 +77,14 @@ EZagtRPCServer host_server;
 int main(void)
 {
 	int rc;
+
+	printf("Starting ALVS CP application...\n");
+
+#ifndef DAEMON_DISABLE
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
-#ifdef ALVS_DAEMON
-	daemon(0, 1);
+	daemon(0, 0);
 #endif
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT, signal_terminate_handler);
@@ -96,19 +95,19 @@ int main(void)
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
-	/* Initialize board, CP SDK host components     */
+	/* Initialize device, CP SDK host components    */
 	/* and AGT debug agent interface                */
 	/************************************************/
-	if (init() == false) {
+	if (nps_init() == false) {
 		main_thread_graceful_stop();
 		exit(1);
 	}
 
 	/************************************************/
-	/* Initializing control plane components        */
+	/* Bring up control plane components        */
 	/************************************************/
-	printf("Setup chip...\n");
-	if (setup_chip() == false) {
+	printf("Bring up...\n");
+	if (nps_bringup() == false) {
 		main_thread_graceful_stop();
 		exit(1);
 	}
@@ -155,9 +154,8 @@ int main(void)
 	return 0;
 }
 
-bool setup_chip(void)
+bool nps_bringup(void)
 {
-	uint32_t ind;
 	uint32_t pup_phase;
 	EZstatus ez_ret_val;
 
@@ -172,28 +170,11 @@ bool setup_chip(void)
 	}
 
 	/************************************************/
-	/* Created state:                               */
-	/* --------------                               */
-	/* 1. Create interfaces mapping                 */
-	/* 2. Create memory partition                   */
-	/* 3. Create statistics                         */
-	/* 4. Configure my MAC                          */
+	/* Created state                                */
 	/************************************************/
 	printf("Created state...\n");
-	if (infra_create_if_mapping() == false) {
-		printf("setup_chip: infra_create_if_mapping failed.\n");
-		return false;
-	}
-	if (infra_create_mem_partition() == false) {
-		printf("setup_chip: infra_create_mem_partition failed.\n");
-		return false;
-	}
-	if (infra_create_statistics() == false) {
-		printf("setup_chip: infra_create_statistics failed.\n");
-		return false;
-	}
-	if (infra_configure_protocol_decode() == false) {
-		printf("setup_chip: infra_configure_protocol_decode failed.\n");
+	if (infra_created() == false) {
+		printf("setup_chip: infra_created failed.\n");
 		return false;
 	}
 
@@ -210,11 +191,13 @@ bool setup_chip(void)
 	}
 
 	/************************************************/
-	/* Powered-up state:                            */
-	/* --------------                               */
-	/* Do nothing                                   */
+	/* Powered-up state                             */
 	/************************************************/
 	printf("Powered-up state...\n");
+	if (infra_powered_up() == false) {
+		printf("setup_chip: infra_powered_up failed.\n");
+		return false;
+	}
 
 	/************************************************/
 	/* Initialize channel                           */
@@ -227,25 +210,11 @@ bool setup_chip(void)
 	}
 
 	/************************************************/
-	/* Initialized state:                           */
-	/* --------------                               */
-	/* 1. Create search_structures                  */
-	/* 2. Load partition                            */
-	/* 3. Initialize statistics                     */
+	/* Initialized state                            */
 	/************************************************/
 	printf("Initialized state...\n");
-	for (ind = 0; ind < DB_CONSTRUCTORS_NUM; ind++) {
-		if (db_constructors[ind]() == false) {
-			printf("setup_chip: db_constructor[%d] failed.\n", ind);
-			return false;
-		}
-	}
-	if (load_partition() == false) {
-		printf("setup_chip: load_partition failed.\n");
-		return false;
-	}
-	if (infra_initialize_statistics() == false) {
-		printf("setup_chip: initialize_statistics failed.\n");
+	if (infra_initialized() == false) {
+		printf("setup_chip: infra_initialized failed.\n");
 		return false;
 	}
 
@@ -260,11 +229,13 @@ bool setup_chip(void)
 	}
 
 	/************************************************/
-	/* Finalized state:                             */
-	/* --------------                               */
-	/* Do nothing                                   */
+	/* Finalized state                              */
 	/************************************************/
 	printf("Finalized state...\n");
+	if (infra_finalized() == false) {
+		printf("setup_chip: infra_finalized failed.\n");
+		return false;
+	}
 
 	/************************************************/
 	/* Channel GO                                   */
@@ -280,56 +251,53 @@ bool setup_chip(void)
 	/* Running state:                               */
 	/************************************************/
 	printf("Running state...\n");
+	if (infra_running() == false) {
+		printf("setup_chip: infra_running failed.\n");
+		return false;
+	}
 
 	return true;
 }
 
-static
+#ifdef AGT_ENABLED
 void run_agt_server(void)
 {
 	EZagtRPC_ServerRun(host_server);
 }
+#endif
 
-bool init(void)
+bool nps_init(void)
 {
 	EZstatus ez_ret_val;
-	EZtask task;
 	EZdev_PlatformParams platform_params;
-	uint8_t kernel_module[16];
-	FILE *fd;
-	bool is_real_chip = false;
+#ifdef AGT_ENABLED
+	EZtask task;
+#endif
 
-	printf("Init board...\n");
-	/* Determine if we are running on real chip or simulator */
-	fd = popen("lsmod | grep nps_cp", "r");
-	if (fd != NULL) {
-		if (fread(kernel_module, 1, sizeof(kernel_module), fd) > 0) {
-			is_real_chip = true;
-		}
-		pclose(fd);
-	}
-
-	/* Initialize EZdev */
+	/************************************************/
+	/* Initialize EZdev                             */
+	/************************************************/
+	printf("Init EZdev...\n");
 	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
-	if (is_real_chip == true) {
-		platform_params.ePlatform = EZdev_Platform_UIO;
-	} else {
-		platform_params.ePlatform = EZdev_Platform_SIM;
-	}
+#ifdef EZ_SIM
+	platform_params.ePlatform = EZdev_Platform_SIM;
+#else
+	platform_params.ePlatform = EZdev_Platform_UIO;
+#endif
 	ez_ret_val = EZdev_Create(&platform_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		printf("init_board: EZdev_Create failed.\n");
 		return false;
 	}
 
-	if (is_real_chip == false) {
-		/* Wait for simulator to connect to socket */
-		ez_ret_val = EZdevSim_WaitForInitSocket(1);
-		if (EZrc_IS_ERROR(ez_ret_val)) {
-			printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
-			return false;
-		}
+#ifdef EZ_SIM
+	/* Wait for simulator to connect to socket */
+	ez_ret_val = EZdevSim_WaitForInitSocket(1);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
+		return false;
 	}
+#endif
 
 	/************************************************/
 	/* Initialize Env                               */
@@ -357,6 +325,7 @@ bool init(void)
 	}
 	is_object_allocated[object_type_cp] = true;
 
+#ifdef AGT_ENABLED
 	/************************************************/
 	/* Enable AGT debug agent interface             */
 	/************************************************/
@@ -386,6 +355,7 @@ bool init(void)
 		return false;
 	}
 	is_object_allocated[object_type_agt] = true;
+#endif
 
 	return true;
 }

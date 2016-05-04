@@ -49,6 +49,7 @@
 
 /* Project includes */
 #include "defs.h"
+#include "nw_search_defs.h"
 #include "nw_db_manager.h"
 #include "infrastructure_conf.h"
 #include "infrastructure.h"
@@ -168,15 +169,19 @@ void nw_db_manager_poll(void)
  */
 void nw_db_manager_if_table_init(void)
 {
-	struct dp_interface_key if_key;
-	struct dp_interface_result if_result;
+	struct nw_if_key if_key;
+	struct nw_if_result if_result;
 	FILE *fd;
 	uint32_t ind;
 
-	fd = fopen("/sys/class/net/"INFRA_HOST_INTERFACE"/address", "r");
+#ifdef EZ_SIM
+	fd = fopen("/sys/class/net/eth0/address", "r");
+#else
+	fd = fopen("/sys/class/net/eth2/address", "r");
+#endif
 	if (fd == NULL) {
 		printf("initialize_dbs: Opening eth address file failed.\n");
-		return;
+		exit(1);
 	}
 	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
 	       &if_result.mac_address.ether_addr_octet[0],
@@ -189,17 +194,17 @@ void nw_db_manager_if_table_init(void)
 
 	if_key.logical_id = INFRA_HOST_IF_LOGICAL_ID;
 	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
-	if (infra_add_entry(ALVS_STRUCT_ID_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		printf("initialize_dbs: Adding host if entry to if DB failed.\n");
-		return;
+		exit(1);
 	}
 
 	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
 	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
 		if_key.logical_id = network_interface_params[ind][INFRA_INTERFACE_PARAMS_LOGICAL_ID];
-		if (infra_add_entry(ALVS_STRUCT_ID_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			printf("initialize_dbs: Adding NW if (%d) entry to if DB failed.\n", ind);
-			return;
+			exit(1);
 		}
 	}
 }
@@ -320,7 +325,7 @@ bool add_entry_to_arp_table(struct rtnl_neigh *neighbor)
 
 	printf("Add neighbor to table    IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 	neighbor_to_arp_entry(neighbor, &key, &result);
-	if (!infra_add_entry(ALVS_STRUCT_ID_ARP, &key, sizeof(key), &result, sizeof(result))) {
+	if (!infra_add_entry(STRUCT_ID_NW_ARP, &key, sizeof(key), &result, sizeof(result))) {
 		printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x\n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 		return false;
 	}
@@ -333,7 +338,7 @@ bool remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 
 	printf("Delete neighbor from table IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 	neighbor_to_arp_entry(neighbor, &key, NULL);
-	if (!infra_delete_entry(ALVS_STRUCT_ID_ARP, &key, sizeof(key))) {
+	if (!infra_delete_entry(STRUCT_ID_NW_ARP, &key, sizeof(key))) {
 		printf("Error - cannot remove entry from ARP table key= 0x%X08\n", key.real_server_address);
 		return false;
 	}
@@ -371,7 +376,7 @@ bool nw_db_constructor(void)
 	hash_params.result_size = sizeof(struct nw_arp_result);
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.updated_from_dp = false;
-	if (infra_create_hash(ALVS_STRUCT_ID_ARP, INFRA_EMEM_SEARCH_HEAP,
+	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HEAP,
 			      &hash_params) == false) {
 		printf("Error - Failed creating ARP table.\n");
 		return false;
@@ -379,10 +384,10 @@ bool nw_db_constructor(void)
 
 	printf("Creating interface table.\n");
 
-	table_params.key_size = sizeof(struct dp_interface_key);
-	table_params.result_size = sizeof(struct dp_interface_result);
+	table_params.key_size = sizeof(struct nw_if_key);
+	table_params.result_size = sizeof(struct nw_if_result);
 	table_params.max_num_of_entries = 256;  /* TODO - define? */
-	if (infra_create_table(ALVS_STRUCT_ID_INTERFACES,
+	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
 			       INFRA_X1_CLUSTER_SEARCH_HEAP,
 			       &table_params) == false) {
 		printf("Error - Failed creating interface table.\n");

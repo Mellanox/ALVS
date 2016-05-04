@@ -29,6 +29,9 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "alvs_search_defs.h"
+#include "nw_search_defs.h"
+
 /***************** global CMEM data *************************/
 
 /***********************************************************************//**
@@ -48,7 +51,7 @@ struct alvs_cmem {
 	/**< service key */
 	struct nw_arp_key                     arp_key;
 	/**< arp key */
-	struct  dp_interface_result           interface_result;
+	struct  nw_if_result                  interface_result;
 	/**< interface result */
 	union {
 		char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))];

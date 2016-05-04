@@ -44,8 +44,6 @@
 #include "defs.h"
 #include "alvs_dp_defs.h"
 #include "cmem_defs.h"
-#include "nw_routing.h"
-#include "nw_host.h"
 #include "nw_recieve.h"
 
 
@@ -124,32 +122,32 @@ bool init_shared_cmem(void)
 	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
 
 	/*Init interfaces DB*/
-	result = ezdp_init_table_struct_desc(ALVS_STRUCT_ID_INTERFACES,
+	result = ezdp_init_table_struct_desc(STRUCT_ID_NW_INTERFACES,
 					     &shared_cmem.interface_struct_desc,
 					     cmem.table_work_area,
 					     sizeof(cmem.table_work_area));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_INTERFACES, result, ezdp_get_err_msg());
+		       STRUCT_ID_NW_INTERFACES, result, ezdp_get_err_msg());
 		return false;
 	}
 
 	result = ezdp_validate_table_struct_desc(&shared_cmem.interface_struct_desc,
-						 sizeof(struct dp_interface_result));
+						 sizeof(struct nw_if_result));
 	if (result != 0) {
 		printf("ezdp_validate_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_INTERFACES, result, ezdp_get_err_msg());
+		       STRUCT_ID_NW_INTERFACES, result, ezdp_get_err_msg());
 		return false;
 	}
 
 	/*Init services DB*/
-	result = ezdp_init_hash_struct_desc(ALVS_STRUCT_ID_SERVICES,
+	result = ezdp_init_hash_struct_desc(STRUCT_ID_ALVS_SERVICES,
 					    &shared_cmem.services_struct_desc,
 					    cmem.service_hash_wa,
 					    sizeof(cmem.service_hash_wa));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_SERVICES, result, ezdp_get_err_msg());
+		       STRUCT_ID_ALVS_SERVICES, result, ezdp_get_err_msg());
 		return false;
 	}
 
@@ -160,18 +158,18 @@ bool init_shared_cmem(void)
 						sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_SERVICES, result, ezdp_get_err_msg());
+		       STRUCT_ID_ALVS_SERVICES, result, ezdp_get_err_msg());
 		return false;
 	}
 
 	/*Init arp DB*/
-	result = ezdp_init_hash_struct_desc(ALVS_STRUCT_ID_ARP,
+	result = ezdp_init_hash_struct_desc(STRUCT_ID_NW_ARP,
 					    &shared_cmem.arp_struct_desc,
 					    cmem.arp_hash_wa,
 					    sizeof(cmem.arp_hash_wa));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_ARP, result, ezdp_get_err_msg());
+		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
 		return false;
 	}
 
@@ -182,7 +180,7 @@ bool init_shared_cmem(void)
 						sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-				ALVS_STRUCT_ID_ARP, result, ezdp_get_err_msg());
+		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
 		return false;
 	}
 

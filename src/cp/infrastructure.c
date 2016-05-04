@@ -31,8 +31,9 @@
 
 #include "infrastructure.h"
 #include "infrastructure_conf.h"
-#include "memory_spaces_msids.h"
-#include <stdint.h>
+#include "alvs_db_manager.h"
+#include "nw_db_manager.h"
+#include "defs.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -272,7 +273,11 @@ bool infra_configure_protocol_decode(void)
 		return false;
 	}
 
-	fd = fopen("/sys/class/net/"INFRA_HOST_INTERFACE"/address", "r");
+#ifdef EZ_SIM
+	fd = fopen("/sys/class/net/eth0/address", "r");
+#else
+	fd = fopen("/sys/class/net/eth2/address", "r");
+#endif
 	if (fd == NULL) {
 		return false;
 	}
@@ -348,6 +353,28 @@ bool infra_create_statistics(void)
 	return true;
 }
 
+bool infra_created(void)
+{
+	if (infra_create_if_mapping() == false) {
+		printf("setup_chip: infra_create_if_mapping failed.\n");
+		return false;
+	}
+	if (infra_create_mem_partition() == false) {
+		printf("setup_chip: infra_create_mem_partition failed.\n");
+		return false;
+	}
+	if (infra_create_statistics() == false) {
+		printf("setup_chip: infra_create_statistics failed.\n");
+		return false;
+	}
+	if (infra_configure_protocol_decode() == false) {
+		printf("setup_chip: infra_configure_protocol_decode failed.\n");
+		return false;
+	}
+
+	return true;
+}
+
 bool infra_initialize_statistics(void)
 {
 	EZstatus ret_val;
@@ -374,6 +401,47 @@ bool infra_initialize_statistics(void)
 
 	free(posted_counter_config.pasCounters);
 
+	return true;
+}
+
+bool infra_initialized(void)
+{
+	EZstatus ez_ret_val;
+
+	if (nw_db_constructor() == false) {
+		printf("infra_initialized: nw_db_constructor failed.\n");
+		return false;
+	}
+	if (alvs_db_constructor() == false) {
+		printf("infra_initialized: alvs_db_constructor failed.\n");
+		return false;
+	}
+
+	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	if (infra_initialize_statistics() == false) {
+		printf("setup_chip: initialize_statistics failed.\n");
+		return false;
+	}
+
+	return true;
+}
+
+bool infra_powered_up(void)
+{
+	return true;
+}
+
+bool infra_finalized(void)
+{
+	return true;
+}
+
+bool infra_running(void)
+{
 	return true;
 }
 
@@ -424,7 +492,7 @@ uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
 	return 0;
 }
 
-bool infra_create_hash(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params)
+bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params)
 {
 	EZstatus ez_ret_val;
 	EZapiStruct_StructParams struct_params;
@@ -506,7 +574,7 @@ bool infra_create_hash(enum alvs_struct_id struct_id, enum infra_search_mem_heap
 	return true;
 }
 
-bool infra_create_table(enum alvs_struct_id struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params)
+bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params)
 {
 	EZstatus ez_ret_val;
 	EZapiStruct_StructParams struct_params;
@@ -557,19 +625,7 @@ bool infra_create_table(enum alvs_struct_id struct_id, enum infra_search_mem_hea
 	return true;
 }
 
-bool load_partition(void)
-{
-	EZstatus ez_ret_val;
-
-	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-bool infra_add_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
+bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
 {
 	EZstatus ez_ret_val;
 	EZapiEntry entry;
@@ -590,7 +646,7 @@ bool infra_add_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size
 	return true;
 }
 
-bool infra_delete_entry(enum alvs_struct_id struct_id, void *key, uint32_t key_size)
+bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 {
 	EZstatus ez_ret_val;
 	EZapiEntry entry;

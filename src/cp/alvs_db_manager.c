@@ -49,6 +49,7 @@
 
 /* Project includes */
 #include "defs.h"
+#include "alvs_search_defs.h"
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 
@@ -125,7 +126,7 @@ void alvs_db_manager_classification_table_init(void)
 	memset(&result, 0, sizeof(struct alvs_service_result));
 	result.real_server_ip = htonl(0x0a896b06); /* 10.137.107.6 */
 	printf("Add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6 0x%08X\n", result.real_server_ip);
-	ret_code = infra_add_entry(ALVS_STRUCT_ID_SERVICES, &key, sizeof(key), &result, sizeof(result));
+	ret_code = infra_add_entry(STRUCT_ID_ALVS_SERVICES, &key, sizeof(key), &result, sizeof(result));
 	if (!ret_code) {
 		printf("Error - cannot add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6\n");
 	}
@@ -141,7 +142,7 @@ bool alvs_db_constructor(void)
 	hash_params.result_size = sizeof(struct alvs_service_result);
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.updated_from_dp = false;
-	if (infra_create_hash(ALVS_STRUCT_ID_SERVICES, INFRA_EMEM_SEARCH_HEAP, &hash_params) == false) {
+	if (infra_create_hash(STRUCT_ID_ALVS_SERVICES, INFRA_EMEM_SEARCH_HEAP, &hash_params) == false) {
 		return false;
 	}
 

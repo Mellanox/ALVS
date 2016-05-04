@@ -32,6 +32,8 @@
 #ifndef NW_INTERFACE_H_
 #define NW_INTERFACE_H_
 
+#include "nw_search_defs.h"
+
 /******************************************************************************
  * \brief         interface lookup
  * \return        void
@@ -41,7 +43,7 @@ uint32_t nw_interface_lookup(int32_t logical_id)
 {
 	return ezdp_lookup_table_entry(&shared_cmem.interface_struct_desc,
 				       logical_id, &cmem.interface_result,
-				       sizeof(struct  dp_interface_result), 0);
+				       sizeof(struct nw_if_result), 0);
 }
 
 /******************************************************************************

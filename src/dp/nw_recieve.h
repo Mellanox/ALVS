@@ -33,7 +33,6 @@
 #define NW_RECIEVE_H_
 
 #include "alvs_classifier.h"
-#include "nw_interface.h"
 
 /******************************************************************************
  * \brief         Parse and validate frame

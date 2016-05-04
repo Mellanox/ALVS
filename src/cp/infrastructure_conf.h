@@ -33,14 +33,17 @@
 #define _INFRASTRUCTURE_CONF_H_
 
 /* AGT port */
-#define INFRA_AGT_PORT                      1234
-
-/* Host network interface */
-#define INFRA_HOST_INTERFACE                "eth0"
+#ifndef INFRA_AGT_PORT
+#	define INFRA_AGT_PORT                      1234
+#endif
 
 /* Interfaces */
-#define	INFRA_NW_IF_NUM                     4
-#define	INFRA_NW_IF_TYPE                    EZapiChannel_EthIFType_10GE
+#ifndef INFRA_NW_IF_NUM
+#	define	INFRA_NW_IF_NUM                     4
+#endif
+#ifndef INFRA_NW_IF_TYPE
+#	define	INFRA_NW_IF_TYPE                    EZapiChannel_EthIFType_10GE
+#endif
 
 /* Host interface parameters */
 #define INFRA_HOST_IF_SIDE          1

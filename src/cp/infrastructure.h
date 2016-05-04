@@ -34,7 +34,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "struct_ids.h"
 
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
@@ -59,23 +58,20 @@ struct infra_table_params {
 	uint32_t max_num_of_entries;
 };
 
-bool infra_create_if_mapping(void);
-bool infra_create_mem_partition(void);
-bool infra_create_statistics(void);
-bool infra_configure_protocol_decode(void);
+bool infra_created(void);
+bool infra_powered_up(void);
+bool infra_initialized(void);
+bool infra_finalized(void);
+bool infra_running(void);
 
-bool infra_initialize_statistics(void);
-
-bool infra_create_hash(enum alvs_struct_id struct_id,
+bool infra_create_hash(uint32_t struct_id,
 		       enum infra_search_mem_heaps search_mem_heap,
 		       struct infra_hash_params *params);
-bool infra_create_table(enum alvs_struct_id struct_id,
+bool infra_create_table(uint32_t struct_id,
 			enum infra_search_mem_heaps search_mem_heap,
 			struct infra_table_params *params);
-bool infra_add_entry(enum alvs_struct_id struct_id, void *key,
-		     uint32_t key_size, void *result, uint32_t result_size);
-bool infra_delete_entry(enum alvs_struct_id struct_id, void *key,
-			uint32_t key_size);
-bool load_partition(void);
+bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
+		     void *result, uint32_t result_size);
+bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
 
 #endif /* _INFRASTRUCTURE_H_ */
