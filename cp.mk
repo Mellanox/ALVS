@@ -17,7 +17,7 @@ CP_C_FLAGS := -DLITTLE_ENDIAN
 ifdef DEBUG
 CP_C_FLAGS += -O0 -g3
 else
-CP_C_FLAGS += -O3
+CP_C_FLAGS += -O3 -DNDEBUG
 endif
 
 ifdef SIM
