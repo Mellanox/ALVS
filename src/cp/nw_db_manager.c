@@ -52,7 +52,6 @@
 #include "defs.h"
 #include "nw_search_defs.h"
 #include "nw_db_manager.h"
-#include "infrastructure_conf.h"
 #include "infrastructure.h"
 
 /* Function Definition */

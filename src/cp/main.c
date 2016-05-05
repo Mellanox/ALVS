@@ -36,12 +36,12 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include <getopt.h>
 #include <signal.h>
 #include <EZenv.h>
 #include <EZdev.h>
 
 #include "infrastructure.h"
-#include "infrastructure_conf.h"
 
 #include "nw_db_manager.h"
 #include "alvs_db_manager.h"
@@ -74,18 +74,25 @@ enum object_type {
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
+int agt_enabled = false;
 /******************************************************************************/
 
-int main(void)
+int main(int argc, char **argv)
 {
 	int rc;
+	struct option long_options[] = {{"agt_enabled", no_argument, &agt_enabled, true}};
 
 	printf("Starting ALVS CP application...\n");
+
+	do {
+		rc = getopt_long(argc, argv, "", long_options, NULL);
+	} while (rc != -1);
 
 #ifndef DAEMON_DISABLE
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
+	printf("Running as daemon.\n");
 	daemon(0, 0);
 #endif
 	/* listen to the SHUTDOWN signal to handle terminate signal */
@@ -272,8 +279,10 @@ bool nps_init(void)
 	printf("Init EZdev...\n");
 	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
 #ifdef EZ_SIM
+	printf("Platform is simulator.\n");
 	platform_params.ePlatform = EZdev_Platform_SIM;
 #else
+	printf("Platform is NPS chip.\n");
 	platform_params.ePlatform = EZdev_Platform_UIO;
 #endif
 	ez_ret_val = EZdev_Create(&platform_params);
@@ -285,6 +294,7 @@ bool nps_init(void)
 
 #ifdef EZ_SIM
 	/* Wait for simulator to connect to socket */
+	printf("Wait for sync with simulator.\n");
 	ez_ret_val = EZdevSim_WaitForInitSocket(1);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		printf("init_dev: EZdevSim_WaitForInitSocket failed.\n");
@@ -318,18 +328,17 @@ bool nps_init(void)
 		return false;
 	}
 
-#ifdef AGT_ENABLED
 	/************************************************/
 	/* Enable AGT debug agent interface             */
 	/************************************************/
-	printf("Enable AGT...\n");
-	if (infra_enable_agt() == false) {
-		printf("infra_enable_agt: infra_enable_agt failed.\n");
-		return false;
+	if (agt_enabled == true) {
+		printf("Enable AGT...\n");
+		if (infra_enable_agt() == false) {
+			printf("infra_enable_agt: infra_enable_agt failed.\n");
+			return false;
+		}
+		is_object_allocated[object_type_agt] = true;
 	}
-
-	is_object_allocated[object_type_agt] = true;
-#endif
 
 	return true;
 }

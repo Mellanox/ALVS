@@ -42,8 +42,10 @@
 #include <stdint.h>
 #include <net/ethernet.h>
 
+#define INFRA_NW_IF_NUM       4
 #define INFRA_BASE_LOGICAL_ID 0
 
+/*! Search memory heaps possible values. */
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
 	INFRA_X1_CLUSTER_SEARCH_HEAP,
@@ -54,6 +56,7 @@ enum infra_search_mem_heaps {
 	INFRA_EMEM_SEARCH_HEAP
 };
 
+/*! Required parameters for hash creation data structure  */
 struct infra_hash_params {
 	uint32_t key_size;
 	uint32_t result_size;
@@ -61,31 +64,122 @@ struct infra_hash_params {
 	bool updated_from_dp;
 };
 
+/*! Required parameters for table creation data structure  */
 struct infra_table_params {
 	uint32_t key_size;
 	uint32_t result_size;
 	uint32_t max_num_of_entries;
 };
 
+/**************************************************************************//**
+ * \brief       Infrastructure configuration at created state
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_created(void);
+
+/**************************************************************************//**
+ * \brief       Infrastructure configuration at powered-up state
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_powered_up(void);
+
+/**************************************************************************//**
+ * \brief       Infrastructure configuration at initialized state
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_initialized(void);
+
+/**************************************************************************//**
+ * \brief       Infrastructure configuration at finalized state
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_finalized(void);
+
+/**************************************************************************//**
+ * \brief       Infrastructure configuration at running state
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_running(void);
 
+/**************************************************************************//**
+ * \brief       Enable agent debug interface
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_enable_agt(void);
+
+/**************************************************************************//**
+ * \brief       Disable agent debug interface
+ *
+ */
 void infra_disable_agt(void);
 
+/**************************************************************************//**
+ * \brief       Get my MAC
+ *
+ * \param[out]  my_mac - reference to ethernet address type
+ *
+ * \return     	true - success
+ *              false - can't find tap interface file
+ */
 bool infra_get_my_mac(struct ether_addr *my_mac);
 
+/**************************************************************************//**
+ * \brief       Create hash data structure
+ *
+ * \param[in]   struct_id       - structure id of the hash
+ * \param[in]   search_mem_heap - memory heap where hash should reside on
+ * \param[in]   params          - parameters of the hash (size of key & result,
+ *                                max number of entries and update mode)
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_create_hash(uint32_t struct_id,
 		       enum infra_search_mem_heaps search_mem_heap,
 		       struct infra_hash_params *params);
+
+/**************************************************************************//**
+ * \brief       Create table data structure
+ *
+ * \param[in]   struct_id       - structure id of the table
+ * \param[in]   search_mem_heap - memory heap where table should reside on
+ * \param[in]   params          - parameters of the table (size of key & result
+ *                                and max number of entries)
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_create_table(uint32_t struct_id,
 			enum infra_search_mem_heaps search_mem_heap,
 			struct infra_table_params *params);
+
+/**************************************************************************//**
+ * \brief       Add an entry to a data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
 		     void *result, uint32_t result_size);
+
+/**************************************************************************//**
+ * \brief       Delete an entry from a data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ *
+ * \return     	bool - success or failure
+ */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
 
 #endif /* _INFRASTRUCTURE_H_ */
