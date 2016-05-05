@@ -29,6 +29,9 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 *
+*  Project:             NPS400 ALVS application
+*  File:                nw_db_manager.h
+*  Desc:                Network DB management include file
 */
 
 #ifndef CP_NW_DB_MANAGER_H_
@@ -37,5 +40,6 @@
 void nw_db_manager_main(void);
 bool nw_db_constructor(void);
 void nw_db_manager_set_cancel_thread(void);
+void nw_db_manager_exit_with_error(void);
 
 #endif /* CP_NW_DB_MANAGER_H_ */

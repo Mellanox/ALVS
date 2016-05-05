@@ -29,6 +29,9 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 *
+*  Project:             NPS400 ALVS application
+*  File:                alvs_db_manager.h
+*  Desc:                ALVS DB management include file
 */
 
 #ifndef CP_ALVS_DB_MANAGER_H_
@@ -37,5 +40,6 @@
 void alvs_db_manager_main(void);
 void alvs_db_manager_set_cancel_thread(void);
 bool alvs_db_constructor(void);
+void alvs_db_manager_exit_with_error(void);
 
 #endif /* CP_ALVS_DB_MANAGER_H_ */

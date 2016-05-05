@@ -341,8 +341,20 @@ bool nps_init(void)
 void signal_terminate_handler(int signum)
 {
 	if (signum != SIGTERM) {
-		raise(SIGTERM);
-		sleep(2);
+		pthread_t         self;
+
+		self = pthread_self();
+		if (self == nw_db_manager_thread) {
+			is_object_allocated[object_type_nw_db_manager] = false;
+			nw_db_manager_exit_with_error();
+		} else {
+			if (self == alvs_db_manager_thread) {
+				is_object_allocated[object_type_alvs_db_manager] = false;
+				alvs_db_manager_exit_with_error();
+			} else {
+				raise(SIGTERM);
+			}
+		}
 	} else {
 		main_thread_graceful_stop();
 		exit(0);

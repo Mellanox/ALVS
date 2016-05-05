@@ -41,11 +41,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
-/* libnl-3 includes */
-/* #include <netlink/netlink.h> */
-/* #include <netlink/cache.h> */
-/* #include <netlink/route/neighbour.h> */
-/* #include <netlink/route/route.h> */
+#include <pthread.h>
 
 /* Project includes */
 #include "defs.h"
@@ -61,7 +57,7 @@ void alvs_db_manager_table_init(void);
 void alvs_db_manager_classification_table_init(void);
 
 /******************************************************************************
- * \brief         Main ALVS process
+ * \brief         ALVS thread main application.
  *
  * \return        void
  */
@@ -72,16 +68,27 @@ void alvs_db_manager_main(void)
 	printf("alvs_db_manager_table_init...\n");
 	alvs_db_manager_table_init();
 	while (!is_alvs_db_manager_cancel_thread) {
-		sleep(5);
+		sleep(2);
 	}
 	alvs_db_manager_delete();
 }
 
+/******************************************************************************
+ * \brief	  Signals the ALVS thread to stop and exit.
+ *
+ * \return	  void
+ */
 void alvs_db_manager_set_cancel_thread(void)
 {
 	is_alvs_db_manager_cancel_thread = true;
 }
 
+/******************************************************************************
+ * \brief	  Initialization of ALVS.
+ *            Also masks SIGTERM signal, will be received in main thread only.
+ *
+ * \return	  void
+ */
 void alvs_db_manager_init(void)
 {
 	sigset_t sigs_to_block;
@@ -129,9 +136,17 @@ void alvs_db_manager_classification_table_init(void)
 	ret_code = infra_add_entry(STRUCT_ID_ALVS_SERVICES, &key, sizeof(key), &result, sizeof(result));
 	if (!ret_code) {
 		printf("Error - cannot add entry to classification table service_address = 10.137.107.200 service_port = 80 service_protocol = 6 result = 10.137.107.6\n");
+		alvs_db_manager_exit_with_error();
 	}
 }
 
+/******************************************************************************
+ * \brief    Constructor function for all ALVS data bases.
+ *           This function is called not from the network thread but from the
+ *           main thread on NPS configuration bringup.
+ *
+ * \return   void
+ */
 bool alvs_db_constructor(void)
 {
 	struct infra_hash_params hash_params;
@@ -147,4 +162,17 @@ bool alvs_db_constructor(void)
 	}
 
 	return true;
+}
+
+/******************************************************************************
+ * \brief    Raises SIGTERM signal to main thread and exits the thread.
+ *           Deletes the DB manager.
+ *
+ * \return   void
+ */
+void alvs_db_manager_exit_with_error(void)
+{
+	alvs_db_manager_delete();
+	raise(SIGTERM);
+	pthread_exit(NULL);
 }
