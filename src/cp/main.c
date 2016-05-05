@@ -61,8 +61,9 @@ void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
 
 enum object_type {
-	object_type_board,
+	object_type_dev,
 	object_type_cp,
+	object_type_env,
 	object_type_agt,
 	object_type_nw_db_manager,
 	object_type_alvs_db_manager,
@@ -277,15 +278,16 @@ bool nps_init(void)
 #endif
 	ez_ret_val = EZdev_Create(&platform_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("init_board: EZdev_Create failed.\n");
+		printf("init_dev: EZdev_Create failed.\n");
 		return false;
 	}
+	is_object_allocated[object_type_dev] = true;
 
 #ifdef EZ_SIM
 	/* Wait for simulator to connect to socket */
 	ez_ret_val = EZdevSim_WaitForInitSocket(1);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		printf("init_board: EZdevSim_WaitForInitSocket failed.\n");
+		printf("init_dev: EZdevSim_WaitForInitSocket failed.\n");
 		return false;
 	}
 #endif
@@ -298,7 +300,7 @@ bool nps_init(void)
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
-	is_object_allocated[object_type_board] = true;
+	is_object_allocated[object_type_env] = true;
 
 	/************************************************/
 	/* Create and run CP library                    */
@@ -308,13 +310,13 @@ bool nps_init(void)
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
+	is_object_allocated[object_type_cp] = true;
 
 	printf("Run CP library...\n");
 	ez_ret_val = EZapiCP_Go();
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
-	is_object_allocated[object_type_cp] = true;
 
 #ifdef AGT_ENABLED
 	/************************************************/
@@ -392,19 +394,23 @@ void main_thread_graceful_stop(void)
 		printf("Delete CP\n");
 		ez_ret_val = EZapiCP_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			printf("delete_cp: EZapiCP_Delete failed.\n");
-		}
-		ez_ret_val = EZenv_Delete();
-		if (EZrc_IS_ERROR(ez_ret_val)) {
-			printf("delete_cp: EZenv_Delete failed.\n");
+			printf("main_thread_graceful_stop: EZapiCP_Delete failed.\n");
 		}
 	}
-	if (is_object_allocated[object_type_board]) {
-		is_object_allocated[object_type_board] = false;
-		printf("Delete board\n");
+	if (is_object_allocated[object_type_env]) {
+		is_object_allocated[object_type_env] = false;
+		printf("Delete env\n");
+		ez_ret_val = EZenv_Delete();
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("main_thread_graceful_stop: EZenv_Delete failed.\n");
+		}
+	}
+	if (is_object_allocated[object_type_dev]) {
+		is_object_allocated[object_type_dev] = false;
+		printf("Delete dev\n");
 		ez_ret_val = EZdev_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			printf("delete_board: EZdev_Delete failed.\n");
+			printf("main_thread_graceful_stop: EZdev_Delete failed.\n");
 		}
 	}
 }
