@@ -268,6 +268,18 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 			break;
 		}
 
+	} else {
+		switch (action) {
+		case NL_ACT_NEW:
+			printf("info: ARP entry from address family %d was added. Address = %s\n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			break;
+		case NL_ACT_DEL:
+			printf("info: ARP entry from address family %d was deleted. Address = %s \n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			break;
+		case NL_ACT_CHANGE:
+			printf("info: ARP entry from address family %d has changed. Address = %s \n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			break;
+		}
 	}
 }
 
