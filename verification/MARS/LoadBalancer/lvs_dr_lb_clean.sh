@@ -2,8 +2,13 @@
 
 function clean_setup_ipvs()
 {
-    echo "Enaable ipv4 forwarding"
+    echo "Enable ipv4 forwarding"
     echo "1" >/proc/sys/net/ipv4/ip_forward
+
+    # stop connection sync daemons
+    echo "stop ipvs connection sync daemons"
+    ipvsadm --stop-daemon master
+    ipvsadm --stop-daemon backup
 
     # disable ipvsadm
     echo "check ipvs adminstrator off"
