@@ -179,7 +179,7 @@ uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_P
  * \param[in]   type            - type of the interface
  * \param[in]   logical_id      - logical_id of the interface
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_EthIFType type, uint32_t logical_id)
 {
@@ -239,7 +239,7 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 /**************************************************************************//**
  * \brief       Create all interfaces according to network_interface_params
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_if_mapping(void)
 {
@@ -269,7 +269,7 @@ bool infra_create_if_mapping(void)
 /**************************************************************************//**
  * \brief       Allocate the next IMEM index
  *
- * \return     	The next available index
+ * \return      The next available index
  */
 uint32_t get_imem_index(void)
 {
@@ -281,7 +281,7 @@ uint32_t get_imem_index(void)
 /**************************************************************************//**
  * \brief       Allocate the next EMEM index
  *
- * \return     	The next available index
+ * \return      The next available index
  */
 uint32_t get_emem_index(void)
 {
@@ -295,7 +295,7 @@ uint32_t get_emem_index(void)
  *              For IMEM - according to imem_spaces_params
  *              For EMEM - according to emem_spaces_params
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_mem_partition(void)
 {
@@ -374,7 +374,7 @@ bool infra_create_mem_partition(void)
 /**************************************************************************//**
  * \brief       Configure protocol decode profile with my MAC
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_configure_protocol_decode(void)
 {
@@ -383,7 +383,8 @@ bool infra_configure_protocol_decode(void)
 	EZapiChannel_ProtocolDecoderParams protocol_decoder_params;
 
 	/* Get defaults for profile 0 - this is the default profile used
-	 * by application 0. */
+	 * by application 0.
+	 */
 	memset(&protocol_decoder_params, 0, sizeof(protocol_decoder_params));
 	protocol_decoder_params.uiProfile = 0;
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetProtocolDecoderParams, &protocol_decoder_params);
@@ -415,7 +416,7 @@ bool infra_configure_protocol_decode(void)
 /**************************************************************************//**
  * \brief       Configure Statistics
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_statistics(void)
 {
@@ -469,7 +470,7 @@ bool infra_create_statistics(void)
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_created(void)
 {
@@ -503,7 +504,7 @@ bool infra_created(void)
 /**************************************************************************//**
  * \brief       Initialize all statistics counter to be zero
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_initialize_statistics(void)
 {
@@ -537,7 +538,7 @@ bool infra_initialize_statistics(void)
 /**************************************************************************//**
  * \brief       Infrastructure configuration at initialized state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_initialized(void)
 {
@@ -573,7 +574,7 @@ bool infra_initialized(void)
 /**************************************************************************//**
  * \brief       Infrastructure configuration at powered_up state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_powered_up(void)
 {
@@ -584,7 +585,7 @@ bool infra_powered_up(void)
 /**************************************************************************//**
  * \brief       Infrastructure configuration at finalized state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_finalized(void)
 {
@@ -595,7 +596,7 @@ bool infra_finalized(void)
 /**************************************************************************//**
  * \brief       Infrastructure configuration at running state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_running(void)
 {
@@ -606,7 +607,7 @@ bool infra_running(void)
 /**************************************************************************//**
  * \brief       Find the index of the required memory heap
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
 {
@@ -665,7 +666,7 @@ uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
  * \param[in]   params          - parameters of the hash (size of key & result,
  *                                max number of entries and update mode)
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params)
 {
@@ -760,7 +761,7 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
  * \param[in]   params          - parameters of the table (size of key & result
  *                                and max number of entries)
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params)
 {
@@ -825,7 +826,7 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
  * \param[in]   result          - reference to result
  * \param[in]   result_size     - size of the result in bytes
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
 {
@@ -856,7 +857,7 @@ bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size, void *res
  * \param[in]   key             - reference to key
  * \param[in]   key_size        - size of the key in bytes
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 {
@@ -883,7 +884,7 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
  *
  * \param[out]  my_mac - reference to ethernet address type
  *
- * \return     	true - success
+ * \return      true - success
  *              false - can't find tap interface file
  */
 bool infra_get_my_mac(struct ether_addr *my_mac)
@@ -913,7 +914,7 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 /**************************************************************************//**
  * \brief       Enable agent debug interface
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_enable_agt(void)
 {

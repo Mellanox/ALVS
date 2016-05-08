@@ -32,27 +32,26 @@
 *  Project:             NPS400 ALVS application
 *  File:                log.c
 *  Desc:                performs logging functionality for CP via syslog
-
+*
 */
-
 
 #include "log.h"
 
 void open_log(char *s)
 {
-	setlogmask (LOG_UPTO (LOG_LEVEL));
+	setlogmask(LOG_UPTO(LOG_LEVEL));
 
 	/*TODO - what to put here for facility - LOCAL? */
 	int facility = LOG_USER;
 	int option = LOG_CONS | LOG_PID | LOG_NDELAY;
 
 
-        openlog(s, option, facility);
+	openlog(s, option, facility);
 }
 
-void close_log()
+void close_log(void)
 {
-        closelog();
+	closelog();
 }
 
 

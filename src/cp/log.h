@@ -30,13 +30,16 @@
 *	file - log.h
 *	description - contains definitions for log.c
 */
+
 #ifndef LOG_H_
 #define LOG_H_
+
 #include "syslog.h"
+
 #ifndef NDEBUG
-#define LOG_LEVEL LOG_DEBUG
+#	define LOG_LEVEL LOG_DEBUG
 #else
-#define LOG_LEVEL LOG_INFO
+#	define LOG_LEVEL LOG_INFO
 #endif
 
 /*****************************************************************************/
@@ -48,10 +51,10 @@
  */
 #ifndef NDEBUG
 #define write_log(priority, s) \
-	syslog(LOG_MAKEPRI(LOG_USER,priority), "%s [FILE: %s:%d FUNC: %s]", s, __FILE__,__LINE__, __func__);
+	syslog(LOG_MAKEPRI(LOG_USER, priority), "%s [FILE: %s:%d FUNC: %s]", s, __FILE__, __LINE__,  __func__)
 #else
 #define write_log(priority, s) \
-	syslog(LOG_MAKEPRI(LOG_USER,priority), "%s", s);
+	syslog(LOG_MAKEPRI(LOG_USER, priority), "%s", s)
 #endif
 
 
@@ -69,6 +72,6 @@ void open_log(char *s);
  * \param[in] s  none
  * \return none.
  */
-void close_log();
+void close_log(void);
 
 #endif /* LOG_H_ */

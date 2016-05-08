@@ -74,42 +74,42 @@ struct infra_table_params {
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_created(void);
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at powered-up state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_powered_up(void);
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at initialized state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_initialized(void);
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at finalized state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_finalized(void);
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at running state
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_running(void);
 
 /**************************************************************************//**
  * \brief       Enable agent debug interface
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_enable_agt(void);
 
@@ -124,7 +124,7 @@ void infra_disable_agt(void);
  *
  * \param[out]  my_mac - reference to ethernet address type
  *
- * \return     	true - success
+ * \return      true - success
  *              false - can't find tap interface file
  */
 bool infra_get_my_mac(struct ether_addr *my_mac);
@@ -137,7 +137,7 @@ bool infra_get_my_mac(struct ether_addr *my_mac);
  * \param[in]   params          - parameters of the hash (size of key & result,
  *                                max number of entries and update mode)
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_hash(uint32_t struct_id,
 		       enum infra_search_mem_heaps search_mem_heap,
@@ -151,7 +151,7 @@ bool infra_create_hash(uint32_t struct_id,
  * \param[in]   params          - parameters of the table (size of key & result
  *                                and max number of entries)
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_create_table(uint32_t struct_id,
 			enum infra_search_mem_heaps search_mem_heap,
@@ -166,7 +166,7 @@ bool infra_create_table(uint32_t struct_id,
  * \param[in]   result          - reference to result
  * \param[in]   result_size     - size of the result in bytes
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
 		     void *result, uint32_t result_size);
@@ -178,7 +178,7 @@ bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
  * \param[in]   key             - reference to key
  * \param[in]   key_size        - size of the key in bytes
  *
- * \return     	bool - success or failure
+ * \return      bool - success or failure
  */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
 
