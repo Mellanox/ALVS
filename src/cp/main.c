@@ -74,13 +74,15 @@ enum object_type {
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
-int agt_enabled = false;
+int agt_enabled;
 /******************************************************************************/
 
 int main(int argc, char **argv)
 {
 	int rc;
-	struct option long_options[] = {{"agt_enabled", no_argument, &agt_enabled, true}};
+	struct option long_options[] = { { "agt_enabled", no_argument, &agt_enabled, true } };
+
+	agt_enabled = false;
 
 	printf("Starting ALVS CP application...\n");
 
