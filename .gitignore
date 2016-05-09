@@ -2,6 +2,7 @@
 *.d
 *.o
 *.exe
+*.log
 bin/*
 */bin/*
 target/work/*
