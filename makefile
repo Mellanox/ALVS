@@ -20,6 +20,6 @@ cp-clean:
 	make -f cp.mk cp-clean
 
 clean: dp-clean cp-clean
-	rm -r bin	
-	rm -r build	
+	rm -rf bin	
+	rm -rf build	
 	
