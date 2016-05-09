@@ -95,4 +95,220 @@ struct alvs_service_result {
 	/* TEMP field for POC only! */
 };
 
+/*********************************
+ * Service classification DB defs
+ *********************************/
+
+/*key*/
+struct alvs_service_classification_key {
+	in_addr_t service_address;
+	uint16_t  service_port;
+	uint8_t   service_protocol;
+} __packed;
+
+/*result*/
+struct alvs_service_classification_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+#else
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	unsigned             /*reserved*/  : 8;
+	/*byte2-3*/
+	uint16_t             service_index;
+};
+
+/*********************************
+ * Service info DB defs
+ *********************************/
+
+/*key*/
+struct alvs_service_info_key {
+	uint16_t service_index;
+} __packed;
+
+/*result*/
+struct alvs_service_info_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	enum alvs_scheduler_type sched_alg : 4;
+#else
+	enum alvs_scheduler_type sched_alg : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	uint8_t              service_flags;
+	/*byte2-3*/
+	uint16_t             server_count;
+	/*byte4-7*/
+	unsigned             /*reserved*/  : 32; /*place holder for scheduling ptr*/
+	/*byte8-11*/
+	ezdp_sum_addr_t      service_stats_base;
+	/*byte12-15*/
+	unsigned             /*reserved*/  : 32;
+};
+
+
+/*********************************
+ * Scheduling info DB defs
+ *********************************/
+
+/*key*/
+struct alvs_sched_info_key {
+	uint16_t sched_index;
+} __packed;
+
+/*result*/
+struct alvs_sched_info_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+#else
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	unsigned             /*reserved*/  : 8;
+	/*byte2-3*/
+	uint16_t             server_index;
+	/*byte4-7*/
+	unsigned             /*reserved*/  : 32;
+	/*byte8-11*/
+	unsigned             /*reserved*/  : 32;
+	/*byte12-15*/
+	unsigned             /*reserved*/  : 32;
+};
+
+
+/*********************************
+ * Connection classification DB defs
+ *********************************/
+
+/*key*/
+struct alvs_conn_classification_key {
+	in_addr_t client_ip;
+	in_addr_t virtual_ip;
+	uint16_t  client_port;
+	uint16_t  virtual_port;
+	uint8_t   protocol;
+} __packed;
+
+/*result*/
+struct alvs_conn_classification_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+#else
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1-3*/
+	unsigned             /*reserved*/  : 24;
+	/*byte4-7*/
+	uint32_t             conn_index;
+};
+
+
+/*********************************
+ * Connection info DB defs
+ *********************************/
+
+/*key*/
+struct alvs_conn_info_key {
+	uint32_t conn_index;
+} __packed;
+
+/*result*/
+struct alvs_conn_info_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+#else
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	uint8_t              conn_flags;
+	/*byte2-3*/
+	uint16_t             server_index;
+	/*byte4*/
+	uint8_t              aging_info;
+	/*byte5*/
+	uint8_t              conn_state;
+	/*byte6-7*/
+	unsigned             /*reserved*/  : 16;
+	/*byte8-11*/
+	ezdp_sum_addr_t      conn_stats_base;
+	/*byte8-11*/
+	in_addr_t            client_ip;
+	/*byte12-15*/
+	in_addr_t            virtual_ip;
+	/*byte16-17*/
+	uint16_t             client_port;
+	/*byte18-19*/
+	uint16_t             virtual_port;
+	/*byte20*/
+	uint8_t              protocol;
+	/*byte21-23*/
+	unsigned             /*reserved*/  : 24;
+	/*byte24-27*/
+	unsigned             /*reserved*/  : 32;
+	/*byte28-31*/
+	unsigned             /*reserved*/  : 32;
+};
+
+
+/*********************************
+ * Server info DB defs
+ *********************************/
+
+/*key*/
+struct alvs_server_info_key {
+	uint16_t server_index;
+} __packed;
+
+/*result*/
+struct alvs_server_info_result {
+	/*byte0*/
+#ifdef BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	uint8_t              routing_alg   : 4;
+#else
+	uint8_t              routing_alg   : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	uint8_t              server_flags;
+	/*byte2-3*/
+	uint16_t             server_weight;
+	/*byte8-11*/
+	ezdp_sum_addr_t      server_stats_base;
+	/*byte8-11*/
+	in_addr_t            server_ip;
+	/*byte12-13*/
+	uint16_t             server_port;
+	/*byte14-15*/
+	unsigned             /*reserved*/  : 16;
+};
+
 #endif /* ALVS_SERACH_DEFS_H_ */
