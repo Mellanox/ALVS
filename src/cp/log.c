@@ -54,8 +54,8 @@ void open_log(char *s)
 
 void close_log(void)
 {
-	EZlog_SetLog(EZlog_OUTPUT_FILE,EZlog_COMP_ALL,
-		     EZlog_SUB_COMP_LOG_ALL,EZlog_LEVEL_FATAL);
+	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP_ALL,
+		     EZlog_SUB_COMP_LOG_ALL, EZlog_LEVEL_FATAL);
 	EZlog_CloseLogFile();
 
 	closelog();

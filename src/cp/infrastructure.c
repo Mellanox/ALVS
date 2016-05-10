@@ -35,19 +35,23 @@
 *
 */
 
-#include "infrastructure.h"
-#include "alvs_db_manager.h"
-#include "nw_db_manager.h"
-#include "defs.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <EZapiChannel.h>
 #include <EZapiStat.h>
 #include <EZapiStruct.h>
 #include <EZagtCPMain.h>
 #include <EZosTask.h>
 #include <EZagtRPC.h>
+
+#include "log.h"
+#include "infrastructure.h"
+#include "alvs_db_manager.h"
+#include "nw_db_manager.h"
+#include "defs.h"
+#include "user_defs.h"
 
 EZagtRPCServer host_server;
 
@@ -103,39 +107,22 @@ enum infra_emem_spaces_params {
 };
 
 /* Memory spaces */
-#define INFRA_HALF_CLUSTER_CODE_SIZE        0
-#define INFRA_X1_CLUSTER_CODE_SIZE          16
-#define INFRA_X2_CLUSTER_CODE_SIZE          0
-#define INFRA_X4_CLUSTER_CODE_SIZE          1024
-#define INFRA_X16_CLUSTER_CODE_SIZE         0
-#define INFRA_ALL_CLUSTER_CODE_SIZE         1024
 
-#define INFRA_HALF_CLUSTER_DATA_SIZE        0
-#define INFRA_X1_CLUSTER_DATA_SIZE          0
-#define INFRA_X2_CLUSTER_DATA_SIZE          0
-#define INFRA_X4_CLUSTER_DATA_SIZE          0
-#define INFRA_X16_CLUSTER_DATA_SIZE         0
-#define INFRA_ALL_CLUSTER_DATA_SIZE         0
-#define INFRA_EMEM_DATA_NO_ECC_SIZE         0
-#define INFRA_EMEM_DATA_IN_BAND_SIZE        0
-#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    0
-
-#define INFRA_HALF_CLUSTER_SEARCH_SIZE      0
+#define INFRA_X1_CLUSTER_CODE_SIZE          64
+#define INFRA_ALL_CLUSTER_CODE_SIZE         512
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        4
-#define INFRA_X2_CLUSTER_SEARCH_SIZE        0
-#define INFRA_X4_CLUSTER_SEARCH_SIZE        0
-#define INFRA_X16_CLUSTER_SEARCH_SIZE       0
-#define INFRA_ALL_CLUSTER_SEARCH_SIZE       0
-#define INFRA_EMEM_SEARCH_SIZE              256
+#define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
-/* Statistics */
-#define INFRA_STATS_POSTED_GROUP_SIZE       (120*1024)
-#define INFRA_STATS_POSTED_NUM              (16*1024)
+#define INFRA_EMEM_SEARCH_SIZE              2048
+#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    1
 
-#define NUM_OF_INT_MEMORY_SPACES            18
-#define NUM_OF_EXT_MEMORY_SPACES            4
+#define NUM_OF_INT_MEMORY_SPACES            4
+#define NUM_OF_EXT_MEMORY_SPACES            2
 
-uint32_t network_interface_params[INFRA_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
+/* Search MSIDs */
+#define EMEM_SEARCH_MSID              0x0
+
+uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
 		{INFRA_NW_IF_1_SIDE, INFRA_NW_IF_1_PORT},
 		{INFRA_NW_IF_2_SIDE, INFRA_NW_IF_2_PORT},
@@ -143,31 +130,15 @@ uint32_t network_interface_params[INFRA_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS
 };
 
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_X1_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_X2_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_X2_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_X2_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_X4_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_X4_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_X16_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_X16_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_X16_CLUSTER_SEARCH_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, 0},
-		{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, 0}
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0},
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0},
+	{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0},
+	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0}
 };
 
 uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_NONE, INFRA_EMEM_DATA_NO_ECC_SIZE, EMEM_DATA_NO_ECC_MSID, 0},
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_IN_BAND, INFRA_EMEM_DATA_IN_BAND_SIZE, EMEM_DATA_IN_BAND_MSID, 0},
-		{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_DATA_OUT_OF_BAND_MSID, 0},
-		{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID, 0}
+	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID, 0},
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_SPINLOCK_MSID, 0}
 };
 
 /**************************************************************************//**
@@ -246,11 +217,11 @@ bool infra_create_if_mapping(void)
 	uint32_t ind;
 
 	/* Configure external interfaces */
-	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
+	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if (infra_create_intetface(network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 				network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
 				INFRA_NW_IF_TYPE,
-				INFRA_BASE_LOGICAL_ID + ind) == false) {
+				USER_BASE_LOGICAL_ID + ind) == false) {
 			return false;
 		}
 	}
@@ -259,7 +230,7 @@ bool infra_create_if_mapping(void)
 	if (infra_create_intetface(INFRA_HOST_IF_SIDE,
 			INFRA_HOST_IF_PORT,
 			EZapiChannel_EthIFType_10GE,
-			INFRA_BASE_LOGICAL_ID + INFRA_NW_IF_NUM) == false) {
+			USER_HOST_LOGICAL_ID) == false) {
 		return false;
 	}
 
@@ -331,7 +302,7 @@ bool infra_create_mem_partition(void)
 
 			/* Keep index in imem_spaces_params */
 			imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX] = int_mem_space_params.uiIndex;
-			printf("IMEM %d is in index %d\n", ind, int_mem_space_params.uiIndex);
+			write_log(LOG_DEBUG, "IMEM %d is in index %d\n", ind, int_mem_space_params.uiIndex);
 		}
 	}
 
@@ -364,7 +335,7 @@ bool infra_create_mem_partition(void)
 
 			/* Keep index in imem_spaces_params */
 			emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX] = ext_mem_space_params.uiIndex;
-			printf("EMEM %d is in index %d and msid %d.\n", ind, ext_mem_space_params.uiIndex, ext_mem_space_params.uiMSID);
+			write_log(LOG_DEBUG, "EMEM %d is in index %d and msid %d.\n", ind, ext_mem_space_params.uiIndex, ext_mem_space_params.uiMSID);
 		}
 	}
 
@@ -421,25 +392,66 @@ bool infra_configure_protocol_decode(void)
 bool infra_create_statistics(void)
 {
 	EZstatus ret_val;
+	EZapiStat_PartitionParams partition_params;
+	EZapiStat_GroupParams group_params;
 	EZapiStat_PostedPartitionParams posted_partition_params;
 	EZapiStat_PostedGroupParams posted_group_params;
+
+	memset(&partition_params, 0, sizeof(partition_params));
+	partition_params.uiPartition = 1;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPartitionParams, &partition_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPartitionParams failed.\n");
+		return false;
+	}
+
+	partition_params.bEnable = true;
+	partition_params.uiUnitMask = 0xff;
+	partition_params.uiMSID = USER_ON_DEMAND_STATS_MSID;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPartitionParams, &partition_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPartitionParams failed.\n");
+		return false;
+	}
+
+	memset(&group_params, 0, sizeof(group_params));
+	group_params.uiPartition = 1;
+	group_params.uiGroup = 0;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetGroupParams, &group_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetGroupParams failed.\n");
+		return false;
+	}
+
+	group_params.uiStartCounter = 0;
+	group_params.uiNumCounters = (36 * 1024 * 1024);
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &group_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetGroupParams failed.\n");
+		return false;
+	}
+
 
 	/* Get posted statistics defaults for partition 0 */
 	memset(&posted_partition_params, 0, sizeof(posted_partition_params));
 	posted_partition_params.uiPartition = 0;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedPartitionParams, &posted_partition_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		printf("EZapiStat_Status: EZapiStat_StatCmd_GetPostedPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedPartitionParams failed.\n");
 		return false;
 	}
 
 	/* Set MSID */
 	posted_partition_params.bEnable = true;
-	posted_partition_params.uiMSID = EMEM_STATISTICS_POSTED_MSID;
+	posted_partition_params.uiMSID = USER_POSTED_STATS_MSID;
+	posted_partition_params.uiUnitMask = 0xf;
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedPartitionParams, &posted_partition_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		printf("EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedPartitionParams failed.\n");
 		return false;
 	}
 
@@ -450,17 +462,119 @@ bool infra_create_statistics(void)
 	posted_group_params.eGroupType = EZapiStat_PostedGroupType_OPTIMIZED;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedGroupParams, &posted_group_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		printf("EZapiStat_Status: EZapiStat_StatCmd_GetPostedGroupParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedGroupParams failed.\n");
 		return false;
 	}
 
 	/* Set group size and optimized group type */
-	posted_group_params.eGroupType = EZapiStat_PostedGroupType_OPTIMIZED;
-	posted_group_params.uiNumCounters = INFRA_STATS_POSTED_GROUP_SIZE;
+	posted_group_params.uiNumCounters = (7680*1024);
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedGroupParams, &posted_group_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		printf("EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedGroupParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedGroupParams failed.\n");
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Create index pools
+ *
+ * \return      bool - success or failure
+ */
+bool infra_create_index_pools(void)
+{
+	EZstatus ret_val;
+	EZapiChannel_IndexPoolParams index_pool_params;
+
+	/* configure 2 pools for search */
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = 0;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = 1;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = USER_POOL_ID;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.uiNumIndexes = 32*1024*1024;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Create timers
+ *
+ * \return      bool - success or failure
+ */
+bool infra_create_timers(void)
+{
+	EZstatus ret_val;
+	EZapiChannel_PMUTimerParams pmu_timer_params;
+
+	pmu_timer_params.uiSide = 0;
+	pmu_timer_params.uiTimer = 0;
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetPMUTimerParams, &pmu_timer_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetPMUTimerParams failed.\n");
+		return false;
+	}
+
+	pmu_timer_params.bEnable = false;  /* TODO - enable when aging is needed */
+	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
+	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
+	pmu_timer_params.uiNumJobs = 1*1024*1024;
+	pmu_timer_params.uiNanoSecPeriod = 0;
+	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetPMUTimerParams, &pmu_timer_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetPMUTimerParams failed.\n");
 		return false;
 	}
 
@@ -476,30 +590,43 @@ bool infra_created(void)
 {
 	/* create interfaces */
 	if (infra_create_if_mapping() == false) {
-		printf("setup_chip: infra_create_if_mapping failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_if_mapping failed.\n");
 		return false;
 	}
 
 	/* create memory partition */
 	if (infra_create_mem_partition() == false) {
-		printf("setup_chip: infra_create_mem_partition failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_mem_partition failed.\n");
 		return false;
 	}
 
 	/* create statistics */
 	if (infra_create_statistics() == false) {
-		printf("setup_chip: infra_create_statistics failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_statistics failed.\n");
 		return false;
 	}
 
 	/* configure protocol decode */
 	if (infra_configure_protocol_decode() == false) {
-		printf("setup_chip: infra_configure_protocol_decode failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_configure_protocol_decode failed.\n");
+		return false;
+	}
+
+	/* create index pools */
+	if (infra_create_index_pools() == false) {
+		write_log(LOG_CRIT, "setup_chip: infra_create_index_pools failed.\n");
+		return false;
+	}
+
+	/* create index pools */
+	if (infra_create_timers() == false) {
+		write_log(LOG_CRIT, "setup_chip: infra_create_timers failed.\n");
 		return false;
 	}
 
 	return true;
 }
+
 
 /**************************************************************************//**
  * \brief       Initialize all statistics counter to be zero
@@ -509,33 +636,56 @@ bool infra_created(void)
 bool infra_initialize_statistics(void)
 {
 	EZstatus ret_val;
+	EZapiStat_LongCounterConfig long_counter_config;
 	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+
+	long_counter_config.pasCounters = malloc(sizeof(EZapiStat_LongCounter));
+	if (long_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_LongCounter malloc failed.\n");
+		return false;
+	}
+	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
+	long_counter_config.uiPartition = 1;
+	long_counter_config.bRange = true;
+	long_counter_config.uiStartCounter = 0;
+	long_counter_config.uiNumCounters = (36*1024*1024);
+	long_counter_config.pasCounters[0].uiValue = 0;
+	long_counter_config.pasCounters[0].uiValueMSB = 0;
+	long_counter_config.pasCounters[0].bEnableThresholdMsg = false;
+	long_counter_config.pasCounters[0].uiThreshold = 58;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
+	free(long_counter_config.pasCounters);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.\n");
+		return false;
+	}
 
 	/* Set posted statistics values to be 0 */
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
 	posted_counter_config.pasCounters = malloc(sizeof(EZapiStat_PostedCounter));
-	if(!posted_counter_config.pasCounters) {
-		printf("infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.\n");
+	if (posted_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.\n");
 		return false;
 	}
 	memset(posted_counter_config.pasCounters, 0, sizeof(EZapiStat_PostedCounter));
 	posted_counter_config.uiPartition = 0;
 	posted_counter_config.bRange = true;
 	posted_counter_config.uiStartCounter = 0;
-	posted_counter_config.uiNumCounters = INFRA_STATS_POSTED_NUM;
+	posted_counter_config.uiNumCounters = (7680*1024);
 	posted_counter_config.pasCounters[0].uiByteValue = 0;
 	posted_counter_config.pasCounters[0].uiByteValueMSB = 0;
 	posted_counter_config.pasCounters[0].uiFrameValue = 0;
 	posted_counter_config.pasCounters[0].uiFrameValueMSB = 0;
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
+	free(posted_counter_config.pasCounters);
 	if (EZrc_IS_ERROR(ret_val)) {
-		printf("EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
-		free(posted_counter_config.pasCounters);
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
 		return false;
 	}
-
-	free(posted_counter_config.pasCounters);
 
 	return true;
 }
@@ -551,25 +701,27 @@ bool infra_initialized(void)
 
 	/* Launch NW DB constructor */
 	if (nw_db_constructor() == false) {
-		printf("infra_initialized: nw_db_constructor failed.\n");
+		write_log(LOG_CRIT, "infra_initialized: nw_db_constructor failed.\n");
 		return false;
 	}
 
 	/* Launch ALVS DB constructor */
 	if (alvs_db_constructor() == false) {
-		printf("infra_initialized: alvs_db_constructor failed.\n");
+		write_log(LOG_CRIT, "infra_initialized: alvs_db_constructor failed.\n");
 		return false;
 	}
 
 	/* Load partition */
+	write_log(LOG_DEBUG, "Load partition...\n");
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		write_log(LOG_CRIT, "setup_chip: load partition failed.\n");
 		return false;
 	}
 
 	/* Initialize statistics counters */
 	if (infra_initialize_statistics() == false) {
-		printf("setup_chip: initialize_statistics failed.\n");
+		write_log(LOG_CRIT, "setup_chip: initialize_statistics failed.\n");
 		return false;
 	}
 
@@ -746,6 +898,10 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	} else {
 		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
 	}
+	if (params->updated_from_dp == true) {
+		hash_mem_mng_params.uiResultIndexPool = params->result_pool_id;
+		hash_mem_mng_params.uiSigIndexPool = params->sig_pool_id;
+	}
 	hash_mem_mng_params.uiMainTableSpaceIndex = index_of(search_mem_heap);
 	hash_mem_mng_params.uiSigSpaceIndex = index_of(search_mem_heap);
 	hash_mem_mng_params.uiResSpaceIndex = index_of(search_mem_heap);
@@ -856,6 +1012,39 @@ bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size, void *res
 }
 
 /**************************************************************************//**
+ * \brief       Modify an entry in a data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
+{
+	EZstatus ez_ret_val;
+	EZapiEntry entry;
+
+	/* Set entry with key and result to add */
+	memset(&entry, 0, sizeof(entry));
+	entry.uiKeySize = key_size;
+	entry.pucKey = key;
+	entry.uiResultSize = result_size;
+	entry.pucResult = result;
+
+	/* Add the entry */
+	ez_ret_val = EZapiStruct_UpdateEntry(struct_id, NULL, &entry, NULL);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
  * \brief       Delete an entry from a data structure
  *
  * \param[in]   struct_id       - structure id of the search structure
@@ -876,6 +1065,20 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 
 	/* Delete the entry */
 	ez_ret_val = EZapiStruct_DeleteEntry(struct_id, NULL, &entry, NULL);
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool infra_delete_all_entries(uint32_t struct_id)
+{
+	EZstatus ez_ret_val;
+
+	/* Delete all entries */
+	ez_ret_val = EZapiStruct_DeleteAllEntries(struct_id, NULL, NULL);
 
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
@@ -909,7 +1112,7 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	       &my_mac->ether_addr_octet[2],  &my_mac->ether_addr_octet[3],
 	       &my_mac->ether_addr_octet[4],  &my_mac->ether_addr_octet[5]);
 
-	if(fscanf_res != ETH_ALEN) {
+	if (fscanf_res != ETH_ALEN) {
 		fclose(fd);
 		return false;
 	}
@@ -932,18 +1135,21 @@ bool infra_enable_agt(void)
 	/* Create rpc server for given port */
 	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
 	if (host_server == NULL) {
+		write_log(LOG_CRIT, "Can't create server for AGT\n");
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagt_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		write_log(LOG_CRIT, "Can't register function for AGT\n");
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		write_log(LOG_CRIT, "Can't register function for AGTcpMAIN\n");
 		return false;
 	}
 
@@ -951,6 +1157,7 @@ bool infra_enable_agt(void)
 	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
 			      (EZosTask_Spawn_FuncPtr)EZagtRPC_ServerRun, host_server);
 	if (task == EZosTask_INVALID_TASK) {
+		write_log(LOG_CRIT, "Can't spawn AGT\n");
 		return false;
 	}
 

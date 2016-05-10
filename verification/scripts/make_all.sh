@@ -178,7 +178,7 @@ function create_log_folder()
     wa_path="logs/"
     test -d $wa_path
     if [ $? -ne 0 ]; then
-        echo "Creatin $wa_path folder"
+        echo "Creating $wa_path folder"
         mkdir $wa_path
     fi
 }

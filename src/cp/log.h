@@ -54,8 +54,8 @@
  */
 #ifndef NDEBUG
 #define write_log(priority, s, ...) \
-   syslog(LOG_MAKEPRI(LOG_USER, priority), \
-			s " [FILE: %s:%d FUNC: %s]", ##__VA_ARGS__,__FILE__, __LINE__, __func__)
+	syslog(LOG_MAKEPRI(LOG_USER, priority), \
+	       s " [FILE: %s:%d FUNC: %s]", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
  #else
 #define write_log(priority, s, ...) \
 	syslog(LOG_MAKEPRI(LOG_USER, priority),  s, ##__VA_ARGS__)

@@ -32,36 +32,77 @@
 #ifndef DEFS_H_
 #define DEFS_H_
 
-#include <stdint.h>
+#include "user_defs.h"
+
+union temp {
+	int x;
+	int y;
+};
 
 #define SYSLOG_SERVER_IP			"169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR		{0x00,0x02,0xc9,0x42,0x42,0x43}
 
-/* Data MSIDs */
-#define HALF_CLUSTER_DATA_MSID        0x2
-#define X1_CLUSTER_DATA_MSID          0x4
-#define X2_CLUSTER_DATA_MSID          0x6
-#define X4_CLUSTER_DATA_MSID          0x8
-#define X16_CLUSTER_DATA_MSID         0xa
-#define ALL_CLUSTER_DATA_MSID         0xc
-#define EMEM_DATA_NO_ECC_MSID         0x0
-#define EMEM_DATA_IN_BAND_MSID        0x1
-#define EMEM_DATA_OUT_OF_BAND_MSID    0x2
+#define ALVS_SIZE_OF_SCHED_BUCKET   256
 
-/* Statistics MSIDs */
-#define EMEM_STATISTICS_POSTED_MSID   0x3
+#define ALVS_CONN_MAX_ENTRIES       (8*1024*1024)    /* TODO - need to be 32M when using release 2.1 */
+#define ALVS_SERVICES_MAX_ENTRIES   256
+#define ALVS_SCHED_MAX_ENTRIES      (ALVS_SERVICES_MAX_ENTRIES * ALVS_SIZE_OF_SCHED_BUCKET)
+#define ALVS_SERVERS_MAX_ENTRIES    (ALVS_SERVICES_MAX_ENTRIES * 1024)
 
-/* Search MSIDs */
-#define EMEM_SEARCH_MSID              0x4
+enum alvs_service_posted_stats_offsets {
+	ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET       = 0,
+	ALVS_SERVICE_STATS_OUT_PKTS_BYTES_OFFSET      = 1,
+	ALVS_SERVICE_STATS_CONN_SCHED_OFFSET          = 2,
+	ALVS_NUM_OF_SERVICE_STATS
+};
+
+enum alvs_server_posted_stats_offsets {
+	ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET        = 0,
+	ALVS_SERVER_STATS_OUT_PKTS_BYTES_OFFSET       = 1,
+	ALVS_SERVER_STATS_CONN_SCHED_REFCNT_OFFSET    = 2,
+	ALVS_SERVER_STATS_INACTIVE_ACTIVE_CONN_OFFSET = 3,
+	ALVS_NUM_OF_SERVER_STATS
+};
+
+enum alvs_if_on_demand_stats_offsets {
+	ALVS_NUM_OF_IF_STATS = 256
+};
+
+enum alvs_conn_on_demand_stats_offsets {
+	ALVS_NUM_OF_CONN_STATS = 1
+};
+
+/* On demand Statistics */
+#define EMEM_CONN_STATS_ON_DEMAND_MSID   USER_ON_DEMAND_STATS_MSID
+#define EMEM_CONN_STATS_ON_DEMAND_OFFSET 0x0
+#define EMEM_IF_STATS_ON_DEMAND_MSID     USER_ON_DEMAND_STATS_MSID
+#define EMEM_IF_STATS_ON_DEMAND_OFFSET   (EMEM_CONN_STATS_ON_DEMAND_OFFSET + ALVS_CONN_MAX_ENTRIES * ALVS_NUM_OF_CONN_STATS * 4)
+
+/* Posted Statistics */
+#define EMEM_SERVICE_STATS_POSTED_MSID   USER_POSTED_STATS_MSID
+#define EMEM_SERVICE_STATS_POSTED_OFFSET 0x0
+#define EMEM_SERVER_STATS_POSTED_MSID    USER_POSTED_STATS_MSID
+#define EMEM_SERVER_STATS_POSTED_OFFSET  (EMEM_CONN_STATS_ON_DEMAND_OFFSET + ALVS_CONN_MAX_ENTRIES * ALVS_NUM_OF_CONN_STATS * 8)
+
+#define EMEM_SPINLOCK_MSID            USER_EMEM_OUT_OF_BAND_MSID
+#define EMEM_SPINLOCK_OFFSET          0x0
+
+#define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
+#define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
+#define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID
+>>>>>>> Commenting old classification DB
 
 enum struct_id {
-	STRUCT_ID_NW_INTERFACES            = 0,
-	STRUCT_ID_NW_LAG                   = 1,
-	STRUCT_ID_ALVS_CONNECTIONS         = 2,
-	STRUCT_ID_ALVS_SERVICES            = 3,
-	STRUCT_ID_ALVS_SERVERS             = 4,
-	STRUCT_ID_NW_FIB                   = 5,
-	STRUCT_ID_NW_ARP                   = 6,
+	STRUCT_ID_NW_INTERFACES                = 0,
+	STRUCT_ID_NW_LAG                       = 1,
+	STRUCT_ID_ALVS_CONN_CLASSIFICATION     = 2,
+	STRUCT_ID_ALVS_CONN_INFO               = 3,
+	STRUCT_ID_ALVS_SERVICE_CLASSIFICATION  = 4,
+	STRUCT_ID_ALVS_SERVICE_INFO            = 5,
+	STRUCT_ID_ALVS_SCHED_INFO              = 6,
+	STRUCT_ID_ALVS_SERVER_INFO             = 7,
+	STRUCT_ID_NW_FIB                       = 8,
+	STRUCT_ID_NW_ARP                       = 9,
 	NUM_OF_STRUCT_IDS
 };
 

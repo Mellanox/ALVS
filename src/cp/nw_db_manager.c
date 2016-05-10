@@ -49,6 +49,7 @@
 #include <netlink/route/route.h>
 
 /* Project includes */
+#include "log.h"
 #include "defs.h"
 #include "nw_search_defs.h"
 #include "nw_db_manager.h"
@@ -68,13 +69,14 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key,
 char *addr_to_str(struct nl_addr *addr);
 void add_entry_to_arp_table(struct rtnl_neigh *neighbor);
 void remove_entry_from_arp_table(struct rtnl_neigh *neighbor);
+bool valid_neighbor(struct rtnl_neigh *neighbor);
 
 /* Globals Definition */
 struct nl_cache_mngr *network_cache_mngr;
-bool is_nw_db_manager_cancel_thread;
+bool *nw_db_manager_cancel_application_flag;
 
 #define NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE \
-	(NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP | NUD_NONE)
+	(NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP)
 
 
 /******************************************************************************
@@ -82,25 +84,16 @@ bool is_nw_db_manager_cancel_thread;
  *
  * \return	  void
  */
-void nw_db_manager_main(void)
+void nw_db_manager_main(bool *cancel_application_flag)
 {
-	printf("nw_db_manager_init...\n");
+	nw_db_manager_cancel_application_flag = cancel_application_flag;
+	write_log(LOG_DEBUG, "nw_db_manager_init...\n");
 	nw_db_manager_init();
-	printf("nw_db_manager_table_init...\n");
+	write_log(LOG_DEBUG, "nw_db_manager_table_init...\n");
 	nw_db_manager_table_init();
-	printf("nw_db_manager_poll...\n");
+	write_log(LOG_DEBUG, "nw_db_manager_poll...\n");
 	nw_db_manager_poll();
 	nw_db_manager_delete();
-}
-
-/******************************************************************************
- * \brief	  Signals the network thread to stop and exit.
- *
- * \return	  void
- */
-void nw_db_manager_set_cancel_thread(void)
-{
-	is_nw_db_manager_cancel_thread = true;
 }
 
 /******************************************************************************
@@ -119,8 +112,6 @@ void nw_db_manager_init(void)
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
-	is_nw_db_manager_cancel_thread = false;
-
 	/* Allocate cache manager */
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
 }
@@ -132,7 +123,7 @@ void nw_db_manager_init(void)
  */
 void nw_db_manager_delete(void)
 {
-	printf("delete cache manager\n");
+	write_log(LOG_DEBUG, "Delete NW DB manager\n");
 	if (network_cache_mngr)
 		nl_cache_mngr_free(network_cache_mngr);
 }
@@ -158,7 +149,7 @@ void nw_db_manager_table_init(void)
  */
 void nw_db_manager_poll(void)
 {
-	while (!is_nw_db_manager_cancel_thread) {
+	while (!(*nw_db_manager_cancel_application_flag)) {
 		/* Get waiting updates received since previous cache read */
 		nl_cache_mngr_data_ready(network_cache_mngr);
 		/* Poll on cache updates */
@@ -176,24 +167,33 @@ void nw_db_manager_if_table_init(void)
 	struct nw_if_key if_key;
 	struct nw_if_result if_result;
 	uint32_t ind;
+	struct ezdp_sum_addr stats_addr;
 
 	if (infra_get_my_mac(&if_result.mac_address) == false) {
-		printf("nw_db_manager_if_table_init: Retrieving my MAC failed.\n");
+		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Retrieving my MAC failed.\n");
 		nw_db_manager_exit_with_error();
 	}
 
-	if_key.logical_id = INFRA_BASE_LOGICAL_ID + INFRA_NW_IF_NUM;
-	if_result.path_type = DP_PATH_SEND_TO_NW_NA;
+	if_key.logical_id = USER_BASE_LOGICAL_ID + USER_NW_IF_NUM;
+	if_result.path_type = DP_PATH_FROM_HOST_PATH;
+	stats_addr.mem_type = EZDP_EXTERNAL_MS;
+	stats_addr.msid = USER_ON_DEMAND_STATS_MSID;
+	stats_addr.element_index = (EMEM_IF_STATS_ON_DEMAND_OFFSET >> 2) + if_key.logical_id * ALVS_NUM_OF_IF_STATS;
+	if_result.nw_stats_base = stats_addr.raw_data;
+	if_result.output_channel = 24 | (1 << 7);
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		printf("nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
+		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
 		nw_db_manager_exit_with_error();
 	}
 
-	if_result.path_type = DP_PATH_SEND_TO_HOST_NA;
-	for (ind = 0; ind < INFRA_NW_IF_NUM; ind++) {
-		if_key.logical_id = INFRA_BASE_LOGICAL_ID + ind;
+	if_result.path_type = DP_PATH_FROM_NW_PATH;
+	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
+		if_key.logical_id = USER_BASE_LOGICAL_ID + ind;
+		stats_addr.element_index = (EMEM_IF_STATS_ON_DEMAND_OFFSET >> 2) + if_key.logical_id * ALVS_NUM_OF_IF_STATS;
+		if_result.nw_stats_base = stats_addr.raw_data;
+		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-			printf("nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);
+			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);
 			nw_db_manager_exit_with_error();
 		}
 	}
@@ -216,7 +216,7 @@ void nw_db_manager_arp_table_init(void)
 	/* Allocate neighbor (ARP) cache */
 	ret = nl_cache_mngr_add(network_cache_mngr, "route/neigh", &nw_db_manager_arp_cb, NULL, &neighbor_cache);
 	if (ret < 0) {
-		printf("Unable to add cache route/neigh: %s", nl_geterror(ret));
+		write_log(LOG_CRIT, "Unable to add cache route/neigh: %s", nl_geterror(ret));
 		nw_db_manager_exit_with_error();
 	}
 	/* Take only IPv4 entries.
@@ -228,7 +228,7 @@ void nw_db_manager_arp_table_init(void)
 	/* Iterate on neighbor cache */
 	neighbor = (struct rtnl_neigh *)nl_cache_get_first(filtered_neighbor_cache);
 	for (i = 0; neighbor != NULL; i++) {
-		if (!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)) {
+		if (valid_neighbor(neighbor)) {
 			/* Add neighbor to table */
 			add_entry_to_arp_table(neighbor);
 		}
@@ -252,20 +252,18 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 	if (rtnl_neigh_get_family(neighbor) == AF_INET) {
 		switch (action) {
 		case NL_ACT_NEW:
-			if (!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)) {
+			if (valid_neighbor(neighbor)) {
 				add_entry_to_arp_table(neighbor);
 			}
 			break;
 		case NL_ACT_DEL:
-			if (!(rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)) {
-				remove_entry_from_arp_table(neighbor);
-			}
+			remove_entry_from_arp_table(neighbor);
 			break;
 		case NL_ACT_CHANGE:
-			if (rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE) {
-				remove_entry_from_arp_table(neighbor);
-			} else {
+			if (valid_neighbor(neighbor)) {
 				add_entry_to_arp_table(neighbor);
+			} else {
+				remove_entry_from_arp_table(neighbor);
 			}
 			break;
 		}
@@ -273,13 +271,13 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int act
 	} else {
 		switch (action) {
 		case NL_ACT_NEW:
-			printf("info: ARP entry from address family %d was added. Address = %s\n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			write_log(LOG_NOTICE, "info: ARP entry from address family %d was not added. Address = %s\n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
 			break;
 		case NL_ACT_DEL:
-			printf("info: ARP entry from address family %d was deleted. Address = %s \n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			write_log(LOG_NOTICE, "info: ARP entry from address family %d was not deleted. Address = %s\n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
 			break;
 		case NL_ACT_CHANGE:
-			printf("info: ARP entry from address family %d has changed. Address = %s \n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			write_log(LOG_NOTICE, "info: ARP entry from address family %d has not changed. Address = %s\n", rtnl_neigh_get_family(neighbor), addr_to_str(rtnl_neigh_get_dst(neighbor)));
 			break;
 		}
 	}
@@ -298,7 +296,7 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, 
 	if (result) {
 		memcpy(result->dest_mac_addr.ether_addr_octet, nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)), 6);
 
-		result->base_logical_id = INFRA_BASE_LOGICAL_ID;
+		result->base_logical_id = USER_BASE_LOGICAL_ID;
 	}
 }
 
@@ -331,10 +329,10 @@ void add_entry_to_arp_table(struct rtnl_neigh *neighbor)
 	struct nw_arp_result result;
 	struct nw_arp_key key;
 
-	printf("Add neighbor to table    IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
+	write_log(LOG_DEBUG, "Add neighbor to table    IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 	neighbor_to_arp_entry(neighbor, &key, &result);
 	if (!infra_add_entry(STRUCT_ID_NW_ARP, &key, sizeof(key), &result, sizeof(result))) {
-		printf("Error - cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x\n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
+		write_log(LOG_ERR, "Cannot add entry to ARP table key= 0x%X08 result= %02x:%02x:%02x:%02x:%02x:%02x\n", key.real_server_address,  result.dest_mac_addr.ether_addr_octet[0], result.dest_mac_addr.ether_addr_octet[1], result.dest_mac_addr.ether_addr_octet[2], result.dest_mac_addr.ether_addr_octet[3], result.dest_mac_addr.ether_addr_octet[4], result.dest_mac_addr.ether_addr_octet[5]);
 		nw_db_manager_exit_with_error();
 	}
 }
@@ -350,14 +348,19 @@ void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 {
 	struct nw_arp_key key;
 
-	printf("Delete neighbor from table IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
+	write_log(LOG_DEBUG, "Delete neighbor from table IP = %s MAC = %s\n", addr_to_str(rtnl_neigh_get_dst(neighbor)), addr_to_str(rtnl_neigh_get_lladdr(neighbor)));
 	neighbor_to_arp_entry(neighbor, &key, NULL);
 	if (!infra_delete_entry(STRUCT_ID_NW_ARP, &key, sizeof(key))) {
-		printf("Error - cannot remove entry from ARP table key= 0x%X08\n", key.real_server_address);
+		write_log(LOG_ERR, "Cannot remove entry from ARP table key= 0x%X08\n", key.real_server_address);
 		nw_db_manager_exit_with_error();
 	}
 }
 
+bool valid_neighbor(struct rtnl_neigh *neighbor)
+{
+	return !(((rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)) || rtnl_neigh_get_state(neighbor) == NUD_NONE);
+
+}
 /******************************************************************************
  * \brief    Constructor function for all network data bases.
  *           this function is called not from the network thread but from the
@@ -370,7 +373,7 @@ bool nw_db_constructor(void)
 	struct infra_hash_params hash_params;
 	struct infra_table_params table_params;
 
-	printf("Creating ARP table.\n");
+	write_log(LOG_DEBUG, "Creating ARP table.\n");
 
 	hash_params.key_size = sizeof(struct nw_arp_key);
 	hash_params.result_size = sizeof(struct nw_arp_result);
@@ -378,11 +381,11 @@ bool nw_db_constructor(void)
 	hash_params.updated_from_dp = false;
 	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HEAP,
 			      &hash_params) == false) {
-		printf("Error - Failed creating ARP table.\n");
+		write_log(LOG_CRIT, "Error - Failed creating ARP table.\n");
 		return false;
 	}
 
-	printf("Creating interface table.\n");
+	write_log(LOG_DEBUG, "Creating interface table.\n");
 
 	table_params.key_size = sizeof(struct nw_if_key);
 	table_params.result_size = sizeof(struct nw_if_result);
@@ -390,7 +393,7 @@ bool nw_db_constructor(void)
 	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
 			       INFRA_X1_CLUSTER_SEARCH_HEAP,
 			       &table_params) == false) {
-		printf("Error - Failed creating interface table.\n");
+		write_log(LOG_CRIT, "Error - Failed creating interface table.\n");
 		return false;
 	}
 
@@ -405,6 +408,7 @@ bool nw_db_constructor(void)
  */
 void nw_db_manager_exit_with_error(void)
 {
+	*nw_db_manager_cancel_application_flag = true;
 	nw_db_manager_delete();
 	kill(getpid(), SIGTERM);
 	pthread_exit(NULL);

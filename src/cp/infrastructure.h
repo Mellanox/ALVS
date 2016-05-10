@@ -42,9 +42,6 @@
 #include <stdint.h>
 #include <net/ethernet.h>
 
-#define INFRA_NW_IF_NUM       4
-#define INFRA_BASE_LOGICAL_ID 0
-
 /*! Search memory heaps possible values. */
 enum infra_search_mem_heaps {
 	INFRA_HALF_CLUSTER_SEARCH_HEAP,
@@ -62,6 +59,8 @@ struct infra_hash_params {
 	uint32_t result_size;
 	uint32_t max_num_of_entries;
 	bool updated_from_dp;
+	uint32_t sig_pool_id;
+	uint32_t result_pool_id;
 };
 
 /*! Required parameters for table creation data structure  */
@@ -172,6 +171,20 @@ bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
 		     void *result, uint32_t result_size);
 
 /**************************************************************************//**
+ * \brief       Modify an entry in a data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size,
+			void *result, uint32_t result_size);
+
+/**************************************************************************//**
  * \brief       Delete an entry from a data structure
  *
  * \param[in]   struct_id       - structure id of the search structure
@@ -181,5 +194,14 @@ bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
  * \return      bool - success or failure
  */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
+
+/**************************************************************************//**
+ * \brief       Delete all entries from a data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ *
+ * \return      bool - success or failure
+ */
+bool infra_delete_all_entries(uint32_t struct_id);
 
 #endif /* _INFRASTRUCTURE_H_ */

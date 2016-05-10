@@ -86,5 +86,15 @@ if [ $rc -ne 0 ]; then
     exit_status=1
 fi
 
+# Run coding style test
+echo "running coding style script"
+echo "======================="
+$scripts_path"coding_style.sh"
+rc=$?
+if [ $rc -ne 0 ]; then
+    echo 'ERROR: Coding style script failed'
+    exit_status=1
+fi
+
 exit_script
 

@@ -10,7 +10,7 @@ CP_C_SRCS = $(shell ls src/cp/*.c)
 CP_OBJS = $(patsubst %.c,build/%.o,$(CP_C_SRCS)) 
 CP_C_DEPS = $(patsubst %.c,build/%.d,$(CP_C_SRCS))
 
-CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a
+CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a -ldl
 
 CP_C_FLAGS := -DALVS_LITTLE_ENDIAN
 
@@ -40,10 +40,9 @@ endif
 make_cp: $(CP_OBJS) $(USER_CP_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -lpthread -lnl-3 -lnl-route-3 -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread -lm $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(USER_CP_OBJS) $(CP_LIBS)
+	gcc -lpthread -lnl-3 -lnl-route-3 -lnl-genl-3 -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread -lm $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(USER_CP_OBJS) $(CP_LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
-
 
 build/%.o: %.c
 	@echo 'Building file: $<'

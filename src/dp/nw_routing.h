@@ -36,17 +36,39 @@
 #ifndef NW_ROUTING_H_
 #define NW_ROUTING_H_
 
-#include "nw_host.h"
-#include "nw_interface.h"
+#include "nw_defs.h"
+#include "nw_utils.h"
+#include "defs.h"
+#include "global_defs.h"
 
 /******************************************************************************
  * \brief         send frames to network ports
  * \return        void
  */
 static __always_inline
-void nw_send_frame_to_network_interface(uint32_t output_channel_id)
+void nw_send_frame_to_network(ezframe_t __cmem * frame,
+			      uint8_t __cmem * frame_base,
+			      uint32_t port_id)
 {
-	ezframe_send_to_if(&cmem.frame, output_channel_id, 0);
+	/*do hash on destination mac - for lag calculation*/
+	uint32_t hash_value = ezdp_hash(((uint32_t *)frame_base)[0],
+					((uint32_t *)frame_base)[1],
+					LOG2(NUM_OF_LAG_MEMBERS),
+					sizeof(struct ether_addr),
+					0,
+					EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
+					EZDP_HASH_PERMUTATION_0);
+
+#if 0
+	printf("LAG hash result is logical id %d.\n", port_id + hash_value);
+#endif
+	if (nw_interface_lookup(port_id + hash_value) != 0) {
+		printf("fail network interface lookup - send to interface!!\n");
+		/* add drop frame!! */
+		return;
+	}
+
+	ezframe_send_to_if(frame, cmem_nw.interface_result.output_channel, 0);
 }
 
 
@@ -55,74 +77,83 @@ void nw_send_frame_to_network_interface(uint32_t output_channel_id)
  * \return        void
  */
 static __always_inline
-void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
+void nw_arp_processing(ezframe_t __cmem * frame,
+		       uint8_t __cmem * buffer_base,
+		       in_addr_t dest_ip,
+		       uint32_t	frame_buff_size)
 {
 	 uint32_t rc;
 	 uint32_t found_result_size;
 	 struct nw_arp_result *arp_res_ptr;
 
-	 printf("do arp lookup!\n");
+#if 0
+	 printf("ARP lookup for ip 0x%x!\n", dest_ip);
+#endif
 
-	 cmem.arp_key.real_server_address = dest_ip;
+	 cmem_nw.arp_key.real_server_address = dest_ip;
 
-	 rc = ezdp_lookup_hash_entry(&shared_cmem.arp_struct_desc,
-				     (void *)&cmem.arp_key,
+	 rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
+				     (void *)&cmem_nw.arp_key,
 				     sizeof(struct nw_arp_key),
 				     (void **)&arp_res_ptr, &found_result_size,
-				     0, cmem.arp_hash_wa,
-				     sizeof(cmem.arp_hash_wa));
+				     0, cmem_wa.nw_wa.arp_hash_wa,
+				     sizeof(cmem_wa.nw_wa.arp_hash_wa));
 
-	if (rc == 0) {
-		struct ether_addr *dmac = (struct ether_addr *)frame_base;
-
-		/*perform lookup on output logical ID (calculation of output logical ID is for lag)*/
-		if (nw_interface_lookup(arp_res_ptr->base_logical_id + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK)) != 0 )
-		{
-			printf("lookup fail on output logical ID = %d!\n", arp_res_ptr->base_logical_id + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK));
-			return;
-		}
+	if (likely(rc == 0)) {
+		struct ether_addr *dmac = (struct ether_addr *)buffer_base;
 
 		/*copy dst mac*/
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-		printf ("dst mac = %02x:%02x:%02x:%02x:%02x:%02x \n",arp_res_ptr->dest_mac_addr.ether_addr_octet[0],
-								arp_res_ptr->dest_mac_addr.ether_addr_octet[1],
-								arp_res_ptr->dest_mac_addr.ether_addr_octet[2],
-								arp_res_ptr->dest_mac_addr.ether_addr_octet[3],
-								arp_res_ptr->dest_mac_addr.ether_addr_octet[4],
-								arp_res_ptr->dest_mac_addr.ether_addr_octet[5]);
+#if 0
+		printf("dst mac = %02x:%02x:%02x:%02x:%02x:%02x\n",
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[0],
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[1],
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[2],
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[3],
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[4],
+		       arp_res_ptr->dest_mac_addr.ether_addr_octet[5]);
+#endif
 		/*copy src mac*/
-		ezdp_mem_copy((uint8_t*)dmac+sizeof(struct ether_addr), cmem.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
-		printf ("src mac = %02x:%02x:%02x:%02x:%02x:%02x \n",cmem.interface_result.mac_address.ether_addr_octet[0],
-				cmem.interface_result.mac_address.ether_addr_octet[1],
-				cmem.interface_result.mac_address.ether_addr_octet[2],
-				cmem.interface_result.mac_address.ether_addr_octet[3],
-				cmem.interface_result.mac_address.ether_addr_octet[4],
-				cmem.interface_result.mac_address.ether_addr_octet[5]);
+		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
+#if 0
+		printf("src mac = %02x:%02x:%02x:%02x:%02x:%02x\n",
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[0],
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[1],
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[2],
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[3],
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[4],
+		       cmem_nw.interface_result.mac_address.ether_addr_octet[5]);
+#endif
 
 		/* Store modified segment data */
-		ezframe_store_buf(&cmem.frame,
-							   frame_base,
-							   ezframe_get_buf_len(&cmem.frame),
-							   0);
+		ezframe_store_buf(frame,
+				  buffer_base,
+			   frame_buff_size,
+			   0);
 
-		nw_send_frame_to_network_interface(cmem.interface_result.output_channel);
+		nw_send_frame_to_network(frame,
+					 buffer_base,
+					 arp_res_ptr->base_logical_id);
 	} else {
 		printf("fail arp lookup!\n");
-		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP);
-		nw_send_frame_to_host();
+		nw_interface_inc_counter(NW_PACKET_FAIL_ARP);
+		nw_host_do_route(frame, buffer_base);
 		return;
 	}
 }
 
 
 /******************************************************************************
- * \brief         peform nw route
+ * \brief         perform nw route
  * \return        void
  */
 static __always_inline
-void nw_do_route(uint8_t *frame_base, in_addr_t dest_ip)
+void nw_do_route(ezframe_t __cmem * frame,
+		 uint8_t *buffer_base,
+		 in_addr_t dest_ip,
+		 uint32_t frame_buff_size)
 {
-	nw_arp_processing(frame_base, dest_ip);
+	nw_arp_processing(frame, buffer_base, dest_ip, frame_buff_size);
 }
 
 #endif /* NW_ROUTING_H_ */

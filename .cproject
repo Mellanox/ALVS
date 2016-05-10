@@ -54,6 +54,7 @@
 									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/agt/agt-cp/include"/>
 									<listOptionValue builtIn="false" value="/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/cpe/dev/include"/>
 									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1655717909" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -112,6 +113,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.712408671" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -173,6 +175,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.22386664" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -234,6 +237,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.403586729" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -295,6 +299,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1552933147" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -356,6 +361,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1494421562" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -417,6 +423,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.356042485" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -486,6 +493,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1824248341" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -547,6 +555,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.132787132" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -608,6 +617,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/agt/agt-cp/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ezdk_base}/cpe/dev/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.508111360" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>

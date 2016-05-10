@@ -47,20 +47,19 @@
  *********************************/
 
 enum dp_path_type {
-	DP_PATH_SEND_TO_NW_NA        = 0,
-	/* Send to nw interface without application logic - short circuit */
-	DP_PATH_SEND_TO_HOST_NA      = 1,
-	/* Send to host interface without application logic - short circuit */
-	DP_PATH_SEND_TO_NW_APP       = 2,
-	/* Send to nw interface with application logic */
-	DP_PATH_SEND_TO_HOST_APP     = 3,
-	/* Send to host interface with application logic */
+	DP_PATH_FROM_NW_PATH        = 0,
+	/* Frame received on a network port */
+	DP_PATH_FROM_HOST_PATH      = 1,
+	/* Frame received on a host port */
+	DP_PATH_NOT_VALID           = 2
 };
 
 /*key*/
 struct nw_if_key {
 	uint8_t	logical_id;
 };
+
+CASSERT(sizeof(struct nw_if_key) == 1);
 
 /*result*/
 struct nw_if_result {
@@ -88,10 +87,13 @@ struct nw_if_result {
 	struct ether_addr    mac_address;
 	/*byte10*/
 	uint8_t              output_channel;
-	/*byte11-15*/
+	/*byte11*/
 	unsigned             /*reserved*/       : 8;
-	unsigned             /*reserved*/       : 32;
+	/*byte12-15*/
+	ezdp_sum_addr_t      nw_stats_base;
 };
+
+CASSERT(sizeof(struct nw_if_result) == 16);
 
 
 /*********************************
@@ -102,6 +104,8 @@ struct nw_if_result {
 struct nw_arp_key {
 	in_addr_t real_server_address;
 };
+
+CASSERT(sizeof(struct nw_arp_key) == 4);
 
 /*result*/
 struct nw_arp_result {
@@ -120,5 +124,7 @@ struct nw_arp_result {
 	/*byte2-7*/
 	struct ether_addr    dest_mac_addr;
 };
+
+CASSERT(sizeof(struct nw_arp_result) == 8);
 
 #endif /* NW_SEARCH_DEFS_H_ */

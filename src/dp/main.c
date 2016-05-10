@@ -37,179 +37,293 @@
 /* system includes */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <string.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 
 /* dp includes */
 #include <ezdp.h>
 #include <ezframe.h>
 
 /*internal includes*/
-#include "defs.h"
-#include "alvs_dp_defs.h"
-#include "cmem_defs.h"
+#include "global_defs.h"
 #include "nw_recieve.h"
+#include "alvs_aging.h"
 #include "version.h"
 
 /******************************************************************************
- * Globals
+ * Globals & defines
  *****************************************************************************/
+ezframe_t  frame __cmem_var;
+uint8_t    frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
+union      cmem_workarea cmem_wa __cmem_var;
 
-struct alvs_cmem            cmem           __cmem_var;
-struct alvs_shared_cmem     shared_cmem    __cmem_shared_var;
+#define MAX_NUM_OF_CPUS 4096
 
-extern void signal_terminate_handler(int signum);
-extern void signal_terminate_handler_gracefully_stop(int signum);
-extern void add_run_cpus(char *processors_str);
-extern bool is_child_process;
-extern uint32_t num_cpus;
-extern int32_t run_cpus[];
-extern uint32_t pids[];
 
- /******************************************************************************
- * \brief                Main packet processing function
- *
- * \note                 Receive frame
+bool      is_child_process;
+uint32_t  num_cpus;
+uint32_t  run_cpus[MAX_NUM_OF_CPUS];
+uint32_t  pids[MAX_NUM_OF_CPUS];
 
- * \return               void
- */
-void packet_processing(void) __fast_path_code;
-void packet_processing(void)
-{
-	int32_t logical_id;
-	uint8_t *my_mac;
+/****** macros ***********/
+#define howmany(x, y) (((x)+((y)-1))/(y))
+#define bitsperlong (8 * sizeof(unsigned long))
+#define longsperbits(n) howmany(n, bitsperlong)
 
-	/*before packet processing task save my mac address to shared cmem
-	 * TODO - This code is for my MAC performance optimization for POC.
-	 *        In future my MAC will not be stored in shared CMEM. but will be retrieved from interface lookup result.
-	 *        For POC logical ID 0 will always be configured.
-	 */
-	my_mac = nw_interface_get_mac_address(0);
-	if (my_mac != NULL) {
-		ezdp_mem_copy(shared_cmem.my_mac.ether_addr_octet, my_mac, sizeof(struct ether_addr));
-	} else {
-		printf("Error! fail to found my mac address in interface table!\n");
-		exit(0);
-	}
 
-	while (true) {
-		/* === Receive Frame === */
-		logical_id = ezframe_receive(&cmem.frame, EZFRAME_HANDLE_FRAME_CANCEL);
-
-		/* ===  received cancel frame === */
-		if (unlikely(logical_id == -1)) {
-			exit(0);
-		}
-
-		/* === Check validity of received frame === */
-		if (ezframe_valid(&cmem.frame) != 0) {
-			printf("Frame is invalid - send to host!\n");
-			nw_interface_update_statistic_counter(logical_id, ALVS_EZFRAME_VALIDATION_FAIL);
-			nw_send_frame_to_host();
-			continue;
-		}
-
-		nw_recieve_and_parse_frame(logical_id);
-	} /* while (true) */
-}
+/****** structures ***********/
+struct bitmask {
+	unsigned int size;
+	unsigned long *maskp;
+};
 
 /******************************************************************************
- * \brief         Initialize shared CMEM constructor
- *
- * \return        true/false (success / failed )
+ * Prototypes
+ *****************************************************************************/
+void signal_terminate_handler(int signum);
+void signal_terminate_handler_gracefully_stop(int signum);
+void set_gracefull_stop(void);
+void signal_terminate_handler_gracefully_stop(int signum __unused);
+void signal_terminate_handler(int signum);
+struct bitmask *bitmask_alloc(unsigned int n);
+int bitmask_isbitset(const struct bitmask *bmp, unsigned int i);
+struct bitmask *bitmask_setbit(struct bitmask *bmp, unsigned int i);
+void add_run_cpus(const char *processors_str);
+struct bitmask *bitmask_clearall(struct bitmask *bmp);
+bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __unused);
+
+/************************************************************************
+ * \brief      set_gracefull_stop
+ * \return     void
  */
-bool init_shared_cmem(void);
-bool init_shared_cmem(void)
+void  set_gracefull_stop(void)
 {
-	uint32_t  result;
-
-	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
-
-	/*Init interfaces DB*/
-	result = ezdp_init_table_struct_desc(STRUCT_ID_NW_INTERFACES,
-					     &shared_cmem.interface_struct_desc,
-					     cmem.table_work_area,
-					     sizeof(cmem.table_work_area));
-	if (result != 0) {
-		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_NW_INTERFACES, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	result = ezdp_validate_table_struct_desc(&shared_cmem.interface_struct_desc,
-						 sizeof(struct nw_if_result));
-	if (result != 0) {
-		printf("ezdp_validate_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_NW_INTERFACES, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	/*Init services DB*/
-	result = ezdp_init_hash_struct_desc(STRUCT_ID_ALVS_SERVICES,
-					    &shared_cmem.services_struct_desc,
-					    cmem.service_hash_wa,
-					    sizeof(cmem.service_hash_wa));
-	if (result != 0) {
-		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_ALVS_SERVICES, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	result = ezdp_validate_hash_struct_desc(&shared_cmem.services_struct_desc,
-						true,
-						sizeof(struct alvs_service_key),
-						sizeof(struct alvs_service_result),
-						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key)));
-	if (result != 0) {
-		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_ALVS_SERVICES, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	/*Init arp DB*/
-	result = ezdp_init_hash_struct_desc(STRUCT_ID_NW_ARP,
-					    &shared_cmem.arp_struct_desc,
-					    cmem.arp_hash_wa,
-					    sizeof(cmem.arp_hash_wa));
-	if (result != 0) {
-		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	result = ezdp_validate_hash_struct_desc(&shared_cmem.arp_struct_desc,
-						true,
-						sizeof(struct nw_arp_key),
-						sizeof(struct nw_arp_result),
-						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key)));
-	if (result != 0) {
-		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	/*init stats addresses*/
-	shared_cmem.nw_interface_stats_base_address.mem_type = EZDP_EXTERNAL_MS;
-	shared_cmem.nw_interface_stats_base_address.msid = EMEM_STATISTICS_POSTED_MSID;
-	shared_cmem.nw_interface_stats_base_address.element_index = 0;
-
-	return true;
+	ezframe_set_cancel_signal();
 }
 
+/************************************************************************
+ * \brief      signal terminate handler
+ *
+ * \note       assumes num_cpus==0 if and only if child process
+ *
+ * \return     void
+ */
+void signal_terminate_handler_gracefully_stop(int signum __unused)
+{
+	if ((is_child_process == true) || (num_cpus == 1)) {
+		set_gracefull_stop();
+	} else {
+		killpg(0, SIGTERM);
+		exit(0);
+	}
+}
+
+/************************************************************************
+ * \brief      signal terminate handler
+ *
+ * \note       assumes num_cpus==0 if and only if child process
+ *
+ * \return     void
+ */
+void signal_terminate_handler(int signum)
+{
+	if (signum != SIGTERM) {
+		/* kill all other processes */
+		killpg(0, SIGTERM);
+	}
+	abort();
+}
+
+
+/************************************************************************/
+/*                           parse run_cpus                             */
+/************************************************************************/
+
+/****** functions ***********/
+
+struct bitmask *bitmask_alloc(unsigned int n)
+{
+	struct bitmask *bmp;
+
+	bmp = malloc(sizeof(*bmp));
+	if (!bmp)
+		return 0;
+	bmp->size = n;
+	bmp->maskp = calloc(longsperbits(n), sizeof(unsigned long));
+	if (!bmp->maskp) {
+		free(bmp);
+		return 0;
+	}
+	return bmp;
+}
+
+static unsigned int _getbit(const struct bitmask *bmp, unsigned int n)
+{
+	if (n < bmp->size)
+		return (bmp->maskp[n/bitsperlong] >> (n % bitsperlong)) & 1;
+	else
+		return 0;
+}
+
+static void _setbit(struct bitmask *bmp, unsigned int n, unsigned int v)
+{
+	if (n < bmp->size) {
+		if (v)
+			bmp->maskp[n/bitsperlong] |= 1UL << (n % bitsperlong);
+		else
+			bmp->maskp[n/bitsperlong] &= ~(1UL << (n % bitsperlong));
+	}
+}
+
+int bitmask_isbitset(const struct bitmask *bmp, unsigned int i)
+{
+	return _getbit(bmp, i);
+}
+
+struct bitmask *bitmask_clearall(struct bitmask *bmp)
+{
+	unsigned int i;
+
+	for (i = 0; i < bmp->size; i++)
+		_setbit(bmp, i, 0);
+	return bmp;
+}
+
+struct bitmask *bitmask_setbit(struct bitmask *bmp, unsigned int i)
+{
+	_setbit(bmp, i, 1);
+	return bmp;
+}
+
+
+static const char *nexttoken(const char *q,  int sep)
+{
+	if (q)
+		q = strchr(q, sep);
+	if (q)
+		q++;
+	return q;
+}
+
+static int cstr_to_cpuset(struct bitmask *mask, const char *str)
+{
+	const char *p, *q = str;
+	int rc;
+
+	num_cpus = 0;
+	bitmask_clearall(mask);
+
+	while (p = q, q = nexttoken(q, ','), p) {
+		unsigned int a;	/* beginning of range */
+		unsigned int b;	/* end of range */
+		unsigned int s;	/* stride */
+		const char *c1, *c2;
+
+		/* get next CPU-ID or first CPU ID in the range */
+		rc = sscanf(p, "%4u", &a);
+		if (rc < 1) {
+			/* ERROR: expecting number in the string */
+			return 1;
+		}
+
+		/* init */
+		b = a;	                /* in case of no range, end of the range equal the begining */
+		s = 1;                   /* one stride */
+		c1 = nexttoken(p, '-');  /* next '-' char */
+		c2 = nexttoken(p, ',');  /* next ',' char */
+
+		/* check if the next tocken is a range */
+		if (c1 != NULL && (c2 == NULL || c1 < c2)) {
+			/* hanldle a range */
+
+			/* get the last CPU ID in the range */
+			rc = sscanf(c1, "%4u", &b);
+			if (rc < 1) {
+				/* ERROR: expecting number in the string */
+				return 1;
+			}
+
+			c1 = nexttoken(c1, ':');
+			if (c1 != NULL && (c2 == NULL || c1 < c2))
+				if (sscanf(c1, "%10u", &s) < 1)
+					return 1;
+		}
+
+		/* checker */
+		if (!(a <= b)) {
+			/* ERROR: end of the range must not be lower than the beginning of the range */
+			return 1;
+		}
+
+		/* add the range */
+		while (a <= b) {
+			if (bitmask_isbitset(mask, a) == 0) {
+				run_cpus[num_cpus] = a; /* cpu_id */
+				num_cpus++;
+			}
+			bitmask_setbit(mask, a);
+
+			a += s;
+		}
+	}
+
+	return 0;
+}
+
+/************************************************************************
+ * \brief      Updates the cores array according to the input.
+ * \details    Parses a list cpus represented by the given string,
+ *             and places in the run_cpus array.
+ *
+ * \param[in]  processors_str - the string to parse given by the user
+ *
+ *  \note:     processors_str is a comma-delimited list of separate
+ *             processors, or a range of processors, like so 0,5,7-9
+ *
+ * \return     None
+ */
+void add_run_cpus(const char *processors_str)
+{
+	struct bitmask  *new_mask;
+	uint32_t        rc;
+
+	/*
+	 * new_mask is always used for the sched_setaffinity call
+	 * On the sched_setaffinity the kernel will zero-fill its
+	 * cpumask_t if the user's mask is shorter.
+	 */
+	new_mask = bitmask_alloc(MAX_NUM_OF_CPUS);
+	if (!new_mask) {
+		printf("bitmask_alloc failed\n");
+		exit(1);
+	}
+
+	rc = cstr_to_cpuset(new_mask, processors_str);
+	if (rc != 0) {
+		free(new_mask);
+		printf("cstr_to_cpuset failed\n");
+		exit(1);
+	}
+
+	free(new_mask);
+}
 
 /******************************************************************************
  * \brief         Call back function for Initializing memory
  *
  * \return        true/false (success / failed )
  */
-bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __unused);
 bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __unused)
 {
 	switch (data_ms_type) {
+	case EZDP_CMEM_DATA:
+		return init_alvs_private_cmem();
 	case EZDP_SHARED_CMEM_DATA:
-		return init_shared_cmem();
-
+		return init_alvs_shared_cmem() & init_nw_shared_cmem();
 	default:
 		return true;
 	}
@@ -244,6 +358,39 @@ void parse_arguments(int argc, char **argv, uint32_t *num_cpus_set_p)
 }
 
 /******************************************************************************
+* \brief                Main packet processing function
+*
+* \note                 Receive frame
+
+* \return               void
+*/
+void packet_processing(void)
+{
+	int32_t port_id;
+
+	printf("starting ALVS DP application....\n");
+
+	while (true) {
+		/* === Receive Frame === */
+		port_id = ezframe_receive(&frame, EZFRAME_HANDLE_FRAME_CANCEL);
+
+		/* ===  received cancel frame === */
+		if (unlikely(port_id == -1)) {
+			printf("cancel job!!!!!\n");
+			exit(0);
+		}
+
+		if (port_id == ALVS_AGING_TIMER_LOGICAL_ID) {
+			alvs_handle_aging_event(frame.job_desc.rx_info.timer_info.event_id);
+		} else {
+			nw_recieve_and_parse_frame(&frame,
+						   frame_data,
+						   port_id);
+		}
+	} /* while (true) */
+}
+
+/******************************************************************************
 * \brief        Main function
 */
 int main(int argc, char **argv)
@@ -265,7 +412,7 @@ int main(int argc, char **argv)
 
 	is_child_process = false;
 
-	printf("Application version: %s\n",version);
+	printf("Application version: %s\n", version);
 
 	/* Parse the run-time arguments */
 	parse_arguments(argc, argv, &num_cpus_set);

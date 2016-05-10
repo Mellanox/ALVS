@@ -29,19 +29,19 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef SRC_COMMON_VERSION_H_
-#define SRC_COMMON_VERSION_H_
+#ifndef VERSION_H_
+#define VERSION_H_
 
 /*
  * P.GGMC.ZZZZ	- Version format
  * P		- Major 16 bits, fixed product number, allocated value is 17
  * GG		- Minor bits 15:8, 2 digits, GA release number 1, 2, 3..
- * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3…9
+ * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3 ... 9
  * C		- Minor bits 3:0, 1 digit, branch maintenance number (customer), reset on each GA release
  * ZZZZ		- Currently zero
  *
  */
 
-const char* version = "$Revision: 17.0100.0000 $";
+const char *version = "$Revision: 17.0100.0000 $";
 
-#endif /* SRC_COMMON_VERSION_H_ */
+#endif /* VERSION_H_ */

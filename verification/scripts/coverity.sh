@@ -78,13 +78,13 @@ function run_coverity_cp {
 	cov-analyze --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP --all --aggressiveness-level high -j 2 &>> $LOG_FILE
 
 	echo -e "\n******************************* Generating CP Coverity static error report *********\n" | tee -a $LOG_FILE
-	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS"  --functionsort | tee -a $LOG_FILE)	
+	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS" --exclude-files 'sqlite3\.c' --functionsort | tee -a $LOG_FILE)	
 	if [ "$res" == "" ]
 	then
 		echo -e "\n\n******************************* CP Coverity Result is PASS ***********************\n"
 		return 0
 	else
-		error_num=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS"  --functionsort | tee /dev/tty | grep -wc "Error:")
+		error_num=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS" --exclude-files 'sqlite3\.c'  --functionsort | tee /dev/tty | grep -wc "Error:")
 		if [ "$error_num" == "$ALVS_ACCEPTED_FP_CP" ]
 		then
 			echo -e "\nCurrently we'll accept these $ALVS_ACCEPTED_FP_CP ERRORS in CP as false positivies!!! we'll handle them in Coverity Portal later."
@@ -105,7 +105,7 @@ function run_coverity_cp {
 
 function run_coverity_dp {
 
-	ALVS_ACCEPTED_FP_DP=4
+	ALVS_ACCEPTED_FP_DP=1
 
 	echo "Creating $ALVS_COVERITY_RES_DIR_DP for DP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_DP &>> $LOG_FILE
