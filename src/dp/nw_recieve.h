@@ -27,6 +27,11 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*  Project:             NPS400 ALVS application
+*  File:                nw_recieve.h
+*  Desc:                network infrastructure file containing validation and parsing of incoming traffic.
+*
 */
 
 #ifndef NW_RECIEVE_H_
@@ -42,11 +47,12 @@ static __always_inline
 void nw_recieve_and_parse_frame(int32_t logical_id)
 {
 	uint8_t	*frame_base;
-	uint8_t *next_et;
 
 	enum dp_path_type path_type = nw_interface_get_dp_path(logical_id);
 
 	if (path_type == DP_PATH_SEND_TO_HOST_APP) {
+		printf("send frame to host - app.\n");		
+		uint8_t* next_et;
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(&cmem.frame, cmem.frame_data,
 					      NULL, 0);
@@ -62,12 +68,18 @@ void nw_recieve_and_parse_frame(int32_t logical_id)
 			return;
 		}
 
+		printf("pass decode mac!\n");
+
 		/*check if my_mac is set*/
 		if (unlikely(!cmem.mac_decode_result.control.my_mac)) {
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_MY_MAC);
 			nw_send_frame_to_host();
 			return;
 		}
+
+		printf("it's my mac!\n");
+
+		printf("number of tags = %d\n", cmem.mac_decode_result.number_of_tags);
 
 		/*skip vlan tags and check next ethertype*/
 		next_et = frame_base + sizeof(struct ether_addr) + sizeof(struct ether_addr);
@@ -99,14 +111,16 @@ void nw_recieve_and_parse_frame(int32_t logical_id)
 		}
 
 		if (ip_ptr->protocol != IPPROTO_TCP && ip_ptr->protocol != IPPROTO_UDP) {
+		printf("pass IP decode!\n");
 			nw_interface_update_statistic_counter(logical_id, ALVS_PACKET_NOT_UDP_AND_TCP);
 			nw_send_frame_to_host();
 			return;
 		}
 
+		printf("it is TCP packet!\n");
 		/*check if need to check validity of TCP/UDP */
 
-		/*frame is OK, let's start classification - TODO change from hard coded to process ID from interface */
+		/*frame is OK, let's start classification - TODO  change from hard coded to process ID from interface */
 		alvs_service_classification(frame_base, ip_ptr);
 	} else if (path_type == DP_PATH_SEND_TO_NW_APP || path_type == DP_PATH_SEND_TO_NW_NA) { /*APP NW PATH*/
 		/*currently send frame to network without any change or any other operations*/

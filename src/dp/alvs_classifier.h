@@ -27,6 +27,10 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*  Project:             NPS400 ALVS application
+*  File:                alvs_classifier.h
+*  Desc:                classification functionality for ALVS
 */
 
 #ifndef ALVS_CLASSIFIER_H_
@@ -50,6 +54,9 @@ void alvs_service_classification(uint8_t *frame_base, struct iphdr *ip_hdr)
 	 cmem.service_key.service_address = ip_hdr->daddr;
 	 cmem.service_key.service_protocol = ip_hdr->protocol;
 	 cmem.service_key.service_port = tcp_hdr->dest;
+	 printf("start service classification!\n");
+
+
 
 	 rc = ezdp_lookup_hash_entry(&shared_cmem.services_struct_desc,
 				     (void *)&cmem.service_key,
@@ -60,8 +67,10 @@ void alvs_service_classification(uint8_t *frame_base, struct iphdr *ip_hdr)
 				     sizeof(cmem.service_hash_wa));
 
 	if (rc == 0) {
+		printf("pass service classification!\n");
 		nw_do_route(frame_base, service_res_ptr->real_server_ip);
 	} else {
+		printf("fail service classification!\n");
 		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_CLASSIFICATION);
 		nw_send_frame_to_host();
 		return;

@@ -301,6 +301,8 @@ int			main( int argc, char **argv )
 	uint32_t                       num_cpus_set;
 	uint32_t                       result;
 
+	printf("in main!\n");
+
 	/* listen to the SHUTDOWN signal to handle terminate signal from the simulator */
 	signal(SIGINT,  signal_terminate_handler_gracefully_stop);
 	signal(SIGTERM, signal_terminate_handler_gracefully_stop);
@@ -314,7 +316,10 @@ int			main( int argc, char **argv )
 	/* Parse the run-time arguments */
 	parse_arguments( argc, argv, &num_cpus_set );
 
+	printf("before sync cp!\n");
+
 	result = ezdp_sync_cp();
+	printf("after sync cp!\n");
 	if(result != 0)
 	{
 		printf("ezdp_sync_cp failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
@@ -323,6 +328,7 @@ int			main( int argc, char **argv )
 
 	/* get memory section info */
 	ezdp_get_mem_section_info(&mem_info, 0);
+
 
 	/* print memory section info */
 	printf("%s\n", ezdp_mem_section_info_str(&mem_info));
@@ -335,7 +341,10 @@ int			main( int argc, char **argv )
 		exit(1);
 	}
 
+	printf("before init global!\n");
+
 	result = ezdp_init_global(0);
+	printf("after init global!\n");
 	if(result != 0)
 	{
 		printf("ezdp_init_global failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
@@ -348,13 +357,17 @@ int			main( int argc, char **argv )
 		num_cpus = 1;
 
 		/* init the application */
+		printf("before init local!\n");
 		result = ezdp_init_local( 0 , 16, init_memory, 0, 0);
+		printf("after init local!\n");
 		if( result != 0 )
 		{
 			printf("ezdp_init_local failed %d %s. Exiting... \n", result, ezdp_get_err_msg());
 			exit(1);
 		}
+		printf("before ezframe init!\n");
 		result = ezframe_init_local();
+		printf("after ezframe init!\n");
 		if ( result != 0 )
 		{
 			printf("ezframe_init_local failed. %d; %s. Exiting... \n", result, ezdp_get_err_msg());
@@ -362,6 +375,7 @@ int			main( int argc, char **argv )
 		}
 
 		/* call to packet processing function */
+		printf("call ezdp run!\n");
 		ezdp_run(&packet_processing, num_cpus);
 
 		return 0;

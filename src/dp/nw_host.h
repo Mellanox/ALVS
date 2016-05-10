@@ -27,6 +27,10 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*  Project:             NPS400 ALVS application
+*  File:                nw_host.h
+*  Desc:                network infrastructure file containing HOST functionality
 */
 
 #ifndef NW_HOST_H_

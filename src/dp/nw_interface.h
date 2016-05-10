@@ -27,6 +27,10 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*  Project:             NPS400 ALVS application
+*  File:                nw_interface.h
+*  Desc:                network infrastructure file containing interfaces functionality
 */
 
 #ifndef NW_INTERFACE_H_
@@ -88,14 +92,5 @@ void nw_interface_update_statistic_counter(uint8_t logical_id, uint32_t counter_
 	ezdp_dual_add_posted_ctr_async(temp_stat_address.raw_data, cmem.frame.job_desc.frame_desc.frame_length, 1);
 }
 
-/******************************************************************************
- * \brief         update interface stat counter
- * \return        void
- */
-static __always_inline
-uint32_t nw_interface_calc_output_channel_id(uint8_t base_output_channel)
-{
-	return base_output_channel + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK);
-}
 
 #endif /* ALVS_INTERFACE_H_ */

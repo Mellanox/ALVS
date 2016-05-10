@@ -27,6 +27,11 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                main.c
+*  Desc:                data path main. NPS Initialization & configuration.
 */
 
 /* system includes */

@@ -27,6 +27,10 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+*
+*  Project:             NPS400 ALVS application
+*  File:                nw_routing.h
+*  Desc:                network infrastructure file containing routing functionality
 */
 
 #ifndef NW_ROUTING_H_
@@ -57,6 +61,7 @@ void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
 	 uint32_t found_result_size;
 	 struct nw_arp_result *arp_res_ptr;
 
+	 printf("do arp lookup!\n");
 
 	 cmem.arp_key.real_server_address = dest_ip;
 
@@ -70,18 +75,39 @@ void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
 	if (rc == 0) {
 		struct ether_addr *dmac = (struct ether_addr *)frame_base;
 
+		/*perform lookup on output logical ID (calculation of output logical ID is for lag)*/
+		if (nw_interface_lookup(arp_res_ptr->base_logical_id + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK)) != 0 )
+		{
+			printf("lookup fail on output logical ID = %d!\n", arp_res_ptr->base_logical_id + (cmem.mac_decode_result.da_sa_hash & LAG_HASH_MASK));
+			return;
+		}
+
 		/*copy dst mac*/
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
+		printf ("dst mac = %02x:%02x:%02x:%02x:%02x:%02x \n",arp_res_ptr->dest_mac_addr.ether_addr_octet[0],
+								arp_res_ptr->dest_mac_addr.ether_addr_octet[1],
+								arp_res_ptr->dest_mac_addr.ether_addr_octet[2],
+								arp_res_ptr->dest_mac_addr.ether_addr_octet[3],
+								arp_res_ptr->dest_mac_addr.ether_addr_octet[4],
+								arp_res_ptr->dest_mac_addr.ether_addr_octet[5]);
 		/*copy src mac*/
-		ezdp_mem_copy(dmac+sizeof(struct ether_addr), shared_cmem.my_mac.ether_addr_octet, sizeof(struct ether_addr));
+		ezdp_mem_copy((uint8_t*)dmac+sizeof(struct ether_addr), cmem.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
+		printf ("src mac = %02x:%02x:%02x:%02x:%02x:%02x \n",cmem.interface_result.mac_address.ether_addr_octet[0],
+				cmem.interface_result.mac_address.ether_addr_octet[1],
+				cmem.interface_result.mac_address.ether_addr_octet[2],
+				cmem.interface_result.mac_address.ether_addr_octet[3],
+				cmem.interface_result.mac_address.ether_addr_octet[4],
+				cmem.interface_result.mac_address.ether_addr_octet[5]);
 
 		/* Store modified segment data */
 		rc = ezframe_store_buf(&cmem.frame,
 							   frame_base,
 							   ezframe_get_buf_len(&cmem.frame),
 							   0);
-		nw_send_frame_to_network_interface(nw_interface_calc_output_channel_id(arp_res_ptr->base_logical_id));
+
+		nw_send_frame_to_network_interface(cmem.interface_result.output_channel);
 	} else {
+		printf("fail arp lookup!\n");
 		nw_interface_update_statistic_counter(cmem.frame.job_desc.frame_desc.logical_id, ALVS_PACKET_FAIL_ARP);
 		nw_send_frame_to_host();
 		return;

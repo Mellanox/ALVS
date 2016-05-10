@@ -86,8 +86,10 @@ struct nw_if_result {
 	uint16_t             default_vlan;
 	/*byte4-9*/
 	struct ether_addr    mac_address;
-	/*byte10-15*/
-	unsigned             /*reserved*/       : 16;
+	/*byte10*/
+	uint8_t              output_channel;
+	/*byte11-15*/
+	unsigned             /*reserved*/       : 8;
 	unsigned             /*reserved*/       : 32;
 };
 
