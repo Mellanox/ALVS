@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 		rc = getopt_long(argc, argv, "", long_options, NULL);
 	} while (rc != -1);
 
-#ifndef DAEMON_DISABLE
+#ifdef EZ_SIM
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/

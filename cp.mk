@@ -22,6 +22,7 @@ endif
 
 # set bin path/name
 ifdef SIM
+    CP_C_FLAGS += -DEZ_SIM
     ifdef DEBUG
         CP_BIN := bin/alvs_daemon_sim_debug
     else
