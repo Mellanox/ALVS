@@ -19,12 +19,25 @@ DP_C_FLAGS += -DNDEBUG -O2
 endif
 
 ifdef SIM
-DP_BIN := bin/alvs_dp_sim
 DP_C_FLAGS += -DEZ_SIM
 DP_LIBS := -l:ezdp_linux_arc_sim.a -l:ezframe_linux_arc_sim.a -l:dpi_linux_arc_sim.a -l:sft_linux_arc_sim.a
 else
-DP_BIN := bin/alvs_dp
 DP_LIBS := -l:ezdp_linux_arc.a -l:ezframe_linux_arc.a -l:dpi_linux_arc.a -l:sft_linux_arc.a
+endif
+
+# set bin path/name
+ifdef SIM
+    ifdef DEBUG
+        DP_BIN := bin/alvs_dp_sim_debug
+    else
+        DP_BIN := bin/alvs_dp_sim
+    endif
+else
+    ifdef DEBUG
+        DP_BIN := bin/alvs_dp_debug
+    else
+        DP_BIN := bin/alvs_dp
+    endif
 endif
 
 # Tool invocations
