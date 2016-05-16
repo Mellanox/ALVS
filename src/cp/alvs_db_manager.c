@@ -96,6 +96,8 @@ void alvs_db_manager_init(void)
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+
+	is_alvs_db_manager_cancel_thread = false;
 }
 
 /******************************************************************************
@@ -105,6 +107,7 @@ void alvs_db_manager_init(void)
  */
 void alvs_db_manager_delete(void)
 {
+	printf("delete ALVS DB manager \n");
 }
 
 /******************************************************************************
@@ -173,6 +176,6 @@ bool alvs_db_constructor(void)
 void alvs_db_manager_exit_with_error(void)
 {
 	alvs_db_manager_delete();
-	raise(SIGTERM);
+	kill(getpid(), SIGTERM);
 	pthread_exit(NULL);
 }

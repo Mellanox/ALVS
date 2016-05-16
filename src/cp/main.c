@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 		rc = getopt_long(argc, argv, "", long_options, NULL);
 	} while (rc != -1);
 
-#ifdef EZ_SIM
+#ifndef EZ_SIM
 	/************************************************/
 	/* Run in the background as a daemon            */
 	/************************************************/
@@ -365,7 +365,7 @@ void signal_terminate_handler(int signum)
 				is_object_allocated[object_type_alvs_db_manager] = false;
 				alvs_db_manager_exit_with_error();
 			} else {
-				raise(SIGTERM);
+				kill(getpid(), SIGTERM);
 			}
 		}
 	} else {
@@ -386,14 +386,14 @@ void main_thread_graceful_stop(void)
 		printf("Shut down thread nw_db_manager.\n");
 		nw_db_manager_set_cancel_thread();
 		is_object_allocated[object_type_nw_db_manager] = false;
+		pthread_join(nw_db_manager_thread, NULL);
 	}
 	if (is_object_allocated[object_type_alvs_db_manager]) {
 		printf("Shut down thread alvs_db_manager.\n");
 		alvs_db_manager_set_cancel_thread();
 		is_object_allocated[object_type_alvs_db_manager] = false;
+		pthread_join(alvs_db_manager_thread, NULL);
 	}
-	pthread_join(nw_db_manager_thread, NULL);
-	pthread_join(alvs_db_manager_thread, NULL);
 
 	if (is_object_allocated[object_type_agt]) {
 		is_object_allocated[object_type_agt] = false;

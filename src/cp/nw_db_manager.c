@@ -119,6 +119,8 @@ void nw_db_manager_init(void)
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
+	is_nw_db_manager_cancel_thread = false;
+
 	/* Allocate cache manager */
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
 }
@@ -404,6 +406,6 @@ bool nw_db_constructor(void)
 void nw_db_manager_exit_with_error(void)
 {
 	nw_db_manager_delete();
-	raise(SIGTERM);
+	kill(getpid(), SIGTERM);
 	pthread_exit(NULL);
 }
