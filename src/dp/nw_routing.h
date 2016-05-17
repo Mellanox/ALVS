@@ -100,7 +100,7 @@ void nw_arp_processing(uint8_t *frame_base, in_addr_t dest_ip)
 				cmem.interface_result.mac_address.ether_addr_octet[5]);
 
 		/* Store modified segment data */
-		rc = ezframe_store_buf(&cmem.frame,
+		ezframe_store_buf(&cmem.frame,
 							   frame_base,
 							   ezframe_get_buf_len(&cmem.frame),
 							   0);

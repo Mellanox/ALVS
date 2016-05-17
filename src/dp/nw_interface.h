@@ -60,7 +60,7 @@ enum dp_path_type nw_interface_get_dp_path(int32_t logical_id)
 	if (nw_interface_lookup(logical_id) == 0) {
 		return cmem.interface_result.path_type;
 	}
-	return DP_PATH_NOT_VALID;
+	return (enum dp_path_type)DP_PATH_NOT_VALID;
 }
 
 /******************************************************************************

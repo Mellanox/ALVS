@@ -286,7 +286,10 @@ void add_run_cpus(const char *processors_str)
 
 	rc = cstr_to_cpuset(new_mask, processors_str);
 	if (rc != 0) {
+		free(new_mask);
 		printf("cstr_to_cpuset failed\n");
 		exit(1);
 	}
+
+	free(new_mask);
 }

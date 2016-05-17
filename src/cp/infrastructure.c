@@ -321,7 +321,7 @@ bool infra_create_mem_partition(void)
 
 			/* set size and type */
 			int_mem_space_params.bEnable = true;
-			int_mem_space_params.eType = imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE];
+			int_mem_space_params.eType = (EZapiChannel_IntMemSpaceType)imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE];
 			int_mem_space_params.uiSize = imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_SIZE];
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIntMemSpaceParams, &int_mem_space_params);
@@ -352,9 +352,9 @@ bool infra_create_mem_partition(void)
 
 			/* set size, type, protection and MSID */
 			ext_mem_space_params.bEnable = true;
-			ext_mem_space_params.eType = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_TYPE];
+			ext_mem_space_params.eType = (EZapiChannel_ExtMemSpaceType)emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_TYPE];
 			ext_mem_space_params.uiSize = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_SIZE];
-			ext_mem_space_params.eECCType = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_PROTECTION];
+			ext_mem_space_params.eECCType = (EZapiChannel_ExtMemSpaceECCType)emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_PROTECTION];
 			ext_mem_space_params.uiMSID = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID];
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetExtMemSpaceParams, &ext_mem_space_params);
@@ -514,6 +514,10 @@ bool infra_initialize_statistics(void)
 	/* Set posted statistics values to be 0 */
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
 	posted_counter_config.pasCounters = malloc(sizeof(EZapiStat_PostedCounter));
+	if(!posted_counter_config.pasCounters) {
+		printf("infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.\n");
+		return false;
+	}
 	memset(posted_counter_config.pasCounters, 0, sizeof(EZapiStat_PostedCounter));
 	posted_counter_config.uiPartition = 0;
 	posted_counter_config.bRange = true;
@@ -527,6 +531,7 @@ bool infra_initialize_statistics(void)
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
 	if (EZrc_IS_ERROR(ret_val)) {
 		printf("EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		free(posted_counter_config.pasCounters);
 		return false;
 	}
 
@@ -714,10 +719,10 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	/* set single cycle and update mode */
 	hash_params.bSingleCycle = true;
 	if (params->updated_from_dp == true) {
-		hash_params.eUpdateMode = true;
+		hash_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
 	} else {
-		hash_params.eUpdateMode = false;
+		hash_params.eUpdateMode = EZapiStruct_UpdateMode_CP;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
 	}
 
@@ -890,7 +895,7 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 bool infra_get_my_mac(struct ether_addr *my_mac)
 {
 	FILE *fd;
-
+	uint fscanf_res;
 	/* open address file from sys/class/net folder */
 #ifdef EZ_SIM
 	fd = fopen("/sys/class/net/eth0/address", "r");
@@ -902,10 +907,16 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	}
 
 	/* read my MAC from file */
-	fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
+	fscanf_res = fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
 	       &my_mac->ether_addr_octet[0], &my_mac->ether_addr_octet[1],
 	       &my_mac->ether_addr_octet[2],  &my_mac->ether_addr_octet[3],
 	       &my_mac->ether_addr_octet[4],  &my_mac->ether_addr_octet[5]);
+
+	if(fscanf_res != ETH_ALEN) {
+		fclose(fd);
+		return false;
+	}
+
 	fclose(fd);
 
 	return true;
