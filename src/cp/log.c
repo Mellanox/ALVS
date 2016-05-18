@@ -41,17 +41,25 @@ void open_log(char *s)
 {
 	setlogmask(LOG_UPTO(LOG_LEVEL));
 
-	/*TODO - what to put here for facility - LOCAL? */
-	int facility = LOG_USER;
+	int facility = LOG_DAEMON;
 	int option = LOG_CONS | LOG_PID | LOG_NDELAY;
 
-
 	openlog(s, option, facility);
+
+	EZlog_SetFileName("/var/log/alvs_ezcp_log");
+	EZlog_OpenLogFile();
+	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP,
+		     EZlog_SUB_COMP, EZlog_LEVEL);
 }
 
 void close_log(void)
 {
+	EZlog_SetLog(EZlog_OUTPUT_FILE,EZlog_COMP_ALL,
+		     EZlog_SUB_COMP_LOG_ALL,EZlog_LEVEL_FATAL);
+	EZlog_CloseLogFile();
+
 	closelog();
+
 }
 
 

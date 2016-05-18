@@ -32,12 +32,18 @@
 */
 #ifndef LOG_H_
 #define LOG_H_
+#include <stdarg.h>
 #include "syslog.h"
+#include "EZlog.h"
 #ifndef NDEBUG
 #define LOG_LEVEL LOG_DEBUG
+#define EZlog_LEVEL EZlog_LEVEL_DEBUG
 #else
 #define LOG_LEVEL LOG_INFO
+#define EZlog_LEVEL EZlog_LEVEL_TRACE
 #endif
+#define EZlog_COMP EZlog_COMP_CP_ALL
+#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_API
 
 /*****************************************************************************/
 /*! \fn void write_log(char *s)
@@ -47,15 +53,13 @@
  * \return none.
  */
 #ifndef NDEBUG
-#define write_log(priority, s) \
-	syslog(LOG_MAKEPRI(LOG_USER, priority), \
-			"%s [FILE: %s:%d FUNC: %s]",\
-			s, __FILE__, __LINE__, __func__)
-#else
-#define write_log(priority, s) \
-	syslog(LOG_MAKEPRI(LOG_USER, priority), "%s", s)
+#define write_log(priority, s, ...) \
+   syslog(LOG_MAKEPRI(LOG_USER, priority), \
+			s " [FILE: %s:%d FUNC: %s]", ##__VA_ARGS__,__FILE__, __LINE__, __func__)
+ #else
+#define write_log(priority, s, ...) \
+	syslog(LOG_MAKEPRI(LOG_USER, priority),  s, ##__VA_ARGS__)
 #endif
-
 
 /*****************************************************************************/
 /*! \fn void open_log(char *s)
