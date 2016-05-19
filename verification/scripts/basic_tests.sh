@@ -129,6 +129,7 @@ function clean_wa()
 
 function print_end_script()
 {
+    echo "test 1"
     echo ""
     echo "============================"
     echo "= End running $script_name"
@@ -166,6 +167,4 @@ make_debug
 # Clean working area & exit
 exit_status=0
 clean_wa_and_exit
-
-$SHELL
 
