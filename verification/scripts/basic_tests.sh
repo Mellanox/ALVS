@@ -142,7 +142,7 @@ function clean_wa_and_exit()
 
     clean_wa
     print_end_script
-    echo "**** exit removed ***"
+    echo "**** exit removed *** "
 #    exit $exit_status
 }
 
@@ -152,8 +152,7 @@ function clean_wa_and_exit()
 #              Main                     #
 #                                       #
 #########################################
-trap "exit" INT TERM
-trap "kill 0" EXIT
+echo "**** trap removed *** "
 
 log "running under user: $USER"
 
