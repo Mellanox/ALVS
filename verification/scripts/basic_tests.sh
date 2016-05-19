@@ -129,7 +129,6 @@ function clean_wa()
 
 function print_end_script()
 {
-    echo "test 1"
     echo ""
     echo "============================"
     echo "= End running $script_name"
@@ -143,7 +142,8 @@ function clean_wa_and_exit()
 
     clean_wa
     print_end_script
-    exit $exit_status
+    echo "**** exit removed ***"
+#    exit $exit_status
 }
 
 
