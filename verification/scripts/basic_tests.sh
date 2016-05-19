@@ -153,6 +153,7 @@ function clean_wa_and_exit()
 #                                       #
 #########################################
 echo "**** trap removed *** "
+echo "Try #1"
 
 log "running under user: $USER"
 
