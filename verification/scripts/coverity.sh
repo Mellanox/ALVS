@@ -54,6 +54,8 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
+	ALVS_ACCEPTED_FP_CP=0
+
 	echo "Creating $ALVS_COVERITY_RES_DIR_CP for CP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_CP &>> $LOG_FILE
 
@@ -75,22 +77,35 @@ function run_coverity_cp {
 	echo "Running CP Coverity Analysis..." | tee -a $LOG_FILE
 	cov-analyze --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP --all --aggressiveness-level high -j 2 &>> $LOG_FILE
 
-	echo "Generating CP Coverity static error report..." | tee -a $LOG_FILE
+	echo -e "\n******************************* Generating CP Coverity static error report *********\n" | tee -a $LOG_FILE
 	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS"  --functionsort | tee -a $LOG_FILE)	
 	if [ "$res" == "" ]
 	then
-		echo "CP Coverity PASSED!!!"
-		return 1
-	else
-		cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS"  --functionsort
-		echo "CP Coverity FAILED!!!"
+		echo -e "\n\n******************************* CP Coverity Result is PASS ***********************\n"
 		return 0
+	else
+		error_num=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS"  --functionsort | tee /dev/tty | grep -wc "Error:")
+		if [ "$error_num" == "$ALVS_ACCEPTED_FP_CP" ]
+		then
+			echo -e "\nCurrently we'll accept these $ALVS_ACCEPTED_FP_CP ERRORS in CP as false positivies!!! we'll handle them in Coverity Portal later."
+			echo -e "\n\n******************************* CP Coverity Result is PASS ***********************\n"
+			return 0
+		elif [ "$error_num" -lt "$ALVS_ACCEPTED_FP_CP" ]
+		then
+			echo -e "\nPay attention that number of errors ($error_num) is less than accepted number of false positives ($ALVS_ACCEPTED_FP_CP)."
+		else
+			echo -e "\nPay attention that number of errors ($error_num) is greater than accepted number of false positives ($ALVS_ACCEPTED_FP_CP)."
+		fi
+		echo -e "\n\n******************************* CP Coverity Result is FAIL ***********************\n"
+		return 1
 	fi
 }
 
 ###############################################################################
 
 function run_coverity_dp {
+
+	ALVS_ACCEPTED_FP_DP=4
 
 	echo "Creating $ALVS_COVERITY_RES_DIR_DP for DP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_DP &>> $LOG_FILE
@@ -113,22 +128,27 @@ function run_coverity_dp {
 	echo "Running DP Coverity Analysis..." | tee -a $LOG_FILE
 	cov-analyze --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP --all --aggressiveness-level high -j 2  &>> $LOG_FILE
 
-	echo "Generating DP Coverity static error report..." | tee -a $LOG_FILE
+	echo -e "\n******************************* Generating DP Coverity static error report *********\n" | tee -a $LOG_FILE
 	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_DP --emacs-style --file "ALVS"  --functionsort | tee -a $LOG_FILE)	
 	if [ "$res" == "" ]
 	then
-		echo "DP Coverity PASSED!!!"
-		return 1
+		echo -e "\n\n******************************* DP Coverity Result is PASS ***********************\n"
+		return 0
 	else
 		error_num=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_DP --emacs-style --file "ALVS"  --functionsort | tee /dev/tty | grep -wc "Error:")
-		if [ $error_num == "4" ]
+		if [ $error_num == "$ALVS_ACCEPTED_FP_DP" ]
 		then
-			echo "Currently we'll accept these 4 ERRORS in DP as false alarms!!! we'll handle them in Coverity Portal later."
-			echo "DP Coverity PASSED!!!"
-			return 1
+			echo -e "\nCurrently we'll accept these $ALVS_ACCEPTED_FP_DP ERRORS in DP as false positivies!!! we'll handle them in Coverity Portal later."
+			echo -e "\n\n******************************* DP Coverity Result is PASS ***********************\n"
+			return 0
+		elif [ "$error_num" -lt "$ALVS_ACCEPTED_FP_DP" ]
+		then
+			echo -e "\nPay attention that number of errors ($error_num) is less than accepted number of false positives ($ALVS_ACCEPTED_FP_DP)."
+		else
+			echo -e "\nPay attention that number of errors ($error_num) is greater than accepted number of false positives ($ALVS_ACCEPTED_FP_DP)."
 		fi
-		echo "DP Coverity FAILED!!!"
-		return 0
+		echo -e "\n\n******************************* DP Coverity Result is FAIL ***********************\n"
+		return 1
 	fi
 
 }
@@ -138,55 +158,63 @@ function check_arg {
 	if [ "$1" != "DP" ] && [ "$1" != "CP" ] && [ "$1" != "" ]
 	then
 		echo "BAD Arg1: $1, valid values: CP | DP | EMPTY "
-		return	0
+		return	1
 	elif [ "$2" != "cleanup" ] && [ "$2" != "" ]
 	then
 		echo "BAD Arg2: $2, valid values: cleanup | EMPTY "
-		return	0
+		return	1
 	fi
 	
-	return 1
+	return 0
 
 }
 
 ###############################################################################
 
 function run_coverity {
-
+	
+	echo -e "\n*************************************************************************************"
+	echo "******************************* Start Running Coverity ******************************"
+	echo -e "*************************************************************************************\n\n"
+	
+	echo -e "******************************* Start Checking Arguments ****************************\n"
 	echo "Arg1 valid values: EMPTY (Default: both CP & DP) | CP | DP"
 	echo "Arg2 valid values: EMPTY (Default: keep intermidiate directory) | cleanup (remove intermidiate directory automatically)"
 
 	check_arg $1 $2
-	if [ "$?" == 0 ]
+	if [ "$?" == 1 ]
 	then
-		return 0
+		return 1
 	fi
 	
+	echo -e "\n******************************* Start Creating Intermidiate Directory ***************\n"
 	set_global_vars
 	creating_intermidiate_dir
 	
 
+	echo -e "\n******************************* Setting Coverity Version ***************************\n"
 	export COVERITY_DIR=/.autodirect/app/Coverity/cov-analysis-linux64-7.6.0
 	echo "Coverity version: $COVERITY_DIR" | tee -a $LOG_FILE
 	export PATH=${COVERITY_DIR}/bin:${PATH}
 	
-	final_res=-1
+	final_res=1
 	if [ "$1" == "DP" ]
 	then
-		echo "Running Coverity on DP only!!!" | tee -a $LOG_FILE
+		echo -e "\n******************************* Running Coverity on DP only ************************\n" | tee -a $LOG_FILE
 		run_coverity_dp
 		final_res=$?
 	elif [ "$1" == "CP" ]
 	then
-		echo "Running Coverity on CP only!!!" | tee -a $LOG_FILE
+		echo -e "\n******************************* Running Coverity on CP only ************************\n" | tee -a $LOG_FILE
 		run_coverity_cp
 		final_res=$?
 	else
-		echo "Running Coverity on CP & DP!!!" | tee -a $LOG_FILE
+		echo -e "\n******************************* Running Coverity on CP *****************************\n" | tee -a $LOG_FILE
 		run_coverity_cp
 		final_res=$?
+		echo -e "\n******************************* Running Coverity on DP *****************************\n" | tee -a $LOG_FILE
 		run_coverity_dp
-		final_res=$(( $final_res * $? ))
+		final_res=$(( $final_res + $? ))
 	fi
 	
 	if [ "$2" == "cleanup" ]
@@ -196,11 +224,11 @@ function run_coverity {
 		rm -rf $ALVS_COVERITY_RES_DIR
 	fi
 
-	if [ $final_res == "1" ]
+	if [ $final_res == "0" ]
 	then
-		echo "Coverity PASSED!!!"
+		echo -e "\n\n******************************* Coverity Result is PASS **************************\n"
 	else
-		echo "Coverity FAILED!!!"
+		echo -e "\n\n******************************* Coverity Result is FAIL **************************\n"
 	fi
 	
 	unset_global_vars
@@ -209,6 +237,10 @@ function run_coverity {
 }
 
 ###############################################################################
-
+ #   DEBUG=TRUE
+ #  export DEBUG
 run_coverity $1 $2
+
+ #   unset DEBUG
+
 
