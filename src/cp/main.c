@@ -408,20 +408,20 @@ void main_thread_graceful_stop(void)
 			printf("main_thread_graceful_stop: EZapiCP_Delete failed.\n");
 		}
 	}
-	if (is_object_allocated[object_type_env]) {
-		is_object_allocated[object_type_env] = false;
-		printf("Delete env\n");
-		ez_ret_val = EZenv_Delete();
-		if (EZrc_IS_ERROR(ez_ret_val)) {
-			printf("main_thread_graceful_stop: EZenv_Delete failed.\n");
-		}
-	}
 	if (is_object_allocated[object_type_dev]) {
 		is_object_allocated[object_type_dev] = false;
 		printf("Delete dev\n");
 		ez_ret_val = EZdev_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
 			printf("main_thread_graceful_stop: EZdev_Delete failed.\n");
+		}
+	}
+	if (is_object_allocated[object_type_env]) {
+		is_object_allocated[object_type_env] = false;
+		printf("Delete env\n");
+		ez_ret_val = EZenv_Delete();
+		if (EZrc_IS_ERROR(ez_ret_val)) {
+			printf("main_thread_graceful_stop: EZenv_Delete failed.\n");
 		}
 	}
 }
