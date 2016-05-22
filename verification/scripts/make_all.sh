@@ -44,45 +44,38 @@ EOF
 }
 
 
-function print_start_script()
+function start_script()
 {
     echo ""
-    echo "============================"
-    echo "= Start running $script_name"
-    echo "============================"
+    echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+    echo "> Start running $script_name"
 }
 
-
-function init_variables()
-{
-    # init exit status to failure
-    exit_status=1 
-
-    # init is_compiled to true (no errors)
-    is_compiled=1
-}
 
 function compile_git()
 {
     echo "Function: $FUNCNAME called"
-
+    rc=0  # no failure
 
     echo "perform: make clean"
     make clean > $make_clean_file
-    if [ $? -ne 0 ]; then
+    rc=$?
+    if [ $rc -ne 0 ]; then
         echo 'ERROR: make clean failed. for more details look at $make_clean_file'
-        is_compiled=0
-        return
+        return $rc
     fi
 
     
     echo "perform: make $make_params"
     make $make_params > $make_log_file
+    rc=$?
     if [ $? -ne 0 ]; then
         echo 'ERROR make $make_params failed. for more details look at $make_log_file'
-        is_compiled=0
-        return
+        return $rc
     fi
+    
+    # return success
+    return $rc
 }
 
 
@@ -97,7 +90,14 @@ function make_release()
 
     # make
     compile_git
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echo "ERROR: $FUNCNAME failed"
+        exit_status=1
+        return $rc
+    fi
 
+    return $rc
 }
 
 function make_debug()
@@ -115,35 +115,27 @@ function make_debug()
 
     # make
     compile_git
+    # make
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echo "ERROR: $FUNCNAME failed"
+        exit_status=1
+        return $rc
+    fi
 
     # unset local variable
     unset DEBUG
+
+    return $rc
 }
 
-function clean_wa()
-{
-    echo "Function: $FUNCNAME called"
-
-    # TODO: implement
-}
-
-function print_end_script()
+function exit_script()
 {
     echo ""
-    echo "============================"
-    echo "= End running $script_name"
-    echo "============================"
-}
+    echo "< End running $script_name"
+    echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
-
-function clean_wa_and_exit()
-{
-    echo "Clean WA and exit"    
-
-    clean_wa
-    print_end_script
-    echo "**** exit removed *** "
-#    exit $exit_status
+    exit $exit_status
 }
 
 
@@ -152,19 +144,14 @@ function clean_wa_and_exit()
 #              Main                     #
 #                                       #
 #########################################
-echo "**** trap removed *** "
-echo "Try #1"
-
 log "running under user: $USER"
 
-print_start_script
-init_variables
+start_script
+exit_status=0
 
 # make
 make_release
 make_debug
 
-# Clean working area & exit
-exit_status=0
-clean_wa_and_exit
+exit_script
 
