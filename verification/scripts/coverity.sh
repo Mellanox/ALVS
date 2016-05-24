@@ -159,9 +159,9 @@ function check_arg {
 	then
 		echo "BAD Arg1: $1, valid values: CP | DP | EMPTY "
 		return	1
-	elif [ "$2" != "cleanup" ] && [ "$2" != "" ]
+	elif [ "$2" != "nocleanup" ] && [ "$2" != "" ]
 	then
-		echo "BAD Arg2: $2, valid values: cleanup | EMPTY "
+		echo "BAD Arg2: $2, valid values: nocleanup | EMPTY "
 		return	1
 	fi
 	
@@ -179,7 +179,7 @@ function run_coverity {
 	
 	echo -e "******************************* Start Checking Arguments ****************************\n"
 	echo "Arg1 valid values: EMPTY (Default: both CP & DP) | CP | DP"
-	echo "Arg2 valid values: EMPTY (Default: keep intermidiate directory) | cleanup (remove intermidiate directory automatically)"
+	echo "Arg2 valid values: EMPTY (Default: remove intermidiate directory) | nocleanup (keep intermidiate directory)"
 
 	check_arg $1 $2
 	if [ "$?" == 1 ]
@@ -217,10 +217,10 @@ function run_coverity {
 		final_res=$(( $final_res + $? ))
 	fi
 	
-	if [ "$2" == "cleanup" ]
+	if [ "$2" == "" ]
 	then
 		echo "Removing intermidiate directory: $ALVS_COVERITY_RES_DIR"
-		echo "You can keep it by not using Arg2"
+		echo "You can keep it by using Arg2=nocleanup"
 		rm -rf $ALVS_COVERITY_RES_DIR
 	fi
 
