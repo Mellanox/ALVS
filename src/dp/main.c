@@ -50,7 +50,7 @@
 #include "alvs_dp_defs.h"
 #include "cmem_defs.h"
 #include "nw_recieve.h"
-
+#include "version.h"
 
 /******************************************************************************
  * Globals
@@ -264,6 +264,8 @@ int main(int argc, char **argv)
 	signal(SIGCHLD, SIG_IGN);
 
 	is_child_process = false;
+
+	printf("Application version: %s\n",version);
 
 	/* Parse the run-time arguments */
 	parse_arguments(argc, argv, &num_cpus_set);

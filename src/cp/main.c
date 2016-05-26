@@ -47,6 +47,7 @@
 #include "alvs_db_manager.h"
 
 #include "defs.h"
+#include "version.h"
 
 /******************************************************************************/
 
@@ -85,6 +86,8 @@ int main(int argc, char **argv)
 	agt_enabled = false;
 
 	printf("Starting ALVS CP application...\n");
+
+	printf("Application version: %s\n",version);
 
 	do {
 		rc = getopt_long(argc, argv, "", long_options, NULL);

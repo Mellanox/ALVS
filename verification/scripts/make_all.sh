@@ -33,11 +33,11 @@ function log()
 function usage()
 {
     cat <<EOF
-Usage: $script_name
+Usage: $script_name [release | debug | EMPTY(both)]
 This script runs build on the current working area (release+debug)
 
 Examples:
-$script_name
+$script_name [release | debug | EMPTY(both)]
 
 EOF
    exit 1
@@ -149,9 +149,16 @@ log "running under user: $USER"
 start_script
 exit_status=0
 
-# make
-make_release
-make_debug
+if [ "$1" == "release" ]
+then
+	make_release
+elif [ "$1" == "debug" ]
+then
+	make_debug
+else
+	make_release
+	make_debug
+fi
 
 exit_script
 
