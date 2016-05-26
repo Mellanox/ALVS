@@ -52,14 +52,12 @@ function parse_cmd()
 
 function print_paths()
 {
-    echo ""
     echo "Directories:"
     echo "base_dir              = $base_dir"
     echo "branch_dir            = $branch_dir"
     echo "wa_path               = $wa_path"
     echo "git_dir               = $git_dir"
 
-    echo ""
     echo "Links:"
     echo "last_release_link     = $last_release_link"
     echo "last_stable_link      = $last_stable_link"
@@ -80,9 +78,6 @@ function set_global_variables()
 	script_name=$(basename $0)
 	script_dir=$(cd $(dirname $0) && pwd)
 
-	#TODO change back
-	is_using_ssh=0
-
     # set paths
     base_dir="/mswg/release/nps/solutions/"
     
@@ -93,14 +88,8 @@ function set_global_variables()
     last_stable_link=${branch_dir}"last_stable"
     
     # WA paths
-    if [ $is_using_ssh -eq 0 ]; then
-        echo "WARNNING: not using SSH"
-        wa_path=${branch_dir}"auto_build_tmp/"
-        git_dir=${wa_path}"${project_params}/"
-    else
-        wa_path="/root/auto_build_tmp/"
-        git_dir=$wa_path"$project_params/"
-    fi
+    wa_path="/root/auto_build_tmp/"
+    git_dir=$wa_path"$project_params/"
 
 	print_paths
 
@@ -117,11 +106,11 @@ function clone_git()
     test -d $wa_path
     if [ $? -eq 0 ]; then
         echo "Warning: WA folder already exist ($wa_path). deleting folder..."
-        $nps_sw_user_command rm -rf $wa_path
+        rm -rf $wa_path
     fi
     
     # make tmp folder
-    $nps_sw_user_command  mkdir -p $wa_path
+    mkdir -p $wa_path
     if [ $? -ne 0 ]; then
         echo "ERROR: make dir ($wa_path) failed"
 		exit_status=1
@@ -133,7 +122,7 @@ function clone_git()
     # clone git
     # TODO get URL
     git_url='http://l-gerrit.mtl.labs.mlnx:8080/ALVS'
-    $nps_sw_user_command git clone $git_url
+    git clone $git_url
     if [ $? -eq 0 ]; then
         echo "git clone $git_url"
     else
@@ -163,6 +152,11 @@ function create_release_dir()
 	# create release folder
     echo "Creating folder $version_dir"
     $nps_sw_user_command mkdir -p $version_dir
+    if [ $? -ne 0 ]; then
+		echo "ERROR: can creating release folder ($version_dir)"
+		exit_status=1
+		clean_wa_and_exit    
+    fi
 
 	echo "====== END Create release directory ======="
 }
@@ -179,25 +173,32 @@ function build_and_add_bins()
     if [ $? -ne 0 ]; then
         echo "Failed at make_all release in version $version!"
         is_stable=0
-        clean_wa_and_exit
     fi
+    	
     	
 	# Copy bin directory before make clean
     test -d $git_dir"bin/"
     if [ $? -eq 0 ]; then
-        $nps_sw_user_command cp -a $git_dir"bin/" $version_dir
+        sshpass -p nps_sw_release11 scp -r $git_dir"bin/" nps_sw_release@l-nps-006:$version_dir
+        if [ $? -ne 0 ]; then
+            echo "ERROR: failed to copy release bin files"
+        fi
+        #$nps_sw_user_command cp -a $git_dir"bin/" $version_dir
     fi
 
 	./verification/scripts/make_all.sh debug
 	if [ $? -ne 0 ]; then
-        echo "Failed at make_all debug in version $version!"
+        echo "ERROR: Failed at make_all debug in version $version!"
         is_stable=0
-        clean_wa_and_exit
     fi
 
 	test -d $git_dir"bin/"
     if [ $? -eq 0 ]; then
-        $nps_sw_user_command cp -a $git_dir"bin/." $version_dir/bin
+        sshpass -p nps_sw_release11 scp -r $git_dir"bin/." nps_sw_release@l-nps-006:$version_dir/bin
+        if [ $? -ne 0 ]; then
+            echo "ERROR: failed to copy debug bin files"
+        fi
+        #$nps_sw_user_command cp -a $git_dir"bin/." $version_dir/bin
     fi
 
 	echo -e "\n======== END Build ALVS and add bin files ========="
@@ -209,24 +210,43 @@ function update_release_dir()
 {
     echo -e "\n======== Update release directory ========"
   
+  
     # Copy log files
-    $nps_sw_user_command cp $git_dir"*.log" $version_dir
-    if [ $? -eq 1 ]; then
+    my_logs_files=$git_dir'*.log'
+    sshpass -p nps_sw_release11 scp -r $my_logs_files nps_sw_release@l-nps-006:$version_dir
+    if [ $? -ne 0 ]; then
         echo "WARNNING: copy log files failed"
     fi
 
 	# create git.txt file which include last commit.
-	$nps_sw_user_command git log -1 > $version_dir/git.txt
+	git log -1 > "git.txt"
+    if [ $? -ne 0 ]; then
+        echo "WARNNING: Creating git.txt failed"
+	else
+        sshpass -p nps_sw_release11 scp -r $git_dir"git.txt" nps_sw_release@l-nps-006:$version_dir
+        if [ $? -ne 0 ]; then
+            echo "WARNNING: copy git.txt failed"
+        fi
+    fi
 
 	# copy version.h
-	$nps_sw_user_command cp $git_dir/src/common/version.h $version_dir/
+	sshpass -p nps_sw_release11 scp $git_dir/src/common/version.h nps_sw_release@l-nps-006:$version_dir/
+    if [ $? -ne 0 ]; then
+        echo "WARNNING: copy version.h failed"
+    fi
 
 	# create a tar file containing: bin files, git.txt & version.h
 	cd $version_dir
 	$nps_sw_user_command tar zcf ${version}.tar.gz bin/ version.h git.txt
+    if [ $? -ne 0 ]; then
+        echo "WARNNING: copy version.h failed"
+    fi
 
 	# removing redundant files & dirs
 	$nps_sw_user_command rm -rf bin/ version.h git.txt
+    if [ $? -ne 0 ]; then
+        echo "WARNNING: removing redundant files & dirs failed"
+    fi
 
     echo "======== END update release directory ========"
 }
@@ -261,7 +281,7 @@ function clean_wa()
 {
     echo -e "\n======= Cleaning WA ========="
 
-    $nps_sw_user_command rm -rf $wa_path
+    rm -rf $wa_path
     if [ $? -eq 0 ]; then
         echo "WA ($wa_path) removed"
     else
@@ -276,7 +296,8 @@ function clean_wa()
 function print_end_script()
 {
     echo ""
-    echo "< END script. exit status $exit_status"
+    echo "< END script $script_name."
+    echo "< exit status $exit_status"
     echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     echo ""
 }
@@ -315,7 +336,7 @@ function run_auto_build()
 {
 
     echo -e "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-    echo "> Start script"
+    echo "> Start script $script_name"
 	echo -e "\nrunning under user: $USER"
 	echo "$(date)"
 
