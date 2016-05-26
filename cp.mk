@@ -12,7 +12,7 @@ CP_C_DEPS = $(patsubst %.c,build/%.d,$(CP_C_SRCS))
 
 CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a
 
-CP_C_FLAGS := -DLITTLE_ENDIAN
+CP_C_FLAGS := -DALVS_LITTLE_ENDIAN
 
 ifdef DEBUG
 CP_C_FLAGS += -O0 -g3

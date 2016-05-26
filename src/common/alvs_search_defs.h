@@ -69,7 +69,7 @@ struct alvs_service_key {
 /*result*/
 struct alvs_service_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -109,7 +109,7 @@ struct alvs_service_classification_key {
 /*result*/
 struct alvs_service_classification_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -136,7 +136,7 @@ struct alvs_service_info_key {
 /*result*/
 struct alvs_service_info_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	enum alvs_scheduler_type sched_alg : 4;
@@ -170,7 +170,7 @@ struct alvs_sched_info_key {
 /*result*/
 struct alvs_sched_info_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -208,7 +208,7 @@ struct alvs_conn_classification_key {
 /*result*/
 struct alvs_conn_classification_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -236,7 +236,7 @@ struct alvs_conn_info_key {
 /*result*/
 struct alvs_conn_info_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -288,7 +288,7 @@ struct alvs_server_info_key {
 /*result*/
 struct alvs_server_info_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	uint8_t              routing_alg   : 4;

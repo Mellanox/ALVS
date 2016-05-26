@@ -65,7 +65,7 @@ struct nw_if_key {
 /*result*/
 struct nw_if_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
@@ -106,7 +106,7 @@ struct nw_arp_key {
 /*result*/
 struct nw_arp_result {
 	/*byte0*/
-#ifdef BIG_ENDIAN
+#ifdef ALVS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;

@@ -57,7 +57,7 @@ enum alvs_to_host_cause_id {
 
 #define DP_PATH_NOT_VALID               4
 /* TODO - roee please update with real channel ID of host interface */
-#define ALVS_HOST_OUTPUT_CHANNEL_ID     (0 | (1<<8))
+#define ALVS_HOST_OUTPUT_CHANNEL_ID     (0 | (1<<7)) + 24
 #define DP_NUM_COUNTERS_PER_INTERFACE   256
 
 /* Number of lag members is hard coded and depended on compilation flag. */

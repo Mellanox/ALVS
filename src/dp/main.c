@@ -160,7 +160,7 @@ bool init_shared_cmem(void)
 						true,
 						sizeof(struct alvs_service_key),
 						sizeof(struct alvs_service_result),
-						sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))));
+						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key)));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 		       STRUCT_ID_ALVS_SERVICES, result, ezdp_get_err_msg());
@@ -182,7 +182,7 @@ bool init_shared_cmem(void)
 						true,
 						sizeof(struct nw_arp_key),
 						sizeof(struct nw_arp_result),
-						sizeof(_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))));
+						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key)));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
