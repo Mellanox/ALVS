@@ -1,37 +1,38 @@
 #!/usr/bin/env python
 
-from test_infra import *
-import random 
-import time
+###############################################################################################################################
+########################### this test is checking all the permutation of arp entry state change ################################
+###############################################################################################################################
+
 import sys
-import logging
+sys.path.append("../")
+from test_infra import *
 
-host1_ip = '10.7.103.30'
-host2_ip = '10.7.101.92'
+args = read_test_arg(sys.argv)
 
-subnet_mask = '255.255.248.0'
-
-host_ip = host2_ip
-host_mac = '00:1A:4A:DE:78:3B'
-
-app_bin = "/tmp/cp_app"
-
-# logging info
 log_file = "arp_entry_state_change.log"
-FORMAT = 'Level Num:%(levelno)s %(filename)s %(funcName)s line:%(lineno)d   %(message)s'
-logging.basicConfig(format=FORMAT, filename=log_file, filemode='w', level=logging.DEBUG)
-logging.info("\n\nStart logging\nCurrent date & time " + time.strftime("%c") + "\n")
+if 'log_file' in args:
+    log_file = args['log_file']
+    
+init_logging(log_file)
+    
+ezbox = ezbox_host(management_ip=args['host_ip'], username='root', password='ezchip',  nps_ip=args['nps_ip'], cp_app_bin=args['cp_bin'], dp_app_bin=args['dp_bin'])
 
+if args['hard_reset']:
+    ezbox.reset_ezbox(args['ezbox'])
 
-ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
 ezbox.connect()
+ezbox.terminate_cp_app()
+ezbox.reset_chip()
+ezbox.copy_cp_bin_to_host()
+ezbox.run_cp_app()
 
 state_list = ['permanent', 'delay', 'reachable', 'stale','probe', 'failed', 'noarp', 'none', 'incomplete']
 
 invalid_state_list = ['incomplete', 'failed', 'noarp', 'none']
 valid_state_with_timeout = ['delay', 'probe']
 
-ip_address = ezbox.get_unused_ip_on_subnet(subnet_mask)
+ip_address = ezbox.get_unused_ip_on_subnet()
 temp_ip_address = ip_address[0]
 i=0
 mac_address = "01:02:03:04:05:08"
@@ -54,6 +55,7 @@ for old_state in state_list:
             if new_state not in ['incomplete','failed','none']:
                 continue
           
+        # todo - this one related to bug on none state, need to check also none states
         if new_state == 'none' or old_state == 'none':
             continue
           

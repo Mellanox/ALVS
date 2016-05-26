@@ -1,29 +1,37 @@
 #!/usr/bin/env python
 
-from test_infra import *
-import random 
-import time
 import sys
-import logging
+sys.path.append("../")
+from test_infra import *
 
-log_file = "alvs_unsupported_features_test.log"
-FORMAT = 'Level Num:%(levelno)s %(filename)s %(funcName)s line:%(lineno)d   %(message)s'
-logging.basicConfig(format=FORMAT, filename=log_file, filemode='w+', level=logging.DEBUG)
-print "dd"
-logging.info("\n\nStart logging\nCurrent date & time " + time.strftime("%c") + "\n")
-print "dd1"
+args = read_test_arg(sys.argv)    
 
-host1_ip = '10.7.103.30'
-host2_ip = '10.7.101.92'
+log_file = "kill_cp_app_test.log"
+if 'log_file' in args:
+    log_file = args['log_file']
+init_logging(log_file)
 
-host_ip = host2_ip
+scenarios_to_run = args['scenarios']
 
-app_bin = "/tmp/alvs_daemon"
+ezbox = ezbox_host(management_ip=args['host_ip'], username='root', password='ezchip',  nps_ip=args['nps_ip'], cp_app_bin=args['cp_bin'], dp_app_bin=args['dp_bin'])
 
-ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
+if args['hard_reset']:
+    ezbox.reset_ezbox(args['ezbox'])
+
 ezbox.connect()
-# ezbox.run_cp_app(app_bin)
+ezbox.terminate_cp_app()
+ezbox.reset_chip()
+ezbox.copy_cp_bin_to_host()
 
-# ezbox.terminate_cp_app(app_bin)
-
-scenarios = [1]
+wait_time_log = []
+for i in range(50):
+    ezbox.run_cp_app()
+    wait_time_log.append(random.random()*2)
+    time.sleep(wait_time_log[-1])
+    ezbox.terminate_cp_app()
+    ezbox.reset_chip()
+     
+    # todo - check in syslog that program is without errors
+ 
+ 
+print "the log of the delay time is: " + str(wait_time_log)

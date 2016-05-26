@@ -1,31 +1,40 @@
 #!/usr/bin/env python
-from test_infra import *
-import random 
-import time
+
+###############################################################################################################################
+#########################   This test check that unsupported commands will not affect the system ##############################
+###############################################################################################################################
+
 import sys
-import logging
+sys.path.append("../")
+from test_infra import *
 
-host1_ip = '10.7.103.30'
-host2_ip = '10.7.101.92'
-
-host_ip = host2_ip
-
-app_bin = "/tmp/alvs_daemon"
+args = read_test_arg(sys.argv)    
 
 log_file = "alvs_unsupported_features_test.log"
-FORMAT = 'Level Num:%(levelno)s %(filename)s %(funcName)s line:%(lineno)d   %(message)s'
-logging.basicConfig(format=FORMAT, filename=log_file, filemode='w+', level=logging.DEBUG)
-print "dd"
-logging.info("\n\nStart logging\nCurrent date & time " + time.strftime("%c") + "\n")
-print "dd1"
+if 'log_file' in args:
+    log_file = args['log_file']
+init_logging(log_file)
 
-ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
+scenarios_to_run = args['scenarios']
+
+ezbox = ezbox_host(management_ip=args['host_ip'], username='root', password='ezchip',  nps_ip=args['nps_ip'], cp_app_bin=args['cp_bin'], dp_app_bin=args['dp_bin'])
+
+if args['hard_reset']:
+    ezbox.reset_ezbox(args['ezbox'])
+
 ezbox.connect()
+ezbox.terminate_cp_app()
+ezbox.reset_chip()
+ezbox.copy_cp_bin_to_host()
+ezbox.run_cp_app()
 
 # add ipv6 arp entry
-cmd = 'ip -6 neigh add lladdr a:a:a:a:a:a dev eth2 fe80::a539:c48e:4c21:2f18'
+cmd = 'ip -6 neigh add lladdr a:a:a:a:a:a dev eth0 fe80::a539:c48e:4c21:2f18'
 
-ezbox.run_cp_app(cmd)
+result,output,pid = ezbox.execute_command_on_host(cmd)
+print result
+print output
+print pid
 
 result = ezbox.compare_arp_tables(update_arp_entries=True)
 if result == False:
