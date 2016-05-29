@@ -398,6 +398,8 @@ function run_auto_build()
 	
 	set_global_variables
 
+    create_wa
+    
 	clone_git
 
 	set_version_dir_variable
