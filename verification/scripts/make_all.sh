@@ -25,24 +25,46 @@ function error_exit()
 }
 
 
-function log()
-{
-    printf '%s\n' "$@" > my_test.log
-}
-
 function usage()
 {
     cat <<EOF
-Usage: $script_name [release | debug | EMPTY(both)]
-This script runs build on the current working area (release+debug)
+Usage: $script_name [release | debug | all | EMPTY(both)]
+This script runs build on the current working area (release and/or debug)
 
 Examples:
-$script_name [release | debug | EMPTY(both)]
+$script_name release
 
 EOF
    exit 1
 }
 
+
+#######################################################################################
+
+function parse_cmd()
+{
+    # check number of arguments
+    
+    test $# -eq 0
+    if [ $? -eq 0 ]; then
+        compile_flag="all"
+        return
+    fi
+    
+    test $# -eq 1
+    if [ $? -eq 0 ]; then
+        if [ "$1" == "release" ] ||  [ "$1" == "debug" ] ||  [ "$1" == "all" ]; then
+            compile_flag=$1
+        else
+            usage
+        fi
+    else
+        usage
+    fi
+}
+
+
+#######################################################################################
 
 function start_script()
 {
@@ -51,6 +73,8 @@ function start_script()
     echo "> Start running $script_name"
 }
 
+
+#######################################################################################
 
 function compile_git()
 {
@@ -79,14 +103,16 @@ function compile_git()
 }
 
 
+#######################################################################################
+
 function make_release()
 {
     echo "Function: $FUNCNAME called"
 
     # prepare compilation parameters
     make_params="all"
-    make_clean_file='make_clean_release.log'
-    make_log_file='make_release.log'
+    make_clean_file=$wa_path"make_clean_release.log"
+    make_log_file=$wa_path"make_release.log"
 
     # make
     compile_git
@@ -100,6 +126,9 @@ function make_release()
     return $rc
 }
 
+
+#######################################################################################
+
 function make_debug()
 {
     echo "Function: $FUNCNAME called"
@@ -110,8 +139,8 @@ function make_debug()
     
     # prepare compilation parameters
     make_params="all"
-    make_clean_file='make_clean_debug.log'
-    make_log_file='make_debug.log'
+    make_clean_file=$wa_path"make_clean_debug.log"
+    make_log_file=$wa_path"make_debug.log"
 
     # make
     compile_git
@@ -129,6 +158,9 @@ function make_debug()
     return $rc
 }
 
+
+#######################################################################################
+
 function exit_script()
 {
     echo ""
@@ -139,26 +171,46 @@ function exit_script()
 }
 
 
+#######################################################################################
+
+function create_log_folder()
+{
+    wa_path="logs/"
+    test -d $wa_path
+    if [ $? -ne 0 ]; then
+        echo "Creatin $wa_path folder"
+        mkdir $wa_path
+    fi
+}
+
 #########################################
 #                                       #
 #              Main                     #
 #                                       #
 #########################################
-log "running under user: $USER"
+function main()
+{
+	parse_cmd $@
 
-start_script
-exit_status=0
+    start_script
+    exit_status=0
 
-if [ "$1" == "release" ]
-then
-	make_release
-elif [ "$1" == "debug" ]
-then
-	make_debug
-else
-	make_release
-	make_debug
-fi
 
-exit_script
+    create_log_folder
 
+    echo "compile flag: $compile_flag"
+
+    if [ $compile_flag == "release" ]; then
+	    make_release
+    elif [ $compile_flag == "debug" ]; then
+	    make_debug
+    else #"all"
+	    make_release
+	    make_debug
+    fi
+
+    exit_script
+}
+
+
+main $@
