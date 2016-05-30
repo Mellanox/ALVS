@@ -27,42 +27,63 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
+ *  	Created on: May 18, 2016
+	file - alvs_log.h
+*	description - contains definitions for alvs_log.c
 */
 
-#ifndef DEFS_H_
-#define DEFS_H_
+#ifndef ALVS_LOG_H_
+#define ALVS_LOG_H_
 
-#include <stdint.h>
+#include <ezdp.h>
+#include <ezframe.h>
+#include "log.h"
+#include "defs.h"
+#include "alvs_dp_defs.h"
+#include "nw_host.h"
+#include <arpa/inet.h>
+#include "nw_interface.h"
 
-#define SYSLOG_SERVER_IP			"169.254.42.41"
-#define SYSLOG_CLIENT_ETH_ADDR		{0x00,0x02,0xc9,0x42,0x42,0x43}
 
-/* Data MSIDs */
-#define HALF_CLUSTER_DATA_MSID        0x2
-#define X1_CLUSTER_DATA_MSID          0x4
-#define X2_CLUSTER_DATA_MSID          0x6
-#define X4_CLUSTER_DATA_MSID          0x8
-#define X16_CLUSTER_DATA_MSID         0xa
-#define ALL_CLUSTER_DATA_MSID         0xc
-#define EMEM_DATA_NO_ECC_MSID         0x0
-#define EMEM_DATA_IN_BAND_MSID        0x1
-#define EMEM_DATA_OUT_OF_BAND_MSID    0x2
+#define UDP_SYSLOG_SERVER	514
 
-/* Statistics MSIDs */
-#define EMEM_STATISTICS_POSTED_MSID   0x3
 
-/* Search MSIDs */
-#define EMEM_SEARCH_MSID              0x4
+#ifndef NDEBUG
+#define alvs_write_log(priority, str, ...)\
+		write_log_macro(priority, cmem.syslog_work_area, EZDP_SYSLOG_WA, str, ##__VA_ARGS__) \
 
-enum struct_id {
-	STRUCT_ID_NW_INTERFACES            = 0,
-	STRUCT_ID_NW_LAG                   = 1,
-	STRUCT_ID_ALVS_CONNECTIONS         = 2,
-	STRUCT_ID_ALVS_SERVICES            = 3,
-	STRUCT_ID_ALVS_SERVERS             = 4,
-	STRUCT_ID_NW_FIB                   = 5,
-	STRUCT_ID_NW_ARP                   = 6,
-	NUM_OF_STRUCT_IDS
-};
+#define alvs_write_log_simple(priority, str)
 
-#endif /* DEFS_H_ */
+#else
+#define ALVS_LOGMASK  LOG_UPTO(LOG_INFO)
+#define alvs_write_log(priority, str, ...) {\
+	if (LOG_MASK(priority) & ALVS_LOGMASK ) {\
+		write_log_macro(priority, cmem.syslog_work_area, EZDP_SYSLOG_WA, str,##__VA_ARGS__); \
+	}\
+}
+
+#define alvs_write_log_simple(priority, str) {\
+	if (LOG_MASK(priority) & ALVS_LOGMASK ) {\
+		write_log(priority, str, sizeof(str),cmem.syslog_work_area, EZDP_SYSLOG_WA); \
+	}\
+}
+
+#endif
+/*****************************************************************************/
+/*! \fn void alvs_open_log()
+ * \brief  create syslog DP utility.
+ * \param[in] s -  none
+ * \return TRUE on SUCCESS, FALSE - otherwise.
+ */
+bool alvs_open_log();
+/*****************************************************************************/
+/*! \fn void alvs_send()
+ * \brief  passes as send_cb function in open_log middle ware
+ * \param[in]  s -  frame - frame to be sent
+ * 	     wa_frame - WA for working with frame
+ * 	     wa_frame_size - WA sizeof the provided wa_frame
+ * \return 0 on SUCESS, otherwise 1.
+ */
+int alvs_send (ezframe_t  __cmem  *frame);
+
+#endif /* ALVS_LOG_H_ */

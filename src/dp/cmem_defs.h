@@ -34,8 +34,12 @@
 *  Desc:                definitions file for variables located on CMEM
 */
 
+#ifndef CMEM_DEFS_H_
+#define CMEM_DEFS_H_
+
 #include "alvs_search_defs.h"
 #include "nw_search_defs.h"
+#include "log.h"
 
 /***************** global CMEM data *************************/
 
@@ -62,6 +66,7 @@ struct alvs_cmem {
 		char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_result), sizeof(struct alvs_service_key))];
 		char arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
 		char table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
+		char syslog_work_area[EZDP_SYSLOG_WA];
 	};
 } __packed;
 
@@ -82,3 +87,4 @@ struct alvs_shared_cmem {
 
 extern struct alvs_shared_cmem  shared_cmem __cmem_shared_var;
 
+#endif

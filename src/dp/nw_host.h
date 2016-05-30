@@ -35,6 +35,7 @@
 
 #ifndef NW_HOST_H_
 #define NW_HOST_H_
+#include "cmem_defs.h"
 
 /******************************************************************************
  * \brief         send frames to host
@@ -44,6 +45,12 @@ static __always_inline
 void nw_send_frame_to_host(void)
 {
 	ezframe_send_to_if(&cmem.frame, ALVS_HOST_OUTPUT_CHANNEL_ID, 0);
+}
+
+static __always_inline
+void nw_send_frame_to_host_with_frame(ezframe_t  __cmem  *frame) {
+	ezframe_send_to_if(frame, ALVS_HOST_OUTPUT_CHANNEL_ID, 0);
+
 }
 
 #endif /* NW_HOST_H_ */
