@@ -897,11 +897,8 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	FILE *fd;
 	uint fscanf_res;
 	/* open address file from sys/class/net folder */
-#ifdef EZ_SIM
 	fd = fopen("/sys/class/net/eth0/address", "r");
-#else
-	fd = fopen("/sys/class/net/eth2/address", "r");
-#endif
+
 	if (fd == NULL) {
 		return false;
 	}
