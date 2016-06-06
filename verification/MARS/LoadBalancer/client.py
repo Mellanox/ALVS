@@ -29,7 +29,7 @@ def readHtml(ip):
 # Function: Main
 ################################################################################
 def main():
-    #ip = 'http://10.157.7.210'
+    #ip = 'http://10.157.7.244'
     usage = "usage: %prog [-i -r -p -l -d]"
     parser = OptionParser(usage=usage, version="%prog 1.0")
     
@@ -46,7 +46,7 @@ def main():
 
     try:
         # TODO: get IP as argument
-        ip = 'http://10.157.7.210'
+        ip = 'http://10.157.7.244'
         
         loadBalancerResArr = [0,0,0,0,0,0,0,0,0,0,0]
         for i in range(0, options.num_of_requests):

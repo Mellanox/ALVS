@@ -31,7 +31,7 @@ function clean_setup_ipvs()
 #              Main                     #
 #                                       #
 #########################################
-cho "Cleaning HTTP server setup for IPVS"
+echo "Cleaning HTTP server setup for IPVS"
 clean_setup_ipvs
 echo "All done!"
 
