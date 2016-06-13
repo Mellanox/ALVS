@@ -375,6 +375,12 @@ bool infra_configure_protocol_decode(void)
 	protocol_decoder_params.aucDestMACAddressHigh[3] = my_mac.ether_addr_octet[3];
 	protocol_decoder_params.aucDestMACAddressHigh[4] = my_mac.ether_addr_octet[4];
 	protocol_decoder_params.aucDestMACAddressHigh[5] = my_mac.ether_addr_octet[5];
+	protocol_decoder_params.aucDestMACAddressLow[0] = my_mac.ether_addr_octet[0];
+	protocol_decoder_params.aucDestMACAddressLow[1] = my_mac.ether_addr_octet[1];
+	protocol_decoder_params.aucDestMACAddressLow[2] = my_mac.ether_addr_octet[2];
+	protocol_decoder_params.aucDestMACAddressLow[3] = my_mac.ether_addr_octet[3];
+	protocol_decoder_params.aucDestMACAddressLow[4] = my_mac.ether_addr_octet[4];
+	protocol_decoder_params.aucDestMACAddressLow[5] = my_mac.ether_addr_octet[5];
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetProtocolDecoderParams, &protocol_decoder_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -1109,8 +1115,8 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	/* read my MAC from file */
 	fscanf_res = fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
 	       &my_mac->ether_addr_octet[0], &my_mac->ether_addr_octet[1],
-	       &my_mac->ether_addr_octet[2],  &my_mac->ether_addr_octet[3],
-	       &my_mac->ether_addr_octet[4],  &my_mac->ether_addr_octet[5]);
+	       &my_mac->ether_addr_octet[2], &my_mac->ether_addr_octet[3],
+	       &my_mac->ether_addr_octet[4], &my_mac->ether_addr_octet[5]);
 
 	if (fscanf_res != ETH_ALEN) {
 		fclose(fd);
