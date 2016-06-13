@@ -1,4 +1,4 @@
-/*/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
+/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,7 @@
 *
 *  Project:             NPS400 ALVS application
 *  File:                log.c
-*  Created on: 		May 15, 2016
+*  Created on:          May 15, 2016
 *  Desc:                performs logging functionality for DP
 *
 */
@@ -53,9 +53,9 @@ struct syslog_info syslog_info __cmem_shared_var;
 
 bool open_log(struct syslog_info *user_syslog_info)
 {
-
-	if(user_syslog_info->send_cb == NULL)
+	if (user_syslog_info->send_cb == NULL) {
 		return false;
+	}
 
 	/*save in syslog_wa relevant fields for further work*/
 	syslog_info.applic_name_size =
@@ -73,7 +73,8 @@ bool open_log(struct syslog_info *user_syslog_info)
 
 	/*calculation of the remained space for user string in the
 	 * mixed buffer - where part is syslog message
-	 * and the rest user string*/
+	 * and the rest user string
+	 */
 	syslog_info.remained_length_for_user_string =
 				SYSLOG_BUF_DATA_SIZE
 				- SYSLOG_PRI_FACILITY_STRING_SIZE
@@ -82,7 +83,7 @@ bool open_log(struct syslog_info *user_syslog_info)
 	return true;
 }
 
-void set_syslog_template(struct net_hdr  *net_hdr_info,int total_frame_length)
+void set_syslog_template(struct net_hdr  *net_hdr_info, int total_frame_length)
 {
 	/*fill fields of IPV4 header*/
 	net_hdr_info->ipv4.version = IPVERSION;
@@ -92,7 +93,7 @@ void set_syslog_template(struct net_hdr  *net_hdr_info,int total_frame_length)
 				     + sizeof(struct udphdr)
 				     + total_frame_length;
 	net_hdr_info->ipv4.id = 0;
-	net_hdr_info->ipv4.frag_off = 0x4000; // TODO IP_DF;
+	net_hdr_info->ipv4.frag_off = 0x4000; /* TODO IP_DF; */
 	net_hdr_info->ipv4.ttl = MAXTTL;
 	net_hdr_info->ipv4.protocol = IPPROTO_UDP;
 	net_hdr_info->ipv4.check = 0;
@@ -110,11 +111,10 @@ void set_syslog_template(struct net_hdr  *net_hdr_info,int total_frame_length)
 	ezframe_update_ipv4_checksum(&net_hdr_info->ipv4);
 
 }
-void write_log(int priority, char *str, int length, char * __cmem syslog_wa, int syslog_wa_size)
+void write_log(int priority, char *str, int length, char __cmem * syslog_wa, int syslog_wa_size)
 {
-	struct net_hdr  *net_hdr_info =
-		(struct net_hdr  *)((struct syslog_wa_info  *)syslog_wa)->
-								frame_data;
+	struct net_hdr *net_hdr_info =
+		(struct net_hdr  *)((struct syslog_wa_info *)syslog_wa)->frame_data;
 	int total_frame_length = length +
 				SYSLOG_PRI_FACILITY_STRING_SIZE +
 				syslog_info.applic_name_size;
@@ -124,69 +124,68 @@ void write_log(int priority, char *str, int length, char * __cmem syslog_wa, int
 	uint8_t *ptr;
 
 	/*check that there are enough space for priority_facility*/
-	assert(SYSLOG_PRI_FACILITY_STRING_SIZE<=SYSLOG_BUF_DATA_SIZE);
+	assert(SYSLOG_PRI_FACILITY_STRING_SIZE <= SYSLOG_BUF_DATA_SIZE);
 	/*check that wa_size provided by the user not less than
-	 * required by private syslog data structure */
+	 * required by private syslog data structure
+	 */
 	assert(syslog_wa_size >= sizeof(struct syslog_wa_info));
 	/*restriction - check that ip_header and udp_header
-	 * included in the first buffer without deviding it*/
-	assert((sizeof(struct iphdr) + sizeof(struct udphdr)) <=
-	       	       	       SYSLOG_FIRST_BUFFER_SIZE);
+	 * included in the first buffer without deviding it
+	 */
+	assert((sizeof(struct iphdr) + sizeof(struct udphdr)) <= SYSLOG_FIRST_BUFFER_SIZE);
 
 	/*check that there are enough space for application name */
 	assert((SYSLOG_PRI_FACILITY_STRING_SIZE +
-			syslog_info.applic_name_size)
-	       	       	    <= SYSLOG_BUF_DATA_SIZE);
+			syslog_info.applic_name_size) <= SYSLOG_BUF_DATA_SIZE);
 
 	/*fill syslog ipv4/udp template*/
-	set_syslog_template(net_hdr_info,total_frame_length);
+	set_syslog_template(net_hdr_info, total_frame_length);
 
 	/*create new frame*/
-	 rc = ezframe_new(&((struct syslog_wa_info  *)syslog_wa)->frame,
-			  net_hdr_info,
-		     sizeof (struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
-	 if (rc!= 0)
-		 return;
+	rc = ezframe_new(&((struct syslog_wa_info *)syslog_wa)->frame,
+			 net_hdr_info,
+			 sizeof(struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
+	if (rc != 0) {
+		return;
+	}
 
-	 /*required for append*/
-	ezframe_next_buf(&((struct syslog_wa_info  *)syslog_wa)->frame, 0);
+	/*required for append*/
+	ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 
 	/*copy priority_facility to the buffer*/
-	ezdp_mem_copy(((struct syslog_wa_info  *)syslog_wa)->frame_data,
+	ezdp_mem_copy(((struct syslog_wa_info *)syslog_wa)->frame_data,
 		      &ptr_pri_facility[priority][0],
 		      SYSLOG_PRI_FACILITY_STRING_SIZE);
 
 	/*copy priority_facility to the buffer from offset
-	 * after priority_facility*/
-	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info  *)syslog_wa)->
-		      	      frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE],
+	 * after priority_facility
+	 */
+	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE],
 			      syslog_info.applic_name,
 			      (uint32_t)syslog_info.applic_name_size);
 
 
 	/*calculation of the  start of the user string after
-	 * adding syslog private message*/
-	ptr = (uint8_t *)&((struct syslog_wa_info  *)syslog_wa)->
-				frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
+	 * adding syslog private message
+	 */
+	ptr = (uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
 			   syslog_info.applic_name_size];
 
 	/*calculation of buf_len to add user string*/
-	buf_len = MIN (length, syslog_info.remained_length_for_user_string);
+	buf_len = MIN(length, syslog_info.remained_length_for_user_string);
 	/*copy user string to the correct offset of the buffer*/
-	ezdp_mem_copy (ptr, str, buf_len);
+	ezdp_mem_copy(ptr, str, buf_len);
 
 	/*append buffer to the frame*/
-	rc = ezframe_append_buf(&((struct syslog_wa_info  *)syslog_wa)
+	rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)
 			    ->frame,
-			    ((struct syslog_wa_info  *)syslog_wa)->
-			    frame_data,
+			    ((struct syslog_wa_info *)syslog_wa)->frame_data,
 			    SYSLOG_BUF_DATA_SIZE -
 			    syslog_info.remained_length_for_user_string,
 			    0);
 	if (rc != 0) {
-		ezframe_free(&((struct syslog_wa_info  *)syslog_wa)->
-			     	     frame, 0);
-		return ;
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+		return;
 	}
 
 	/*update pointer of the user data*/
@@ -194,47 +193,41 @@ void write_log(int priority, char *str, int length, char * __cmem syslog_wa, int
 	/*update length remained to copy from the user data*/
 	length -= buf_len;
 	/*update buffer for the next copy to the wa*/
-	ptr = (uint8_t *)((struct syslog_wa_info  *)syslog_wa)->
-							frame_data;
+	ptr = (uint8_t *)((struct syslog_wa_info *)syslog_wa)->frame_data;
 	 /*required for append*/
-	ezframe_next_buf(&((struct syslog_wa_info  *)syslog_wa)->frame, 0);
+	ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 
 	/*restrictions - the buffer contains in summary not more than 3 buffers*/
-	while ((length > 0) && (num_of_bufs < SYSLOG_MAX_NUM_OF_BUF))
-	 {
+	while ((length > 0) && (num_of_bufs < SYSLOG_MAX_NUM_OF_BUF)) {
 		/*calculation of buf_len to add user string*/
-		buf_len = MIN (length, SYSLOG_BUF_DATA_SIZE);
+		buf_len = MIN(length, SYSLOG_BUF_DATA_SIZE);
 		/*copy user string to the correct offset of the buffer*/
-		ezdp_mem_copy (ptr, str, buf_len);
+		ezdp_mem_copy(ptr, str, buf_len);
 		/*append buffer to the frame*/
-		rc = ezframe_append_buf(&((struct syslog_wa_info  *)syslog_wa)
-				    ->frame,
-				    ((struct syslog_wa_info  *)syslog_wa)->
-				    frame_data,
+		rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame,
+				    ((struct syslog_wa_info *)syslog_wa)->frame_data,
 				    buf_len, 0);
 		if (rc != 0) {
-			ezframe_free(&((struct syslog_wa_info  *)syslog_wa)->
-				     	     frame, 0);
-			return ;
+			ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+			return;
 		}
 
 		/*update frame to point to the last buffer*/
-		 ezframe_next_buf(&((struct syslog_wa_info  *)syslog_wa)
-				      ->frame, 0);
+		 ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 		/*update pointer of the user data*/
 		str += buf_len;
 		/*update length remained to copy from the user data*/
 		length -= buf_len;
 		/*update buffer for the next copy to the wa*/
-		ptr = (uint8_t *)((struct syslog_wa_info  *)syslog_wa)->
+		ptr = (uint8_t *)((struct syslog_wa_info *)syslog_wa)->
 								frame_data;
 		/*update number of buffers in the frame -
-		 * NOTE - in summary allowed 3 buffers*/
+		 * NOTE - in summary allowed 3 buffers
+		 */
 		num_of_bufs += 1;
-
-	 }
+	}
 	/*if user sent send_cb - call it*/
-	syslog_info.send_cb(&((struct syslog_wa_info  *)syslog_wa)->
+	syslog_info.send_cb(&((struct syslog_wa_info *)syslog_wa)->
 				    frame);
 
 }

@@ -143,13 +143,13 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 		if (rc == EEXIST) {
 			printf("connection entry already exist!\n");
 			return ALVS_SERVICE_DATA_PATH_RETRY;
-		} else {
-			printf("fail to add new connection info entry - drop frame\n");
-			/*drop frame*/
-			alvs_update_discard_statistics(ALVS_ERROR_CONN_INFO_ALLOC_FAIL);
-			alvs_discard_frame();
-			return ALVS_SERVICE_DATA_PATH_IGNORE;
 		}
+
+		printf("fail to add new connection info entry - drop frame\n");
+		/*drop frame*/
+		alvs_update_discard_statistics(ALVS_ERROR_CONN_INFO_ALLOC_FAIL);
+		alvs_discard_frame();
+		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
 	/*update scheduled connections and active connections*/
 	alvs_update_connection_statistics(1, 1, 0);

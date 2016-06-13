@@ -1,4 +1,4 @@
-/*/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
+/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
@@ -31,28 +31,28 @@
 *
 *  Project:             NPS400 ALVS application
 *  File:                alvs_log.c
-*  Created on: 		May 18, 2016
+*  Created on:          May 18, 2016
 *  Desc:                performs logging functionality for ALVS DP
 *
 */
 #include "alvs_log.h"
 
 
-bool alvs_open_log()
+bool alvs_open_log(void)
 {
 	struct syslog_info syslog_info;
-	struct in_addr dest_ip,src_ip;
+	struct in_addr dest_ip, src_ip;
 	char *syslog_client_ip = "169.254.42.42";
 
 	syslog_info.send_cb = alvs_send;
 	syslog_info.dest_port = SYSLOG_UDP_SERVER_PORT;
 
-	snprintf(syslog_info.applic_name,SYSLOG_APPLIC_NAME_STRING_SIZE, "ALVS_DP");
+	snprintf(syslog_info.applic_name, SYSLOG_APPLIC_NAME_STRING_SIZE, "ALVS_DP");
 	syslog_info.applic_name_size = strlen(" ALVS_DP ");
 
 	/*get IP from string*/
 	inet_aton(SYSLOG_SERVER_IP, &dest_ip);
-	inet_aton(syslog_client_ip, &src_ip); // store IP in antelope
+	inet_aton(syslog_client_ip, &src_ip); /* store IP in antelope */
 
 	syslog_info.dest_ip = dest_ip.s_addr;
 	syslog_info.src_ip = src_ip.s_addr;
@@ -61,8 +61,9 @@ bool alvs_open_log()
 	return open_log(&syslog_info);
 }
 
-int alvs_send (ezframe_t  __cmem  *frame)
+int alvs_send(ezframe_t  __cmem * frame)
 {
+#if 0
 	int rc;
 	uint8_t *frame_base;
 	uint32_t orig_length;
@@ -71,7 +72,8 @@ int alvs_send (ezframe_t  __cmem  *frame)
 	uint8_t src_eth_addr[6] = SYSLOG_CLIENT_ETH_ADDR;
 
 	/*check that wa provided by middle ware not less than
-	 * required for the work with the first buffer*/
+	 * required for the work with the first buffer
+	 */
 	assert(EZDP_SYSLOG_WA >= SYSLOG_BUF_DATA_SIZE);
 
 	rc = ezframe_first_buf(frame, 0);
@@ -79,7 +81,7 @@ int alvs_send (ezframe_t  __cmem  *frame)
 		return rc;
 	}
 
-	assert(ezframe_get_buf_headroom(frame)>= sizeof(struct ether_header));
+	assert(ezframe_get_buf_headroom(frame) >= sizeof(struct ether_header));
 
 	/*load the buffer and get the start of the data*/
 	frame_base = ezframe_load_buf(frame, &cmem.syslog_work_area[SYSLOG_FIRST_BUFFER_SIZE],
@@ -87,8 +89,9 @@ int alvs_send (ezframe_t  __cmem  *frame)
 				      EZFRAME_LOAD_DATA_WITHOUT_OFFSET);
 
 	/*move the start of the data to ethernet_header where
-	 * should update the Ethernet header*/
-	eth_p = (struct ether_header*)(frame_base - sizeof(struct ether_header));
+	 * should update the Ethernet header
+	 */
+	eth_p = (struct ether_header *)(frame_base - sizeof(struct ether_header));
 	/*fill ethernet source MAC*/
 	ezdp_mem_copy((uint8_t *)eth_p->ether_shost, src_eth_addr,
 		      sizeof(struct ether_addr));
@@ -97,12 +100,14 @@ int alvs_send (ezframe_t  __cmem  *frame)
 
 	/*fill ethernet destination MAC*/
 	my_mac = nw_interface_get_mac_address(0);
-	if (my_mac == NULL)
-		return EACCES;
+
+	if (my_mac == NULL) {
+		return -EACCES;
+	}
 	ezdp_mem_copy((uint8_t *)eth_p, my_mac, sizeof(struct ether_addr));
 
 	/*update frame length*/
-	orig_length+=sizeof(struct ether_header);
+	orig_length += sizeof(struct ether_header);
 	/*store buffer with updated length*/
 	rc = ezframe_store_buf(frame, eth_p, orig_length, 0);
 	if (rc) {
@@ -110,6 +115,7 @@ int alvs_send (ezframe_t  __cmem  *frame)
 	}
 
 	nw_send_frame_to_host_with_frame(frame);
+#endif
 
 	return 0;
 }

@@ -39,8 +39,8 @@ union temp {
 	int y;
 };
 
-#define SYSLOG_SERVER_IP			"169.254.42.41"
-#define SYSLOG_CLIENT_ETH_ADDR		{0x00,0x02,0xc9,0x42,0x42,0x43}
+#define SYSLOG_SERVER_IP          "169.254.42.41"
+#define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}
 
 #define ALVS_SIZE_OF_SCHED_BUCKET   256
 
@@ -90,7 +90,6 @@ enum alvs_conn_on_demand_stats_offsets {
 #define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
 #define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
 #define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID
->>>>>>> Commenting old classification DB
 
 enum struct_id {
 	STRUCT_ID_NW_INTERFACES                = 0,

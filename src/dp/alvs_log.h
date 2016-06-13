@@ -27,9 +27,10 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
- *  	Created on: May 18, 2016
-	file - alvs_log.h
-*	description - contains definitions for alvs_log.c
+*
+*       Created on: May 18, 2016
+*       file - alvs_log.h
+*       description - contains definitions for alvs_log.c
 */
 
 #ifndef ALVS_LOG_H_
@@ -39,33 +40,30 @@
 #include <ezframe.h>
 #include "log.h"
 #include "defs.h"
-#include "alvs_dp_defs.h"
-#include "nw_host.h"
 #include <arpa/inet.h>
-#include "nw_interface.h"
 
 
-#define UDP_SYSLOG_SERVER	514
+#define UDP_SYSLOG_SERVER      514
 
 
 #ifndef NDEBUG
-#define alvs_write_log(priority, str, ...)\
+#define alvs_write_log(priority, str, ...) \
 		write_log_macro(priority, cmem.syslog_work_area, EZDP_SYSLOG_WA, str, ##__VA_ARGS__) \
 
 #define alvs_write_log_simple(priority, str)
 
 #else
 #define ALVS_LOGMASK  LOG_UPTO(LOG_INFO)
-#define alvs_write_log(priority, str, ...) {\
-	if (LOG_MASK(priority) & ALVS_LOGMASK ) {\
-		write_log_macro(priority, cmem.syslog_work_area, EZDP_SYSLOG_WA, str,##__VA_ARGS__); \
-	}\
+#define alvs_write_log(priority, str, ...) { \
+	if (LOG_MASK(priority) & ALVS_LOGMASK) { \
+		write_log_macro(priority, cmem.syslog_work_area, EZDP_SYSLOG_WA, str, ##__VA_ARGS__); \
+	} \
 }
 
-#define alvs_write_log_simple(priority, str) {\
-	if (LOG_MASK(priority) & ALVS_LOGMASK ) {\
-		write_log(priority, str, sizeof(str),cmem.syslog_work_area, EZDP_SYSLOG_WA); \
-	}\
+#define alvs_write_log_simple(priority, str) { \
+	if (LOG_MASK(priority) & ALVS_LOGMASK) { \
+		write_log(priority, str, sizeof(str), cmem.syslog_work_area, EZDP_SYSLOG_WA); \
+	} \
 }
 
 #endif
@@ -75,15 +73,16 @@
  * \param[in] s -  none
  * \return TRUE on SUCCESS, FALSE - otherwise.
  */
-bool alvs_open_log();
+bool alvs_open_log(void);
+
 /*****************************************************************************/
 /*! \fn void alvs_send()
  * \brief  passes as send_cb function in open_log middle ware
  * \param[in]  s -  frame - frame to be sent
- * 	     wa_frame - WA for working with frame
- * 	     wa_frame_size - WA sizeof the provided wa_frame
+ *             wa_frame - WA for working with frame
+ *             wa_frame_size - WA sizeof the provided wa_frame
  * \return 0 on SUCESS, otherwise 1.
  */
-int alvs_send (ezframe_t  __cmem  *frame);
+int alvs_send(ezframe_t  __cmem * frame);
 
 #endif /* ALVS_LOG_H_ */

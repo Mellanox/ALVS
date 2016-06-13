@@ -102,7 +102,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	}
 
 	/* Delete existing DB file */
-	remove(ALVS_DB_FILE_NAME);
+	(void)remove(ALVS_DB_FILE_NAME);
 
 	/* Open the DB file */
 

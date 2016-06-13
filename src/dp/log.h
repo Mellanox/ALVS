@@ -1,5 +1,4 @@
-/*
- Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
+/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:
@@ -44,80 +43,80 @@
 #include <ezdp.h>
 #include <ezframe.h>
 
-#define MIN(x,y) (((x)<=(y))?(x):(y))
+#define MIN(x, y) (((x) <= (y)) ? (x) : (y))
 
-#define SYSLOG_UDP_SERVER_PORT		514
+#define SYSLOG_UDP_SERVER_PORT          514
 #define SYSLOG_TEMPLATE_HOST_NAME_SIZE  20
 #define SYSLOG_PRI_FACILITY_STRING_SIZE 4 /*TODO - for now its hardcoded. should be changed*/
-#define SYSLOG_APPLIC_NAME_STRING_SIZE 	10
-#define SYSLOG_BUF_DATA_SIZE 		64
-#define SYSLOG_FIRST_BUFFER_SIZE 	32
-#define SYSLOG_MAX_NUM_OF_BUF		3
-#define SYSLOG_BUF_HEADROOM		64
+#define SYSLOG_APPLIC_NAME_STRING_SIZE  10
+#define SYSLOG_BUF_DATA_SIZE            64
+#define SYSLOG_FIRST_BUFFER_SIZE        32
+#define SYSLOG_MAX_NUM_OF_BUF           3
+#define SYSLOG_BUF_HEADROOM             64
 
 int syslog_str_size;
 char syslog_str[EZFRAME_BUF_DATA_SIZE];
 
 #ifndef NDEBUG
-#define write_log_macro(priority, wa, wa_size, str, ...) {\
-		syslog_str_size = snprintf(syslog_str, EZFRAME_BUF_DATA_SIZE, str "[FILE: %s:%d FUNC: %s]", ##__VA_ARGS__, __FILE__,__LINE__, __func__ );\
-		write_log(priority, syslog_str, syslog_str_size, wa, wa_size ); \
+#define write_log_macro(priority, wa, wa_size, str, ...) { \
+		syslog_str_size = snprintf(syslog_str, EZFRAME_BUF_DATA_SIZE, str "[FILE: %s:%d FUNC: %s]", ##__VA_ARGS__, __FILE__, __LINE__, __func__); \
+		write_log(priority, syslog_str, syslog_str_size, wa, wa_size); \
 }
 #else
 #define LOGMASK  LOG_UPTO(LOG_INFO)
-#define write_log_macro(priority, wa, wa_size, str, ...) \
+#define write_log_macro(priority, wa, wa_size, str, ...) { \
 	if (LOG_MASK(priority) & LOGMASK) { \
 		syslog_str_size = snprintf(syslog_str, EZFRAME_BUF_DATA_SIZE, str, ##__VA_ARGS__); \
 		write_log(priority, syslog_str, syslog_str_size, wa, wa_size); \
-	}
+	} \
+}
 #endif
 
-struct net_hdr{
+struct net_hdr {
 	struct iphdr ipv4;
 	struct udphdr udp;
 } __packed;
 
-
 struct syslog_wa_info {
-	ezframe_t 	frame;
-	char 	frame_data[SYSLOG_BUF_DATA_SIZE];
+	ezframe_t   frame;
+	char        frame_data[SYSLOG_BUF_DATA_SIZE];
 };
 #define EZDP_SYSLOG_WA sizeof(struct syslog_wa_info)
 typedef int (*send_cb)(ezframe_t *);
 
 struct syslog_info {
-	char 		applic_name[SYSLOG_APPLIC_NAME_STRING_SIZE];
-	int 		applic_name_size;
-	send_cb 	send_cb;
-	uint16_t 	dest_port;
-	in_addr_t 	dest_ip;
-	in_addr_t 	src_ip;
-	int		remained_length_for_user_string;
+	char            applic_name[SYSLOG_APPLIC_NAME_STRING_SIZE];
+	int             applic_name_size;
+	send_cb         send_cb;
+	uint16_t        dest_port;
+	in_addr_t       dest_ip;
+	in_addr_t       src_ip;
+	int             remained_length_for_user_string;
 };
 /*****************************************************************************/
 /*! \fn void write_log(int priority, char *str,int length,
- * 			char * __cmem syslog_wa, int syslog_wa_size);
-*
+ *                     char * __cmem syslog_wa, int syslog_wa_size);
+ *
  * \brief send syslog frame to SYSLOG server.
- * \param[in] 	priority - 	priority of the user message
- * 		str - user string
- * 		length - length of the user string
- * 		syslog_wa - WA in CMEM
- * 		syslog_wa_size - WA size in CMEM
+ * \param[in]   priority - priority of the user message
+ *              str - user string
+ *              length - length of the user string
+ *              syslog_wa - WA in CMEM
+ *              syslog_wa_size - WA size in CMEM
  * \return none.
  */
-void write_log(int priority, char *str,int length,
-	       	       	       	       char * __cmem syslog_wa,
-				       int syslog_wa_size);
+void write_log(int priority, char *str, int length,
+	       char __cmem * syslog_wa,
+	       int syslog_wa_size);
 /*****************************************************************************/
 /*! \fn void open_log(char *applic_name, int applic_name_lengh,
- * 			 in_addr_t dest_ip, in_addr_t src_ip,
- * 			 uint16_t dest_udp,
- *	     send_cb send_cb)
+ *                       in_addr_t dest_ip, in_addr_t src_ip,
+ *                       uint16_t dest_udp,
+ *                       send_cb send_cb)
  * \brief Open the connection to syslog utility in DP.
- * \param[in] 	user_syslog_info - the data strucuture from the type syslog_info
- * 				    which contains application parameters
- * 				    for syslog
+ * \param[in]   user_syslog_info - the data strucuture from the type syslog_info
+ *                                 which contains application parameters
+ *                                 for syslog
  * \return TRUE - on SUCCESS, FALSE - otherwise.
  */
 bool open_log(struct syslog_info *user_syslog_info);
