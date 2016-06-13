@@ -16,7 +16,7 @@ import logging
 import urllib2
 
 # local 
-from user import SshConnct
+from common_infra import *
 
 
 #===============================================================================
@@ -24,23 +24,9 @@ from user import SshConnct
 #===============================================================================
 
 
-class HttpClient:
-	def __init__(self, server_ip, hostname, username, password):
+class HttpClient(player):
 
-		# Init class variables
-		self.server_ip	= server_ip
-		self.ssh		= SshConnct(hostname, username, password)
-
-
-	def connect(self):
-		self.ssh.connect()
-
-		
-	def logout(self):
-		self.ssh.logout()
-
-
-	def readHtml(ip):
+	def readHtml(self, ip):
 		print 'Openning HTTP connection with ' + ip
 		
 		response = urllib2.urlopen(ip)
@@ -52,3 +38,10 @@ class HttpClient:
 			print html
 	
 			return str(html)
+
+	def init_client(self):
+		# TODO: inplement
+		pass
+	def clean_client(self):
+		# TODO: inplement
+		pass	

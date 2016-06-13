@@ -3,6 +3,7 @@
 *.o
 *.exe
 *.log
+*.pyc
 bin/*
 */bin/*
 target/work/*

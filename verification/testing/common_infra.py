@@ -67,3 +67,30 @@ class SshConnct:
 		
 		return [True,output]
 
+
+class player(object):
+	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params):
+		self.ip = ip
+		self.hostname = hostname
+		self.username = username
+		self.password = password
+		self.exe_path = exe_path
+		self.exe_script = exe_script
+		self.exec_params = exec_params
+		self.ssh		= SshConnct(hostname, username, password)
+
+	def execute(self):
+		if self.exe_script:
+			sshpass_cmd = "sshpass -p " + self.password+ " ssh root@" + self.ip
+			exec_cmd    = "cd " + self.exe_path + "; python " + self.exe_script
+			os.system(sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\"")
+
+	def connect(self):
+		self.ssh.connect()
+		
+	def logout(self):
+		self.ssh.logout()
+		
+	def str(self):
+		return self.ip
+ 

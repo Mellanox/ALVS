@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-
 #===============================================================================
 # imports
 #===============================================================================
-
 # system  
 import os
 import sys
@@ -15,35 +13,35 @@ import cmd
 import logging
 
 # local 
-from common_infra import SshConnct
-
+from common_infra import *
 
 #===============================================================================
 # Classes
 #===============================================================================
-
-
-class HttpServer:
-	def __init__(self,
-				ip_server, virtual_ip_server, 
-				hostname, username, password,
-				net_mask="255.255.255.255"):
-		
+class HttpServer(player):
+	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params, vip, net_mask="255.255.255.255"):
+		# init parent class
+		super(HttpServer, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
 		# Init class variables
-		self.ip_server         = ip_server
-		self.virtual_ip_server = virtual_ip_server
-		self.net_mask          = net_mask
-		self.ssh               = SshConnct(hostname, username, password)
+		self.net_mask = net_mask
+		self.vip = vip
 
+	def init_server(self, index_str):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		self.connect()
+		self.start_http_daemon()
+		self.configure_loopback()
+		self.disable_arp()
+		self.set_index_html(index_str)
 
-	def connect(self):
-		self.ssh.connect()
-
+	def clean_server(self):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		self.stop_http_daemon()
+		self.take_down_loopback()
+		self.enable_arp()
+		self.delete_index_html()
+		self.logout()
 		
-	def logout(self):
-		self.ssh.logout()
-
-
 	def start_http_daemon(self):
 		rc, output = self.ssh.execute_command("service httpd start")
 		if rc != True:
@@ -63,7 +61,7 @@ class HttpServer:
 
 
 	def configure_loopback(self):
-		cmd = "ifconfig lo:0 " + str(self.virtual_ip_server) + " netmask " + str(self.net_mask)
+		cmd = "ifconfig lo:0 " + str(self.vip) + " netmask " + str(self.net_mask)
 		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
 			print "ERROR: Configuting loopback failed. rc=" + str(rc) + " " + output

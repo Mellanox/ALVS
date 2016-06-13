@@ -37,33 +37,30 @@ def user_init():
 	
 	# create HTTP server list
 	vip = "10.157.7.244"
-	ServerStruct = namedtuple("ServerStruct", "ip password virtual_ip index_str host_name exe_path exe_script exec_params")
-	server_1     = ServerStruct(ip      = "10.157.7.195",
-							password    = "3tango",
-							virtual_ip  = vip,
-							index_str   = "10.157.7.195",
-							host_name   = "l-nps-001",
-							exe_path    = None,
-							exe_script  = None,
-							exec_params = None)
-	server_2     = ServerStruct(ip      = "10.157.7.196",
-							password    = "3tango",
-							virtual_ip  = vip,
-							index_str   = "10.157.7.196",
-							host_name   = "l-nps-002",
-							exe_path    = None,
-							exe_script  = None,
-							exec_params = None)
-	server_list  = {server_1, server_2}
+	server_1 = HttpServer(ip = "10.157.7.195",
+						  hostname = "l-nps-001", 
+						  username = "root", 
+						  password = "3tango", 
+						  exe_path = None, exe_script = None, exec_params = None, 
+						  vip = vip)
+	server_2 = HttpServer(ip = "10.157.7.196",
+						  hostname = "l-nps-002", 
+						  username = "root", 
+						  password = "3tango", 
+						  exe_path = None, exe_script = None, exec_params = None, 
+						  vip = vip)
+	
+	server_list  = [server_1, server_2]
 	
 	# create Client list
-	ClientStruct = namedtuple("ClientStruct", "ip password exe_path exe_script exec_params")
-	client_1     = ClientStruct(ip      = "10.157.7.196",
-							password    = "3tango",
-							exe_path    = "/.autodirect/swgwork/kobis/workspace/GIT2/ALVS/verification/MARS/LoadBalancer/",
-							exe_script  = "ClientWrapper.py",
-							exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0")
-	client_list  = {client_1}
+	client_1 = HttpClient(ip = "10.157.7.196",
+						  hostname = "l-nps-003", 
+						  username = "root", 
+						  password = "3tango", 
+						  exe_path    = "/.autodirect/swgwork/kobis/workspace/GIT2/ALVS/verification/MARS/LoadBalancer/",
+						  exe_script  = "ClientWrapper.py",
+						  exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0")
+	client_list  = [client_1]
 
 	# EZbox list
 	EZboxStruct = namedtuple("EZbox", "host_ip dp_ip")  # TODO: add more fields
