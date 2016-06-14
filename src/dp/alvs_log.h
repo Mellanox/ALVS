@@ -48,7 +48,7 @@
 
 #ifndef NDEBUG
 #define alvs_write_log(priority, str, ...) \
-		write_log_macro(priority, cmem_wa.syslog_work_area, EZDP_SYSLOG_WA, str, ##__VA_ARGS__)
+		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__)
 
 #define alvs_write_log_simple(priority, str)
 
@@ -56,7 +56,7 @@
 #define ALVS_LOGMASK  LOG_UPTO(LOG_INFO)
 #define alvs_write_log(priority, str, ...) { \
 	if (LOG_MASK(priority) & ALVS_LOGMASK) { \
-		write_log_macro(priority, cmem_wa.syslog_work_area, EZDP_SYSLOG_WA, str, ##__VA_ARGS__); \
+		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__); \
 	} \
 }
 

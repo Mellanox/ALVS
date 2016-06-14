@@ -70,11 +70,11 @@ void alvs_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 				     sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
 	if (rc == 0) {
-		alvs_write_log(LOG_DEBUG,"Connection exists (fast path)");
+		alvs_write_log(LOG_DEBUG, "Connection exists (fast path)");
 		alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
 	} else {
 		/*handle slow path  - opening new connection*/
-		alvs_write_log(LOG_DEBUG,"New connection (slow path)");
+		alvs_write_log(LOG_DEBUG, "New connection (slow path)");
 		alvs_unknown_packet_processing(frame_base, ip_hdr, tcp_hdr);
 	}
 }

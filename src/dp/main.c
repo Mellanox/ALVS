@@ -342,7 +342,7 @@ void parse_arguments(int argc, char **argv, uint32_t *num_cpus_set_p)
 
 	for (idx = 1; idx < argc;) {
 		if (argv[idx][0] == '-') {
-			if (strcmp(argv[idx], "-run_cpus") == 0) {
+			if (strcmp(argv[idx], "--run_cpus") == 0) {
 				add_run_cpus(argv[idx+1]);
 				(*num_cpus_set_p) = 1;
 				idx += 2;
@@ -382,6 +382,7 @@ void packet_processing(void)
 
 		if (port_id == ALVS_AGING_TIMER_LOGICAL_ID) {
 			alvs_handle_aging_event(frame.job_desc.rx_info.timer_info.event_id);
+			alvs_discard_frame();
 		} else {
 			nw_recieve_and_parse_frame(&frame,
 						   frame_data,

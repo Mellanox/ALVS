@@ -106,9 +106,12 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.sync_bit = 1;
+	cmem_alvs.conn_info_result.reset_bit = 0;
+	cmem_alvs.conn_info_result.delete_bit = 0;
 	cmem_alvs.conn_info_result.conn_flags = cmem_alvs.server_info_result.conn_flags;
 	cmem_alvs.conn_info_result.server_index = server_index;
 	cmem_alvs.conn_info_result.conn_state = conn_state;
+	cmem_alvs.conn_info_result.age_iteration = 0;
 	cmem_alvs.conn_info_result.conn_stats_base.mem_type = EZDP_EXTERNAL_MS;
 	cmem_alvs.conn_info_result.conn_stats_base.msid	= EMEM_CONN_STATS_ON_DEMAND_MSID;
 	cmem_alvs.conn_info_result.conn_stats_base.element_index = conn_index;
@@ -208,15 +211,14 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 
 /******************************************************************************
  * \brief       set connection delete bit on
- *              this function is called in 3 cases:
- *                      1. aging bit is set
+ *              this function is called in 2 cases:
  *                      2. Receive TCP reset flag
  *                      3. destination server is not available
  *
  * \return      void
  */
 static __always_inline
-uint32_t alvs_conn_mark_to_delete(uint32_t conn_index)
+uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset_bit)
 {
 	uint32_t rc;
 	ezdp_hashed_key_t hash_value;
@@ -236,6 +238,7 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index)
 	/* need to modify connection entry - change state for close and set aging bit on. */
 	cmem_alvs.conn_info_result.aging_bit = 0;
 	cmem_alvs.conn_info_result.delete_bit = 1;
+	cmem_alvs.conn_info_result.reset_bit = reset_bit;
 
 	rc = ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 			conn_index,
@@ -322,6 +325,7 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 
 	/* turn on the aging bit */
 	cmem_alvs.conn_info_result.aging_bit = 1;
+	cmem_alvs.conn_info_result.delete_bit = 0;
 
 	rc =  ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 			conn_index,
@@ -343,7 +347,7 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
  * \return      0 in case of success, otherwise failure.
  */
 static __always_inline
-uint32_t alvs_conn_age_out(uint32_t conn_index)
+uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 {
 	uint32_t rc;
 	ezdp_hashed_key_t hash_value;
@@ -356,11 +360,13 @@ uint32_t alvs_conn_age_out(uint32_t conn_index)
 
 	if (rc != 0) {
 		printf("fail in conn info lookup while trying to modify!\n");
+		alvs_unlock_connection(hash_value);
 		return rc;
 	}
 
-	/* turn on the aging bit */
+	/* turn off the aging bit */
 	cmem_alvs.conn_info_result.aging_bit  =  0;
+	cmem_alvs.conn_info_result.age_iteration  =  age_iteration;
 
 	rc = ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 			conn_index,
@@ -441,11 +447,21 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			return;
 		}
 
+		/*check if someone already indicated that this connection should be deleted...*/
+		if (cmem_alvs.conn_info_result.reset_bit == 1) {
+			/*server in not available - close connection*/
+			printf("connection is marked to delete!\n");
+			/*drop frame*/
+			alvs_update_discard_statistics(ALVS_ERROR_CONN_MARK_TO_DELETE);
+			alvs_discard_frame();
+			return;
+		}
+
 		/*check destination server status*/
 		if (!(cmem_alvs.server_info_result.server_flags & IP_VS_DEST_F_AVAILABLE)) {
 			/*server in not available - close connection*/
 			printf("Server is unavailable.\n");
-			if (alvs_conn_mark_to_delete(conn_index) != 0) {
+			if (alvs_conn_mark_to_delete(conn_index, 0) != 0) {
 				/*unable to update connection - weird error scenario*/
 				printf("error - fail to mark delete connection ID = %d!\n", conn_index);
 				/*drop frame*/
@@ -461,7 +477,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 
 		/*check if state changed*/
 		if (tcp_hdr->rst) {
-			if (alvs_conn_mark_to_delete(conn_index) != 0) {
+			if (alvs_conn_mark_to_delete(conn_index, 1) != 0) {
 				/*unable to update connection - weird error scenario*/
 				printf("error - fail to mark delete connection ID = %d - tcp state changed to reset!\n", conn_index);
 				/*drop frame*/

@@ -95,22 +95,33 @@ uint8_t *nw_interface_get_host_mac_address(void)
 	return cmem_nw.host_interface_result.mac_address.ether_addr_octet;
 }
 
+/******************************************************************************
+ * \brief         discard frame due to unexpected error. frame can not be sent to host.
+ * \return        void
+ */
+static __always_inline
+void nw_discard_frame(void)
+{
+	/*drop frame*/
+	ezframe_free(&frame, 0);
+}
+
 
 /******************************************************************************
  * \brief         perform host route
  * \return        void
  */
 static __always_inline
-bool nw_host_do_route(ezframe_t	__cmem * frame,
+void nw_host_do_route(ezframe_t	__cmem * frame,
 		      uint8_t __cmem * frame_base __unused)
 {
 	if (unlikely(nw_interface_lookup_host() != 0)) {
 		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
-		return false;
+		/*drop frame*/
+		nw_discard_frame();
+		return;
 	}
-
 	ezframe_send_to_if(frame, cmem_nw.host_interface_result.output_channel, 0);
-	return true;
 }
 
 #endif  /*NW_UTILS_H_*/

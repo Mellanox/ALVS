@@ -203,7 +203,7 @@ CASSERT(sizeof(struct alvs_conn_classification_result) == 8);
  *********************************/
 
 enum alvs_tcp_conn_state {
-	ALVS_TCP_CONNECTION_ESTABLISHED = 0,
+	ALVS_TCP_CONNECTION_ESTABLISHED = 16,
 	ALVS_TCP_CONNECTION_CLOSE_WAIT	= 1
 };
 
@@ -224,9 +224,9 @@ struct alvs_conn_info_result {
 	uint8_t              sync_bit      : 1;
 	uint8_t              aging_bit     : 1;
 	uint8_t              delete_bit    : 1;
-	unsigned             /*reserved*/  : 1;
+	uint8_t              reset_bit     : 1;
 #else
-	unsigned             /*reserved*/  : 1;
+	uint8_t              reset_bit     : 1;
 	uint8_t              delete_bit    : 1;
 	uint8_t              aging_bit     : 1;
 	uint8_t              sync_bit      : 1;
@@ -235,7 +235,7 @@ struct alvs_conn_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	unsigned             /*reserved*/  : 8;
+	uint8_t              age_iteration;
 	/*byte2-3*/
 	uint16_t             server_index;
 	/*byte4*/

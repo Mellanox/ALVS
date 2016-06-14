@@ -952,7 +952,7 @@ void set_syslog_template(struct net_hdr  *net_hdr_info, int total_frame_length)
 
 }
 
-void write_log(int priority, char *str, int length, char  __cmem * syslog_wa,
+void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	       int syslog_wa_size)
 {
 	struct net_hdr *net_hdr_info =

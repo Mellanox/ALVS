@@ -48,8 +48,7 @@
 union cmem_workarea {
 	union alvs_workarea   alvs_wa;
 	union nw_workarea     nw_wa;
-	char syslog_work_area[ALVS_SYSLOG_WA];
-
+	struct syslog_wa_info syslog_work_area;
 };
 
 

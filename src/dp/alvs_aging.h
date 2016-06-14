@@ -65,9 +65,16 @@ void alvs_handle_aging_event(uint32_t event_id)
 			}
 
 			if (cmem_alvs.conn_info_result.aging_bit == 1) {
-				alvs_conn_age_out(conn_index);
+				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0));
 				return;
 			}
+
+			if (cmem_alvs.conn_info_result.age_iteration == ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0) &&
+				cmem_alvs.conn_info_result.aging_bit == 0) {
+				alvs_conn_delete(conn_index);
+				return;
+			}
+#if 0 /*old implementation*/
 
 			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED &&
 				((iteration_num & LOG2(ALVS_TCP_EST_MULTIPLIER)) == 0)) {
@@ -84,6 +91,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 				}
 				return;
 			}
+#endif
 		}
 	}
 }

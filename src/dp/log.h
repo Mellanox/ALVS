@@ -81,7 +81,7 @@ struct syslog_wa_info {
 	ezframe_t   frame;
 	char        frame_data[SYSLOG_BUF_DATA_SIZE];
 };
-#define EZDP_SYSLOG_WA sizeof(struct syslog_wa_info)
+
 typedef int (*send_cb)(ezframe_t *);
 
 struct syslog_info {
@@ -109,7 +109,7 @@ struct syslog_info {
  * \return none.
  */
 void write_log(int priority, char *str, int length,
-	       char __cmem * syslog_wa,
+	       void __cmem * syslog_wa,
 	       int syslog_wa_size);
 /*****************************************************************************/
 /*! \fn void open_log(char *applic_name, int applic_name_lengh,
