@@ -11,9 +11,8 @@ import os
 import sys
 import urllib2
 
-from common_infra import SshConnct
-from pexpect import pxssh
-import pexpect
+# local 
+from common_infra import *
 
 
 # pythons modules 
@@ -24,23 +23,41 @@ import pexpect
 
 
 class HttpClient(player):
-
+	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
+		# init parent class
+		super(HttpClient, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
+		# Init class variables
+		self.logfile = open('client_%s.log'%ip, 'w')
 	def readHtml(self, ip):
-		print 'Openning HTTP connection with ' + ip
-		
-		response = urllib2.urlopen(ip)
+		self.log('Openning HTTP connection with ' + ip)
+		response = urllib2.urlopen('http://'+ip)
 		html = response.read()
 		if isinstance(html, str):
-			print 'HTML is a string:' + html
+			self.log('HTML is a string:' + html)
+			return html
 		else:
-			print 'HTML is not a string'
-			print html
-	
+			self.log('HTML is not a string')
+			self.log(str(html))
 			return str(html)
 
 	def init_client(self):
-		# TODO: inplement
-		pass
+		self.init_log()
+
 	def clean_client(self):
-		# TODO: inplement
-		pass	
+		self.clear_log()
+
+	def init_log(self):
+		self.logfile.write("start HTTP client %s\n"%self.ip)
+	
+	def clear_log(self):
+		self.logfile.write("end HTTP client %s\n"%self.ip)
+		self.logfile.close()
+
+	def log(self, str):
+		self.logfile.write("%s\n"%str)
+	
+	def get_log(self, dest_dir):
+		cmd = "sshpass -p %s scp %s@%s:%s %s"%(self.password, self.username, self.hostname, self.logfile.name, dest_dir)
+		os.system(cmd)
+		
+		

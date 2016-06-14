@@ -12,7 +12,7 @@ from ezpy_cp import EZpyCP
 import time
 import struct
 import socket
- 
+import inspect
 import logging
  
 STRUCT_ID_NW_ARP = 9
@@ -66,6 +66,10 @@ class ezbox_host:
         
     def wait_for_connectivity(self):
         os.system("../wait_for_connection.sh " + self.management_ip)
+        
+    def clean(self):
+        self.terminate_cp_app()
+        self.logout()
         
     def connect(self):
         print "Connecting to host: " + self.management_ip + ", username: " + self.username + " password: " + self.password
@@ -157,7 +161,8 @@ class ezbox_host:
             cp_bin = self.cp_app_bin
         cmd = "sshpass -p ezchip ssh root@%s rm -f /tmp/%s"%(self.management_ip,cp_bin)
         os.system(cmd)
-        cmd = "sshpass -p %s scp ../../../bin/%s %s@%s:/tmp/%s"%(self.password, cp_bin, self.username, self.management_ip, cp_bin)
+        bin_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))+'/../../bin'
+        cmd = "sshpass -p %s scp %s/%s %s@%s:/tmp/%s"%(self.password, bin_path, cp_bin, self.username, self.management_ip, cp_bin)
         os.system(cmd)
         
     def reset_chip(self):
@@ -179,7 +184,9 @@ class ezbox_host:
             
         print "Copy and run dp app on chip"
         logging.log(logging.INFO,"Copy and run dp app on chip")
-        os.system("sudo ../run_dp.sh ../../../bin/%s %s"%(dp_bin, nps_ip) )
+        bin_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))+'/../../bin'
+        script_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        os.system("sudo %s/run_dp.sh %s/%s %s"%(script_path, bin_path, dp_bin, nps_ip) )
         
     
     def check_syslog_output(self, message):

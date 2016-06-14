@@ -10,10 +10,10 @@ import cmd
 from collections import namedtuple
 import logging
 import os
-import os, sys, inspect
 import sys
+import inspect
+from multiprocessing import Process
 
-from e2e_infra import *
 
 
 # pythons modules 
@@ -21,69 +21,97 @@ from e2e_infra import *
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
+from e2e_infra import *
 
 
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
 
-def user_init():
+def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	# Simple usage:
-	# player: 10.157.7.195 (l-nps-001) - HTTP server 
-	# player: 10.157.7.196 (l-nps-002) - Client
-	# player: 10.157.7.197 (l-nps-003) - LVS
-	# player: 10.157.7.198 (l-nps-004) - HTTP server 
+	# player1: HTTP server 
+	# player2: HTTP server
+	# player3: HTTP client
+	# player4: EZbox 
 	
-	# create HTTP server list
-	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
-	vip = "10.157.7.244"
-	exec_script_dir = script_dirname + "/../../MARS/LoadBalancer/"
-	server_1 = HttpServer(ip = "10.157.7.195",
-						  hostname = "l-nps-001", 
+	server_count = 2
+	client_count = 1
+	service_count = 1
+
+	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
+
+	index = 0
+	setup_list = get_setup_list(setup_num)
+
+	server_list=[]
+	for i in range(server_count):
+		server_list.append(HttpServer(ip = setup_list[index]['ip'],
+						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango", 
-						  exe_path = None, exe_script = None, exec_params = None, 
-						  vip = vip)
-	server_2 = HttpServer(ip = "10.157.7.196",
-						  hostname = "l-nps-002", 
-						  username = "root", 
-						  password = "3tango", 
-						  exe_path = None, exe_script = None, exec_params = None, 
-						  vip = vip)
+						  vip = vip_list[0],
+						  eth='ens6'))
+		index+=1
 	
-	server_list  = [server_1, server_2]
-	
-	# create Client list
-	client_1 = HttpClient(ip = "10.157.7.196",
-						  hostname = "l-nps-003", 
+# 	script_dirname = os.path.dirname(os.path.realpath(__file__))
+# 	exec_script_dir = script_dirname + "/../../MARS/LoadBalancer/"
+	client_list=[]
+	for i in range(client_count):
+		client_list.append(HttpClient(ip = setup_list[index]['ip'],
+						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
-						  password = "3tango", 
-						  exe_path    = exec_script_dir,
-						  exe_script  = "ClientWrapper.py",
-						  exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0")
-	client_list  = [client_1]
+						  password = "3tango"))
+# 						  exe_path    = exec_script_dir,
+# 						  exe_script  = "ClientWrapper.py",
+# 						  exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0"))
+		index+=1
+	
 
-	# EZbox list
-	EZboxStruct = namedtuple("EZbox", "host_ip dp_ip")  # TODO: add more fields
-	ezbox       = EZboxStruct(host_ip = "192.168.0.1", dp_ip = "192.168.0.1")  # TODO: handle
+	# EZbox
+	host_name, chip_name =  get_ezbox_names(setup_num)
+	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip')
 
-	return (server_list, ezbox, client_list)
+	return (server_list, ezbox, client_list, vip_list)
 
+def client_execution(client, vip):
+	for i in range(10):
+		client.readHtml(vip)
 
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	process_list = []
+	vip = vip_list[0]
+
+#	ezbox.add_service(vip)
+	
+	for client in client_list:
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
+	for p in process_list:
+		p.start()
+	for p in process_list:
+		p.join()
+		
+	pass
 #===============================================================================
 # main function
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	server_list, ezbox, client_list = user_init()
+	if len(sys.argv) != 2:
+		print "script expects exactly 1 input argument"
+		print "Usage: client_requests.py <setup_num>"
+		exit(1)
+	
+	
+	setup_num  = int(sys.argv[1])
+	server_list, ezbox, client_list, vip_list = user_init(setup_num)
 
 	init_players(server_list, ezbox, client_list)
 	
-	run_test(server_list, client_list)
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	#run_test(server_list, client_list)
 	
 	collect_logs(server_list, ezbox, client_list)
 	

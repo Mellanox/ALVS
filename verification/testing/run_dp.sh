@@ -45,7 +45,7 @@ function parse_cmd()
     test $# -ne 2 && usage
     
     # move arguments to variables
-    dp_bin_path="$(pwd)/$1"
+    dp_bin_path="$1"
     chip_ip=$2
 
     # print arguments

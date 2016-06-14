@@ -8,18 +8,18 @@ import logging
 import os
 import sys
 
-from common_infra import SshConnct
+from common_infra import *
 from pexpect import pxssh
 import pexpect
 
 
-# pythons modules 
+
 # local 
 #===============================================================================
 # Classes
 #===============================================================================
 class HttpServer(player):
-	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params, vip, net_mask="255.255.255.255", eth="eth0"):
+	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None, vip=None, net_mask="255.255.255.255", eth="eth0"):
 		# init parent class
 		super(HttpServer, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
 		# Init class variables
