@@ -53,11 +53,6 @@
 
 /******************************************************************************/
 
-#ifdef EZ_SIM
-extern
-bool EZdevSim_WaitForInitSocket(uint32_t num_of_connection);
-#endif
-
 bool nps_init(void);
 bool nps_bringup(void);
 void main_thread_graceful_stop(void);
@@ -307,6 +302,7 @@ bool nps_init(void)
 #ifdef EZ_SIM
 	write_log(LOG_DEBUG, "Platform is simulator.\n");
 	platform_params.ePlatform = EZdev_Platform_SIM;
+	platform_params.uiSimNumberOfConnections = 1;
 #else
 	write_log(LOG_DEBUG, "Platform is NPS chip.\n");
 	platform_params.ePlatform = EZdev_Platform_UIO;
@@ -317,16 +313,6 @@ bool nps_init(void)
 		return false;
 	}
 	is_object_allocated[object_type_dev] = true;
-
-#ifdef EZ_SIM
-	/* Wait for simulator to connect to socket */
-	write_log(LOG_DEBUG, "Wait for sync with simulator.\n");
-	ez_ret_val = EZdevSim_WaitForInitSocket(1);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_init: EZdevSim_WaitForInitSocket failed.\n");
-		return false;
-	}
-#endif
 
 	/************************************************/
 	/* Create and run CP library                    */
