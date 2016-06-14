@@ -54,12 +54,13 @@ void alvs_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 	 cmem_alvs.conn_class_key.client_port = tcp_hdr->source;
 	 cmem_alvs.conn_class_key.protocol = ip_hdr->protocol;
 
-	 printf("Connection (0x%x:%d --> 0x%c:%d, protocol=%d)...\n",
-		cmem_alvs.conn_class_key.client_ip,
-		cmem_alvs.conn_class_key.client_port,
-		cmem_alvs.conn_class_key.virtual_ip,
-		cmem_alvs.conn_class_key.virtual_port,
-		cmem_alvs.conn_class_key.protocol);
+	 alvs_write_log(LOG_DEBUG, "Connection (0x%x:%d --> 0x%c:%d, protocol=%d)...",
+			cmem_alvs.conn_class_key.client_ip,
+			cmem_alvs.conn_class_key.client_port,
+			cmem_alvs.conn_class_key.virtual_ip,
+			cmem_alvs.conn_class_key.virtual_port,
+			cmem_alvs.conn_class_key.protocol);
+
 	 rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
 				     (void *)&cmem_alvs.conn_class_key,
 				     sizeof(struct alvs_conn_classification_key),
@@ -69,11 +70,11 @@ void alvs_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 				     sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
 	if (rc == 0) {
-		printf("Connection exists (fast path).\n");
+		alvs_write_log(LOG_DEBUG,"Connection exists (fast path)");
 		alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
 	} else {
 		/*handle slow path  - opening new connection*/
-		printf("new connection (slow path).\n");
+		alvs_write_log(LOG_DEBUG,"New connection (slow path)");
 		alvs_unknown_packet_processing(frame_base, ip_hdr, tcp_hdr);
 	}
 }

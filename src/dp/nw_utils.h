@@ -89,7 +89,7 @@ static __always_inline
 uint8_t *nw_interface_get_host_mac_address(void)
 {
 	if (unlikely(nw_interface_lookup_host() != 0)) {
-		printf("error- host interface lookup fail!\n");
+		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
 		return NULL;
 	}
 	return cmem_nw.host_interface_result.mac_address.ether_addr_octet;
@@ -105,7 +105,7 @@ bool nw_host_do_route(ezframe_t	__cmem * frame,
 		      uint8_t __cmem * frame_base __unused)
 {
 	if (unlikely(nw_interface_lookup_host() != 0)) {
-		printf("error- host interface lookup fail!\n");
+		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
 		return false;
 	}
 
