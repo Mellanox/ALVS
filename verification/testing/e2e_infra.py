@@ -3,19 +3,17 @@
 # imports
 #===============================================================================
 # system  
+import cmd
+from collections import namedtuple
+import logging
+from optparse import OptionParser
 import os
 import sys
 
-# pythons modules 
-import cmd
-import logging
-from optparse import OptionParser
-from collections import namedtuple
-
-# local 
 from common_infra import *
 from server_infra import *
 from client_infra import *
+from test_infra import *
 
 #===============================================================================
 # init functions
@@ -24,25 +22,21 @@ from client_infra import *
 #------------------------------------------------------------------------------ 
 def init_ALVS_daemon(host_ip):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# TODO: implement
-	print "TODO: implement " + sys._getframe().f_code.co_name
-	return
 
-	# TODO: add app_bin to class variables
-	app_bin = "/tmp/alvs_daemon"
-	
 	ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
 	ezbox.connect()
+	ezbox.terminate_cp_app()
 	ezbox.run_cp_app()
-	ezbox.run_cp_app(app_bin)
 
 
 #------------------------------------------------------------------------------ 	
 def init_ALVS_DP(ip):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# TODO: implement
-	print "TODO: implement " + sys._getframe().f_code.co_name
 	
+	ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
+	ezbox.connect()
+	ezbox.reset_chip()
+	ezbox.copy_and_run_dp_bin()
 
 #------------------------------------------------------------------------------ 
 def init_players(server_list, ezbox, client_list):
@@ -72,14 +66,19 @@ def init_players(server_list, ezbox, client_list):
 #------------------------------------------------------------------------------ 
 def clean_ALVS_daemon(host_ip):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# TODO: implement
-	print "TODO: implement " + sys._getframe().f_code.co_name
+	
+	ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
+	ezbox.connect()
+	ezbox.terminate_cp_app()
+	
 
 #------------------------------------------------------------------------------ 
 def clean_ALVS_DP(ip):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# TODO: implement
-	print "TODO: implement " + sys._getframe().f_code.co_name
+	
+	ezbox = ezbox_host(hostname=host_ip, username='root', password='ezchip')
+	ezbox.connect()
+	ezbox.reset_chip()
 
 #------------------------------------------------------------------------------ 
 def clean_players(server_list, ezbox, client_list):

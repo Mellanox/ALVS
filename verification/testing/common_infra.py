@@ -5,21 +5,19 @@
 #===============================================================================
 
 # system  
+import cmd
+import logging
 import os
 import sys
 
-# pythons modules 
-import pexpect
 from pexpect import pxssh
-import cmd
-import logging
+import pexpect
 
 
+# pythons modules 
 #===============================================================================
 # Classes
 #===============================================================================
-
-
 class SshConnct:
 	def __init__(self, hostname, username, password):
 

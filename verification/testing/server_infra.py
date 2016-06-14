@@ -3,28 +3,29 @@
 # imports
 #===============================================================================
 # system  
+import cmd
+import logging
 import os
 import sys
 
-# pythons modules 
-import pexpect
+from common_infra import SshConnct
 from pexpect import pxssh
-import cmd
-import logging
+import pexpect
 
+
+# pythons modules 
 # local 
-from common_infra import *
-
 #===============================================================================
 # Classes
 #===============================================================================
 class HttpServer(player):
-	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params, vip, net_mask="255.255.255.255"):
+	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params, vip, net_mask="255.255.255.255", eth="eth0"):
 		# init parent class
 		super(HttpServer, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
 		# Init class variables
 		self.net_mask = net_mask
 		self.vip = vip
+		self.eth = eth
 
 	def init_server(self, index_str):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
@@ -88,9 +89,10 @@ class HttpServer(player):
 		if rc != True:
 			print "ERROR: Enable IP forwarding failed. rc=" + str(rc) + " " + output
 			return
-		rc, output = self.ssh.execute_command(cmd = "echo \"1\" >/proc/sys/net/ipv4/conf/eth0/arp_ignore")
+		cmd = "echo \"1\" >/proc/sys/net/ipv4/conf/" + self.eth + "/arp_ignore"
+		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
-			print "ERROR: Enable arp ignore (eth0) failed. rc=" + str(rc) + " " + output
+			print "ERROR: Enable arp ignore ("+ self.eth + ") failed. rc=" + str(rc) + " " + output
 			return
 		
 		# Enable arp announce
@@ -98,9 +100,10 @@ class HttpServer(player):
 		if rc != True:
 			print "ERROR: Enable arp announce (all) failed. rc=" + str(rc) + " " + output
 			return
-		rc, output = self.ssh.execute_command("echo \"2\" > /proc/sys/net/ipv4/conf/eth0/arp_announce")
+		cmd = "echo \"2\" > /proc/sys/net/ipv4/conf/" + self.eth + "/arp_announce"
+		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
-			print "ERROR: Enable arp announce (eth0) failed. rc=" + str(rc) + " " + output
+			print "ERROR: Enable arp announce ("+ self.eth + ") failed. rc=" + str(rc) + " " + output
 			return
 
 
@@ -116,9 +119,10 @@ class HttpServer(player):
 		if rc != True:
 			print "ERROR: Disable IP forwarding failed. rc=" + str(rc) + " " + output
 			return
-		rc, output = self.ssh.execute_command(cmd = "echo \"0\" >/proc/sys/net/ipv4/conf/eth0/arp_ignore")
+		cmd = "echo \"0\" >/proc/sys/net/ipv4/conf/" + self.eth + "/arp_ignore"
+		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
-			print "ERROR: Disable arp ignore (eth0) failed. rc=" + str(rc) + " " + output
+			print "ERROR: Disable arp ignore (" + self.eth +") failed. rc=" + str(rc) + " " + output
 			return
 		
 		# Disable arp announce
@@ -126,9 +130,10 @@ class HttpServer(player):
 		if rc != True:
 			print "ERROR: Disable arp announce (all) failed. rc=" + str(rc) + " " + output
 			return
-		rc, output = self.ssh.execute_command("echo \"0\" > /proc/sys/net/ipv4/conf/eth0/arp_announce")
+		cmd = "echo \"0\" > /proc/sys/net/ipv4/conf/" + self.eth + "/arp_announce"
+		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
-			print "ERROR: Disable arp announce (eth0) failed. rc=" + str(rc) + " " + output
+			print "ERROR: Disable arp announce (" + self.eth + ") failed. rc=" + str(rc) + " " + output
 			return
 
 

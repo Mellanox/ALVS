@@ -6,21 +6,22 @@
 #===============================================================================
 
 # system  
+import cmd
+from collections import namedtuple
+import logging
 import os
+import os, sys, inspect
 import sys
 
-# pythons modules 
-import cmd
-import logging
-from collections import namedtuple
+from e2e_infra import *
 
+
+# pythons modules 
 # local
-import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
-from e2e_infra import *
 
 #===============================================================================
 # User Area function needed by infrastructure
@@ -36,7 +37,10 @@ def user_init():
 	# player: 10.157.7.198 (l-nps-004) - HTTP server 
 	
 	# create HTTP server list
+	
+	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	vip = "10.157.7.244"
+	exec_script_dir = script_dirname + "/../../MARS/LoadBalancer/"
 	server_1 = HttpServer(ip = "10.157.7.195",
 						  hostname = "l-nps-001", 
 						  username = "root", 
@@ -57,7 +61,7 @@ def user_init():
 						  hostname = "l-nps-003", 
 						  username = "root", 
 						  password = "3tango", 
-						  exe_path    = "/.autodirect/swgwork/kobis/workspace/GIT2/ALVS/verification/MARS/LoadBalancer/",
+						  exe_path    = exec_script_dir,
 						  exe_script  = "ClientWrapper.py",
 						  exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0")
 	client_list  = [client_1]
