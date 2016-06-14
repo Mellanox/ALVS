@@ -36,6 +36,8 @@
 *
 */
 #include "alvs_log.h"
+#include "global_defs.h"
+#include "nw_utils.h"
 
 
 bool alvs_open_log(void)
@@ -47,8 +49,10 @@ bool alvs_open_log(void)
 	syslog_info.send_cb = alvs_send;
 	syslog_info.dest_port = SYSLOG_UDP_SERVER_PORT;
 
-	snprintf(syslog_info.applic_name, SYSLOG_APPLIC_NAME_STRING_SIZE, "ALVS_DP");
-	syslog_info.applic_name_size = strlen(" ALVS_DP ");
+	syslog_info.applic_name_size =
+		snprintf(syslog_info.applic_name,
+			 SYSLOG_APPLIC_NAME_STRING_SIZE,
+			 " ALVS_DP ");
 
 	/*get IP from string*/
 	inet_aton(SYSLOG_SERVER_IP, &dest_ip);
@@ -63,7 +67,6 @@ bool alvs_open_log(void)
 
 int alvs_send(ezframe_t  __cmem * frame)
 {
-#if 0
 	int rc;
 	uint8_t *frame_base;
 	uint32_t orig_length;
@@ -84,14 +87,18 @@ int alvs_send(ezframe_t  __cmem * frame)
 	assert(ezframe_get_buf_headroom(frame) >= sizeof(struct ether_header));
 
 	/*load the buffer and get the start of the data*/
-	frame_base = ezframe_load_buf(frame, &cmem.syslog_work_area[SYSLOG_FIRST_BUFFER_SIZE],
+	frame_base = ezframe_load_buf(frame,
+				      &((struct syslog_wa_info *)cmem_wa.syslog_work_area)->
+				      frame_data[SYSLOG_FIRST_BUFFER_SIZE],
 				      &orig_length,
 				      EZFRAME_LOAD_DATA_WITHOUT_OFFSET);
+
 
 	/*move the start of the data to ethernet_header where
 	 * should update the Ethernet header
 	 */
 	eth_p = (struct ether_header *)(frame_base - sizeof(struct ether_header));
+
 	/*fill ethernet source MAC*/
 	ezdp_mem_copy((uint8_t *)eth_p->ether_shost, src_eth_addr,
 		      sizeof(struct ether_addr));
@@ -99,8 +106,7 @@ int alvs_send(ezframe_t  __cmem * frame)
 	eth_p->ether_type = ETHERTYPE_IP;
 
 	/*fill ethernet destination MAC*/
-	my_mac = nw_interface_get_mac_address(0);
-
+	my_mac = nw_interface_get_host_mac_address();
 	if (my_mac == NULL) {
 		return -EACCES;
 	}
@@ -114,8 +120,7 @@ int alvs_send(ezframe_t  __cmem * frame)
 		return rc;
 	}
 
-	nw_send_frame_to_host_with_frame(frame);
-#endif
+	ezframe_send_to_if(frame, cmem_nw.host_interface_result.output_channel, 0);
 
 	return 0;
 }

@@ -39,7 +39,6 @@
 #define NW_DEFS_H_
 
 #include "nw_search_defs.h"
-#include "log.h"
 
 /*prototypes*/
 void packet_processing(void) __fast_path_code;
@@ -64,6 +63,7 @@ struct cmem_nw_info {
 		/**< Result of Decode MAC */
 		struct ezdp_decode_ipv4_result     ipv4_decode_result;
 		/**< Result of Decode IP */
+		struct  nw_if_result    host_interface_result;
 	};
 	struct nw_arp_key                    arp_key;
 	/**< arp key */
@@ -72,8 +72,8 @@ struct cmem_nw_info {
 };
 
 union nw_workarea {
-	char             arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
-	char             table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
+	char                    arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
+	char                    table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
 };
 
 /***********************************************************************//**
@@ -88,6 +88,6 @@ struct shared_cmem_network {
 
 extern struct cmem_nw_info           cmem_nw;
 extern struct shared_cmem_network    shared_cmem_nw;
-extern union  cmem_workarea          cmem_wa;
+/*extern union  cmem_workarea          cmem_wa;*/
 
 #endif   /*NW_DEFS_H_*/

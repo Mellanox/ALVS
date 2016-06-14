@@ -37,7 +37,9 @@
 #define ALVS_UTILS_H_
 
 #include "defs.h"
+#include "global_defs.h"
 #include "alvs_defs.h"
+#include "nw_utils.h"
 
 /******************************************************************************
  * \brief         update all statistics for: connection, server, service

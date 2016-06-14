@@ -43,10 +43,13 @@
 
 #include "alvs_defs.h"
 #include "nw_defs.h"
+#include "alvs_log.h"
 
 union cmem_workarea {
 	union alvs_workarea   alvs_wa;
 	union nw_workarea     nw_wa;
+	char syslog_work_area[ALVS_SYSLOG_WA];
+
 };
 
 

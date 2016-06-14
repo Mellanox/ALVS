@@ -51,9 +51,9 @@
 #define SYSLOG_APPLIC_NAME_STRING_SIZE  10
 #define SYSLOG_BUF_DATA_SIZE            64
 #define SYSLOG_FIRST_BUFFER_SIZE        32
-#define SYSLOG_MAX_NUM_OF_BUF           3
-#define SYSLOG_BUF_HEADROOM             64
-
+#define SYSLOG_MAX_NUM_OF_BUF		3
+#define SYSLOG_BUF_HEADROOM		64
+#define SYSLOG_CPU_STRING_SIZE		17
 int syslog_str_size;
 char syslog_str[EZFRAME_BUF_DATA_SIZE];
 
@@ -98,11 +98,14 @@ struct syslog_info {
  *                     char * __cmem syslog_wa, int syslog_wa_size);
  *
  * \brief send syslog frame to SYSLOG server.
- * \param[in]   priority - priority of the user message
- *              str - user string
- *              length - length of the user string
- *              syslog_wa - WA in CMEM
- *              syslog_wa_size - WA size in CMEM
+ * known restrictions : num_of_buffers in frame <= 3
+ *                      the first buffer consists only header
+ *                      (20(IPV4) + 8(UDP) + 14 Ethernet
+ * \param[in]    priority - priority of the user message
+ *               str - user string
+ *               length - length of the user string
+ *               syslog_wa - WA in CMEM
+ *               syslog_wa_size - WA size in CMEM
  * \return none.
  */
 void write_log(int priority, char *str, int length,
