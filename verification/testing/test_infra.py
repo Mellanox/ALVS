@@ -14,18 +14,75 @@ import struct
 import socket
 import inspect
 import logging
- 
+
 STRUCT_ID_NW_ARP = 9
 
 class real_server:
-    def __init__(self, ip_server, virtual_ip_server):
-        self.ip_server = ip_server
-        self.virtual_ip_server = virtual_ip_server
-         
-    def create_http_server(self):
-        cmd = "ifconfig lo:0 " + str(self.virtual_ip_address) + " netmask 255.255.255.255"
-     
-         
+    def __init__(self, management_ip, data_ip, username, password):
+        self.username = username
+        self.password = password
+        self.management_ip = management_ip
+        self.data_ip = data_ip
+        self.ssh_object = pxssh.pxssh()
+        
+    def connect(self):
+        
+        self.ssh_object.login(self.management_ip, self.username, self.password)
+        
+        cmd = "ifconfig lo:0 " + self.data_ip + " netmask 255.255.255.255"
+        
+        self.ssh_object.sendline(cmd)
+        self.ssh_object.prompt()
+        
+    def close_server(self):
+        cmd = "ifconfig lo:0 down"
+        
+    def catch_received_packets(self, tcpdump_params):
+        cmd = 'tcpdump -G 10 -w /tmp/dump.pcap -n -i eth0:0 ' + tcpdump_params + ' dst ' + self.data_ip + ' & sleep 3s && pkill -HUP -f tcpdump'
+        print cmd
+        self.ssh_object.sendline(cmd)
+        self.ssh_object.prompt()
+       
+class service:
+    
+    def __init__(self, ezbox, virtual_ip, port, schedule_algorithm = 'source_hash'):
+        self.virtual_ip = virtual_ip
+        self.port = port
+        self.ezbox = ezbox
+        self.servers = []
+        if schedule_algorithm == 'source_hash':
+            self.schedule_algorithm = 'sh'
+        else:
+            print 'This Schedule algorithm is not supported'
+            exit(1)
+        
+        self.ezbox.execute_command_on_host("ipvsadm -A -t %s:%s -s %s"%(self.schedule_algorithm, self.virtual_ip, self.port))
+        
+    def add_server(self, new_server, weight = '1'):
+        self.servers.append(new_server)
+        result, output = self.ezbox.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %s"%(self.virtual_ip, self.port, new_server.data_ip, self.port, weight))        
+        if result == False:
+            print "Error while removing server from service"
+            exit(1)
+            
+    def remove_server(self,server_to_delete):
+        self.servers.remove(server_to_delete)
+        result, output = self.ezbox.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s"%(self.virtual_ip, self.port, server_to_delete.data_ip, self.port))
+        if result == False:
+            print "Error while removing server from service"
+            exit(1)
+        
+    def modify_server(self, server_to_modify):
+        
+        if server_to_modify not in self.servers:
+            print "Error, Server is not exist on Service"
+            exit(1)
+             
+        result, output = self.ezbox.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s"%(self.virtual_ip, self.port, server_to_delete.data_ip, self.port))
+        if result == False:
+            print "Error while removing Server from Service"
+            exit(1)
+        
 class arp_entry:
      
     def __init__(self, ip_address, mac_address, interface=None, flags=None, mask=None, type=None):
@@ -38,9 +95,9 @@ class arp_entry:
          
 class ezbox_host:
      
-    def __init__(self, management_ip, username, password, virtual_ip_address=None, nps_ip=None, cp_app_bin="alvs_daemon", dp_app_bin="alvs_dp"):
+    def __init__(self, management_ip, username, password, data_ip=None, nps_ip=None, cp_app_bin="alvs_daemon", dp_app_bin="alvs_dp"):
         self.management_ip = management_ip
-        self.ip_address = virtual_ip_address
+        self.data_ip = data_ip
         self.username = username
         self.password = password
         self.ssh_object = pxssh.pxssh()
@@ -94,6 +151,10 @@ class ezbox_host:
             exit(1)
         
         self.mac_address = self.mac_address.strip('\r')
+        
+        if self.data_ip != None:
+            self.execute_command_on_host("ifconfig eth0:0 %s netmask 255.255.255.0"%self.data_ip)
+        
         
         print "Connected"
          
@@ -328,7 +389,6 @@ class ezbox_host:
             exit(1)
             return False
          
-     
     def get_arp_table(self):
         # clear all the entries in this setup
         del self.arp_entries[:]
@@ -578,7 +638,6 @@ class ezbox_host:
                 logging.log(logging.DEBUG,"\nlinux_entry.ip_address = " + entry.ip_address)
                   
             return False
-             
          
     def add_arp_entry(self, ip_address, mac_address):
         mac_address = str(mac_address).upper()
@@ -652,20 +711,75 @@ class ezbox_host:
         #alvs_daemon log
         #/var/log/alvs_ezcp_log
         
-    def add_service(self, virtual_ip_address, real_ip_addresses):
-        print virtual_ip_address
-        print real_ip_addresses
-         
-    def remove_service(self, virtual_ip_address, real_ip_addresses):
-        print virtual_ip_address
-        print real_ip_addresses
-               
-class virtual_machine:
-     
-    def __init__(self,management_ip, username, password, vm_ip=None):
+#     def add_service(self, service):
+#         self.execute_command_on_host("ipvsadm -A -t %s:%s -s sh"%(virtual_ip_address,port))
+#         
+#         for server_entry in servers:
+#             self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w 1"%(virtual_ip_address,port,server_entry,port))
+#          
+#     def remove_service(self, virtual_ip_address, real_ip_addresses):
+#         # NOT IMPLEMENTED
+#         print virtual_ip_address
+#         print real_ip_addresses
+        
+    def catch_received_packets_on_host(self, tcpdump_params = ''):
+        cmd = 'tcpdump -G 10 -w /tmp/dump.pcap -n -i eth0:0 ' + tcpdump_params + ' dst ' + self.data_ip + ' & sleep 3s && pkill -HUP -f tcpdump'
+        print cmd
+        self.ssh_object.sendline(cmd)
+        self.ssh_object.prompt()
+ 
+class tcp_packet:
+    def __init__(self, mac_da, mac_sa, ip_src, ip_dst, tcp_source_port, tcp_reset_flag = False, tcp_fin_flag = False, tcp_sync_flag = False, packet_length = 64):
+        self.mac_sa = mac_sa
+        self.mac_da = mac_da
+        self.ip_src = ip_src
+        self.ip_dst = ip_dst
+        self.tcp_source_port = tcp_source_port
+        self.tcp_reset_flag = tcp_reset_flag
+        self.tcp_fin_flag = tcp_fin_flag
+        self.tcp_sync_flag = tcp_sync_flag
+        self.packet_length = packet_length
+        self.packet = ''
     
-        self.ip_address = management_ip
-        self.vm_ip = vm_ip
+    def generate_packet(self):
+        l2_header = self.mac_da + ' ' + self.mac_sa + ' ' + '08 00'
+        data = '45 00 00 2e 00 00 40 00 40 06 00 00 ' + self.ip_src + ' ' + self.ip_dst  
+        data = data.split()
+        data = map(lambda x: int(x,16), data)
+        ip_checksum = checksum(data)
+        ip_checksum = '%02x'%ip_checksum
+        ip_header = '45 00 00 2e 00 00 40 00 40 06 ' + ip_checksum[0:2] + ' ' + ip_checksum[2:4] + ' ' + self.ip_src + ' ' + self.ip_dst
+        
+        flag = 0
+        if self.tcp_fin_flag:
+            flag += 1
+        if self.tcp_sync_flag:
+            flag += 2    
+        if self.tcp_reset_flag:
+            flag += 4
+        flag = '%02x'%flag
+        data = self.tcp_source_port + ' 00 00 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC 00 00 00 00'
+        data = data.split()
+        data = map(lambda x: int(x,16), data)
+        tcp_checksum = checksum(data)
+        tcp_checksum = '%02x'%tcp_checksum
+        tcp_header = self.tcp_source_port + ' 00 00 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC ' + tcp_checksum[0:2] + ' ' + tcp_checksum[2:4] + ' 00 00'
+        
+        packet = l2_header + ' ' + ip_header + ' ' + tcp_header
+        temp_length = len(packet.split())
+        zero_padding_length = self.packet_length - temp_length
+        for i in range(zero_padding_length):
+            packet = packet + ' 00'
+            
+        self.packet = packet[:]
+        return self.packet
+              
+class client:
+     
+    def __init__(self,management_ip, username, password, data_ip=None):
+    
+        self.management_ip = management_ip
+        self.data_ip = data_ip
         self.username = username
         self.password = password
         self.ssh_object = pxssh.pxssh()
@@ -711,10 +825,20 @@ class virtual_machine:
         
         return [True,output]
         
-           
+    def send_packet_to_nps(self, packet_string):
+        os.system('rm -f pcap_files/tmp.pcap')
+        string_to_pcap_file(packet_string, 'pcap_files/tmp.pcap')
+        print "Send packet to NPS" 
+        cmd = "tcpreplay --intf1=ens6 /swgwork/tomeri/sandbox/ALVS/verification/testing/dp/pcap_files/tmp.pcap" 
+        result, output = self.execute_command(cmd)
+        if result == False:
+            print "Error while sending a packet to NPS"
+            print output
+            exit(1)
+        
+        
 def ip2int(addr):                                                               
     return struct.unpack("!I", socket.inet_aton(addr))[0]                       
- 
  
 def int2ip(addr):                                                               
     return socket.inet_ntoa(struct.pack("!I", addr)) 
@@ -842,6 +966,16 @@ def read_test_arg(args):
         
     return {'log_file':log_file, 'host_ip':host_ip, 'nps_ip':nps_ip ,'cp_bin':cp_bin, 'dp_bin':dp_bin, 'scenarios':scenarios, 'ezbox':ezbox, 'hard_reset':hard_reset}       
 
+def carry_around_add(a, b):
+    c = a + b
+    return (c & 0xffff) + (c >> 16)
+
+def checksum(msg):
+    s = 0
+    for i in range(0, len(msg), 2):
+        w = msg[i+1] + (msg[i] << 8)
+        s = carry_around_add(s, w)
+    return ~s & 0xffff
 
 def string_to_pcap_file(packet_string, output_pcap_file):
     cmd = "echo 0000    " + packet_string + " >> tmp.txt"
