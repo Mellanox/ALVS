@@ -56,17 +56,16 @@ def user_init(setup_num):
 						  eth='ens6'))
 		index+=1
 	
-# 	script_dirname = os.path.dirname(os.path.realpath(__file__))
-# 	exec_script_dir = script_dirname + "/../../MARS/LoadBalancer/"
+ 	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
-						  password = "3tango"))
-# 						  exe_path    = exec_script_dir,
-# 						  exe_script  = "ClientWrapper.py",
-# 						  exec_params = "-i 10.157.7.244 -r 10 --s1 5 --s2 5 --s3 0 --s4 0 --s5 0 --s6 0"))
+						  password = "3tango",
+ 						  exe_path    = script_dirname,
+ 						  exe_script  = "basic_client_requests.py",
+ 						  exec_params = ""))
 		index+=1
 	
 
@@ -77,10 +76,12 @@ def user_init(setup_num):
 	return (server_list, ezbox, client_list, vip_list)
 
 def client_execution(client, vip):
-	for i in range(10):
-		client.readHtml(vip)
+	repeat = 10 
+	client.exec_params += " -i %s -r %d" %(vip, repeat)
+	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
+	print 'Running user test'
 	process_list = []
 	vip = vip_list[0]
 
@@ -93,6 +94,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for p in process_list:
 		p.join()
 		
+	print 'End user test'
 	pass
 #===============================================================================
 # main function

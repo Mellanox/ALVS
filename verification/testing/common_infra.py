@@ -82,7 +82,9 @@ class player(object):
 		if self.exe_script:
 			sshpass_cmd = "sshpass -p " + self.password+ " ssh " + self.username + "@" + self.hostname
 			exec_cmd    = "cd " + self.exe_path + "; python " + self.exe_script
-			os.system(sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\"")
+			cmd = sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\""
+			print cmd
+			os.system(cmd)
 
 	def connect(self):
 		self.ssh.connect()
