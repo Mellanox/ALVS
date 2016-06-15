@@ -64,9 +64,9 @@ def user_init(setup_num):
 	
 
 	# EZbox
-	host_name, chip_name =  get_ezbox_names(setup_num)
-	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip')
-
+	host_name, chip_name, interface =  get_ezbox_names(setup_num)
+	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip', interface=interface)
+	
 	return (server_list, ezbox, client_list, vip_list)
 
 def client_execution(client, vip):
@@ -75,7 +75,7 @@ def client_execution(client, vip):
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
-	print 'Running user test'
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	process_list = []
 	vip = vip_list[0]
 	port = '80'
@@ -107,10 +107,11 @@ def main():
 	setup_num  = int(sys.argv[1])
 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
 
-	init_players(server_list, ezbox, client_list)
+	init_players(server_list, ezbox, client_list, vip_list)
 	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-	#run_test(server_list, client_list)
+	
+	check_connections(ezbox)
 	
 	collect_logs(server_list, ezbox, client_list)
 	

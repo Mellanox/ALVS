@@ -104,7 +104,7 @@ class arp_entry:
          
 class ezbox_host:
      
-    def __init__(self, management_ip, username, password, data_ip=None, nps_ip=None, cp_app_bin="alvs_daemon", dp_app_bin="alvs_dp"):
+    def __init__(self, management_ip, username, password, data_ip=None, nps_ip=None, cp_app_bin="alvs_daemon", dp_app_bin="alvs_dp", interface='eth0'):
         self.management_ip = management_ip
         self.data_ip = data_ip
         self.username = username
@@ -120,7 +120,7 @@ class ezbox_host:
         self.cp_app_bin = cp_app_bin
         self.dp_app_bin = dp_app_bin
         self.nps_ip = nps_ip
-        
+        self.interface = interface
      
     def reset_ezbox(self, ezbox_name):
         print "Reset EZbox: " + ezbox_name
@@ -137,6 +137,10 @@ class ezbox_host:
         self.terminate_cp_app()
         self.logout()
         
+    def config_vips(self, vip_list):
+        for index, vip in enumerate(vip_list):
+            self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.interface, index+1, vip))
+        
     def connect(self):
         print "Connecting to host: " + self.management_ip + ", username: " + self.username + " password: " + self.password
         
@@ -148,10 +152,10 @@ class ezbox_host:
         self.syslog_ssh.login(self.management_ip, self.username, self.password)
         self.syslog_ssh.sendline('tail -f /var/log/syslog | grep ALVS_DAEMON')
         
-        
+
         # connect to AGT
         self.cpe = EZpyCP(self.management_ip, 1234)
-        
+
         # retrieve local mac address
         result, self.mac_address, pid = self.execute_command_on_host("cat /sys/class/net/eth0/address")
         if result == False:
@@ -393,6 +397,22 @@ class ezbox_host:
             exit(1)
             return False
          
+    def get_cp_table_entries(self, struct_id):
+        iterator_params_dict = { 'channel_id': 0 }
+        table_entries = []
+        iterator_params_dict = (self.cpe.cp.struct.iterator_create(struct_id, iterator_params_dict)).result['iterator_params']
+        num_entries = (self.cpe.cp.struct.get_num_entries( struct_id , channel_id = 0 )).result['num_entries']['number_of_entries']
+        for i in range(0,num_entries):
+            iterator_params_dict = self.cpe.cp.struct.iterator_get_next( struct_id, iterator_params_dict ).result['iterator_params'] 
+            temp_entry = {'key':iterator_params_dict['entry']['key'],
+                          'result':iterator_params_dict['entry']['result']}
+            table_entries.append(temp_entry)
+            self.cp_arp_dict[ip_address] = temp_entry
+         
+        self.cpe.cp.struct.iterator_delete( struct_id , iterator_params_dict )
+        
+        return (table_entries)
+
     def get_arp_table(self):
         # clear all the entries in this setup
         del self.arp_entries[:]
