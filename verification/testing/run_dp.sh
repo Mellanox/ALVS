@@ -78,7 +78,7 @@ END_FTP
 function set_dp_app_perm()
 {
     echo "change DP application permission..."    
-    { echo "cd /tmp"; echo "chmod +x alvs_dp"; sleep 1;} | nohup telnet $chip_ip >& telnet.log 
+    { echo "cd /tmp"; echo "chmod +x alvs_dp"; sleep 1;} | telnet $chip_ip  
 }
 
 #########################################
@@ -95,7 +95,7 @@ wait_for_chip
 copy_dp_app
 set_dp_app_perm
 echo "Run DP app"
-{ echo "/tmp/alvs_dp"; sleep 3;} | nohup telnet $chip_ip >& telnet.log
+{ echo "/tmp/alvs_dp &"; sleep 3;} | telnet $chip_ip
 sleep 1
 echo "All done!"
 echo "** End script **"
