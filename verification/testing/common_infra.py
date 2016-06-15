@@ -80,7 +80,7 @@ class player(object):
 
 	def execute(self):
 		if self.exe_script:
-			sshpass_cmd = "sshpass -p " + self.password+ " ssh " + self.username + "@" + self.hostname
+			sshpass_cmd = "sshpass -p " + self.password+ " ssh -o StrictHostKeyChecking=no " + self.username + "@" + self.hostname
 			exec_cmd    = "cd " + self.exe_path + "; python " + self.exe_script
 			cmd = sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\""
 			print cmd
