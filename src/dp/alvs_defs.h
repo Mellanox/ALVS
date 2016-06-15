@@ -113,7 +113,7 @@ enum alvs_tcp_states_multipliers {
 
 #define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128    /* TODO - needs to be 512 when using release 2.1 */
 #define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
-#define ALVS_AGING_TIMER_EVENT_ID_MASK          (~ALVS_AGING_TIMER_EVENTS_PER_ITERATION)
+#define ALVS_AGING_TIMER_EVENT_ID_MASK          (ALVS_AGING_TIMER_EVENTS_PER_ITERATION-1)
 
 /* Number of lag members is hard coded and depended on compilation flag. */
 /* in case user wants to disable LAG functionality need to set this flag. */
