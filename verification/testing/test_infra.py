@@ -238,13 +238,8 @@ class ezbox_host:
     def reset_chip(self):
         print "Reset The Chip"
         logging.log(logging.INFO,"Reset The Chip")
-        
         self.run_app_ssh.sendline("nps_power -r por")
         self.run_app_ssh.prompt()
-        time.sleep(3)
-        self.run_app_ssh.sendline("~/nl_if_setup.sh")
-        self.run_app_ssh.prompt()
-        time.sleep(1)
         
     def copy_and_run_dp_bin(self, nps_ip=None, dp_bin=None):
         if nps_ip == None:
