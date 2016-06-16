@@ -495,6 +495,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				}
 			} else if (cmem_alvs.conn_info_result.aging_bit == 0) { /*check if we need to update the aging bit*/
 				/*set connection aging bit back to 1*/
+				alvs_write_log(LOG_INFO, "Refreshing aging bit...");
 				if (alvs_conn_refresh(conn_index) != 0) {
 					printf("error - fail to refresh connection ID = %d.\n", conn_index);
 					/*drop frame*/

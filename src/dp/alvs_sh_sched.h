@@ -111,7 +111,7 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
  * \return      return true in case scheduling was successful, false otherwise
  */
 static __always_inline
-bool alvs_sh_schedule_connection(uint16_t service_index, uint32_t sip, uint16_t sport)
+bool alvs_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint16_t sport)
 {
 	if (unlikely(alvs_sh_get_server_info(service_index,
 					     sip,

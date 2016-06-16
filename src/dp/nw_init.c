@@ -48,8 +48,6 @@ bool init_nw_shared_cmem(void)
 {
 	uint32_t  result;
 
-	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
-
 	/*Init interfaces DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_NW_INTERFACES,
 					     &shared_cmem_nw.interface_struct_desc,

@@ -322,6 +322,7 @@ bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __un
 	case EZDP_CMEM_DATA:
 		return init_alvs_private_cmem();
 	case EZDP_SHARED_CMEM_DATA:
+		printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
 		return init_alvs_shared_cmem() & init_nw_shared_cmem();
 	default:
 		return true;
@@ -375,7 +376,6 @@ void packet_processing(void)
 
 		/* ===  received cancel frame === */
 		if (unlikely(port_id == -1)) {
-			printf("cancel job!!!!!\n");
 			exit(0);
 		}
 
@@ -459,7 +459,7 @@ int main(int argc, char **argv)
 		}
 
 		/* call to packet processing function */
-		ezdp_run(&packet_processing, num_cpus);
+		ezdp_run(&packet_processing, 0);
 
 		return 0;
 	}
@@ -478,7 +478,7 @@ int main(int argc, char **argv)
 		}
 
 		/* call to packet processing function */
-		ezdp_run(&packet_processing, num_cpus);
+		ezdp_run(&packet_processing, 0);
 
 		return 0;
 	}
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			/* call to packet processing function */
-			ezdp_run(&packet_processing, num_cpus);
+			ezdp_run(&packet_processing, 0);
 
 			return 0;
 		}

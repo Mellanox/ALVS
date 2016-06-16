@@ -68,7 +68,9 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	}
 
 	if (cmem_nw.interface_result.path_type == DP_PATH_FROM_NW_PATH) {
+#if 0
 		printf("Frame arrived from NW.\n");
+#endif
 
 		uint8_t *next_et;
 		/* === Load Data of first frame buffer === */
@@ -89,7 +91,9 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*check if my_mac is set*/
 		if (unlikely(!cmem_nw.mac_decode_result.control.my_mac)) {
+#if 0
 			printf("Not my MAC!\n");
+#endif
 			nw_interface_inc_counter(NW_PACKET_NOT_MY_MAC);
 			nw_host_do_route(frame, frame_base);
 			return;
@@ -144,7 +148,9 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/
+#if 0
 		printf("Frame arrived from host.\n");
+#endif
 
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,

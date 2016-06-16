@@ -45,7 +45,7 @@
  * \return      return 0 in case of success, otherwise no match.
  */
 static __always_inline
-uint32_t alvs_service_info_lookup(uint16_t service_index)
+uint32_t alvs_service_info_lookup(uint8_t service_index)
 {
 	return ezdp_lookup_table_entry(&shared_cmem_alvs.service_info_struct_desc,
 				service_index, &cmem_alvs.service_info_result,
@@ -67,7 +67,7 @@ uint32_t alvs_service_info_lookup(uint16_t service_index)
  */
 static __always_inline
 enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_base,
-								 uint16_t service_index,
+								 uint8_t service_index,
 								 struct iphdr *ip_hdr,
 								 struct tcphdr *tcp_hdr)
 {
@@ -98,7 +98,7 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
  *                      ALVS_SERVICE_DATA_PATH_SUCCESS - a new connection entry was created.
  */
 static __always_inline
-enum alvs_service_output_result alvs_service_data_path(uint16_t service_index,
+enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 						       uint8_t *frame_base,
 						       struct iphdr *ip_hdr,
 						       struct tcphdr *tcp_hdr)

@@ -49,7 +49,6 @@ bool init_alvs_shared_cmem(void)
 	uint32_t  result;
 
 	alvs_open_log();
-	printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
 
 	/*Init connection classification DB*/
 	result = ezdp_init_hash_struct_desc(STRUCT_ID_ALVS_CONN_CLASSIFICATION,
