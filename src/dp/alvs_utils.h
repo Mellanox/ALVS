@@ -38,7 +38,6 @@
 
 #include "defs.h"
 #include "global_defs.h"
-#include "alvs_defs.h"
 #include "nw_utils.h"
 
 /******************************************************************************

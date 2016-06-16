@@ -49,7 +49,6 @@
 #include <ezframe.h>
 
 /*internal includes*/
-#include "global_defs.h"
 #include "nw_recieve.h"
 #include "alvs_aging.h"
 #include "version.h"

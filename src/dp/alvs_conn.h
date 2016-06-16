@@ -36,7 +36,6 @@
 #ifndef ALVS_CONN_H_
 #define ALVS_CONN_H_
 
-#include "alvs_defs.h"
 #include "alvs_server.h"
 #include "alvs_utils.h"
 #include "nw_routing.h"

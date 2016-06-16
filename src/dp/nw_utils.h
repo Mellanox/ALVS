@@ -37,7 +37,6 @@
 #define NW_UTILS_H_
 
 
-#include "nw_defs.h"
 #include "defs.h"
 #include "global_defs.h"
 #include "nw_search_defs.h"

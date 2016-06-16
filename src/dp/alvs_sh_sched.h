@@ -39,7 +39,8 @@
 #include <linux/ip_vs.h>
 #include <ezdp.h>
 
-#include "alvs_defs.h"
+#include "alvs_utils.h"
+#include "alvs_server.h"
 
 /******************************************************************************
  * \brief       use source hash algorithm and sched info DB to pick destination server

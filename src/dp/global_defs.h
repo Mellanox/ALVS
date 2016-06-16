@@ -42,7 +42,6 @@
 #define __slow_path_code __imem_all_cluster_func
 
 #include "alvs_defs.h"
-#include "nw_defs.h"
 #include "alvs_log.h"
 
 union cmem_workarea {

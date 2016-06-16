@@ -36,10 +36,7 @@
 #ifndef NW_ROUTING_H_
 #define NW_ROUTING_H_
 
-#include "nw_defs.h"
 #include "nw_utils.h"
-#include "defs.h"
-#include "global_defs.h"
 
 /******************************************************************************
  * \brief         send frames to network ports

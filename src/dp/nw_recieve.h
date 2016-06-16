@@ -37,8 +37,6 @@
 #ifndef NW_RECIEVE_H_
 #define NW_RECIEVE_H_
 
-#include "nw_defs.h"
-#include "alvs_defs.h"
 #include "alvs_packet_processing.h"
 
 /******************************************************************************

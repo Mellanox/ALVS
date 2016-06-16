@@ -38,7 +38,6 @@
 #define ALVS_AGING_H_
 
 #include "alvs_conn.h"
-#include "alvs_defs.h"
 
 /******************************************************************************
  * \brief         perform aging on connection entries

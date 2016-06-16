@@ -39,11 +39,7 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include "global_defs.h"
-#include "alvs_conn.h"
-#include "alvs_defs.h"
-#include "alvs_server.h"
 #include "alvs_service.h"
-#include "alvs_sh_sched.h"
 #include "nw_routing.h"
 
 /*prototypes*/
