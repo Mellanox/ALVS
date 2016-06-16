@@ -139,17 +139,19 @@ class ezbox_host:
         
     def config_vips(self, vip_list):
         for index, vip in enumerate(vip_list):
-            self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.interface, index+1, vip))
-        
+            cmd="ifconfig %s:%d %s netmask 255.255.0.0"%(self.interface, index+1, vip)
+            print cmd
+            self.execute_command_on_host(cmd)
+        pass
     def connect(self):
         print "Connecting to host: " + self.management_ip + ", username: " + self.username + " password: " + self.password
         
         #connecting to host 
-        self.ssh_object.login(self.management_ip, self.username, self.password)
-        self.run_app_ssh.login(self.management_ip, self.username, self.password)
+        self.ssh_object.login(self.management_ip, self.username, self.password, login_timeout=120)
+        self.run_app_ssh.login(self.management_ip, self.username, self.password, login_timeout=120)
         
         # connect to syslog
-        self.syslog_ssh.login(self.management_ip, self.username, self.password)
+        self.syslog_ssh.login(self.management_ip, self.username, self.password, login_timeout=120)
         self.syslog_ssh.sendline('tail -f /var/log/syslog | grep ALVS_DAEMON')
         
 
@@ -183,11 +185,11 @@ class ezbox_host:
     def execute_command_on_host(self, cmd):
         
         temp_ssh_object = pxssh.pxssh()
-        temp_ssh_object.login(self.management_ip, self.username, self.password)
+        temp_ssh_object.login(self.management_ip, self.username, self.password, login_timeout=120)
         time.sleep(1)
         self.ssh_object.sendline(cmd)
         time.sleep(1)
-        self.ssh_object.prompt()
+        self.ssh_object.prompt(timeout=120)
         time.sleep(1)
         output = self.ssh_object.before
 #         print "output is:"
@@ -198,7 +200,7 @@ class ezbox_host:
         
         # get exit code
         self.ssh_object.sendline("echo $?")
-        self.ssh_object.prompt()               
+        self.ssh_object.prompt(timeout=120)               
         exit_code = self.ssh_object.before 
         exit_code = exit_code.strip('\r')
         exit_code = exit_code.split('\n')
@@ -206,7 +208,7 @@ class ezbox_host:
  
         # get pid of process
         self.ssh_object.sendline("echo $!")
-        self.ssh_object.prompt()         
+        self.ssh_object.prompt(timeout=120)         
         pid = self.ssh_object.before
         pid = pid.strip('\r')
         pid = pid.split('\n')
@@ -243,7 +245,7 @@ class ezbox_host:
         print "Reset The Chip"
         logging.log(logging.INFO,"Reset The Chip")
         self.run_app_ssh.sendline("nps_power -r por")
-        self.run_app_ssh.prompt()
+        self.run_app_ssh.prompt(timeout=120)
         
     def copy_and_run_dp_bin(self, nps_ip=None, dp_bin=None):
         if nps_ip == None:

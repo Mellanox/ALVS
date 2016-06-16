@@ -31,7 +31,7 @@ class SshConnct:
 
 	def connect(self):
 		print "Connecting to : " + self.ip_address + ", username: " + self.username + " password: " + self.password
-		self.ssh_object.login(self.ip_address, self.username, self.password)
+		self.ssh_object.login(self.ip_address, self.username, self.password, login_timeout=120)
 		print "Connected"
 		
 	def logout(self):
@@ -46,14 +46,14 @@ class SshConnct:
 	#                output -  Command output results     
 	def execute_command(self, cmd):
 		self.ssh_object.sendline(cmd)
-		self.ssh_object.prompt()
+		self.ssh_object.prompt(timeout=120)
 		output = self.ssh_object.before
 		output = output.split('\n')
 		output = output[1:]
 		output = str(output)
 		
 		self.ssh_object.sendline("echo $?")
-		self.ssh_object.prompt()			   
+		self.ssh_object.prompt(timeout=120)			   
 		exit_code = self.ssh_object.before 
 		exit_code = exit_code.split('\n')
 		exit_code = exit_code[1]
@@ -160,8 +160,5 @@ def get_setup_vip(setup_num,index):
 # Checker Functions
 #===============================================================================
 def check_connections(ezbox):
-# 	conn_class_entries = ezbox.get_cp_table_entries(STRUCT_ID_ALVS_CONN_CLASSIFICATION)
-# 	conn_info_entries = ezbox.get_cp_table_entries(STRUCT_ID_ALVS_CONN_INFO)
-# 	conn_info_entries = []
-# 	print 'connection classification table size = %d , connection info table size = %d ' %(len(conn_class_entries), len(conn_info_entries))
+ 	print 'connection count = %d'  %ezbox.get_num_of_connections()
 	pass

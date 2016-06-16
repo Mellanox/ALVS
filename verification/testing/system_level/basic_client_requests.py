@@ -14,41 +14,33 @@ import os
 import sys
 import inspect
 
-# pythons modules 
-# local
-# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-# parentdir = os.path.dirname(currentdir)
-# sys.path.insert(0,parentdir) 
-# from client_infra import *
-
 log_file = None
 
 def init_log(log_file_name):
 	global log_file
 	log_file = open(log_file_name, 'w')
-	log_file.write("start HTTP client \n")
+	log_file.write("#start HTTP client \n")
 	
 def log(str):
 	log_file.write("%s\n" % str)
 
 def end_log():
-	log_file.write("end HTTP client\n")
+	log_file.write("#end HTTP client\n")
 	log_file.close()
 
 def readHtml(ip):
     try:
-        log('Openning HTTP connection with %s' %ip)
         response = urllib2.urlopen('http://'+ip)
     except urllib2.URLError,err:
-        log(str(err))
+        log('%s : %s' %(ip, str(err)))
         return str(err)
         
     html = response.read()
     if isinstance(html, str):
-        log(html)
+    	log('%s : %s' %(ip, html))
     else:
-        html = str(html)
-        log(html)
+    	html = str(html)
+    	log('%s : %s' %(ip, html))
 	return html
 
 ################################################################################

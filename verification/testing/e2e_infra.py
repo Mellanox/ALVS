@@ -9,6 +9,7 @@ import logging
 from optparse import OptionParser
 import os
 import sys
+from time import gmtime, strftime
 
 from common_infra import *
 from server_infra import *
@@ -83,10 +84,11 @@ def run_test(server_list, client_list):
 
 def collect_logs(server_list, ezbox, client_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
- 	dir_name = 'test_logs'
+	current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
+ 	dir_name = 'test_logs_%s' %current_time
  	cmd = "mkdir -p %s" %dir_name
 	os.system(cmd)
 	for c in client_list:
 		c.get_log(dir_name)
 
-
+	return dir_name
