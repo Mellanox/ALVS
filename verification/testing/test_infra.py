@@ -15,7 +15,16 @@ import socket
 import inspect
 import logging
 
-STRUCT_ID_NW_ARP = 9
+STRUCT_ID_NW_INTERFACES                = 0
+STRUCT_ID_NW_LAG                       = 1
+STRUCT_ID_ALVS_CONN_CLASSIFICATION     = 2
+STRUCT_ID_ALVS_CONN_INFO               = 3
+STRUCT_ID_ALVS_SERVICE_CLASSIFICATION  = 4
+STRUCT_ID_ALVS_SERVICE_INFO            = 5
+STRUCT_ID_ALVS_SCHED_INFO              = 6
+STRUCT_ID_ALVS_SERVER_INFO             = 7
+STRUCT_ID_NW_FIB                       = 8
+STRUCT_ID_NW_ARP                       = 9
 
 class real_server:
     def __init__(self, management_ip, data_ip, username, password):
@@ -727,7 +736,181 @@ class ezbox_host:
         print cmd
         self.ssh_object.sendline(cmd)
         self.ssh_object.prompt()
- 
+
+    def get_num_of_services(self):
+        return self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, channel_id = 0).result['num_entries']['number_of_entries']
+
+    def get_num_of_connections(self):
+        return self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_CONN_CLASSIFICATION, channel_id = 0).result['num_entries']['number_of_entries']
+    
+    def get_service(self, vip, port, protocol):
+        class_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, 0, {'key' : "%08x%04x%04x" % (vip, port, protocol)}).result["params"]["entry"]["result"]).split(' ')
+        if (int(class_res[0], 16) >> 4) != 3:
+            return None
+        info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_INFO, 0, {'key' : class_res[2]}).result["params"]["entry"]["result"]).split(' ')
+        if (int(info_res[0], 16) >> 4) != 3:
+            print 'This should not happen!'
+            return None
+        
+        sched_info = []
+        for ind in range(256):
+            sched_index = int(class_res[2], 16) * 256 + ind
+            sched_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SCHED_INFO, 0, {'key' : "%04x" % sched_index}).result["params"]["entry"]["result"]).split(' ')
+            if (int(sched_res[0], 16) >> 4) == 3:
+                sched_info[ind] = int(''.join(sched_res[4:8]), 16)
+        
+        service = {'sched_alg' : int(info_res[0], 16) & 0xf,
+                   'server_count' : int(''.join(res[2:4]), 16),
+                   'stats_base' : int(''.join(res[8:12]), 16),
+                   'flags' : int(''.join(res[12:16]), 16),
+                   'sched_info' : sched_info
+                   }
+        
+        return service
+    
+    def get_connection(self, vip, vport, cip, cport, protocol):
+        class_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_CLASSIFICATION, 0, {'key' : "%08x%08x%04x%04x%04x" % (cip, vip, cport, vport, protocol)}).result["params"]["entry"]["result"]).split(' ')
+        if (int(class_res[0], 16) >> 4) != 3:
+            return None
+        info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_INFO, 0, {'key' : ''.join(class_res[4:8])}).result["params"]["entry"]["result"]).split(' ')
+        if (int(info_res[0], 16) >> 4) != 3:
+            print 'This should not happen!'
+            return None
+        
+        conn = {'sync_bit' : (int(info_res[0], 16) >> 3) & 0x1,
+                'aging_bit' : (int(info_res[0], 16) >> 2) & 0x1,
+                'delete_bit' : (int(info_res[0], 16) >> 1) & 0x1,
+                'reset_bit' : int(info_res[0], 16) & 0x1,
+                'age_iteration' : int(info_res[1], 16),
+                'server_index' : int(''.join(info_res[2:4]), 16),
+                'state' : int(info_res[5], 16),
+                'stats_base' : int(''.join(info_res[8:12]), 16),
+                'flags' : int(''.join(info_res[28:32]), 16)
+                }
+        
+        return conn
+
+    def get_interface(self, lid):
+        res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_INTERFACES, 0, {'key' : "%02x" % lid}).result["params"]["entry"]["result"]).split(' ')
+        interface = {'oper_status' : (int(info_res[0], 16) >> 3) & 0x1,
+                     'path_type' : (int(info_res[0], 16) >> 1) & 0x3,
+                     'is_vlan' : int(info_res[0], 16) & 0x1,
+                     'lag_id' : int(info_res[1], 16),
+                     'default_vlan' : int(''.join(info_res[2:4]), 16),
+                     'mac_address' : int(''.join(info_res[4:10]), 16),
+                     'output_channel' : int(info_res[10], 16),
+                     'stats_base' : int(''.join(info_res[12:16]), 16),
+                     }
+        
+        return interface
+
+    def get_all_interfaces(self):
+        iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_NW_INTERFACES, { 'channel_id': 0 })).result['iterator_params']
+        num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_NW_INTERFACES, channel_id = 0)).result['num_entries']['number_of_entries']
+
+        interfaces = []
+        for i in range(0, num_entries):
+            iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_NW_INTERFACES, iterator_params_dict).result['iterator_params']
+             
+            key = str(iterator_params_dict['entry']['key'])
+            lid = int(key, 16)
+             
+            result = str(iterator_params_dict['entry']['result']).split(' ')
+            interface = {'oper_status' : (int(result[0], 16) >> 3) & 0x1,
+                         'path_type' : (int(result[0], 16) >> 1) & 0x3,
+                         'is_vlan' : int(result[0], 16) & 0x1,
+                         'lag_id' : int(result[1], 16),
+                         'default_vlan' : int(''.join(result[2:4]), 16),
+                         'mac_address' : int(''.join(result[4:10]), 16),
+                         'output_channel' : int(result[10], 16),
+                         'stats_base' : int(''.join(result[12:16]), 16),
+                         'key' : {'lid' : lid}
+                         }
+
+            interfaces.append(interface)
+            
+        self.cpe.cp.struct.iterator_delete(STRUCT_ID_NW_INTERFACES, iterator_params_dict)
+        return interfaces
+    
+    def get_all_services(self):
+        iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, { 'channel_id': 0 })).result['iterator_params']
+        num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, channel_id = 0)).result['num_entries']['number_of_entries']
+
+        services = []
+        for i in range(0, num_entries):
+            iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, iterator_params_dict).result['iterator_params']
+             
+            key = str(iterator_params_dict['entry']['key']).split(' ')
+            vip = int(''.join(key[0:4]), 16)
+            port = int(''.join(key[4:6]), 16)
+            protocol = int(''.join(key[6:8]), 16)
+             
+            class_res = str(iterator_params_dict['entry']['result']).split(' ')
+            info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_INFO, 0, {'key' : class_res[2]}).result["params"]["entry"]["result"]).split(' ')
+            if (int(info_res[0], 16) >> 4) != 3:
+                print 'This should not happen!'
+                return {}            
+            
+            sched_info = []
+            for ind in range(256):
+                sched_index = int(class_res[2], 16) * 256 + ind
+                sched_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SCHED_INFO, 0, {'key' : "%04x" % sched_index}).result["params"]["entry"]["result"]).split(' ')
+                if (int(sched_res[0], 16) >> 4) == 3:
+                    sched_info[ind] = int(''.join(sched_res[4:8]), 16)
+            
+            service = {'sched_alg' : int(info_res[0], 16) & 0xf,
+                       'server_count' : int(''.join(res[2:4]), 16),
+                       'stats_base' : int(''.join(res[8:12]), 16),
+                       'flags' : int(''.join(res[12:16]), 16),
+                       'sched_info' : sched_info,
+                       'key' : {'vip' : vip, 'port' : port, 'protocol' : protocol}
+                       }
+            
+            services.append(service)
+            
+        self.cpe.cp.struct.iterator_delete(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, iterator_params_dict)
+        return services
+
+
+    def get_all_connections(self):
+        iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_ALVS_CONN_CLASSIFICATION, { 'channel_id': 0 })).result['iterator_params']
+        num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_CONN_CLASSIFICATION, channel_id = 0)).result['num_entries']['number_of_entries']
+
+        conns = []
+        for i in range(0, num_entries):
+            iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_ALVS_CONN_CLASSIFICATION, iterator_params_dict).result['iterator_params']
+             
+            key = str(iterator_params_dict['entry']['key']).split(' ')
+            cip = int(''.join(key[0:4]), 16)
+            vip = int(''.join(key[4:8]), 16)
+            cport = int(''.join(key[8:10]), 16)
+            vport = int(''.join(key[10:12]), 16)
+            protocol = int(''.join(key[12:14]), 16)
+             
+            class_res = str(iterator_params_dict['entry']['result']).split(' ')
+            info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_INFO, 0, {'key' : class_res[2]}).result["params"]["entry"]["result"]).split(' ')
+            if (int(info_res[0], 16) >> 4) != 3:
+                print 'This should not happen!'
+                return {}            
+            
+            conn = {'sync_bit' : (int(info_res[0], 16) >> 3) & 0x1,
+                    'aging_bit' : (int(info_res[0], 16) >> 2) & 0x1,
+                    'delete_bit' : (int(info_res[0], 16) >> 1) & 0x1,
+                    'reset_bit' : int(info_res[0], 16) & 0x1,
+                    'age_iteration' : int(info_res[1], 16),
+                    'server_index' : int(''.join(info_res[2:4]), 16),
+                    'state' : int(info_res[5], 16),
+                    'stats_base' : int(''.join(info_res[8:12]), 16),
+                    'flags' : int(''.join(info_res[28:32]), 16),
+                    'key' : {'vip' : vip, 'vport' : vport, 'cip' : cip, 'cport' : cport, 'protocol' : protocol}
+                    }
+            
+            conns.append(conn)
+            
+        self.cpe.cp.struct.iterator_delete(STRUCT_ID_ALVS_CONN_CLASSIFICATION, iterator_params_dict)
+        return conns
+
+
 class tcp_packet:
     def __init__(self, mac_da, mac_sa, ip_src, ip_dst, tcp_source_port, tcp_reset_flag = False, tcp_fin_flag = False, tcp_sync_flag = False, packet_length = 64):
         self.mac_sa = mac_sa
