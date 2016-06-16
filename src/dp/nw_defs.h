@@ -73,7 +73,7 @@ struct cmem_nw_info {
 
 union nw_workarea {
 	char                    arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
-	char                    table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
+	char                    table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
 };
 
 /***********************************************************************//**

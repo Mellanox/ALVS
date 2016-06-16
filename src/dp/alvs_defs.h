@@ -157,7 +157,7 @@ struct alvs_cmem {
 union alvs_workarea {
 	char conn_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_conn_classification_result), sizeof(struct alvs_conn_classification_key))];
 	char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_classification_result), sizeof(struct alvs_service_classification_key))];
-	char table_work_area[EZDP_TABLE_PRM_WORK_AREA_SIZE];
+	char table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct alvs_conn_info_result))];
 };
 
 /***********************************************************************//**

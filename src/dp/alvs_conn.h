@@ -200,7 +200,7 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.table_work_area,
-			sizeof(EZDP_TABLE_PRM_WORK_AREA_SIZE));
+			sizeof(cmem_wa.alvs_wa.table_work_area));
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -245,7 +245,7 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset_bit)
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.table_work_area,
-			sizeof(EZDP_TABLE_PRM_WORK_AREA_SIZE));
+			sizeof(cmem_wa.alvs_wa.table_work_area));
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -332,7 +332,7 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.table_work_area,
-			sizeof(EZDP_TABLE_PRM_WORK_AREA_SIZE));
+			sizeof(cmem_wa.alvs_wa.table_work_area));
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
@@ -373,7 +373,7 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.table_work_area,
-			sizeof(EZDP_TABLE_PRM_WORK_AREA_SIZE));
+			sizeof(cmem_wa.alvs_wa.table_work_area));
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
