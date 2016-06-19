@@ -571,7 +571,7 @@ bool infra_create_timers(void)
 		return false;
 	}
 
-	pmu_timer_params.bEnable = false;  /* TODO - enable when aging is needed */
+	pmu_timer_params.bEnable = true;
 	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
 	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
 	pmu_timer_params.uiNumJobs = 1*1024*1024;
