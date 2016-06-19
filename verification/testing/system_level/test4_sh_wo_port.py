@@ -14,8 +14,6 @@ import sys
 import inspect
 from multiprocessing import Process
 
-from os import listdir
-from os.path import isfile, join
 
 
 # pythons modules 
@@ -98,31 +96,14 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 
 def run_user_checker(server_list, ezbox, client_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
-	responses = []
-	for filename in file_list:
-		logfile=open(filename, 'r')
-		client_responses = {}
-		for line in logfile:
-			if len(line) > 2 and line[0] != '#':
-				split_line = line.split(':')
-				key = split_line[1].strip()
-				client_responses[key] = client_responses.get(key, 0) + 1
-		responses.append(client_responses)	 
+	expected_dict= {'client_response_count':10,
+					'client_count': len(client_list),
+					'server_count_per_client':1}
 	
-	if len(responses) != len(client_list):
-		print 'ERROR: wrong number of logs. client count = %d , log count = %d' %(len(responses),len(client_list))
-	
-	for index,client_responses in enumerate(responses):
-		print 'testing client %d ...' %index
-		if len(client_responses) != 1:
-			print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(1, len(client_responses))
-		total = 0
-		for ip, count in client_responses.items():
-			print 'response count from server %s = %d' %(ip,count)
-			total += count
-		if total != 10:
-			print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(10, total)
+	if client_checker(log_dir, expected_dict):
+		print 'Test passed !!!'
+	else:
+		print 'Test failed !!!'
 
 	pass
 #===============================================================================
@@ -135,21 +116,18 @@ def main():
 		print "Usage: client_requests.py <setup_num>"
 		exit(1)
 	
-	
 	setup_num  = int(sys.argv[1])
- 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
- 
+  	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+  
 	init_players(server_list, ezbox, client_list, vip_list)
-  	
+   	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-  	
+   	
 	log_dir = collect_logs(server_list, ezbox, client_list)
+
 	run_user_checker(server_list, ezbox, client_list, log_dir)
-# 	check_connections(ezbox)
 	
- 	clean_players(server_list, ezbox, client_list)
+	clean_players(server_list, ezbox, client_list)
 	
-
-
 
 main()

@@ -10,6 +10,8 @@ from optparse import OptionParser
 import os
 import sys
 from time import gmtime, strftime
+from os import listdir
+from os.path import isfile, join
 
 from common_infra import *
 from server_infra import *
@@ -92,3 +94,44 @@ def collect_logs(server_list, ezbox, client_list):
 		c.get_log(dir_name)
 
 	return dir_name
+
+def client_checker(log_dir, expected_dict={}):
+	if len(expected_dict) == 0:
+		return True
+	
+	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
+	responses = []
+	for filename in file_list:
+		logfile=open(filename, 'r')
+		client_responses = {}
+		for line in logfile:
+			if len(line) > 2 and line[0] != '#':
+				split_line = line.split(':')
+				key = split_line[1].strip()
+				client_responses[key] = client_responses.get(key, 0) + 1
+		responses.append(client_responses)	 
+	
+	
+	if 'client_count' in expected_dict:
+		if len(responses) != expected_dict['client_count']:
+			print 'ERROR: wrong number of logs. log count = %d, client count = %d' %(len(responses),expected_dict['client_count'])
+			return False
+		
+	
+	for index,client_responses in enumerate(responses):
+		print 'testing client %d ...' %(index+1)
+		if 'server_count_per_client' in expected_dict:
+			if len(client_responses) != 1:
+				print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))
+				return False
+		total = 0
+		for ip, count in client_responses.items():
+			print 'response count from server %s = %d' %(ip,count)
+			total += count
+		if 'client_response_count' in expected_dict:
+			if total != 10:
+				print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(expected_dict['client_response_count'], total)
+				return False
+	
+	return True		
+
