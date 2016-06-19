@@ -61,6 +61,7 @@ class ezbox_host:
         self.ssh_object.connect()
         self.run_app_ssh.connect()
         self.syslog_ssh.connect()
+        self.syslog_ssh.execute_command("> /var/log/syslog")
         self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep ALVS', False)
          
     def logout(self):
