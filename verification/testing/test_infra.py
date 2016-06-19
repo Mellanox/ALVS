@@ -183,14 +183,8 @@ class ezbox_host:
         os.system(cmd)
         
     def execute_command_on_host(self, cmd):
-        
-        temp_ssh_object = pxssh.pxssh()
-        temp_ssh_object.login(self.management_ip, self.username, self.password, login_timeout=120)
-        time.sleep(1)
         self.ssh_object.sendline(cmd)
-        time.sleep(1)
         self.ssh_object.prompt(timeout=120)
-        time.sleep(1)
         output = self.ssh_object.before
 #         print "output is:"
 #         print "output "+ output
@@ -214,9 +208,6 @@ class ezbox_host:
         pid = pid.split('\n')
         pid = pid[1]
         pid = pid.strip('\r')
-        
-        temp_ssh_object.logout()
-        del temp_ssh_object
         
         try:
             exit_code = int(exit_code)

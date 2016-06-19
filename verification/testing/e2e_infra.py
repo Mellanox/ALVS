@@ -120,8 +120,13 @@ def client_checker(log_dir, expected_dict={}):
 	
 	for index,client_responses in enumerate(responses):
 		print 'testing client %d ...' %(index+1)
+		if 'no_404' in expected_dict:
+			if expected_dict['no_404'] == True:
+				if '404 ERROR' in client_responses:
+					print 'ERROR: client received 404 response. count = %d' % client_responses['404 ERROR']
+					return False
 		if 'server_count_per_client' in expected_dict:
-			if len(client_responses) != 1:
+			if len(client_responses) != expected_dict['server_count_per_client']:
 				print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))
 				return False
 		total = 0
@@ -129,7 +134,7 @@ def client_checker(log_dir, expected_dict={}):
 			print 'response count from server %s = %d' %(ip,count)
 			total += count
 		if 'client_response_count' in expected_dict:
-			if total != 10:
+			if total != expected_dict['client_response_count']:
 				print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(expected_dict['client_response_count'], total)
 				return False
 	

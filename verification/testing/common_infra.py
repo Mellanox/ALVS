@@ -137,8 +137,8 @@ def get_setup_list(setup_num):
 def get_ezbox_names(setup_num):
 	setup_dict = {1:['ezbox29-host','ezbox29-chip', 'eth0.6'],
 				  2:['ezbox24-host','ezbox24-chip', 'eth0.5'],
-				  3:['ezbox35-host','ezbox35-chip', 'eth0'],
-				  4:['ezbox55-host','ezbox55-chip', 'eth0']}
+				  3:['ezbox35-host','ezbox35-chip', 'eth0.7'],
+				  4:['ezbox55-host','ezbox55-chip', 'eth0.8']}
 	
 	return setup_dict[setup_num]
 

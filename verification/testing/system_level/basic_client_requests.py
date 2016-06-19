@@ -32,7 +32,7 @@ def readHtml(ip):
     try:
         response = urllib2.urlopen('http://'+ip)
     except urllib2.URLError,err:
-        log('%s : %s' %(ip, str(err)))
+        log('%s : %s' %(ip, '404 ERROR'))
         return str(err)
         
     html = response.read()
