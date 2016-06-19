@@ -64,8 +64,7 @@ def user_init(setup_num):
 	
 
 	# EZbox
-	host_name, chip_name ,interface=  get_ezbox_names(setup_num)
-	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip', interface=interface)
+	ezbox = ezbox_host(setup_num)
 
 	return (server_list, ezbox, client_list, vip_list)
 

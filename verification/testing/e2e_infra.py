@@ -35,10 +35,10 @@ def init_players(server_list, ezbox, client_list, vip_list):
 	ezbox.connect()
 	ezbox.terminate_cp_app()
 	ezbox.reset_chip()
-	flush_ipvs(ezbox)
-	ezbox.copy_cp_bin_to_host()
-	ezbox.run_cp_app()
-	ezbox.copy_and_run_dp_bin()
+	ezbox.flush_ipvs()
+	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+	ezbox.run_cp()
+	ezbox.run_dp()
 	ezbox.config_vips(vip_list)
 
 	# init client

@@ -64,8 +64,7 @@ def user_init(setup_num):
 	
 
 	# EZbox
-	host_name, chip_name, interface =  get_ezbox_names(setup_num)
-	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip', interface=interface)
+	ezbox = ezbox_host(setup_num)
 
 	return (server_list, ezbox, client_list, vip_list)
 
@@ -80,11 +79,11 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	vip = vip_list[0]
 	port = '80'
 
-	add_service(ezbox, vip, port, sched_alg_opt='')
+	ezbox.add_service(vip, port, sched_alg_opt='')
 	for server in server_list:
-		add_server(ezbox, vip, port, server.ip, port)
+		ezbox.add_server(vip, port, server.ip, port)
 	
-	delete_service(ezbox, vip, port)
+	ezbox.delete_service(vip, port)
 	
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
