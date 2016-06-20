@@ -323,7 +323,8 @@ bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __un
 		return init_alvs_private_cmem();
 	case EZDP_SHARED_CMEM_DATA:
 		printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
-		return init_alvs_shared_cmem() & init_nw_shared_cmem();
+		alvs_open_log();
+		return init_nw_shared_cmem() & init_alvs_shared_cmem();
 	default:
 		return true;
 	}

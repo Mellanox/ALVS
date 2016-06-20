@@ -48,8 +48,6 @@ bool init_alvs_shared_cmem(void)
 {
 	uint32_t  result;
 
-	alvs_open_log();
-
 	/*Init connection classification DB*/
 	result = ezdp_init_hash_struct_desc(STRUCT_ID_ALVS_CONN_CLASSIFICATION,
 					    &shared_cmem_alvs.conn_class_struct_desc,
