@@ -6,7 +6,7 @@ import pexpect
 from pexpect import pxssh
 import random
 
-sys.path.append('/auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/tools/EZcpPyLib/lib')
+sys.path.append('EZdk/tools/EZcpPyLib/lib')
 from ezpy_cp import EZpyCP
  
 import time
