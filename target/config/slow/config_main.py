@@ -3,7 +3,7 @@
 def export_configuration_to_python():
     #Exporting XML based target configuration files to Python scripts using the EZConfigExport tool
     run_config_export("config.xml", "config.py")
-    run_config_export("search_entries.xml", "search_entries.py")
+    run_config_export("search_entries_slow.xml", "search_entries_slow.py")
 
 def run_config_export(config_filename, output_filename):
 	EZConfigExport_executable = sys.argv[3] + "/tools/EZConfigExport/bin/EZConfigExport.sh"
@@ -27,7 +27,7 @@ import os
 export_configuration_to_python()
 	
 import config
-import search_entries
+import search_entries_slow
 
 from ezpy_cp import EZpyCP
 cpe = EZpyCP(sys.argv[1],sys.argv[2])
@@ -44,7 +44,7 @@ cpe.cp.struct.load_partition(partition=0)
 print 'Running finalize()'
 cpe.cp.channel.finalize()
 config.finalized(cpe)
-search_entries.add_entries(cpe)
+search_entries_slow.add_entries(cpe)
 
 print 'Running go()'
 cpe.cp.channel.go()
