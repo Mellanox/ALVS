@@ -96,48 +96,65 @@ def collect_logs(server_list, ezbox, client_list):
 
 	return dir_name
 
-def client_checker(log_dir, expected_dict={}):
-	if len(expected_dict) == 0:
+def client_checker(log_dir, expected={}, step_count = 1):
+	if len(expected) == 0:
 		return True
 	
 	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
-	responses = []
+	all_responses = dict((i,{}) for i in range(step_count))
 	for filename in file_list:
-		logfile=open(filename, 'r')
+		step = 0
+		if filename[-1] == '1':
+			step = 1
+		if filename[-1] == '2':
+			step = 2
+		client_ip = filename[filename.find('client_')+7 : filename.find('.log')]
 		client_responses = {}
+		logfile=open(filename, 'r')
 		for line in logfile:
 			if len(line) > 2 and line[0] != '#':
 				split_line = line.split(':')
 				key = split_line[1].strip()
 				client_responses[key] = client_responses.get(key, 0) + 1
-		responses.append(client_responses)	 
+		all_responses[step][client_ip] = client_responses	 
 	
-	
-	if 'client_count' in expected_dict:
-		if len(responses) != expected_dict['client_count']:
-			print 'ERROR: wrong number of logs. log count = %d, client count = %d' %(len(responses),expected_dict['client_count'])
-			return False
-		
-	
-	for index,client_responses in enumerate(responses):
-		print 'testing client %d ...' %(index+1)
-		if 'no_404' in expected_dict:
-			if expected_dict['no_404'] == True:
-				if '404 ERROR' in client_responses:
-					print 'ERROR: client received 404 response. count = %d' % client_responses['404 ERROR']
+	for step, responses in all_responses.items():
+		if step_count > 1:
+			expected_dict = expected[step]
+			print 'step %d :'%step
+		else:
+			expected_dict = expected
+		if 'client_count' in expected_dict:
+			if len(responses) != expected_dict['client_count']:
+				print 'ERROR: wrong number of logs. log count = %d, client count = %d' %(len(responses),expected_dict['client_count'])
+				return False
+			
+		#expected_servers
+		for client_ip,client_responses in responses.items():
+			print 'testing client %s ...' %client_ip
+			total = 0
+			for ip, count in client_responses.items():
+				print 'response count from server %s = %d' %(ip,count)
+				total += count
+
+			if 'no_404' in expected_dict:
+				if expected_dict['no_404'] == True:
+					if '404 ERROR' in client_responses:
+						print 'ERROR: client received 404 response. count = %d' % client_responses['404 ERROR']
+						return False
+			if 'server_count_per_client' in expected_dict:
+				if len(client_responses) != expected_dict['server_count_per_client']:
+					print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))
 					return False
-		if 'server_count_per_client' in expected_dict:
-			if len(client_responses) != expected_dict['server_count_per_client']:
-				print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))
-				return False
-		total = 0
-		for ip, count in client_responses.items():
-			print 'response count from server %s = %d' %(ip,count)
-			total += count
-		if 'client_response_count' in expected_dict:
-			if total != expected_dict['client_response_count']:
-				print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(expected_dict['client_response_count'], total)
-				return False
-	
+			if 'client_response_count' in expected_dict:
+				if total != expected_dict['client_response_count']:
+					print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(expected_dict['client_response_count'], total)
+					return False
+			if 'expected_servers' in expected_dict:
+				expected_servers = expected_dict['expected_servers'][client_ip]
+				for ip, count in client_responses.items():
+					if ip not in expected_servers:
+						print 'ERROR: client received response from unexpected server. server ip = %s , list of expected servers: %s' %(ip, expected_servers)
+						return False
 	return True		
 
