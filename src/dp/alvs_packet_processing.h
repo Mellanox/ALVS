@@ -61,6 +61,8 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	 struct  alvs_service_classification_result *service_class_res_ptr;
 	 struct  alvs_conn_classification_result *conn_class_res_ptr;
 
+	 alvs_write_log(LOG_DEBUG, "New connection (slow path)");
+
 	 cmem_alvs.service_class_key.service_address = ip_hdr->daddr;
 	 cmem_alvs.service_class_key.service_port = tcp_hdr->dest;
 	 cmem_alvs.service_class_key.service_protocol = ip_hdr->protocol;

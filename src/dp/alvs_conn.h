@@ -429,6 +429,8 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 {
 	uint32_t rc;
 
+	alvs_write_log(LOG_DEBUG, "Connection exists (fast path)");
+
 	/*perform lookup in conn info DB*/
 	rc = alvs_conn_info_lookup(conn_index);
 
