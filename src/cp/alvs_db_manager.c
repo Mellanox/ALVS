@@ -1090,7 +1090,7 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating connection classification table.\n");
 	hash_params.key_size = sizeof(struct alvs_conn_classification_key);
 	hash_params.result_size = sizeof(struct alvs_conn_classification_result);
-	hash_params.max_num_of_entries = 1*1024*1024;  /* TODO - define? */
+	hash_params.max_num_of_entries = 8*1024*1024;  /* TODO - define? */
 	hash_params.updated_from_dp = true;
 	hash_params.sig_pool_id = 0;
 	hash_params.result_pool_id = 1;
@@ -1103,7 +1103,7 @@ bool alvs_db_constructor(void)
 	printf("Creating connection info table.\n");
 	table_params.key_size = sizeof(struct alvs_conn_info_key);
 	table_params.result_size = sizeof(struct alvs_conn_info_result);
-	table_params.max_num_of_entries = 1*1024*1024;  /* TODO - define? */
+	table_params.max_num_of_entries =8*1024*1024;  /* TODO - define? */
 	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, INFRA_EMEM_SEARCH_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs conn info table.\n");

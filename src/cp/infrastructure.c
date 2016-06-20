@@ -113,7 +113,7 @@ enum infra_emem_spaces_params {
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        4
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
-#define INFRA_EMEM_SEARCH_SIZE              2048
+#define INFRA_EMEM_SEARCH_SIZE              (16*1024)
 #define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    1
 
 #define NUM_OF_INT_MEMORY_SPACES            4
