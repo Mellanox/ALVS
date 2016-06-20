@@ -102,8 +102,10 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 	
 	if client_checker(log_dir, expected_dict):
 		print 'Test passed !!!'
+		exit(0)
 	else:
 		print 'Test failed !!!'
+		exit(1)
 
 	pass
 #===============================================================================
@@ -125,9 +127,9 @@ def main():
    	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
-	run_user_checker(server_list, ezbox, client_list, log_dir)
-	
 	clean_players(server_list, ezbox, client_list)
+	
+	run_user_checker(server_list, ezbox, client_list, log_dir)
 	
 
 main()

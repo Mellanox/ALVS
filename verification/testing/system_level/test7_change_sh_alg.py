@@ -142,8 +142,10 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	
 	if client_checker(log_dir, expected_dict, 3):
 		print 'Test passed !!!'
+		exit(0)
 	else:
 		print 'Test failed !!!'
+		exit(1)
 
 	pass
 #===============================================================================
