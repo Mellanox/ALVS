@@ -9,11 +9,11 @@ import logging
 import os
 import sys
 import inspect
+import time
 
 from pexpect import pxssh
 import pexpect
 from ftplib import FTP
-from telnetlib import Telnet
 
 # pythons modules 
 from test_infra import *
@@ -79,15 +79,13 @@ class ezbox_host:
             ftp.login()
             ftp.storbinary("STOR /tmp/dp_bin", open(dp_bin, 'rb'))
             ftp.quit()
+            os.system("{ echo \"chmod +x tmp/dp_bin\"; sleep 1; } | telnet " + self.setup['chip'])
         
     def reset_chip(self):
         self.run_app_ssh.execute_command("bsp_nps_power -r por")
 
-    def run_dp(self, args=''):    
-        tn = Telnet(self.setup['name'] + "-chip")
-        tn.write("cd tmp\n")
-        tn.write("chmod +x dp_bin\n")
-        tn.write("./dp_bin + " + args + "\n")    
+    def run_dp(self, args=''):
+        os.system("{ echo \"./tmp/dp_bin &\"; sleep 3; } | telnet " + self.setup['chip'])
 
     def run_cp(self):
         self.run_app_ssh.execute_command("/tmp/cp_bin --agt_enabled")
@@ -116,6 +114,7 @@ class ezbox_host:
         pid = self.get_cp_app_pid()
         while pid != None:
         	retcodde, output = self.run_app_ssh.execute_command("kill " + pid)
+        	time.sleep(1)
         	pid = self.get_cp_app_pid()
 
          

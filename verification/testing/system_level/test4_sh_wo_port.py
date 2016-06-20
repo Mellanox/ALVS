@@ -97,7 +97,8 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	expected_dict= {'client_response_count':10,
 					'client_count': len(client_list),
-					'server_count_per_client':1}
+					'server_count_per_client':1,
+					'no_404': True}
 	
 	if client_checker(log_dir, expected_dict):
 		print 'Test passed !!!'
