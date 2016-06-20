@@ -93,7 +93,7 @@ class ezbox_host:
         self.run_app_ssh.execute_command("/tmp/cp_bin --agt_enabled")
                     
     def wait_for_cp_app(self):
-        output = self.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
+        output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
         if output == 0:
             return True
         elif output == 1:
@@ -104,18 +104,6 @@ class ezbox_host:
         else:
             print 'wait_for_cp_app: Error... (Unknown output)'
             return False
-                    
-    def wait_for_msgs(self, msgs):
-        while (True):
-            index = self.syslog_ssh.expect_exact([pexpect.EOF, pexpect.TIMEOUT].append(msgs))
-            if index == 0:
-                print self.syslog_ssh.before + self.syslog_ssh.match
-                return -1
-            elif index == 1:
-                print self.syslog_ssh.before
-                
-            else:
-                return (index-2)
          
     def get_cp_app_pid(self):
         retcode, output = self.ssh_object.execute_command("pidof cp_bin")         
@@ -397,7 +385,19 @@ class SshConnect:
 				return [False, output]
 		else:
 			return [True, '']
-	
+
+	def wait_for_msgs(self, msgs):
+		while (True):
+			index = self.ssh_object.expect_exact([pexpect.EOF, pexpect.TIMEOUT] + msgs)
+			if index == 0:
+				print self.ssh_object.before + self.ssh_object.match
+				return -1
+			elif index == 1:
+				print self.ssh_object.before
+			else:
+				return (index-2)
+
+
 class player(object):
 	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
 		self.ip = ip
