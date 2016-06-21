@@ -76,7 +76,7 @@ uint32_t alvs_conn_info_lookup(uint32_t conn_index)
  *
  */
 static __always_inline
-enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index, enum alvs_tcp_conn_state conn_state)
+enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index, enum alvs_tcp_conn_state conn_state, bool reset)
 {
 	uint32_t conn_index;
 	uint32_t rc;
@@ -105,8 +105,8 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.sync_bit = 1;
-	cmem_alvs.conn_info_result.reset_bit = 0;
-	cmem_alvs.conn_info_result.delete_bit = 0;
+	cmem_alvs.conn_info_result.reset_bit = reset;
+	cmem_alvs.conn_info_result.delete_bit = reset;
 	cmem_alvs.conn_info_result.conn_flags = cmem_alvs.server_info_result.conn_flags;
 	cmem_alvs.conn_info_result.server_index = server_index;
 	cmem_alvs.conn_info_result.conn_state = conn_state;
