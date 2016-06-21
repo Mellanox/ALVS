@@ -190,6 +190,7 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 		return rc;
 	}
 
+	cmem_alvs.conn_info_result.delete_bit = 0;
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.conn_state = new_state;
 	cmem_alvs.conn_info_result.sync_bit = 1;
@@ -435,6 +436,16 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (likely(rc == 0)) {
+		/*check if someone already indicated that this connection should be deleted...*/
+		if (cmem_alvs.conn_info_result.reset_bit == 1) {
+			/*server in not available - close connection*/
+			printf("connection is marked to delete!\n");
+			/*drop frame*/
+			alvs_update_discard_statistics(ALVS_ERROR_CONN_MARK_TO_DELETE);
+			alvs_discard_frame();
+			return;
+		}
+
 		/*get destination server info*/
 #if 0
 		printf("Server index is 0x%x\n", cmem_alvs.conn_info_result.server_index);
@@ -444,16 +455,6 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			printf("error - alvs server info lookup fail. server id = %d!\n", cmem_alvs.conn_info_result.server_index);
 			/*drop frame*/
 			alvs_update_discard_statistics(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
-			alvs_discard_frame();
-			return;
-		}
-
-		/*check if someone already indicated that this connection should be deleted...*/
-		if (cmem_alvs.conn_info_result.reset_bit == 1) {
-			/*server in not available - close connection*/
-			printf("connection is marked to delete!\n");
-			/*drop frame*/
-			alvs_update_discard_statistics(ALVS_ERROR_CONN_MARK_TO_DELETE);
 			alvs_discard_frame();
 			return;
 		}
