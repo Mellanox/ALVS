@@ -25,15 +25,21 @@ from e2e_infra import *
 
 
 #===============================================================================
+# Test Globals
+#===============================================================================
+request_count = 10
+server_count = 1
+client_count = 1
+service_count = 1
+
+
+
+#===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
 
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	server_count = 2
-	client_count = 1
-	service_count = 1
 
 	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
 
@@ -46,7 +52,7 @@ def user_init(setup_num):
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango", 
-						  vip = vip_list[0],
+						  vip = vip_list[i%service_count],
 						  eth='ens6'))
 		index+=1
 	
@@ -58,19 +64,18 @@ def user_init(setup_num):
 						  username = "root", 
 						  password = "3tango",
  						  exe_path    = script_dirname,
- 						  exe_script  = "test1_client_requests.py",
+ 						  exe_script  = "basic_client_requests.py",
  						  exec_params = ""))
 		index+=1
 	
 
 	# EZbox
 	ezbox = ezbox_host(setup_num)
-
+	
 	return (server_list, ezbox, client_list, vip_list)
 
 def client_execution(client, vip):
-	repeat = 10 
-	client.exec_params += " -i %s -r %d" %(vip, repeat)
+	client.exec_params += " -i %s -r %d" %(vip, request_count)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
@@ -91,8 +96,21 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		p.start()
 	for p in process_list:
 		p.join()
-		
 	print 'End user test'
+	pass
+
+def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	expected_dict= {'client_response_count':request_count,
+					'client_count': len(client_list), 
+					'no_404': False,
+					'server_count_per_client':server_count/service_count}
+	
+	if client_checker(log_dir, expected_dict):
+		print 'Test passed !!!'
+	else:
+		print 'Test failed !!!'
+
 	pass
 #===============================================================================
 # main function
@@ -104,19 +122,18 @@ def main():
 		print "Usage: client_requests.py <setup_num>"
 		exit(1)
 	
-	
 	setup_num  = int(sys.argv[1])
-	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-
+  	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+  
 	init_players(server_list, ezbox, client_list, vip_list)
-	
+   	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-	
-	collect_logs(server_list, ezbox, client_list)
-	
+   	
+	log_dir = collect_logs(server_list, ezbox, client_list)
+
 	clean_players(server_list, ezbox, client_list)
 	
-
-
+	run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	
 
 main()

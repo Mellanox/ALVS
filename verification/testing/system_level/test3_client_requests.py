@@ -49,7 +49,6 @@ def myReadHtml(ip,source_ip,source_port):
 	log( ip + ":" + str(source_port) + " : " + data)
 	
 	log("Closing connection...")
-	conn.sock.close()
 	conn.close()
 	
 	return data.strip()
@@ -92,23 +91,23 @@ if __name__ == "__main__":
 					(11,"192.168.0.22"),(18,"192.168.0.22"),
 					(10,"192.168.0.23"),(14,"192.168.0.23"),
 					(12,"192.168.0.24"),(13,"192.168.0.24")]
- 	else:
- 		port_server_dict = [(30,"192.168.0.50"),(34,"192.168.0.50"),
+	else:
+		port_server_dict = [(30,"192.168.0.50"),(34,"192.168.0.50"),
 					(10,"192.168.0.51"),(11,"192.168.0.51"),
 					(12,"192.168.0.52"),(14,"192.168.0.52"),
 					(13,"192.168.0.53"),(17,"192.168.0.53"),
 					(15,"192.168.0.54"),(36,"192.168.0.54")]
- 	
- 	
+		
+	exitVal = 0
 	for port_server in port_server_dict:
 		response_server = myReadHtml(options.http_ip, options.client_ip, port_server[0])
 		if response_server != port_server[1]:
-			log("Response server for service: " + options.http_ip + " and port: " + str(port_server[0]) + " should be : " + port_server[1] + " instead of: " + response_server)
-			log("Test failed !!!")
-			end_log()
-			exit(1)
- 			
-	log("Test passed !!!")
+			log("Error: Response server for service: " + options.http_ip + " and port: " + str(port_server[0]) + " should be : " + port_server[1] + " instead of: " + response_server)
+			exitVal = 1
+	if exitVal == 0:
+		log("Test passed !!!")
+	else:
+		log("Test failed !!!")
 	end_log()
-	exit(0)
+	exit(exitVal)
 
