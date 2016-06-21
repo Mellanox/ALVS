@@ -379,7 +379,7 @@ bool nw_db_constructor(void)
 	hash_params.result_size = sizeof(struct nw_arp_result);
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.updated_from_dp = false;
-	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HEAP,
+	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HASH_HEAP,
 			      &hash_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating ARP table.\n");
 		return false;

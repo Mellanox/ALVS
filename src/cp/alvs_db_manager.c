@@ -1049,9 +1049,9 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating service classification table.\n");
 	hash_params.key_size = sizeof(struct alvs_service_classification_key);
 	hash_params.result_size = sizeof(struct alvs_service_classification_result);
-	hash_params.max_num_of_entries = 4096;  /* TODO - define? */
+	hash_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
 	hash_params.updated_from_dp = false;
-	retcode = infra_create_hash(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, INFRA_EMEM_SEARCH_HEAP, &hash_params);
+	retcode = infra_create_hash(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, INFRA_EMEM_SEARCH_HASH_HEAP, &hash_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs service classification hash.\n");
 		return false;
@@ -1060,7 +1060,7 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating service info table.\n");
 	table_params.key_size = sizeof(struct alvs_service_info_key);
 	table_params.result_size = sizeof(struct alvs_service_info_result);
-	table_params.max_num_of_entries = 256;  /* TODO - define? */
+	table_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SERVICE_INFO, INFRA_X4_CLUSTER_SEARCH_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs service info table.\n");
@@ -1070,8 +1070,8 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating scheduling info table.\n");
 	table_params.key_size = sizeof(struct alvs_sched_info_key);
 	table_params.result_size = sizeof(struct alvs_sched_info_result);
-	table_params.max_num_of_entries = 65336;  /* TODO - define? */
-	retcode = infra_create_table(STRUCT_ID_ALVS_SCHED_INFO, INFRA_EMEM_SEARCH_HEAP, &table_params);
+	table_params.max_num_of_entries = ALVS_SCHED_MAX_ENTRIES;
+	retcode = infra_create_table(STRUCT_ID_ALVS_SCHED_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs scheduling info table.\n");
 		return false;
@@ -1080,8 +1080,8 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating server info table.\n");
 	table_params.key_size = sizeof(struct alvs_server_info_key);
 	table_params.result_size = sizeof(struct alvs_server_info_result);
-	table_params.max_num_of_entries = 32768;  /* TODO - define? */
-	retcode = infra_create_table(STRUCT_ID_ALVS_SERVER_INFO, INFRA_EMEM_SEARCH_HEAP, &table_params);
+	table_params.max_num_of_entries = ALVS_SERVERS_MAX_ENTRIES;
+	retcode = infra_create_table(STRUCT_ID_ALVS_SERVER_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs server info table.\n");
 		return false;
@@ -1090,11 +1090,11 @@ bool alvs_db_constructor(void)
 	write_log(LOG_DEBUG, "Creating connection classification table.\n");
 	hash_params.key_size = sizeof(struct alvs_conn_classification_key);
 	hash_params.result_size = sizeof(struct alvs_conn_classification_result);
-	hash_params.max_num_of_entries = 8*1024*1024;  /* TODO - define? */
+	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
 	hash_params.updated_from_dp = true;
 	hash_params.sig_pool_id = 0;
 	hash_params.result_pool_id = 1;
-	retcode = infra_create_hash(STRUCT_ID_ALVS_CONN_CLASSIFICATION, INFRA_EMEM_SEARCH_HEAP, &hash_params);
+	retcode = infra_create_hash(STRUCT_ID_ALVS_CONN_CLASSIFICATION, INFRA_EMEM_SEARCH_HASH_HEAP, &hash_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs conn classification hash.\n");
 		return false;
@@ -1103,8 +1103,8 @@ bool alvs_db_constructor(void)
 	printf("Creating connection info table.\n");
 	table_params.key_size = sizeof(struct alvs_conn_info_key);
 	table_params.result_size = sizeof(struct alvs_conn_info_result);
-	table_params.max_num_of_entries = 8*1024*1024;  /* TODO - define? */
-	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, INFRA_EMEM_SEARCH_HEAP, &table_params);
+	table_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
+	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs conn info table.\n");
 		return false;

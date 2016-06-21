@@ -93,6 +93,7 @@ enum infra_imem_spaces_params {
 	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
 	INFRA_IMEM_SPACES_PARAMS_SIZE               = 1,
 	INFRA_IMEM_SPACES_PARAMS_INDEX              = 2,
+	INFRA_IMEM_SPACES_PARAMS_HEAP               = 3,
 	INFRA_NUM_OF_IMEM_SPACES_PARAMS
 };
 
@@ -103,6 +104,7 @@ enum infra_emem_spaces_params {
 	INFRA_EMEM_SPACES_PARAMS_SIZE               = 2,
 	INFRA_EMEM_SPACES_PARAMS_MSID               = 3,
 	INFRA_EMEM_SPACES_PARAMS_INDEX              = 4,
+	INFRA_EMEM_SPACES_PARAMS_HEAP               = 5,
 	INFRA_NUM_OF_EMEM_SPACES_PARAMS
 };
 
@@ -113,14 +115,16 @@ enum infra_emem_spaces_params {
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        4
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
-#define INFRA_EMEM_SEARCH_SIZE              (16*1024)
+#define INFRA_EMEM_SEARCH_HASH_SIZE         (4*1024)
+#define INFRA_EMEM_SEARCH_TABLE_SIZE        (4*1024)
 #define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    1
 
 #define NUM_OF_INT_MEMORY_SPACES            4
-#define NUM_OF_EXT_MEMORY_SPACES            2
+#define NUM_OF_EXT_MEMORY_SPACES            3
 
 /* Search MSIDs */
-#define EMEM_SEARCH_MSID              0x0
+#define EMEM_SEARCH_HASH_MSID              0x0
+#define EMEM_SEARCH_TABLE_MSID             0x1
 
 uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
@@ -130,15 +134,16 @@ uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS]
 };
 
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
-	{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0},
-	{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0},
-	{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0},
-	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0}
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0, INFRA_NOT_VALID_HEAP},
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0, INFRA_X1_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0, INFRA_X4_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0, INFRA_NOT_VALID_HEAP}
 };
 
 uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
-	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_SIZE, EMEM_SEARCH_MSID, 0},
-	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_SPINLOCK_MSID, 0}
+	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_HASH_SIZE, EMEM_SEARCH_HASH_MSID, 0, INFRA_EMEM_SEARCH_HASH_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_TABLE_SIZE, EMEM_SEARCH_TABLE_MSID, 0, INFRA_EMEM_SEARCH_TABLE_HEAP},
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_SPINLOCK_MSID, 0, INFRA_NOT_VALID_HEAP}
 };
 
 /**************************************************************************//**
@@ -775,49 +780,21 @@ bool infra_running(void)
 uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
 {
 	uint32_t ind;
-	uint32_t mem_type = 0;
-
-	/* Map memory search heap to memory type */
-	switch (search_mem_heap) {
-	case INFRA_HALF_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH;
-		break;
-	case INFRA_X1_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH;
-		break;
-	case INFRA_X2_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH;
-		break;
-	case INFRA_X4_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH;
-		break;
-	case INFRA_X16_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH;
-		break;
-	case INFRA_ALL_CLUSTER_SEARCH_HEAP:
-		mem_type = EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH;
-		break;
-	case INFRA_EMEM_SEARCH_HEAP:
-		mem_type = EZapiChannel_ExtMemSpaceType_SEARCH;
-		break;
-	}
 
 	/* Find the memory type in emem_spaces_params or imem_spaces_params */
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
-		for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
-			if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_TYPE] == mem_type) {
-				return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
-			}
+	for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
+		if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
+			return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
 		}
-	} else {
-		for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
-			if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE] == mem_type) {
-				return imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX];
-			}
+	}
+	for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
+		if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
+			return imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX];
 		}
 	}
 
 	/* Should not get here */
+	write_log(LOG_CRIT, "Should not get here (with search_mem_heap=%d)\n", search_mem_heap);
 	return 0;
 }
 
@@ -854,7 +831,7 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	struct_params.uiMaxEntries = params->max_num_of_entries;
 	struct_params.sChannelMap.bSingleDest = true;
 	struct_params.sChannelMap.uDest.uiChannel = 0;
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
@@ -899,7 +876,7 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	}
 
 	/* Set index of the memory heap */
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
 		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
 		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
@@ -951,7 +928,7 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
 	struct_params.uiMaxEntries = params->max_num_of_entries;
 	struct_params.sChannelMap.bSingleDest = true;
 	struct_params.sChannelMap.uDest.uiChannel = 0;
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HEAP) {
+	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;

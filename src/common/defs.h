@@ -44,7 +44,7 @@ union temp {
 
 #define ALVS_SIZE_OF_SCHED_BUCKET   256
 
-#define ALVS_CONN_MAX_ENTRIES       (8*1024*1024)    /* TODO - need to be 32M when using release 2.1 */
+#define ALVS_CONN_MAX_ENTRIES       (16*1024*1024)    /* TODO - need to be 32M when using release 2.1 */
 #define ALVS_SERVICES_MAX_ENTRIES   256
 #define ALVS_SCHED_MAX_ENTRIES      (ALVS_SERVICES_MAX_ENTRIES * ALVS_SIZE_OF_SCHED_BUCKET)
 #define ALVS_SERVERS_MAX_ENTRIES    (ALVS_SERVICES_MAX_ENTRIES * 1024)

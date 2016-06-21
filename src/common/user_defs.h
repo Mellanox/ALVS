@@ -35,9 +35,9 @@
 #define USER_TIMER_LOGICAL_ID       96
 #define USER_POOL_ID                2
 
-#define USER_EMEM_OUT_OF_BAND_MSID  1
-#define USER_ON_DEMAND_STATS_MSID   2
-#define USER_POSTED_STATS_MSID      3
+#define USER_EMEM_OUT_OF_BAND_MSID  2
+#define USER_ON_DEMAND_STATS_MSID   3
+#define USER_POSTED_STATS_MSID      4
 
 #define USER_NW_IF_NUM              4
 #define USER_BASE_LOGICAL_ID        0
