@@ -34,6 +34,7 @@ class HttpServer(player):
 		self.configure_loopback()
 		self.disable_arp()
 		self.set_index_html(index_str)
+		self.set_test_html()
 
 	def clean_server(self):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
@@ -144,6 +145,12 @@ class HttpServer(player):
 			print "ERROR: setting index.html failed. rc=" + str(rc) + " " + output
 			return
 
+	def set_test_html(self):
+		cmd = 'echo "Still alive" >/var/www/html/test.html'
+		rc, output = self.ssh.execute_command(cmd)
+		if rc != True:
+			print "ERROR: setting test.html failed. rc=" + str(rc) + " " + output
+			return
 
 	def delete_index_html(self):
 		cmd = "rm -f /var/www/html/index.html"

@@ -49,10 +49,55 @@ class ezbox_host:
     def reset_ezbox(self):
         os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
         
-    def clean(self):
+    def clean(self, use_director=False):
+        if use_director:
+        	self.clean_director()
         self.terminate_cp_app()
         self.logout()
         
+    def init_director(self, services):
+    	conf_filename = 'ldirectord.cf'
+    	conf_folder = '/etc/ha.d/'
+    	outfile = open(conf_filename, 'w')
+    	outfile.write('########################################################################\n')
+    	outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
+    	outfile.write('########################################################################\n')
+    	outfile.write('checktimeout=3\n')
+    	outfile.write('checkinterval=1\n')
+    	outfile.write('autoreload=yes\n')
+    	outfile.write('logfile="/var/log/ldirectord.log"\n')
+    	outfile.write('quiescent=no\n')
+    	for vip in services.keys():
+    		outfile.write('virtual=%s:80\n'%vip)
+    		for server in services[vip]:
+    			outfile.write('	real=%s:80 gate\n'%server)
+    			outfile.write('	service=http\n')
+    			outfile.write('	request="test.html"\n')
+    			outfile.write('	receive="Still alive"\n')
+    			outfile.write('	scheduler=sh\n')
+    			outfile.write('	protocol=tcp\n')
+    			outfile.write('	checktype=negotiate\n')
+    	outfile.close()
+    	self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
+    	cmd = 'rm -f '+conf_filename
+    	os.system(cmd)
+    	self.execute_command_on_host('/etc/init.d/ldirectord start')
+    	
+    def clean_director(self):
+        conf_filename = 'ldirectord.cf'
+        conf_folder = '/etc/ha.d/'
+        outfile = open(conf_filename, 'w')
+        outfile.write('########################################################################\n')
+        outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
+        outfile.write('########################################################################\n')
+        outfile.write('# Empty configuration\n')
+        
+        outfile.close()
+        self.execute_command_on_host('/etc/init.d/ldirectord stop')
+        self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
+        cmd = 'rm -f '+conf_filename
+        os.system(cmd)
+
     def config_vips(self, vip_list):
         for index, vip in enumerate(vip_list):
             self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.setup['interface'], index+1, vip))
@@ -73,7 +118,7 @@ class ezbox_host:
     	return self.ssh_object.execute_command(cmd)
     
     def copy_binaries(self, cp_bin, dp_bin=None):
-        os.system("sshpass -p " + self.setup['password'] + " scp " + cp_bin + " " + self.setup['username'] + "@" + self.setup['host'] + ":/tmp/cp_bin")
+    	self.copy_file_to_host(cp_bin, "/tmp/cp_bin")
         if dp_bin != None:
             ftp=FTP(self.setup['chip'])
             ftp.login()
@@ -81,11 +126,14 @@ class ezbox_host:
             ftp.quit()
             os.system("{ echo \"chmod +x tmp/dp_bin\"; sleep 1; } | telnet " + self.setup['chip'])
         
+    def copy_file_to_host(self, filename, dest):
+        os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
+
     def reset_chip(self):
         self.run_app_ssh.execute_command("bsp_nps_power -r por")
 
     def run_dp(self, args=''):
-        os.system("{ echo \"./tmp/dp_bin &\"; sleep 3; } | telnet " + self.setup['chip'])
+        os.system("{ echo \"./tmp/dp_bin %s &\"; sleep 3; } | telnet %s" %(args, self.setup['chip']))
 
     def run_cp(self):
         self.run_app_ssh.execute_command("/tmp/cp_bin --agt_enabled")

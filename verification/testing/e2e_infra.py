@@ -24,7 +24,7 @@ from test_infra import *
 #===============================================================================
 
 #------------------------------------------------------------------------------ 
-def init_players(server_list, ezbox, client_list, vip_list):
+def init_players(server_list, ezbox, client_list, vip_list, use_director = False):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	# init HTTP servers 
 	for s in server_list:
@@ -41,18 +41,25 @@ def init_players(server_list, ezbox, client_list, vip_list):
 	ezbox.run_dp()
 	ezbox.wait_for_cp_app()
 	ezbox.config_vips(vip_list)
-
+	
+	if use_director:
+		services = dict((vip, []) for vip in vip_list )
+		for server in server_list:
+			services[server.vip].append(server.ip)
+		ezbox.init_director(services)
+	
 	# init client
 	for c in client_list:
 		print "init client: " + c.str()
 		c.init_client()
 	
+
 	
 #===============================================================================
 # clean functions
 #===============================================================================
 #------------------------------------------------------------------------------ 
-def clean_players(server_list, ezbox, client_list):
+def clean_players(server_list, ezbox, client_list, use_director = False):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	# init HTTP servers 
 	for s in server_list:
@@ -65,7 +72,7 @@ def clean_players(server_list, ezbox, client_list):
 		print "clean client: " + c.str()
 		c.clean_client()
 
-	ezbox.clean()
+	ezbox.clean(use_director)
 
 #===============================================================================
 # Run functions

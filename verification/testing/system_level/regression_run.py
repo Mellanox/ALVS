@@ -39,15 +39,19 @@ for line in list_file:
 	if line[0] != '#':
 		test = line[:-1]
 		print 'running test %s ...' % test
-		cmd = currentdir + '/' + test + ' ' + setup_num + ' > tmp_log'
+		logfilename = '%s_log' %test
+		cmd = currentdir + '/' + test + ' ' + setup_num + ' > ' +logfilename
 		retval = os.system(cmd)
 		
 		if retval != 0 :
 			print "Test failed"
+			print 'see logfile ' + logfilename  
 		else: 
 			print "Test passed"
+			cmd = 'rm -f '+logfilename
+			retval = os.system(cmd)
 	
-		cmd = 'rm -f tmp_log'
+		
 
 
 
