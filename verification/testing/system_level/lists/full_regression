@@ -4,3 +4,6 @@ test4_sh_wo_port.py
 test5_sh_w_port.py
 test6_sh_w_port_2_services.py
 test7_change_sh_alg.py
+test8_add_servers.py
+test9_add_servers.py
+test10_add_servers.py
