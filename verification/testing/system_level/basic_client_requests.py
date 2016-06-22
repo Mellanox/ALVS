@@ -30,7 +30,7 @@ def end_log():
 
 def readHtml(ip):
     try:
-        response = urllib2.urlopen('http://'+ip)
+        response = urllib2.urlopen('http://'+ip, timeout=5)
     except urllib2.URLError,err:
         log('%s : %s' %(ip, '404 ERROR'))
         return str(err)

@@ -38,7 +38,8 @@ def main():
 		exit(1)
 
 	setup_num = int(sys.argv[1]) 	
-	
+	vip_list = [get_setup_vip(setup_num,i) for i in range(1)]
+	setup_list = get_setup_list(setup_num)
 	server_list=[]
 	for vm in setup_list:
 		server_list.append(HttpServer(ip = vm['ip'],
@@ -48,11 +49,9 @@ def main():
 						  vip = vip_list[0],
 						  eth='ens6'))
 
-	
 	for s in server_list:
 		print "clean server: " + s.str()
 		s.connect()
 		s.clean_server()
-
 	
 main()

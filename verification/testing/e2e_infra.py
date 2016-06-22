@@ -38,7 +38,7 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	ezbox.flush_ipvs()
 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 	ezbox.run_cp()
-	ezbox.run_dp()
+	ezbox.run_dp(args='--run_cpus=16-47')
 	ezbox.wait_for_cp_app()
 	ezbox.config_vips(vip_list)
 	
@@ -103,6 +103,9 @@ def collect_logs(server_list, ezbox, client_list):
 
 	return dir_name
 
+'''
+	client_checker: Supports up to 100 steps (0-99)
+'''
 def client_checker(log_dir, expected={}, step_count = 1):
 	rc = True
 	
@@ -112,11 +115,12 @@ def client_checker(log_dir, expected={}, step_count = 1):
 	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
 	all_responses = dict((i,{}) for i in range(step_count))
 	for filename in file_list:
-		step = 0
-		if filename[-1] == '1':
-			step = 1
-		if filename[-1] == '2':
-			step = 2
+		if filename[-1].isdigit():
+			step = int(filename[-1])
+			if filename[-2].isdigit():
+				step += int(filename[-2]) * 10
+		else: 
+			step = 0
 		client_ip = filename[filename.find('client_')+7 : filename.find('.log')]
 		client_responses = {}
 		logfile=open(filename, 'r')
@@ -151,6 +155,11 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					if '404 ERROR' in client_responses:
 						print 'ERROR: client received 404 response. count = %d' % client_responses['404 ERROR']
 						rc = False
+				else:
+					if '404 ERROR' not in client_responses:
+						print 'ERROR: client did not receive 404 response. '
+						rc = False
+					
 			if 'server_count_per_client' in expected_dict:
 				if len(client_responses) != expected_dict['server_count_per_client']:
 					print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))

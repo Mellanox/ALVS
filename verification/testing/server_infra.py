@@ -40,6 +40,7 @@ class HttpServer(player):
 		self.take_down_loopback()
 		self.enable_arp()
 		self.delete_index_html()
+		self.delete_test_html()
 		self.logout()
 		
 	def start_http_daemon(self):
@@ -154,6 +155,12 @@ class HttpServer(player):
 		cmd = "rm -f /var/www/html/index.html"
 		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
-			print "ERROR: setting index.html failed. rc=" + str(rc) + " " + output
+			print "ERROR: deleting index.html failed. rc=" + str(rc) + " " + output
+			return
+	def delete_test_html(self):
+		cmd = "rm -f /var/www/html/test.html"
+		rc, output = self.ssh.execute_command(cmd)
+		if rc != True:
+			print "ERROR: deleting test.html failed. rc=" + str(rc) + " " + output
 			return
 
