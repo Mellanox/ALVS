@@ -104,8 +104,10 @@ def collect_logs(server_list, ezbox, client_list):
 	return dir_name
 
 def client_checker(log_dir, expected={}, step_count = 1):
+	rc = True
+	
 	if len(expected) == 0:
-		return True
+		return rc
 	
 	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
 	all_responses = dict((i,{}) for i in range(step_count))
@@ -134,7 +136,7 @@ def client_checker(log_dir, expected={}, step_count = 1):
 		if 'client_count' in expected_dict:
 			if len(responses) != expected_dict['client_count']:
 				print 'ERROR: wrong number of logs. log count = %d, client count = %d' %(len(responses),expected_dict['client_count'])
-				return False
+				rc = False
 			
 		#expected_servers
 		for client_ip,client_responses in responses.items():
@@ -148,20 +150,33 @@ def client_checker(log_dir, expected={}, step_count = 1):
 				if expected_dict['no_404'] == True:
 					if '404 ERROR' in client_responses:
 						print 'ERROR: client received 404 response. count = %d' % client_responses['404 ERROR']
-						return False
+						rc = False
 			if 'server_count_per_client' in expected_dict:
 				if len(client_responses) != expected_dict['server_count_per_client']:
 					print 'ERROR: client received responses from different number of expected servers. expected = %d , received = %d' %(expected_dict['server_count_per_client'], len(client_responses))
-					return False
+					rc = False
 			if 'client_response_count' in expected_dict:
 				if total != expected_dict['client_response_count']:
 					print 'ERROR: client received wrong number of responses. expected = %d , received = %d' %(expected_dict['client_response_count'], total)
-					return False
+					rc = False
 			if 'expected_servers' in expected_dict:
-				expected_servers = expected_dict['expected_servers'][client_ip]
+				expected_servers_failed = False
+				expected_servers = expected_dict['expected_servers']
+				
+				expected_servers_list = []
+				for s in expected_servers:
+					expected_servers_list.append(s.ip)
+				
 				for ip, count in client_responses.items():
-					if ip not in expected_servers:
-						print 'ERROR: client received response from unexpected server. server ip = %s , list of expected servers: %s' %(ip, expected_servers)
-						return False
-	return True		
+					if ip not in expected_servers_list:
+						print 'ERROR: client received response from unexpected server. server ip = %s ' %(ip)
+						expected_servers_failed = True
+						rc = False
+				
+				if (expected_servers_failed):
+					expected_servers_str = ""
+					for ip in expected_servers_list:
+						expected_servers_str += ip + " "
+					print "list of expected servers list: "  + expected_servers_str 
+	return rc		
 
