@@ -99,7 +99,7 @@ static struct nla_policy alvs_cmd_policy[IPVS_CMD_ATTR_MAX + 1] = {
 
 #define ALVS_CMD_COUNT            7
 
-static struct genl_cmd alvs_cmds[] = {
+static struct genl_cmd alvs_cmds[ALVS_CMD_COUNT] = {
 	{
 		.c_id           = IPVS_CMD_NEW_SERVICE,
 		.c_name	        = "IPVS CMD NEW SERVICE",
@@ -226,7 +226,7 @@ void alvs_db_manager_poll(void)
 	}
 	saddr_size = sizeof(saddr);
 
-	while (!(*alvs_db_manager_cancel_application_flag)) {
+	while (*alvs_db_manager_cancel_application_flag == false) {
 		data_size = recvfrom(raw_sock, buffer, MAX_MSG_SIZE, 0, &saddr, (socklen_t *)&saddr_size);
 		if (data_size > 0) {
 			process_packet(buffer, data_size, &saddr);
@@ -318,7 +318,7 @@ void alvs_db_manager_delete(void)
 {
 	write_log(LOG_DEBUG, "delete ALVS DB manager...\n");
 	genl_unregister_family(&alvs_genl_ops);
-	if (raw_sock) {
+	if (raw_sock != 0) {
 		close(raw_sock);
 	}
 	alvs_db_destroy();
@@ -354,7 +354,7 @@ void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr)
 
 	if (hdr->nlmsg_type == family && (hdr->nlmsg_flags & NLM_F_REQUEST)) {
 		msg = nlmsg_convert(hdr);
-		if (!msg) {
+		if (msg == NULL) {
 			write_log(LOG_ERR, "Error in nlmsg_convert\n");
 			return;
 		}
@@ -374,10 +374,10 @@ void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr)
  */
 int alvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg)
 {
-	struct nl_sock *nl_sock = 0;
+	struct nl_sock *nl_sock = NULL;
 
 	nl_sock = nl_socket_alloc();
-	if (!nl_sock) {
+	if (nl_sock == NULL) {
 		nlmsg_free(msg);
 		write_log(LOG_CRIT, "Failed to allocate NL socket\n");
 		alvs_db_manager_exit_with_error();
@@ -445,7 +445,7 @@ void alvs_nl_init(void)
 	uint32_t val;
 
 	retcode = genl_register_family(&alvs_genl_ops);
-	if (retcode) {
+	if (retcode != 0) {
 		write_log(LOG_CRIT, "Failed to register protocol family\n");
 		alvs_db_manager_exit_with_error();
 	}
@@ -552,7 +552,7 @@ struct nl_msg *alvs_nl_message(int cmd, int flags)
 	struct nl_msg *msg;
 
 	msg = nlmsg_alloc();
-	if (!msg)
+	if (msg == NULL)
 		return NULL;
 
 	genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, family, 0, flags,
@@ -679,7 +679,7 @@ static int alvs_services_parse_cb(struct nl_msg *msg, void *arg)
 		return -1;
 	}
 
-	if (!attrs[IPVS_CMD_ATTR_SERVICE]) {
+	if (attrs[IPVS_CMD_ATTR_SERVICE] == NULL) {
 		write_log(LOG_ERR, "Error parsing get services response message - no service attributes\n");
 		return -1;
 	}
@@ -764,7 +764,7 @@ static int alvs_dests_parse_cb(struct nl_msg *msg, void *arg)
 		return -1;
 	}
 
-	if (!attrs[IPVS_CMD_ATTR_DEST]) {
+	if (attrs[IPVS_CMD_ATTR_DEST] == NULL) {
 		write_log(LOG_ERR, "Get dests CB message has no attributes\n");
 		return -1;
 	}
@@ -831,7 +831,7 @@ struct ip_vs_get_services *alvs_get_services(void)
 	get->num_services = 0;
 
 	msg = alvs_nl_message(IPVS_CMD_GET_SERVICE, NLM_F_DUMP);
-	if (!msg) {
+	if (msg == NULL) {
 		write_log(LOG_ERR, "Failed to allocate NL message\n");
 		free(get);
 		return NULL;
@@ -864,11 +864,11 @@ static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user
 		return -1;
 	}
 
-	nla_af		= attrs[IPVS_SVC_ATTR_AF];
-	nla_protocol	= attrs[IPVS_SVC_ATTR_PROTOCOL];
-	nla_addr	= attrs[IPVS_SVC_ATTR_ADDR];
-	nla_port	= attrs[IPVS_SVC_ATTR_PORT];
-	nla_fwmark	= attrs[IPVS_SVC_ATTR_FWMARK];
+	nla_af          = attrs[IPVS_SVC_ATTR_AF];
+	nla_protocol    = attrs[IPVS_SVC_ATTR_PROTOCOL];
+	nla_addr        = attrs[IPVS_SVC_ATTR_ADDR];
+	nla_port        = attrs[IPVS_SVC_ATTR_PORT];
+	nla_fwmark      = attrs[IPVS_SVC_ATTR_FWMARK];
 
 	if (!(nla_af && (nla_fwmark || (nla_port && nla_protocol && nla_addr)))) {
 		printf("Error - bad service attribute");
@@ -969,6 +969,7 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 	socklen_t len;
 	struct nl_msg *msg;
 	struct nlattr *nl_service;
+	union nf_inet_addr addr;
 
 	len = sizeof(*d) + sizeof(struct ip_vs_dest_entry) * svc->num_dests;
 	d = malloc(len);
@@ -991,14 +992,14 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 	d->num_dests = svc->num_dests;
 
 	msg = alvs_nl_message(IPVS_CMD_GET_DEST, NLM_F_DUMP);
-	if (!msg) {
+	if (msg == NULL) {
 		write_log(LOG_ERR, "Failed to allocate message\n");
 		free(d);
 		return NULL;
 	}
 
 	nl_service = nla_nest_start(msg, IPVS_CMD_ATTR_SERVICE);
-	if (!nl_service) {
+	if (nl_service == NULL) {
 		write_log(LOG_ERR, "Failed to write service to message\n");
 		nlmsg_free(msg);
 		free(d);
@@ -1008,8 +1009,6 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 	if (svc->fwmark) {
 		NLA_PUT_U32(msg, IPVS_SVC_ATTR_FWMARK, ntohl(svc->fwmark));
 	} else {
-		union nf_inet_addr addr;
-
 		addr.ip = svc->addr;
 		write_log(LOG_DEBUG, "Fill service details into message: protocol = 0x%x addr = 0x%x port = 0x%x\n", svc->protocol, svc->addr, svc->port);
 		NLA_PUT_U16(msg, IPVS_SVC_ATTR_PROTOCOL, svc->protocol);
@@ -1028,9 +1027,9 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 	return d;
 
 nla_put_failure:
-		nlmsg_free(msg);
-		free(d);
-		return NULL;
+	nlmsg_free(msg);
+	free(d);
+	return NULL;
 }
 
 /******************************************************************************

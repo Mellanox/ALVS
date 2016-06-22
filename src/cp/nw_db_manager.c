@@ -124,8 +124,9 @@ void nw_db_manager_init(void)
 void nw_db_manager_delete(void)
 {
 	write_log(LOG_DEBUG, "Delete NW DB manager\n");
-	if (network_cache_mngr)
+	if (network_cache_mngr) {
 		nl_cache_mngr_free(network_cache_mngr);
+	}
 }
 
 /******************************************************************************
@@ -149,7 +150,7 @@ void nw_db_manager_table_init(void)
  */
 void nw_db_manager_poll(void)
 {
-	while (!(*nw_db_manager_cancel_application_flag)) {
+	while (*nw_db_manager_cancel_application_flag == false) {
 		/* Get waiting updates received since previous cache read */
 		nl_cache_mngr_data_ready(network_cache_mngr);
 		/* Poll on cache updates */
@@ -358,7 +359,8 @@ void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 
 bool valid_neighbor(struct rtnl_neigh *neighbor)
 {
-	return !(((rtnl_neigh_get_state(neighbor) & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE)) || rtnl_neigh_get_state(neighbor) == NUD_NONE);
+	int state = rtnl_neigh_get_state(neighbor);
+	return (!(state & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE) && state != NUD_NONE);
 
 }
 /******************************************************************************
