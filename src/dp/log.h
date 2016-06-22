@@ -53,7 +53,7 @@
 #define SYSLOG_FIRST_BUFFER_SIZE        32
 #define SYSLOG_MAX_NUM_OF_BUF		3
 #define SYSLOG_BUF_HEADROOM		64
-#define SYSLOG_CPU_STRING_SIZE		17
+#define SYSLOG_CPU_STRING_SIZE		6
 int syslog_str_size;
 char syslog_str[EZFRAME_BUF_DATA_SIZE];
 
