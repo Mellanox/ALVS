@@ -59,15 +59,18 @@ class HttpServer(player):
 		if rc != True:
 			print "ERROR: Stop HTTP daemon failed. rc=" + str(rc) + " " + output
 			return
-
-
+	
+	def update_vip(self,new_vip):
+		self.take_down_loopback()
+		self.vip= new_vip
+		self.configure_loopback()
+	
 	def configure_loopback(self):
 		cmd = "ifconfig lo:0 " + str(self.vip) + " netmask " + str(self.net_mask)
 		rc, output = self.ssh.execute_command(cmd)
 		if rc != True:
 			print "ERROR: Configuting loopback failed. rc=" + str(rc) + " " + output
 			return
-
 	
 	def take_down_loopback(self):
 		cmd = "ifconfig lo:0 down"
