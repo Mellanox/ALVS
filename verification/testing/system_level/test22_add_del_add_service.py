@@ -27,8 +27,8 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 1 
-server_count = 1
+request_count = 10
+server_count = 2
 client_count = 1
 service_count = 1
 
@@ -82,25 +82,65 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	process_list = []
 	port = '80'
+	vip = vip_list[0]
+	
+	#add service with first server
+	ezbox.add_service(vip, port)
 
-	for index, client in enumerate(client_list):
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index%service_count],)))
+	ezbox.add_server(server_list[0].vip, port, server_list[0].ip, port)
+	for client in client_list:
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
 		p.join()
-		
+
+	process_list = []
+	#remove service
+	ezbox.delete_service(vip, port)
+ 
+	for client in client_list:
+		new_log_name = client.logfile_name+'_1'
+		client.add_log(new_log_name) 
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
+	for p in process_list:
+		p.start()
+	for p in process_list:
+		p.join()
+ 
+	process_list = []
+	#add service with second server
+	ezbox.add_service(vip, port)
+ 
+	ezbox.add_server(server_list[1].vip, port, server_list[1].ip, port)
+	for client in client_list:
+		new_log_name = client.logfile_name+'_2'
+		client.add_log(new_log_name) 
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
+	for p in process_list:
+		p.start()
+	for p in process_list:
+		p.join()
+ 		
 	print 'End user test'
-	pass
 
 def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict= {'client_response_count':request_count,
-					'client_count': len(client_list), 
-					'no_404': False,
-					'server_count_per_client':server_count/service_count}
+	expected_dict = {}
+	expected_dict[0] = {'client_response_count':request_count,
+						'client_count': len(client_list), 
+ 						'no_404': True,
+ 					 	'server_count_per_client':1}
+	expected_dict[1] = {'client_response_count':request_count,
+						'client_count': len(client_list), 
+ 						'no_404': False,
+ 					 	'server_count_per_client':1}
+	expected_dict[2] = {'client_response_count':request_count,
+						'client_count': len(client_list), 
+ 						'no_404': True,
+ 					 	'server_count_per_client':1}
 	
-	if client_checker(log_dir, expected_dict):
+	if client_checker(log_dir, expected_dict, 3):
 		print 'Test passed !!!'
 		return 0
 	else:
@@ -122,16 +162,15 @@ def main():
   	server_list, ezbox, client_list, vip_list = user_init(setup_num)
   
 	init_players(server_list, ezbox, client_list, vip_list)
-   	
+    	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-   	
+    	
 	log_dir = collect_logs(server_list, ezbox, client_list)
-
+ 
 	clean_players(server_list, ezbox, client_list)
 	
 	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
 	
 	exit(exit_value)
-	
 
 main()

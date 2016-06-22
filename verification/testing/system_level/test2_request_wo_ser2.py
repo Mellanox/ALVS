@@ -52,7 +52,7 @@ def user_init(setup_num):
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango", 
-						  vip = vip_list[i%service_count],
+						  vip = vip_list[0],
 						  eth='ens6'))
 		index+=1
 	
@@ -104,12 +104,14 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	expected_dict= {'client_response_count':request_count,
 					'client_count': len(client_list), 
 					'no_404': False,
-					'server_count_per_client':server_count/service_count}
+					'server_count_per_client':1}
 	
 	if client_checker(log_dir, expected_dict):
 		print 'Test passed !!!'
+		return 0
 	else:
 		print 'Test failed !!!'
+		return 1
 
 	pass
 #===============================================================================
@@ -133,7 +135,9 @@ def main():
 
 	clean_players(server_list, ezbox, client_list)
 	
-	run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	
+	exit(exit_value)
 	
 
 main()
