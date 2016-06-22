@@ -56,6 +56,7 @@ struct infra_hash_params {
 	uint32_t key_size;
 	uint32_t result_size;
 	uint32_t max_num_of_entries;
+	uint32_t hash_size;
 	bool updated_from_dp;
 	uint32_t sig_pool_id;
 	uint32_t result_pool_id;

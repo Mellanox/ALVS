@@ -1050,6 +1050,7 @@ bool alvs_db_constructor(void)
 	hash_params.key_size = sizeof(struct alvs_service_classification_key);
 	hash_params.result_size = sizeof(struct alvs_service_classification_result);
 	hash_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
+	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
 	retcode = infra_create_hash(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, INFRA_EMEM_SEARCH_HASH_HEAP, &hash_params);
 	if (retcode == false) {
@@ -1091,6 +1092,7 @@ bool alvs_db_constructor(void)
 	hash_params.key_size = sizeof(struct alvs_conn_classification_key);
 	hash_params.result_size = sizeof(struct alvs_conn_classification_result);
 	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
+	hash_params.hash_size = 25;     /* TODO - [Roee] investigate */
 	hash_params.updated_from_dp = true;
 	hash_params.sig_pool_id = 0;
 	hash_params.result_pool_id = 1;

@@ -378,6 +378,7 @@ bool nw_db_constructor(void)
 	hash_params.key_size = sizeof(struct nw_arp_key);
 	hash_params.result_size = sizeof(struct nw_arp_result);
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
+	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
 	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HASH_HEAP,
 			      &hash_params) == false) {

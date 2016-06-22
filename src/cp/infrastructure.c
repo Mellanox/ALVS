@@ -876,6 +876,9 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	}
 
 	/* Set index of the memory heap */
+	if(params->hash_size > 0) {
+		hash_mem_mng_params.uiHashSize = params->hash_size;
+	}
 	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
 		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
