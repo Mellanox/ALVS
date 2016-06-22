@@ -163,10 +163,8 @@ def client_checker(log_dir, expected={}, step_count = 1):
 				expected_servers_failed = False
 				expected_servers = expected_dict['expected_servers']
 				
-				expected_servers_list = []
-				for s in expected_servers:
-					expected_servers_list.append(s.ip)
-				
+				expected_servers_list  = [s.ip for s in expected_dict['expected_servers']]
+								
 				for ip, count in client_responses.items():
 					if ip not in expected_servers_list:
 						print 'ERROR: client received response from unexpected server. server ip = %s ' %(ip)
@@ -177,6 +175,14 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					expected_servers_str = ""
 					for ip in expected_servers_list:
 						expected_servers_str += ip + " "
-					print "list of expected servers list: "  + expected_servers_str 
+					print "list of expected servers list: "  + expected_servers_str
+
+			if 'expected_servers_per_client' in expected_dict:
+				expected_servers = expected_dict['expected_servers_per_client'][client_ip]
+				for ip, count in client_responses.items():
+					if ip not in expected_servers:
+						print 'ERROR: client received response from unexpected server. server ip = %s , list of expected servers: %s' %(ip, expected_servers)
+						rc =  False
+ 
 	return rc		
 

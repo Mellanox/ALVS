@@ -28,7 +28,6 @@ class HttpServer(player):
 		self.eth = eth
 
 	def init_server(self, index_str):
-		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		self.connect()
 		self.start_http_daemon()
 		self.configure_loopback()
@@ -37,7 +36,6 @@ class HttpServer(player):
 		self.set_test_html()
 
 	def clean_server(self):
-		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		self.stop_http_daemon()
 		self.take_down_loopback()
 		self.enable_arp()

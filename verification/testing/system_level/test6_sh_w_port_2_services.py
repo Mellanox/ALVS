@@ -109,7 +109,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 		client_expected_servers=[s.ip for s in server_list if s.vip == vip_list[index%service_count]]
 		expected_servers[client.ip] = client_expected_servers
 		
-	expected_dict['expected_servers'] = expected_servers
+	expected_dict['expected_servers_per_client'] = expected_servers
 	
 	if client_checker(log_dir, expected_dict):
 		print 'Test passed !!!'

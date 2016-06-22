@@ -411,27 +411,30 @@ class SshConnect:
 	# return params: success - True for success, False for Error
 	#                output -  Command output results     
 	def execute_command(self, cmd, wait_prompt=True):
-		self.ssh_object.sendline(cmd)
-		if wait_prompt:
-			self.ssh_object.prompt(timeout=120)
-			output = '\n'.join(self.ssh_object.before.split('\n')[1:])
-			
-			# get exit code
-			self.ssh_object.sendline("echo $?")
-			self.ssh_object.prompt(timeout=120)
-			exit_code = self.ssh_object.before.split('\n')[1]
-	 
-			try:
-				exit_code = int(exit_code)
-			except:
-				exit_code = None
-	
-			if exit_code != None:
-				return [True, output]
+		try:
+			self.ssh_object.sendline(cmd)
+			if wait_prompt:
+				self.ssh_object.prompt(timeout=120)
+				output = '\n'.join(self.ssh_object.before.split('\n')[1:])
+				
+				# get exit code
+				self.ssh_object.sendline("echo $?")
+				self.ssh_object.prompt(timeout=120)
+				exit_code = self.ssh_object.before.split('\n')[1]
+		 
+				try:
+					exit_code = int(exit_code)
+				except:
+					exit_code = None
+		
+				if exit_code != None:
+					return [True, output]
+				else:
+					return [False, output]
 			else:
-				return [False, output]
-		else:
-			return [True, '']
+				return [True, '']
+		except:
+			return [False, "command failed: " + cmd]
 
 	def wait_for_msgs(self, msgs):
 		while (True):
