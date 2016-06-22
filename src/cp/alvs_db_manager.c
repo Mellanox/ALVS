@@ -524,22 +524,6 @@ void alvs_nl_init(void)
 		alvs_db_manager_exit_with_error();
 	}
 
-#if 0
-	/* Set raw socket filter - ??? */
-	struct sock_filter filter;
-	struct sock_fprog prog = {
-		.len = ARRAY_SIZE(filter),
-		.filter = filter,
-	};
-	if (setsockopt(raw_sock, SOL_SOCKET, SO_ATTACH_FILTER, "\1\0\0\0\0\0\0\0\310#W\326r\177\0\0", 16)) {
-		write_log(LOG_CRIT, "Error setting socket SO_ATTACH_FILTER options\n");
-		alvs_db_manager_exit_with_error();
-	}
-	if (setsockopt(raw_sock, SOL_SOCKET, SO_ATTACH_FILTER, "\1\0\0\0\0\0\0\0\260\306\370@\315U\0\0", 16)) {
-		write_log(LOG_CRIT, "Error setting socket SO_ATTACH_FILTER options\n");
-		alvs_db_manager_exit_with_error();
-	}
-#endif
 }
 
 /******************************************************************************
@@ -705,8 +689,6 @@ static int alvs_services_parse_cb(struct nl_msg *msg, void *arg)
 		return -1;
 	}
 
-/*	get->entrytable[i].af = nla_get_u16(svc_attrs[IPVS_SVC_ATTR_AF]);*/
-
 	if (svc_attrs[IPVS_SVC_ATTR_FWMARK]) {
 		get->entrytable[i].fwmark = nla_get_u32(svc_attrs[IPVS_SVC_ATTR_FWMARK]);
 	} else {
@@ -719,13 +701,6 @@ static int alvs_services_parse_cb(struct nl_msg *msg, void *arg)
 	strncpy(get->entrytable[i].sched_name,
 		nla_get_string(svc_attrs[IPVS_SVC_ATTR_SCHED_NAME]),
 		IP_VS_SCHEDNAME_MAXLEN);
-
-#if 0
-	if (svc_attrs[IPVS_SVC_ATTR_PE_NAME])
-		strncpy(get->entrytable[i].pe_name,
-			nla_get_string(svc_attrs[IPVS_SVC_ATTR_PE_NAME]),
-			IP_VS_PENAME_MAXLEN);
-#endif
 
 	get->entrytable[i].netmask = nla_get_u32(svc_attrs[IPVS_SVC_ATTR_NETMASK]);
 	get->entrytable[i].timeout = nla_get_u32(svc_attrs[IPVS_SVC_ATTR_TIMEOUT]);
