@@ -139,9 +139,18 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 
 	if (rc != 0) {
 		printf("fail to allocate new connection classification hash entry\n");
+
+		alvs_unlock_connection(hash_value);
+
+		/*first delete the table entry*/
+		ezdp_delete_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
+					conn_index,
+					0,
+					cmem_wa.alvs_wa.table_work_area,
+					sizeof(cmem_wa.alvs_wa.table_work_area));
+
 		/*free allocated table entry*/
 		ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
-		alvs_unlock_connection(hash_value);
 		if (rc == EEXIST) {
 			printf("connection entry already exist!\n");
 			return ALVS_SERVICE_DATA_PATH_RETRY;
