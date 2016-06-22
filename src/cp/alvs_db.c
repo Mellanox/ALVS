@@ -714,10 +714,12 @@ enum alvs_db_rc internal_db_deactivate_server(struct alvs_db_service *service,
 	char sql[256];
 	char *zErrMsg = NULL;
 
+	server->server_flags &= ~IP_VS_DEST_F_AVAILABLE;
 	sprintf(sql, "UPDATE servers "
-		"SET active=0 "
+		"SET active=0, server_flags=%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
+		server->server_flags,
 		service->ip, service->port, service->protocol,
 		server->ip, server->port);
 
