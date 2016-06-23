@@ -360,6 +360,7 @@ void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 bool valid_neighbor(struct rtnl_neigh *neighbor)
 {
 	int state = rtnl_neigh_get_state(neighbor);
+
 	return (!(state & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE) && state != NUD_NONE);
 
 }
