@@ -59,37 +59,40 @@ void alvs_handle_aging_event(uint32_t event_id)
 		conn_index++) {
 		if (alvs_conn_info_lookup(conn_index) == 0) {
 			if (cmem_alvs.conn_info_result.delete_bit == 1) {
-				alvs_write_log(LOG_INFO, "(Aging delete_bit) deleting connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+				alvs_write_log(LOG_INFO, "(Aging delete_bit) deleting connection  = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					       conn_index,
 					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.client_port,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				alvs_conn_delete(conn_index);
-				return;
+				continue;
 			}
 
 			if (cmem_alvs.conn_info_result.aging_bit == 1) {
-				alvs_write_log(LOG_INFO, "(Aging aging_bit=1) aging connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+				alvs_write_log(LOG_INFO, "(Aging aging_bit=1) aging connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					       conn_index,
 					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.client_port,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0));
-				return;
+				continue;
 			}
 
 			if (cmem_alvs.conn_info_result.age_iteration == ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0) &&
 				cmem_alvs.conn_info_result.aging_bit == 0) {
-				alvs_write_log(LOG_INFO, "(Aging aging_bit=0) deleting connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+				alvs_write_log(LOG_INFO, "(Aging aging_bit=0) deleting connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					       conn_index,
 					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.client_port,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				alvs_conn_delete(conn_index);
-				return;
+				continue;
 			}
 #if 0 /*old implementation*/
 
