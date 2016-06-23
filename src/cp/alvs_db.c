@@ -1685,6 +1685,8 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	struct alvs_db_server cp_server;
 	struct alvs_service_info_key nps_service_info_key;
 	struct alvs_service_info_result nps_service_info_result;
+	struct alvs_server_info_key nps_server_info_key;
+	struct alvs_server_info_result nps_server_info_result;
 
 	/* Check if service already exists in internal DB */
 	cp_service.ip = ip_vs_service->addr;
@@ -1762,6 +1764,17 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 			       &nps_service_info_result,
 			       sizeof(struct alvs_service_info_result)) == false) {
 		write_log(LOG_CRIT, "Failed to change server count in service info entry.\n");
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	build_nps_server_info_key(&cp_server, &nps_server_info_key);
+	build_nps_server_info_result(&cp_server, &nps_server_info_result);
+	if (infra_modify_entry(STRUCT_ID_ALVS_SERVER_INFO,
+			       &nps_server_info_key,
+			    sizeof(struct alvs_server_info_key),
+			    &nps_server_info_result,
+			    sizeof(struct alvs_server_info_result)) == false) {
+		write_log(LOG_CRIT, "Failed to modify server info entry.\n");
 		return ALVS_DB_NPS_ERROR;
 	}
 
