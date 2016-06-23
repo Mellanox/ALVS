@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+sys.path.append("../")
 from test_infra import *
 import random 
 import time
