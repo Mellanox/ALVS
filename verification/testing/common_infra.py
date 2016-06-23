@@ -120,12 +120,22 @@ class ezbox_host:
     def copy_binaries(self, cp_bin, dp_bin=None):
     	self.copy_file_to_host(cp_bin, "/tmp/cp_bin")
         if dp_bin != None:
-            ftp=FTP(self.setup['chip'])
-            ftp.login()
-            ftp.storbinary("STOR /tmp/dp_bin", open(dp_bin, 'rb'))
-            ftp.quit()
-            os.system("{ echo \"chmod +x tmp/dp_bin\"; sleep 1; } | telnet " + self.setup['chip'])
-        
+            fail = True
+            retry_count = 0
+            while fail:
+                try:
+                    ftp=FTP(self.setup['chip'])
+                    ftp.login()
+                    ftp.storbinary("STOR /tmp/dp_bin", open(dp_bin, 'rb'))
+                    ftp.quit()
+                    os.system("{ echo \"chmod +x tmp/dp_bin\"; sleep 1; } | telnet " + self.setup['chip'])
+                    fail = False
+                except:
+                    retry_count += 1
+                    if retry_count == 100:
+                        print 'Failed to copy dp bin to NPS, exiting after 100 retries'
+                        exit(1)
+                    
     def copy_file_to_host(self, filename, dest):
         os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
 

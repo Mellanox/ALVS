@@ -38,7 +38,7 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	ezbox.flush_ipvs()
 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 	ezbox.run_cp()
-	ezbox.run_dp(args='--run_cpus=16-47')
+	ezbox.run_dp(args='--run_cpus 16-47')
 	ezbox.wait_for_cp_app()
 	ezbox.config_vips(vip_list)
 	
@@ -141,7 +141,8 @@ def client_checker(log_dir, expected={}, step_count = 1):
 			if len(responses) != expected_dict['client_count']:
 				print 'ERROR: wrong number of logs. log count = %d, client count = %d' %(len(responses),expected_dict['client_count'])
 				rc = False
-			
+		
+		connection_closed = False
 		#expected_servers
 		for client_ip,client_responses in responses.items():
 			print 'testing client %s ...' %client_ip
@@ -150,6 +151,9 @@ def client_checker(log_dir, expected={}, step_count = 1):
 				print 'response count from server %s = %d' %(ip,count)
 				total += count
 
+			if 'Connection closed ERROR' in client_responses:
+				connection_closed = True
+			
 			if 'no_404' in expected_dict:
 				if expected_dict['no_404'] == True:
 					if '404 ERROR' in client_responses:
@@ -193,5 +197,13 @@ def client_checker(log_dir, expected={}, step_count = 1):
 						print 'ERROR: client received response from unexpected server. server ip = %s , list of expected servers: %s' %(ip, expected_servers)
 						rc =  False
  
+		if 'no_connection_closed' in expected_dict:
+			if expected_dict['no_connection_closed'] == True and connection_closed == True:
+				print 'ERROR: client received connection closed Error.'
+				rc = False
+			else:
+				if expected_dict['no_connection_closed'] == False and connection_closed == False:
+					print 'ERROR: client did not receive connection closed Error. '
+					rc = False
 	return rc		
 

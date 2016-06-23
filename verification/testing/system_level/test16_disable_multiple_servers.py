@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 50000 
+request_count = 200 
 server_count = 4
 client_count = 10
 service_count = 2
@@ -83,17 +83,18 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	process_list = []
 	port = '80'
 
-	#service scheduling algorithm is SH without port
+	#service scheduling algorithm is SH with port
 	for i in range(service_count):
 		ezbox.add_service(vip_list[i], port)
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
+		server.set_large_index_html()
 	for index, client in enumerate(client_list):
 		process_list.append(Process(target=client_execution, args=(client,vip_list[index%service_count],)))
 	for p in process_list:
 		p.start()
 
-	for i in range(40):		
+	for i in range(20):		
 		time.sleep(2) 
 		# Disable server - director will remove server from IPVS
 		print 'remove test.html'
@@ -115,7 +116,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 # 	expected_dict = {}
 	expected_dict = {'client_response_count':request_count,
 						'client_count': len(client_list),
- 						'no_404': False}
+ 						'no_connection_closed': False}
 #  					 	'server_count_per_client':2}
 	
 	if client_checker(log_dir, expected_dict):

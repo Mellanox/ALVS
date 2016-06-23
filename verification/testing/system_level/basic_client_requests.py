@@ -34,8 +34,13 @@ def readHtml(ip):
     except urllib2.URLError,err:
         log('%s : %s' %(ip, '404 ERROR'))
         return str(err)
-        
-    html = response.read()
+    try:
+    	html_lines = response.readlines()
+    except :
+    	log('%s : %s' %(ip, 'Connection closed ERROR'))
+    	return 'Connection closed ERROR'
+
+    html = html_lines[0]
     if isinstance(html, str):
     	log('%s : %s' %(ip, html))
     else:
