@@ -76,7 +76,7 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 			return ALVS_SERVICE_DATA_PATH_IGNORE;
 		}
 	} else {
-		alvs_write_log(LOG_ERR,"unsupported scheduling algorithm");
+		alvs_write_log(LOG_ERR, "unsupported scheduling algorithm");
 		/*drop frame*/
 		alvs_update_discard_statistics(ALVS_ERROR_UNSUPPORTED_SCHED_ALGO);
 		alvs_discard_frame();

@@ -98,7 +98,6 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 						    cmem_wa.alvs_wa.conn_hash_wa,
 						    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 			if (rc == 0) {
-				//printf("found connection index = 0x%x\n", conn_class_res_ptr->conn_index);
 				alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
 			} else {
 				alvs_write_log(LOG_ERR, "failed connection classification to newly created entry");
