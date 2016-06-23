@@ -47,7 +47,8 @@
 
 #define LOG2(x) (x == 2 ? 1 : x == 4 ? 2 : x == 8 ? 3 : x == 16 ? 4 : x == 32 ? 5 : \
 				x == 64 ? 6 : x == 128 ? 7 : x == 256 ? 8 : x == 512 ? 9 : x == 1024 ? 10 : x == 2048 ? 11 : \
-				x == 4096 ? 12 : x == 8192 ? 13 : x == 16384 ? 14 : x == 32768 ? 15 : x == 65536 ? 16 : 0)
+				x == 4096 ? 12 : x == 8192 ? 13 : x == 16384 ? 14 : x == 32768 ? 15 : x == 65536 ? 16 : \
+				x == 131072 ? 17 : x == 262144 ? 18 : 0)
 
 /*prototypes*/
 bool init_alvs_shared_cmem(void);
@@ -111,7 +112,7 @@ enum alvs_tcp_states_multipliers {
 	ALVS_TCP_CLOSE_WAIT_MULTIPLIER  = 1,
 };
 
-#define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   512
+#define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128
 #define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
 #define ALVS_AGING_TIMER_EVENT_ID_MASK          (ALVS_AGING_TIMER_EVENTS_PER_ITERATION-1)
 

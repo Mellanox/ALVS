@@ -203,7 +203,7 @@ CASSERT(sizeof(struct alvs_conn_classification_result) == 8);
  *********************************/
 
 enum alvs_tcp_conn_state {
-	ALVS_TCP_CONNECTION_ESTABLISHED = 16,
+	ALVS_TCP_CONNECTION_ESTABLISHED = 60,
 	ALVS_TCP_CONNECTION_CLOSE_WAIT	= 1
 };
 
