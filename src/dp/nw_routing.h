@@ -60,7 +60,7 @@ void nw_send_frame_to_network(ezframe_t __cmem * frame,
 	printf("LAG hash result is logical id %d.\n", port_id + hash_value);
 #endif
 	if (nw_interface_lookup(port_id + hash_value) != 0) {
-		printf("fail network interface lookup - send to interface!!\n");
+		alvs_write_log(LOG_ERR,"network interface = %d lookup fail", port_id + hash_value);
 		/* drop frame!! */
 		alvs_update_discard_statistics(ALVS_ERROR_SEND_FRAME_FAIL);
 		alvs_discard_frame();
@@ -134,7 +134,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 					 buffer_base,
 					 arp_res_ptr->base_logical_id);
 	} else {
-		printf("fail arp lookup!\n");
+		alvs_write_log(LOG_ERR, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
 		nw_interface_inc_counter(NW_PACKET_FAIL_ARP);
 		nw_host_do_route(frame, buffer_base);
 		return;

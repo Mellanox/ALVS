@@ -68,17 +68,19 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 
 	/*perform lookup in scheduling info DB*/
 	rc = alvs_server_sched_lookup(service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value);
-
+	alvs_write_log(LOG_INFO, "service_idx = %d, sched_idx = %d, sport = %d, ", service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value, sport);
+	alvs_write_log(LOG_INFO, "sport = %d, hash_value = %d, input to hash = %d", sport, hash_value, (uint32_t)sport << (sizeof(sport) * 8));
 	if (likely(rc == 0)) {
 		if (is_fallback) {
 			/* TODO add fallback implementation */
 		} else {
 			/*get server info*/
+			alvs_write_log(LOG_INFO, "service_idx = %d, server_idx = %d", service_index, cmem_alvs.sched_info_result.server_index);
 			rc = alvs_server_info_lookup(cmem_alvs.sched_info_result.server_index);
 
 			if (likely(rc == 0)) {
 				if (alvs_server_is_unavailable()) {
-					printf("server is unavailable - drop frame!, server index = %d\n", cmem_alvs.sched_info_result.server_index);
+					alvs_write_log(LOG_ERR, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
 					/*drop frame*/
 					alvs_update_discard_statistics(ALVS_ERROR_SERVER_IS_UNAVAILABLE);
 					alvs_discard_frame();
@@ -86,7 +88,7 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 				}
 				/*update stats - update active connections, connections scheduled*/
 			} else {
-				printf("server info lookup fail - drop frame!, server index = %d\n", cmem_alvs.sched_info_result.server_index);
+				alvs_write_log(LOG_ERR, "service_idx = %d, server_idx = %d server_info_lookup FAILED", service_index, cmem_alvs.sched_info_result.server_index);
 				/*drop frame*/
 				alvs_update_discard_statistics(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 				alvs_discard_frame();
@@ -94,7 +96,7 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 			}
 		}
 	} else {
-		printf("fail in scheduling info lookup - drop frame!\n");
+		alvs_write_log(LOG_ERR, "service_idx = %d server_sched_lookup FAILED", service_index);
 		/*drop frame*/
 		alvs_update_discard_statistics(ALVS_ERROR_FAIL_SH_SCHEDULING);
 		alvs_discard_frame();
@@ -117,7 +119,7 @@ bool alvs_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint16_t s
 					     sip,
 					     cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_PORT ? sport : 0,
 					     cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_FALLBACK)) == false) {
-		printf("fail to retrieve server info (source hash)\n");
+		alvs_write_log(LOG_ERR, "service_idx = %d get_server_info FAILED", service_index);
 		return false;
 	}
 	return true;

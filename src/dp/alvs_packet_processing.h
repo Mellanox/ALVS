@@ -61,7 +61,12 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	 struct  alvs_service_classification_result *service_class_res_ptr;
 	 struct  alvs_conn_classification_result *conn_class_res_ptr;
 
-	 alvs_write_log(LOG_DEBUG, "New connection (slow path)");
+	 alvs_write_log(LOG_INFO, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+			cmem_alvs.conn_class_key.client_ip,
+			cmem_alvs.conn_class_key.client_port,
+			cmem_alvs.conn_class_key.virtual_ip,
+			cmem_alvs.conn_class_key.virtual_port,
+			cmem_alvs.conn_class_key.protocol);
 
 	 cmem_alvs.service_class_key.service_address = ip_hdr->daddr;
 	 cmem_alvs.service_class_key.service_port = tcp_hdr->dest;
@@ -93,17 +98,17 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 						    cmem_wa.alvs_wa.conn_hash_wa,
 						    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 			if (rc == 0) {
-				printf("found connection index = 0x%x\n", conn_class_res_ptr->conn_index);
+				//printf("found connection index = 0x%x\n", conn_class_res_ptr->conn_index);
 				alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
 			} else {
-				printf("failed connection classification to newly created entry - drop frame or send to host?\n");
+				alvs_write_log(LOG_ERR, "failed connection classification to newly created entry");
 				/*drop frame*/
 				alvs_update_discard_statistics(ALVS_ERROR_CONN_CLASS_LKUP_FAIL);
 				alvs_discard_frame();
 			}
 		} /* all other cases - drop or sent to host - packet was already processed. */
 	} else {
-		printf("fail service classification lookup!!\n");
+		alvs_write_log(LOG_ERR, "fail service classification lookup");
 		alvs_update_incoming_port_stat_counter(ALVS_PACKET_FAIL_SERVICE_CLASS_LOOKUP);
 		nw_host_do_route(&frame, frame_base);
 	}

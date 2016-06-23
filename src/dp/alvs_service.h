@@ -76,7 +76,7 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 			return ALVS_SERVICE_DATA_PATH_IGNORE;
 		}
 	} else {
-		printf("unsupported scheduling algorithm - future implementation.\n");
+		alvs_write_log(LOG_ERR,"unsupported scheduling algorithm");
 		/*drop frame*/
 		alvs_update_discard_statistics(ALVS_ERROR_UNSUPPORTED_SCHED_ALGO);
 		alvs_discard_frame();
@@ -109,6 +109,11 @@ enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 	/*perform lookup in service info DB*/
 	rc = alvs_service_info_lookup(service_index);
 
+	 alvs_write_log(LOG_INFO, "(slow path) (ip->dest = 0x%x tcp->dest = %d proto=%d) service_idx = %d",
+			ip_hdr->daddr,
+			tcp_hdr->dest,
+			ip_hdr->protocol,
+			service_index);
 	if (likely(rc == 0)) {
 		if (ip_hdr->protocol == IPPROTO_TCP) {
 			return alvs_tcp_schedule_new_connection(frame_base, service_index, ip_hdr, tcp_hdr);
