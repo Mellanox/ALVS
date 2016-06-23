@@ -150,10 +150,6 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	#===========================================================================
 	# send requests & replace server while sending requests 
 	#===========================================================================
-	print "Server list before changing"
-	for s in server_list:
-		print s.ip
-
 	print "execute requests on client"
 	process_list = []
 	for client in client_list:
@@ -172,18 +168,9 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		print removed_server.ip + " removed" 
 		print new_server.ip + " added"
 		
-	print "Server list after removing"
-	for s in server_list:
-		print s.ip
-
-
 	# add new servers to list
 	for new_server in new_server_list:
 		server_list.append(new_server)
-
-	print "Server list after adding"
-	for s in server_list:
-		print s.ip
 
 	for p in process_list:
 		p.join()
@@ -292,10 +279,6 @@ def main():
 
 	clean_players(server_list, ezbox, client_list)
 	
-	print "Server list before checker adding"
-	for s in server_list:
-		print s.ip
-
 	run_user_checker(server_list, ezbox, client_list, log_dir)
 
 
