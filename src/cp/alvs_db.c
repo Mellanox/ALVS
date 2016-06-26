@@ -274,11 +274,12 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 enum alvs_db_rc internal_db_clear_all(void)
 {
 	int rc;
-	char *sql;
+	char sql[256];
 	char *zErrMsg = NULL;
 
-	sql = "DELETE FROM services;"
-	      "UPDATE servers SET active=0;";
+	sprintf(sql, "DELETE FROM services "
+		"UPDATE servers SET active=0, server_flags=server_flags&%d;",
+		~IP_VS_DEST_F_AVAILABLE);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -445,9 +446,10 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
 
 	sprintf(sql, "DELETE FROM services "
 		"WHERE ip=%d AND port=%d AND protocol=%d;"
-		"UPDATE servers SET active=0 "
+		"UPDATE servers SET active=0, server_flags=server_flags&%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d;",
 		service->ip, service->port, service->protocol,
+		~IP_VS_DEST_F_AVAILABLE,
 		service->ip, service->port, service->protocol);
 
 	/* Execute SQL statement */
@@ -714,12 +716,11 @@ enum alvs_db_rc internal_db_deactivate_server(struct alvs_db_service *service,
 	char sql[256];
 	char *zErrMsg = NULL;
 
-	server->server_flags &= ~IP_VS_DEST_F_AVAILABLE;
 	sprintf(sql, "UPDATE servers "
-		"SET active=0, server_flags=%d "
+		"SET active=0, server_flags=server_flags&%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
-		server->server_flags,
+		~IP_VS_DEST_F_AVAILABLE,
 		service->ip, service->port, service->protocol,
 		server->ip, server->port);
 
@@ -751,9 +752,10 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET active=1 "
+		"SET active=1, server_flags=server_flags|%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
+		IP_VS_DEST_F_AVAILABLE,
 		service->ip, service->port, service->protocol,
 		server->ip, server->port);
 
@@ -793,7 +795,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
 			if (infra_delete_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
 						sizeof(struct alvs_sched_info_key)) == false) {
-				write_log(LOG_DEBUG, "Failed to modify a scheduling info entry.\n");
+				write_log(LOG_DEBUG, "Failed to delete a scheduling info entry.\n");
 				return ALVS_DB_NPS_ERROR;
 			}
 		}
@@ -1453,6 +1455,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		 */
 		write_log(LOG_DEBUG, "Server (ip=0x%08x, port=%d) exists (inactive).\n",
 			  cp_server.ip, cp_server.port);
+		cp_server.server_flags |= IP_VS_DEST_F_AVAILABLE;
 		if (internal_db_activate_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Server activation failed..\n");
 			return ALVS_DB_INTERNAL_ERROR;
@@ -1741,6 +1744,8 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
+	/* Deactivate server in struct in in internal DB */
+	cp_server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
 	if (internal_db_deactivate_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
 		write_log(LOG_CRIT, "Failed to deactivate server in internal DB.\n");
 		return ALVS_DB_INTERNAL_ERROR;
