@@ -332,6 +332,9 @@ bool infra_create_mem_partition(void)
 			ext_mem_space_params.uiSize = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_SIZE];
 			ext_mem_space_params.eECCType = (EZapiChannel_ExtMemSpaceECCType)emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_PROTECTION];
 			ext_mem_space_params.uiMSID = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID];
+			if (ext_mem_space_params.eType == EZapiChannel_ExtMemSpaceType_SEARCH) {
+				ext_mem_space_params.uiCopies = 2;
+			}
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetExtMemSpaceParams, &ext_mem_space_params);
 			if (EZrc_IS_ERROR(ret_val)) {
@@ -853,6 +856,8 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 
 	/* set single cycle and update mode */
 	hash_params.bSingleCycle = true;
+	hash_params.eCacheMode = EZapiStruct_CacheMode_FULL;
+
 	if (params->updated_from_dp == true) {
 		hash_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
