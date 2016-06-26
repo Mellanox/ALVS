@@ -72,7 +72,7 @@ struct alvs_db_service {
 struct alvs_db_server {
 	in_addr_t                ip;
 	uint16_t                 port;
-	uint8_t                  weight;
+	uint16_t                 weight;
 	uint8_t                  active;
 	uint32_t                 nps_index;
 	uint32_t                 conn_flags;
