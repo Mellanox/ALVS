@@ -27,10 +27,10 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 500
+request_count = 200
 server_count = 10
-client_count = 5
-service_count = 5
+client_count = 10
+service_count = 1
 
 
 
@@ -52,7 +52,7 @@ def user_init(setup_num):
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango", 
-						  vip = vip_list[i%service_count],#servers0,5->service 0 ..... servers4,9->service 4
+						  vip = vip_list[0],
 						  eth='ens6'))
 		index+=1
 	
@@ -82,52 +82,46 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	process_list = []
 	port = '80'
+	vip = vip_list[0]
 	
-	#add services
-	for i in range(service_count):
-		ezbox.add_service(vip_list[i], port)
+	ezbox.add_service(vip, port)
+
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
- 
-	for index, client in enumerate(client_list):
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		server.set_large_index_html()
+	
+	for client in client_list:
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
-	for p in process_list:
-		p.join()
- 
-	#remove services
+
+	time.sleep(4)
+	
+	for i in range(5):		
+		for server in server_list[1:]:
+			print '%d: remove server: %s' %(i,server.ip)
+			ezbox.delete_server(server.vip, port, server.ip, port)
+		time.sleep(4)
+		for server in server_list[1:]:
+			print 're-add server: %s' % server.ip
+			ezbox.add_server(server.vip, port, server.ip, port)
+
+ 	for p in process_list:
+ 		p.join()
+	
 	process_list = []
-	for i in range(service_count):
-		ezbox.delete_service(vip_list[i], port)
-  
-	for index, client in enumerate(client_list):
+	for server in server_list:
+		server.set_index_html(server.ip)
+	
+	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
 		p.join()
-
-	#add services with different servers
-	process_list = []
-	for i in range(service_count):
-		ezbox.add_service(vip_list[i], port)
-	#change service foreach server
-	for i in range(server_count):
-		server_list[i].update_vip(vip_list[(i+1)%service_count])#servers0,5->service 1 ..... servers4,9->service 0
-	for server in server_list:
-		ezbox.add_server(server.vip, port, server.ip, port)
-	for index, client in enumerate(client_list):
-		new_log_name = client.logfile_name+'_2'
-		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
-	for p in process_list:
-		p.start()
-	for p in process_list:
-		p.join()
-  		
+		
 	print 'End user test'
 
 def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
@@ -136,17 +130,14 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	expected_dict[0] = {'client_response_count':request_count,
 						'client_count': len(client_list), 
  						'no_404': True,
- 					 	'server_count_per_client':server_count/service_count}
+ 						'no_connection_closed': False}
 	expected_dict[1] = {'client_response_count':request_count,
 						'client_count': len(client_list), 
- 						'no_404': False,
- 					 	'server_count_per_client':1}
-	expected_dict[2] = {'client_response_count':request_count,
-						'client_count': len(client_list), 
  						'no_404': True,
+ 						'no_connection_closed': True,
  					 	'server_count_per_client':server_count/service_count}
 	
-	if client_checker(log_dir, expected_dict, 3):
+	if client_checker(log_dir, expected_dict, 2):
 		print 'Test passed !!!'
 		return 0
 	else:
@@ -177,5 +168,6 @@ def main():
 	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
 	
 	exit(exit_value)
+	
 
 main()
