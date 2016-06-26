@@ -498,7 +498,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 
 		/*check if state changed*/
 		if (tcp_hdr->rst) {
-			alvs_write_log(LOG_ERR, "conn_idx  = %d, server_idx = %d got RST = 1 go conn_mark_to_delete", conn_index, cmem_alvs.conn_info_result.server_index);
+			alvs_write_log(LOG_INFO, "conn_idx  = %d, server_idx = %d got RST = 1 go conn_mark_to_delete", conn_index, cmem_alvs.conn_info_result.server_index);
 			if (alvs_conn_mark_to_delete(conn_index, 1) != 0) {
 				/*unable to update connection - weird error scenario*/
 				alvs_write_log(LOG_ERR, "conn_idx  = %d, server_idx = %d conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
@@ -509,7 +509,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			}
 		} else {
 			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED && tcp_hdr->fin) {
-				alvs_write_log(LOG_ERR, "conn_idx  = %d,  ALVS_TCP_CONNECTION_ESTABLISHED got FIN = 1 ", conn_index);
+				alvs_write_log(LOG_INFO, "conn_idx  = %d,  ALVS_TCP_CONNECTION_ESTABLISHED got FIN = 1 ", conn_index);
 				if (alvs_conn_update_state(conn_index, ALVS_TCP_CONNECTION_CLOSE_WAIT) != 0) {
 					alvs_write_log(LOG_ERR, "conn_idx  = %d, update connection state to close FAIL", conn_index);
 					/*drop frame*/
