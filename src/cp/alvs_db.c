@@ -277,8 +277,8 @@ enum alvs_db_rc internal_db_clear_all(void)
 	char sql[256];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "DELETE FROM services "
-		"UPDATE servers SET active=0, server_flags=server_flags&%d;",
+	sprintf(sql, "DELETE FROM services;"
+		"UPDATE servers SET active=0, server_flags=server_flags&%u;",
 		~IP_VS_DEST_F_AVAILABLE);
 
 	/* Execute SQL statement */
@@ -446,7 +446,7 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
 
 	sprintf(sql, "DELETE FROM services "
 		"WHERE ip=%d AND port=%d AND protocol=%d;"
-		"UPDATE servers SET active=0, server_flags=server_flags&%d "
+		"UPDATE servers SET active=0, server_flags=server_flags&%u "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d;",
 		service->ip, service->port, service->protocol,
 		~IP_VS_DEST_F_AVAILABLE,
@@ -717,7 +717,7 @@ enum alvs_db_rc internal_db_deactivate_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET active=0, server_flags=server_flags&%d "
+		"SET active=0, server_flags=server_flags&%u "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		~IP_VS_DEST_F_AVAILABLE,
@@ -752,7 +752,7 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET active=1, server_flags=server_flags|%d "
+		"SET active=1, server_flags=server_flags|%u "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		IP_VS_DEST_F_AVAILABLE,
