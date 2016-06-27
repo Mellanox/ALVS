@@ -44,19 +44,6 @@
 void packet_processing(void) __fast_path_code;
 bool init_nw_shared_cmem(void);
 
-enum nw_to_host_cause_id {
-	NW_EZFRAME_VALIDATION_FAIL          = 0,
-	NW_PACKET_MAC_ERROR                 = 1,
-	NW_PACKET_IPV4_ERROR                = 2,
-	NW_PACKET_NOT_MY_MAC                = 3,
-	NW_PACKET_NOT_IPV4                  = 4,
-	NW_PACKET_NOT_UDP_AND_TCP           = 5,
-	NW_PACKET_NO_VALID_ROUTE            = 6,
-	NW_PACKET_FAIL_ARP                  = 7,
-	NW_PACKET_FAIL_INTERFACE_LOOKUP     = 8,
-	NW_CAUSE_ID_LAST
-};
-
 struct cmem_nw_info {
 	union{
 		struct ezdp_decode_mac_result      mac_decode_result;

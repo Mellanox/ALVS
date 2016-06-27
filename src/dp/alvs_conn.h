@@ -36,6 +36,7 @@
 #ifndef ALVS_CONN_H_
 #define ALVS_CONN_H_
 
+#include "defs.h"
 #include "alvs_server.h"
 #include "alvs_utils.h"
 #include "nw_routing.h"
@@ -111,9 +112,9 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 	cmem_alvs.conn_info_result.server_index = server_index;
 	cmem_alvs.conn_info_result.conn_state = conn_state;
 	cmem_alvs.conn_info_result.age_iteration = 0;
-	cmem_alvs.conn_info_result.conn_stats_base.mem_type = EZDP_EXTERNAL_MS;
-	cmem_alvs.conn_info_result.conn_stats_base.msid	= EMEM_CONN_STATS_ON_DEMAND_MSID;
-	cmem_alvs.conn_info_result.conn_stats_base.element_index = conn_index;
+#if 0
+	cmem_alvs.conn_info_result.conn_stats_base.raw_data = bswap_32((EZDP_EXTERNAL_MS << 31) | (USER_POSTED_STATS_MSID << 27) | (((EMEM_CONN_STATS_POSTED_OFFSET >> 2) + conn_index * ALVS_NUM_OF_CONN_STATS) << 0));
+#endif
 
 	ezdp_mem_copy(&cmem_alvs.conn_info_result.conn_class_key, &cmem_alvs.conn_class_key, sizeof(struct alvs_conn_classification_key));
 
@@ -410,9 +411,6 @@ void alvs_conn_do_route(uint8_t *frame_base)
 {
 	/*transmit packet according to routing method*/
 	if (likely(cmem_alvs.server_info_result.routing_alg == ALVS_DIRECT_ROUTING)) {
-#if 0
-		printf("Direct-route!.\n");
-#endif
 		nw_do_route(&frame,
 			    frame_base,
 			    cmem_alvs.server_info_result.server_ip,
@@ -426,7 +424,7 @@ void alvs_conn_do_route(uint8_t *frame_base)
 	}
 
 	/*update statistics*/
-	alvs_update_all_conn_statistics();
+	alvs_update_incoming_traffic_stats();
 }
 
 /******************************************************************************

@@ -47,12 +47,10 @@
  * \return        void
  */
 static __always_inline
-void nw_interface_inc_counter(uint32_t	counter_id)
+void nw_interface_inc_counter(uint32_t counter_id)
 {
-#if 0
-	printf("update counter ID = %d\n",  counter_id);
+	alvs_write_log(LOG_INFO, "nw_interface_inc_counter:  incrementing counter 0x%x", cmem_nw.interface_result.nw_stats_base + counter_id);
 	ezdp_add_posted_ctr(cmem_nw.interface_result.nw_stats_base + counter_id, 1);
-#endif
 }
 
 /******************************************************************************

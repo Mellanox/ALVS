@@ -40,6 +40,7 @@
 /* linux includes */
 #include <stdio.h>
 #include <signal.h>
+#include <byteswap.h>
 #include <pthread.h>
 
 /* libnl-3 includes */
@@ -168,7 +169,6 @@ void nw_db_manager_if_table_init(void)
 	struct nw_if_key if_key;
 	struct nw_if_result if_result;
 	uint32_t ind;
-	struct ezdp_sum_addr stats_addr;
 
 	if (infra_get_my_mac(&if_result.mac_address) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Retrieving my MAC failed.\n");
@@ -177,10 +177,7 @@ void nw_db_manager_if_table_init(void)
 
 	if_key.logical_id = USER_BASE_LOGICAL_ID + USER_NW_IF_NUM;
 	if_result.path_type = DP_PATH_FROM_HOST_PATH;
-	stats_addr.mem_type = EZDP_EXTERNAL_MS;
-	stats_addr.msid = USER_ON_DEMAND_STATS_MSID;
-	stats_addr.element_index = (EMEM_IF_STATS_ON_DEMAND_OFFSET >> 2) + if_key.logical_id * ALVS_NUM_OF_IF_STATS;
-	if_result.nw_stats_base = stats_addr.raw_data;
+	if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << 31) | (EMEM_IF_STATS_POSTED_MSID << 27) | ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << 0));
 	if_result.output_channel = 24 | (1 << 7);
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
@@ -190,8 +187,7 @@ void nw_db_manager_if_table_init(void)
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if_key.logical_id = USER_BASE_LOGICAL_ID + ind;
-		stats_addr.element_index = (EMEM_IF_STATS_ON_DEMAND_OFFSET >> 2) + if_key.logical_id * ALVS_NUM_OF_IF_STATS;
-		if_result.nw_stats_base = stats_addr.raw_data;
+		if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << 31) | (EMEM_IF_STATS_POSTED_MSID << 27) | ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << 0));
 		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);

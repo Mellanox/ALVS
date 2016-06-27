@@ -52,7 +52,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
 		printf("fail interface lookup - port id =%d!\n", port_id);
-		nw_interface_inc_counter(NW_PACKET_FAIL_INTERFACE_LOOKUP);
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 		nw_host_do_route(frame, NULL);
 		return;
 	}
@@ -62,7 +62,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 #if 0
 		printf("Frame is invalid - send to host!\n");
 #endif
-		nw_interface_inc_counter(NW_EZFRAME_VALIDATION_FAIL);
+		nw_interface_inc_counter(NW_IF_STATS_FRAME_VALIDATION_FAIL);
 		nw_host_do_route(frame, frame_data);
 		return;
 	}
@@ -84,7 +84,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_nw.mac_decode_result.error_codes.decode_error)) {
 			printf("Decode MAC failed!\n");
-			nw_interface_inc_counter(NW_PACKET_MAC_ERROR);
+			nw_interface_inc_counter(NW_IF_STATS_MAC_ERROR);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
@@ -94,7 +94,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 #if 0
 			printf("Not my MAC!\n");
 #endif
-			nw_interface_inc_counter(NW_PACKET_NOT_MY_MAC);
+			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
@@ -113,8 +113,8 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*check if ipv4 frame*/
 		if (*((uint16_t *)next_et) != ETHERTYPE_IP) {
-			printf("Not IPv4 packet!\n");
-			nw_interface_inc_counter(NW_PACKET_NOT_IPV4);
+			printf("Not IPv4!\n");
+			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
@@ -129,21 +129,21 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_nw.ipv4_decode_result.error_codes.decode_error)) {
 			printf("IPv4 decode failed!\n");
-			nw_interface_inc_counter(NW_PACKET_IPV4_ERROR);
+			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
 
 		if (ip_ptr->protocol != IPPROTO_TCP /*&& ip_ptr->protocol != IPPROTO_UDP*/) {
-			printf("Not TCP packet!\n");
-			nw_interface_inc_counter(NW_PACKET_NOT_UDP_AND_TCP);
+			printf("Not TCP!\n");
+			nw_interface_inc_counter(NW_IF_STATS_NOT_UDP_OR_TCP);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
 
 		/*check if need to check validity of TCP/UDP */
 
-		/*frame is OK, let's start alvs packet processing*/
+		/*frame is OK, let's start alvs IF_STATS processing*/
 		alvs_packet_processing(frame_base, ip_ptr);
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
@@ -162,7 +162,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	} else {
 		printf("Error! no match in interface lookup!!\n");
 		/*currently send frame to host without any change or any other operations*/
-		nw_interface_inc_counter(NW_PACKET_NO_VALID_ROUTE);
+		nw_interface_inc_counter(NW_IF_STATS_NO_VALID_ROUTE);
 		nw_host_do_route(frame, NULL);
 	}
 }

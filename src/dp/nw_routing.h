@@ -135,7 +135,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 					 arp_res_ptr->base_logical_id);
 	} else {
 		alvs_write_log(LOG_ERR, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
-		nw_interface_inc_counter(NW_PACKET_FAIL_ARP);
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
 		nw_host_do_route(frame, buffer_base);
 		return;
 	}

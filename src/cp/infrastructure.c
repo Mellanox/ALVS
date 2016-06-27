@@ -406,48 +406,8 @@ bool infra_configure_protocol_decode(void)
 bool infra_create_statistics(void)
 {
 	EZstatus ret_val;
-	EZapiStat_PartitionParams partition_params;
-	EZapiStat_GroupParams group_params;
 	EZapiStat_PostedPartitionParams posted_partition_params;
 	EZapiStat_PostedGroupParams posted_group_params;
-
-	memset(&partition_params, 0, sizeof(partition_params));
-	partition_params.uiPartition = 1;
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPartitionParams, &partition_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPartitionParams failed.\n");
-		return false;
-	}
-
-	partition_params.bEnable = true;
-	partition_params.uiUnitMask = 0xff;
-	partition_params.uiMSID = USER_ON_DEMAND_STATS_MSID;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPartitionParams, &partition_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPartitionParams failed.\n");
-		return false;
-	}
-
-	memset(&group_params, 0, sizeof(group_params));
-	group_params.uiPartition = 1;
-	group_params.uiGroup = 0;
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetGroupParams, &group_params);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetGroupParams failed.\n");
-		return false;
-	}
-
-	group_params.uiStartCounter = 0;
-	group_params.uiNumCounters = (36 * 1024 * 1024);
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &group_params);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetGroupParams failed.\n");
-		return false;
-	}
-
 
 	/* Get posted statistics defaults for partition 0 */
 	memset(&posted_partition_params, 0, sizeof(posted_partition_params));
@@ -550,7 +510,7 @@ bool infra_create_index_pools(void)
 	}
 
 	index_pool_params.bEnable = true;
-	index_pool_params.uiNumIndexes = 32*1024*1024;
+	index_pool_params.uiNumIndexes = ALVS_CONN_MAX_ENTRIES;
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -650,32 +610,7 @@ bool infra_created(void)
 bool infra_initialize_statistics(void)
 {
 	EZstatus ret_val;
-	EZapiStat_LongCounterConfig long_counter_config;
 	EZapiStat_PostedCounterConfig posted_counter_config;
-
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-
-	long_counter_config.pasCounters = malloc(sizeof(EZapiStat_LongCounter));
-	if (long_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_LongCounter malloc failed.\n");
-		return false;
-	}
-	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
-	long_counter_config.uiPartition = 1;
-	long_counter_config.bRange = true;
-	long_counter_config.uiStartCounter = 0;
-	long_counter_config.uiNumCounters = (36*1024*1024);
-	long_counter_config.pasCounters[0].uiValue = 0;
-	long_counter_config.pasCounters[0].uiValueMSB = 0;
-	long_counter_config.pasCounters[0].bEnableThresholdMsg = false;
-	long_counter_config.pasCounters[0].uiThreshold = 58;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
-	free(long_counter_config.pasCounters);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.\n");
-		return false;
-	}
 
 	/* Set posted statistics values to be 0 */
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));

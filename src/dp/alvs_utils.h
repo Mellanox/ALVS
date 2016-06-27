@@ -41,63 +41,48 @@
 #include "nw_utils.h"
 
 /******************************************************************************
- * \brief         update all statistics for: connection, server, service
+ * \brief         update in pkts/in bytes statistics for: server, service
  * \return        void
  */
 static __always_inline
-void alvs_update_all_conn_statistics(void)
+void alvs_update_incoming_traffic_stats(void)
 {
 	/*handle service stats:
 	 *                    in pkts/in bytes
 	 *                    out pkts/out bytes
 	 *                    conn sched/refcnt (slow path)
-	 *
-	 * in fast path only update the in pkts/in bytes counter
 	 */
-#if 0
-	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.service_stats_base,
-			1,
-			frame.job_desc.frame_desc.frame_length);
-#endif
+	alvs_write_log(LOG_INFO, "alvs_update_incoming_traffic_stats:  incrementing counter 0x%x", cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET);
+	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET,
+				 1,
+				 frame.job_desc.frame_desc.frame_length);
 
 	/*handle server stats:
 	 *                   in pkts/in bytes
 	 *                   out pkts/out bytes
 	 *                   conn sched/refcnt (slow path)
 	 *                   inactive conn/active conn (aging path/slow path)
-	 *
-	 * in fast path only update the in pkts/in bytes counter
 	 */
-#if 0
-	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base,
-			1,
-			frame.job_desc.frame_desc.frame_length);
-#endif
-
-	/* connection - count packets and bytes per connection */
-#if 0
-	ezdp_dual_add_posted_ctr(cmem_alvs.conn_info_result.conn_stats_base.raw_data,
-					1,
-					frame.job_desc.frame_desc.frame_length);
-#endif
+	alvs_write_log(LOG_INFO, "alvs_update_incoming_traffic_stats:  incrementing counter 0x%x", cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET);
+	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET,
+				 1,
+				 frame.job_desc.frame_desc.frame_length);
 }
 
 /******************************************************************************
- * \brief         update interface stat counter - special couters for alvs
+ * \brief         update interface statistics counter - special counters for ALVS
  * \return        void
  */
 static __always_inline
-void alvs_update_incoming_port_stat_counter(uint32_t counter_id)
+void alvs_update_incoming_port_stats(uint32_t counter_id)
 {
-#if 0
-	printf("update counter ID = %d\n", counter_id);
+	alvs_write_log(LOG_INFO, "alvs_update_incoming_port_stats:  incrementing counter 0x%x", cmem_nw.interface_result.nw_stats_base + counter_id);
 	ezdp_add_posted_ctr(cmem_nw.interface_result.nw_stats_base + counter_id, 1);
-#endif
 }
 
 
 /******************************************************************************
- * \brief         update connection counters in service & server - use in when
+ * \brief         update traffic counters in server & service - used when
  *                creating new connection or deletion of an existing one.
  * \return        void
  */
@@ -108,49 +93,40 @@ void alvs_update_connection_statistics(int16_t sched_conn, int16_t active_conn, 
 	 *                    in pkts/in bytes
 	 *                    out pkts/out bytes
 	 *                    conn sched/refcnt (slow path)
-	 *
-	 * in fast path only update the in pkts/in bytes counter
 	 */
-#if 0
+	alvs_write_log(LOG_INFO, "alvs_update_connection_statistics:  incrementing counter 0x%x", cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_CONN_SCHED_OFFSET);
 	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_CONN_SCHED_OFFSET,
-				       sched_conn,
-				       0);
-#endif
+				 sched_conn,
+				 0);
 
 	/*handle server stats:
 	 *                   in pkts/in bytes
 	 *                   out pkts/out bytes
 	 *                   conn sched/refcnt (slow path)
 	 *                   inactive conn/active conn (aging path/slow path)
-	 *
-	 * in fast path only update the in pkts/in bytes counter
 	 */
-#if 0
+	alvs_write_log(LOG_INFO, "alvs_update_connection_statistics:  incrementing counter 0x%x", cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_INACTIVE_ACTIVE_CONN_OFFSET);
 	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_INACTIVE_ACTIVE_CONN_OFFSET,
-				       inactive_conn,
-				       active_conn);
-#endif
+				 inactive_conn,
+				 active_conn);
 
-#if 0
+	alvs_write_log(LOG_INFO, "alvs_update_connection_statistics:  incrementing counter 0x%x", cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_CONN_SCHED_REFCNT_OFFSET);
 	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_CONN_SCHED_REFCNT_OFFSET,
-				       sched_conn,
-				       0);
-#endif
-
+				 sched_conn,
+				 0);
 }
 
 /******************************************************************************
  * \brief         update alvs error counters
- *                creating new connection or deletion of an existing one.
  * \return        void
  */
 static __always_inline
-void alvs_update_discard_statistics(enum alvs_error_id error_id)
+void alvs_update_discard_statistics(enum alvs_error_stats_offsets error_id)
 {
-	printf("update error counter ID = %d\n",  error_id);
-#if 0
-	ezdp_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + error_id, 1);
-#endif
+	ezdp_sum_addr_t addr = (EZDP_EXTERNAL_MS << 31) | (EMEM_ALVS_ERROR_STATS_POSTED_MSID << 27) | ((EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + error_id) << 0);
+
+	alvs_write_log(LOG_INFO, "alvs_update_discard_statistics:  incrementing counter 0x%x", addr);
+	ezdp_add_posted_ctr(addr, 1);
 }
 
 /******************************************************************************

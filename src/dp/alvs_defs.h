@@ -56,42 +56,6 @@ bool init_alvs_private_cmem(void);
 
 #define MAX_DECODE_SIZE 28
 
-/****************************************************************
- * enums for errors and other failure cases.
- * seperated to cases where packet is sent to host
- * vs cases where packet is dropped.
- ***************************************************************/
-/*packet sent to host*/
-enum alvs_to_host_cause_id {
-	ALVS_PACKET_FAIL_SERVICE_CLASS_LOOKUP = NW_CAUSE_ID_LAST,
-	ALVS_CAUSE_ID_LAST
-};
-
-/*packet drop*/
-enum alvs_error_id {
-	ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO     = 0,
-	ALVS_ERROR_CANT_EXPIRE_CONNECTION       = 1,
-	ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE = 2,
-	ALVS_ERROR_CONN_INFO_LKUP_FAIL          = 3,
-	ALVS_ERROR_CONN_CLASS_ALLOC_FAIL        = 4,
-	ALVS_ERROR_CONN_INFO_ALLOC_FAIL         = 5,
-	ALVS_ERROR_CONN_INDEX_ALLOC_FAIL        = 6,
-	ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL      = 7,
-	ALVS_ERROR_FAIL_SH_SCHEDULING           = 8,
-	ALVS_ERROR_SERVER_INFO_LKUP_FAIL        = 9,
-	ALVS_ERROR_SERVER_IS_UNAVAILABLE        = 10,
-	ALVS_ERROR_SERVER_INDEX_LKUP_FAIL       = 11,
-	ALVS_ERROR_CONN_CLASS_LKUP_FAIL         = 12,
-	ALVS_ERROR_SERVICE_INFO_LOOKUP          = 13,
-	ALVS_ERROR_UNSUPPORTED_SCHED_ALGO       = 14,
-	ALVS_ERROR_CANT_MARK_DELETE             = 15,
-	ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL     = 16,
-	ALVS_ERROR_SEND_FRAME_FAIL              = 17,
-	ALVS_ERROR_CONN_MARK_TO_DELETE          = 18,
-	ALVS_ERROR_ID_LAST
-};
-
-/*packet drop*/
 enum alvs_service_output_result {
 	ALVS_SERVICE_DATA_PATH_IGNORE           = 0, /* Frame is dropped or send to host */
 	ALVS_SERVICE_DATA_PATH_RETRY            = 1,

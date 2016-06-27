@@ -81,6 +81,7 @@ struct alvs_db_server {
 	uint32_t                 u_thresh;
 	uint32_t                 l_thresh;
 	struct ezdp_sum_addr     stats_base;
+	struct ezdp_sum_addr     service_stats_base;
 };
 
 #define ALVS_DB_FILE_NAME "alvs.db"
@@ -176,6 +177,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 		"l_thresh INT NOT NULL,"
 		"active BOOLEAN NOT NULL,"
 		"stats_base INT NOT NULL,"
+		"service_stats_base INT NOT NULL,"
 		"PRIMARY KEY (ip,port,srv_ip,srv_port,srv_protocol),"
 		"FOREIGN KEY (srv_ip,srv_port,srv_protocol) "
 		"REFERENCES services(ip,port,protocol));";
@@ -506,6 +508,7 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 		server_info->l_thresh = sqlite3_column_int(statement, 11);
 		server_info->active = sqlite3_column_int(statement, 12);
 		server_info->stats_base.raw_data = sqlite3_column_int(statement, 13);
+		server_info->service_stats_base.raw_data = sqlite3_column_int(statement, 14);
 
 		server_info++;
 		rc = sqlite3_step(statement);
@@ -585,6 +588,7 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	server->l_thresh = sqlite3_column_int(statement, 11);
 	server->active = sqlite3_column_int(statement, 12);
 	server->stats_base.raw_data = sqlite3_column_int(statement, 13);
+	server->service_stats_base.raw_data = sqlite3_column_int(statement, 14);
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
@@ -606,17 +610,17 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 				       struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[512];
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO servers "
-		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, routing_alg, u_thresh, l_thresh, active, stats_base) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
+		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, routing_alg, u_thresh, l_thresh, active, stats_base, service_stats_base) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
 		server->ip, server->port, service->ip, service->port,
 		service->protocol, server->nps_index,
 		server->weight, server->conn_flags, server->server_flags,
 		server->routing_alg, server->u_thresh, server->l_thresh,
-		server->active, server->stats_base.raw_data);
+		server->active, server->stats_base.raw_data, server->service_stats_base.raw_data);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -789,7 +793,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 	struct alvs_sched_info_key sched_info_key;
 	struct alvs_sched_info_result sched_info_result;
 
-	write_log(LOG_DEBUG, "Recalculating scheduling info with %d servers.\n", service->server_count);
+	write_log(LOG_INFO, "Recalculating scheduling info with %d servers.\n", service->server_count);
 	if (service->server_count == 0) {
 		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
@@ -802,6 +806,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 		return ALVS_DB_OK;
 	}
 
+	write_log(LOG_INFO, "Getting list of servers.\n");
 	if (internal_db_get_server_list(service, server_list) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
 		write_log(LOG_CRIT, "Can't retrieve server list - "
@@ -811,10 +816,11 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 
 	switch (service->sched_alg) {
 	case ALVS_SOURCE_HASH_SCHEDULER:
+		write_log(LOG_INFO, "Algorithm is 'source hash'.\n");
 		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
 			sched_info_result.server_index = bswap_32(server_list[server_index].nps_index);
-			write_log(LOG_DEBUG, "%d --> %d\n", service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind, server_list[server_index].nps_index);
+			write_log(LOG_INFO, "(%d) %d --> %d\n", service->nps_index, ind, server_list[server_index].nps_index);
 			if (infra_modify_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
 						sizeof(struct alvs_sched_info_key), &sched_info_result,
 						sizeof(struct alvs_sched_info_result)) == false) {
@@ -1050,6 +1056,7 @@ void build_nps_server_info_result(struct alvs_db_server *cp_server,
 	nps_server_info_result->server_ip = cp_server->ip;
 	nps_server_info_result->server_port = cp_server->port;
 	nps_server_info_result->server_stats_base = bswap_32(cp_server->stats_base.raw_data);
+	nps_server_info_result->service_stats_base = bswap_32(cp_server->service_stats_base.raw_data);
 	nps_server_info_result->server_weight = bswap_16(cp_server->weight);
 	nps_server_info_result->u_thresh = bswap_32(cp_server->u_thresh);
 	nps_server_info_result->l_thresh = bswap_32(cp_server->l_thresh);
@@ -1122,9 +1129,7 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	cp_service.sched_alg = get_sched_alg(ip_vs_service->sched_name);
 	cp_service.flags = ip_vs_service->flags;
 	cp_service.server_count = 0;
-	cp_service.stats_base.mem_type = EZDP_EXTERNAL_MS;
-	cp_service.stats_base.msid = EMEM_SERVICE_STATS_POSTED_MSID;
-	cp_service.stats_base.element_index = (EMEM_SERVICE_STATS_POSTED_OFFSET >> 3) + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS;
+	cp_service.stats_base.raw_data = (EZDP_EXTERNAL_MS << 31) | (EMEM_SERVICE_STATS_POSTED_MSID << 27) | ((EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS) << 0);
 
 	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d\n",
 		  cp_service.sched_alg, cp_service.flags);
@@ -1431,7 +1436,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists.\n",
+		write_log(LOG_INFO, "Service (ip=0x%08x, port=%d, protocol=%d) exists.\n",
 			  cp_service.ip, cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1477,7 +1482,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 			write_log(LOG_ERR, "Can't add server. Reached maximum.\n");
 			return ALVS_DB_NOT_SUPPORTED;
 		}
-		write_log(LOG_DEBUG, "Allocated nps_index = %d\n", cp_server.nps_index);
+		write_log(LOG_INFO, "Allocated nps_index = %d\n", cp_server.nps_index);
 
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
 		cp_server.server_flags = IP_VS_DEST_F_AVAILABLE;
@@ -1486,11 +1491,10 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
-		cp_server.stats_base.mem_type = EZDP_EXTERNAL_MS;
-		cp_server.stats_base.msid = EMEM_SERVER_STATS_POSTED_MSID;
-		cp_server.stats_base.element_index = (EMEM_SERVER_STATS_POSTED_OFFSET >> 3) + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS;
+		cp_server.stats_base.raw_data = (EZDP_EXTERNAL_MS << 31) | (EMEM_SERVER_STATS_POSTED_MSID << 27) | ((EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS) << 0);
+		cp_server.service_stats_base.raw_data = cp_service.stats_base.raw_data;
 
-		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
+		write_log(LOG_INFO, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
 			  cp_server.routing_alg, cp_server.conn_flags,
 			  cp_server.server_flags, cp_server.weight,
 			  cp_server.u_thresh, cp_server.l_thresh);
@@ -1527,7 +1531,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		write_log(LOG_ERR, "Failed to delete scheduling information.\n");
 		return rc;
 	}
-	write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
+	write_log(LOG_INFO, "Scheduling info recalculated.\n");
 
 	build_nps_service_info_key(&cp_service,
 				   &nps_service_info_key);
