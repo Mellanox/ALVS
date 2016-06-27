@@ -83,6 +83,6 @@ bool alvs_open_log(void);
  *             wa_frame_size - WA sizeof the provided wa_frame
  * \return 0 on SUCESS, otherwise 1.
  */
-int alvs_send(ezframe_t  __cmem * frame);
+int alvs_send(ezframe_t  __cmem * frame) __slow_path_code;
 
 #endif /* ALVS_LOG_H_ */

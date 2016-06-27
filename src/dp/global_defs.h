@@ -36,13 +36,8 @@
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
 
-#include <ezdp_defs.h>
-
-#define __fast_path_code __imem_1_cluster_func
-#define __slow_path_code __imem_all_cluster_func
-
-#include "alvs_defs.h"
 #include "alvs_log.h"
+#include "alvs_defs.h"
 
 union cmem_workarea {
 	union alvs_workarea   alvs_wa;

@@ -33,6 +33,10 @@
 #define DEFS_H_
 
 #include "user_defs.h"
+#include <ezdp_defs.h>
+
+#define __fast_path_code __imem_1_cluster_func
+#define __slow_path_code __imem_all_cluster_func
 
 union temp {
 	int x;
