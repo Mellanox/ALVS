@@ -28,9 +28,9 @@ def end_log():
 	log_file.write("#end HTTP client\n")
 	log_file.close()
 
-def readHtml(ip):
+def readHtml(ip,connTimeout):
     try:
-        response = urllib2.urlopen('http://'+ip, timeout=5)
+        response = urllib2.urlopen('http://'+ip, timeout=connTimeout)
     except urllib2.URLError,err:
         log('%s : %s' %(ip, '404 ERROR'))
         return str(err)
@@ -61,6 +61,8 @@ if __name__ == "__main__":
 					  help="Log file name", default="log")
     parser.add_option("-r", "--requests", dest="num_of_requests",
                       help="Number of HTTP requests", default=1, type="int")
+    parser.add_option("-t", "--timeout", dest="timeout",
+                      help="Http Connection timeout", default=5, type="int")
 
     (options, args) = parser.parse_args()
     init_log(options.log_file_name)
@@ -71,7 +73,7 @@ if __name__ == "__main__":
     
     # read from HTML server x times (x = options.num_of_requests)
     for i in range(options.num_of_requests):
-        readHtml(options.http_ip) 
+        readHtml(options.http_ip,options.timeout) 
 
     end_log()
 

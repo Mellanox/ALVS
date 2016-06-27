@@ -156,6 +156,14 @@ class HttpServer(player):
 			print "ERROR: setting index.html failed. rc=" + str(rc) + " " + output
 			return
 
+	def set_extra_large_index_html(self):
+		# This command repeates index.html into a ~52MB file
+		cmd = "for i in {1..22}; do cat /var/www/html/index.html /var/www/html/index.html > /var/www/html/index2.html && mv -f /var/www/html/index2.html /var/www/html/index.html; done"
+		rc, output = self.ssh.execute_command(cmd)
+		if rc != True:
+			print "ERROR: setting index.html failed. rc=" + str(rc) + " " + output
+			return
+		
 	def set_test_html(self):
 		cmd = 'echo "Still alive" >/var/www/html/test.html'
 		rc, output = self.ssh.execute_command(cmd)
