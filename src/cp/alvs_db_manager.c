@@ -1066,7 +1066,7 @@ bool alvs_db_constructor(void)
 	hash_params.key_size = sizeof(struct alvs_conn_classification_key);
 	hash_params.result_size = sizeof(struct alvs_conn_classification_result);
 	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
-	hash_params.hash_size = 25;     /* TODO - [Roee] investigate */
+	hash_params.hash_size = 26;
 	hash_params.updated_from_dp = true;
 	hash_params.sig_pool_id = 0;
 	hash_params.result_pool_id = 1;
