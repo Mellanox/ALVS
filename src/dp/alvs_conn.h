@@ -113,7 +113,9 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 	cmem_alvs.conn_info_result.conn_state = conn_state;
 	cmem_alvs.conn_info_result.age_iteration = 0;
 #if 0
-	cmem_alvs.conn_info_result.conn_stats_base.raw_data = bswap_32((EZDP_EXTERNAL_MS << 31) | (USER_POSTED_STATS_MSID << 27) | (((EMEM_CONN_STATS_POSTED_OFFSET >> 2) + conn_index * ALVS_NUM_OF_CONN_STATS) << 0));
+	cmem_alvs.conn_info_result.conn_stats_base.raw_data = bswap_32((EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+								       (USER_POSTED_STATS_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
+								       ((EMEM_CONN_STATS_POSTED_OFFSET + conn_index * ALVS_NUM_OF_CONN_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 #endif
 
 	ezdp_mem_copy(&cmem_alvs.conn_info_result.conn_class_key, &cmem_alvs.conn_class_key, sizeof(struct alvs_conn_classification_key));

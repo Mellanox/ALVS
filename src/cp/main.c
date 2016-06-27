@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	/* Initialize device, CP SDK host components    */
 	/* and AGT debug agent interface                */
 	/************************************************/
-	write_log(LOG_INFO, "NPS init ...\n");
+	write_log(LOG_DEBUG, "NPS init ...\n");
 	if (nps_init() == false) {
 		main_thread_graceful_stop();
 		exit(1);
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 	/************************************************/
 	/* Bring up control plane components        */
 	/************************************************/
-	write_log(LOG_INFO, "NPS bring up...\n");
+	write_log(LOG_DEBUG, "NPS bring up...\n");
 	if (nps_bringup() == false) {
 		main_thread_graceful_stop();
 		exit(1);
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/
-	write_log(LOG_INFO, "Start network DB manager thread...\n");
+	write_log(LOG_DEBUG, "Start network DB manager thread...\n");
 	rc = pthread_create(&nw_db_manager_thread, NULL,
 			    (void * (*)(void *))nw_db_manager_main, &cancel_application_flag);
 	if (rc != 0) {
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	/************************************************/
 	/* Start ALVS DB manager main thread            */
 	/************************************************/
-	write_log(LOG_INFO, "Start ALVS DB manager thread...\n");
+	write_log(LOG_DEBUG, "Start ALVS DB manager thread...\n");
 	rc = pthread_create(&alvs_db_manager_thread, NULL,
 			    (void * (*)(void *))alvs_db_manager_main, &cancel_application_flag);
 	if (rc != 0) {
@@ -181,7 +181,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Create channel                               */
 	/************************************************/
-	write_log(LOG_INFO, "Creating channel...\n");
+	write_log(LOG_DEBUG, "Creating channel...\n");
 	ez_ret_val = EZapiChannel_Create(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Create returned an error.\n");
@@ -191,7 +191,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Created state                                */
 	/************************************************/
-	write_log(LOG_INFO, "Created state...\n");
+	write_log(LOG_DEBUG, "Created state...\n");
 	if (infra_created() == false) {
 		write_log(LOG_CRIT, "nps_bringup failed: infra_created returned an error.\n");
 		return false;
@@ -200,7 +200,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Power-up channel                             */
 	/************************************************/
-	write_log(LOG_INFO, "Power-up channel...\n");
+	write_log(LOG_DEBUG, "Power-up channel...\n");
 	for (pup_phase = 1; pup_phase <= 4; pup_phase++) {
 		ez_ret_val = EZapiChannel_PowerUp(0, pup_phase);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
@@ -212,7 +212,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Powered-up state                             */
 	/************************************************/
-	write_log(LOG_INFO, "Powered-up state...\n");
+	write_log(LOG_DEBUG, "Powered-up state...\n");
 	if (infra_powered_up() == false) {
 		write_log(LOG_CRIT, "nps_bringup failed: infra_powered_up returned an error.\n");
 		return false;
@@ -221,7 +221,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Initialize channel                           */
 	/************************************************/
-	write_log(LOG_INFO, "Initialize channel...\n");
+	write_log(LOG_DEBUG, "Initialize channel...\n");
 	ez_ret_val = EZapiChannel_Initialize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Initialize returned an error.\n");
@@ -231,7 +231,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Initialized state                            */
 	/************************************************/
-	write_log(LOG_INFO, "Initialized state...\n");
+	write_log(LOG_DEBUG, "Initialized state...\n");
 	if (infra_initialized() == false) {
 		write_log(LOG_CRIT, "nps_bringup failed: infra_initialized returned an error.\n");
 		return false;
@@ -240,7 +240,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Finalize channel                             */
 	/************************************************/
-	write_log(LOG_INFO, "Finalize channel...\n");
+	write_log(LOG_DEBUG, "Finalize channel...\n");
 	ez_ret_val = EZapiChannel_Finalize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Finalize returned an error.\n");
@@ -250,7 +250,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Finalized state                              */
 	/************************************************/
-	write_log(LOG_INFO, "Finalized state...\n");
+	write_log(LOG_DEBUG, "Finalized state...\n");
 	if (infra_finalized() == false) {
 		write_log(LOG_CRIT, "nps_bringup failed: infra_finalized returned an error.\n");
 		return false;
@@ -259,7 +259,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Channel GO                                   */
 	/************************************************/
-	write_log(LOG_INFO, "Channel GO...\n");
+	write_log(LOG_DEBUG, "Channel GO...\n");
 	ez_ret_val = EZapiChannel_Go(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Go returned an error.\n");
@@ -269,7 +269,7 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Running state:                               */
 	/************************************************/
-	write_log(LOG_INFO, "Running state...\n");
+	write_log(LOG_DEBUG, "Running state...\n");
 	if (infra_running() == false) {
 		write_log(LOG_CRIT, "nps_bringup failed: infra_running returned an error.\n");
 		return false;

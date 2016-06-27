@@ -177,7 +177,9 @@ void nw_db_manager_if_table_init(void)
 
 	if_key.logical_id = USER_BASE_LOGICAL_ID + USER_NW_IF_NUM;
 	if_result.path_type = DP_PATH_FROM_HOST_PATH;
-	if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << 31) | (EMEM_IF_STATS_POSTED_MSID << 27) | ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << 0));
+	if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+					   (EMEM_IF_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
+					   ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 	if_result.output_channel = 24 | (1 << 7);
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.\n");
@@ -187,7 +189,9 @@ void nw_db_manager_if_table_init(void)
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if_key.logical_id = USER_BASE_LOGICAL_ID + ind;
-		if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << 31) | (EMEM_IF_STATS_POSTED_MSID << 27) | ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << 0));
+		if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+						   (EMEM_IF_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
+						   ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.\n", ind);
