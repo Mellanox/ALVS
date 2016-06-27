@@ -53,6 +53,7 @@ class ezbox_host:
         if use_director:
         	self.clean_director()
         self.terminate_cp_app()
+        self.clean_vips()
         self.logout()
         
     def init_director(self, services):
@@ -69,8 +70,8 @@ class ezbox_host:
     	outfile.write('quiescent=no\n')
     	for vip in services.keys():
     		outfile.write('virtual=%s:80\n'%vip)
-    		for server in services[vip]:
-    			outfile.write('	real=%s:80 gate\n'%server)
+    		for server, weight in services[vip]:
+    			outfile.write('	real=%s:80 gate %d\n'%(server, weight))
     			outfile.write('	service=http\n')
     			outfile.write('	request="test.html"\n')
     			outfile.write('	receive="Still alive"\n')
@@ -102,6 +103,19 @@ class ezbox_host:
         for index, vip in enumerate(vip_list):
             self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.setup['interface'], index+1, vip))
 
+    def clean_vips(self):
+        interface = self.setup['interface']
+        rc, ret_val = self.execute_command_on_host("ifconfig")
+        ret_list = ret_val.split('\n')
+        for line in ret_list:
+            if interface in line:
+                split_line = line.split(' ')
+                vip_if = split_line[0]
+                if interface != vip_if:
+                    index = (vip_if.split(':'))[1]
+                    if index != '0':
+                        self.execute_command_on_host("ifconfig %s down"%(vip_if))
+
     def connect(self):
         self.ssh_object.connect()
         self.run_app_ssh.connect()
@@ -112,7 +126,7 @@ class ezbox_host:
     def logout(self):
         self.ssh_object.logout()
         self.run_app_ssh.logout()
-        #self.syslog_ssh.logout()
+#         self.syslog_ssh.logout()
         
     def execute_command_on_host(self, cmd):
     	return self.ssh_object.execute_command(cmd)
@@ -132,7 +146,7 @@ class ezbox_host:
                     fail = False
                 except:
                     retry_count += 1
-                    if retry_count == 100:
+                    if retry_count == 1000:
                         print 'Failed to copy dp bin to NPS, exiting after 100 retries'
                         exit(1)
                     

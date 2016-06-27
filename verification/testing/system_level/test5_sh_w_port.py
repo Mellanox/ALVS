@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 20 
+request_count = 200 
 server_count = 5
 client_count = 20
 service_count = 1
@@ -88,6 +88,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(vip, port, server.ip, port)
 	
+	time.sleep(5) 
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
@@ -102,18 +103,11 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	expected_dict= {'client_response_count':request_count,
 					'client_count': len(client_list), 
-					'no_404': True}
-#					'server_count_per_client':1}
+					'no_404': True,
+					'server_count_per_client':server_count}
 	
-	if client_checker(log_dir, expected_dict):
-		print 'Test passed !!!'
-		exit(0)
+	return client_checker(log_dir, expected_dict)
 
-	else:
-		print 'Test failed !!!'
-		exit(1)
-
-	pass
 #===============================================================================
 # main function
 #===============================================================================
@@ -127,15 +121,23 @@ def main():
 	setup_num  = int(sys.argv[1])
   	server_list, ezbox, client_list, vip_list = user_init(setup_num)
   
-	init_players(server_list, ezbox, client_list, vip_list)
-   	
+	init_players(server_list, ezbox, client_list, vip_list, True)
+    	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-   	
+    	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
-	clean_players(server_list, ezbox, client_list)
+	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-	run_user_checker(server_list, ezbox, client_list, log_dir)
+	clean_players(server_list, ezbox, client_list, True)
 	
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
+ 	
+	if user_rc and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
 
 main()

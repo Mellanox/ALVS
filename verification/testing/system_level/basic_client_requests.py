@@ -31,12 +31,12 @@ def end_log():
 def readHtml(ip,connTimeout):
     try:
         response = urllib2.urlopen('http://'+ip, timeout=connTimeout)
-    except urllib2.URLError,err:
+    except:
         log('%s : %s' %(ip, '404 ERROR'))
-        return str(err)
+        return '404 ERROR'
     try:
     	html_lines = response.readlines()
-    except :
+    except:
     	log('%s : %s' %(ip, 'Connection closed ERROR'))
     	return 'Connection closed ERROR'
 

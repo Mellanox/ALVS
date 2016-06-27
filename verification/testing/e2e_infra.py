@@ -9,6 +9,7 @@ import logging
 from optparse import OptionParser
 import os
 import sys
+import re
 from time import gmtime, strftime
 from os import listdir
 from os.path import isfile, join
@@ -31,22 +32,25 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 		print "init server: " + s.str()
 		s.init_server(s.ip)
 
-	# init ALVS daemon
+	# start ALVS daemon and DP
 	ezbox.connect()
-	ezbox.terminate_cp_app()
-	ezbox.reset_chip()
-	ezbox.flush_ipvs()
-	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-	ezbox.run_cp()
-	ezbox.run_dp(args='--run_cpus 16-47')
-	ezbox.wait_for_cp_app()
+ 	ezbox.reset_chip()
 	ezbox.config_vips(vip_list)
-	
+ 	ezbox.terminate_cp_app()
+	ezbox.flush_ipvs()
+ 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+ 	ezbox.run_cp()
+ 	ezbox.run_dp(args='--run_cpus 16-127')
+ 	ezbox.wait_for_cp_app()
+
 	if use_director:
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
-			services[server.vip].append(server.ip)
+			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_director(services)
+	ezbox.flush_ipvs()
+
+	
 	
 	# init client
 	for c in client_list:
@@ -102,6 +106,52 @@ def collect_logs(server_list, ezbox, client_list):
 		c.get_log(dir_name)
 
 	return dir_name
+
+'''
+	general_checker: This checker should run in all tests before clean_players
+'''
+def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True}):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	rc = True
+	if 'host_stat_clean' in expected:
+		rc = host_stats_checker(ezbox)
+		if expected['host_stat_clean'] == False:
+			rc = (not rc)
+		
+	return rc
+
+'''
+	host_stats_checker: checkes all ipvs statistics on host are zero.
+'''
+def host_stats_checker(ezbox):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	rc, ret_val = ezbox.execute_command_on_host('ipvsadm -Ln --stats')
+	if rc == True:
+		ret_val = re.sub(' +',' ',ret_val)
+		ret_list = ret_val.split('\n')
+		for line in ret_list:
+			split_line = line.split(' ')
+			split_line=[s.strip() for s in split_line]
+			if 'TCP' == split_line[0]:
+				vip, port = split_line[1].split(':')
+				stats = split_line[2:]
+				for stat in stats:
+					if stat != '0':
+						rc = False
+						print 'Error - statistics for service %s:%s are not zero: %s' %(vip,port, ' '.join(stats))
+						break
+			if '->' == split_line[0]:
+				ip, port = split_line[1].split(':')
+				stats = split_line[2:]
+				for stat in stats:
+					if stat != '0':
+						rc = False
+						print 'Error - statistics for server %s:%s are not zero: %s' %(ip,port, ' '.join(stats))
+						break
+	else:
+		print 'Error - running "ipvsadm -Ln --stats" on host failed '
+	return rc
+
 
 '''
 	client_checker: Supports up to 100 steps (0-99)

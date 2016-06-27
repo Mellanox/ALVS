@@ -107,7 +107,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 			}
 		} /* all other cases - drop or sent to host - packet was already processed. */
 	} else {
-		alvs_write_log(LOG_ERR, "fail service classification lookup");
+		alvs_write_log(LOG_DEBUG, "fail service classification lookup");
 		alvs_update_incoming_port_stat_counter(ALVS_PACKET_FAIL_SERVICE_CLASS_LOOKUP);
 		nw_host_do_route(&frame, frame_base);
 	}
