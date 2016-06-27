@@ -469,7 +469,7 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
  * \brief       Get All active servers assigned to a service
  *
  * \param[in]   service          - reference to the service
- * \param[out]  server_info      - array of the servers (maximum 256)
+ * \param[out]  server_info      - array of the servers (maximum ALVS_SIZE_OF_SCHED_BUCKET=256)
  *
  * \return      ALVS_DB_OK - operation succeeded.
  *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
@@ -1447,6 +1447,12 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	default:
 		/* Can't reach here */
 		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	if (cp_service.server_count == ALVS_SIZE_OF_SCHED_BUCKET) {
+		write_log(LOG_NOTICE, "Can't add server. Service (ip=0x%08x, port=%d, protocol=%d) has maximum number of active servers.\n",
+		       cp_service.ip, cp_service.port, cp_service.protocol);
+		return ALVS_DB_FAILURE;
 	}
 
 	cp_server.ip = ip_vs_dest->addr;
