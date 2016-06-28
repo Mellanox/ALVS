@@ -25,7 +25,7 @@ from test_infra import *
 #===============================================================================
 
 #------------------------------------------------------------------------------ 
-def init_players(server_list, ezbox, client_list, vip_list, use_director = False):
+def init_players(server_list, ezbox, client_list, vip_list, use_director = False, use_4k_cpus=True):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	# init HTTP servers 
 	for s in server_list:
@@ -34,6 +34,7 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 
 	# start ALVS daemon and DP
 	ezbox.connect()
+	ezbox.modify_run_cpus(use_4k_cpus)
  	ezbox.reset_chip()
 	ezbox.config_vips(vip_list)
  	ezbox.terminate_cp_app()
@@ -96,10 +97,14 @@ def run_test(server_list, client_list):
 	
 	
 
-def collect_logs(server_list, ezbox, client_list):
+def collect_logs(server_list, ezbox, client_list, setup_num = None):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
- 	dir_name = 'test_logs_%s' %current_time
+	
+	dir_name = 'test_logs_'
+	if (setup_num != None):
+		dir_name += 'setup%s_' %setup_num
+ 	dir_name += current_time
  	cmd = "mkdir -p %s" %dir_name
 	os.system(cmd)
 	for c in client_list:

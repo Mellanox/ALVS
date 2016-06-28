@@ -8,3 +8,4 @@ bin/*
 */bin/*
 target/work/*
 .pydevproject
+test_logs_*
