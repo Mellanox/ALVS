@@ -68,14 +68,14 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 
 	/*perform lookup in scheduling info DB*/
 	rc = alvs_server_sched_lookup(service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value);
-	alvs_write_log(LOG_INFO, "service_idx = %d, sched_idx = %d, sport = %d, ", service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value, sport);
-	alvs_write_log(LOG_INFO, "sport = %d, hash_value = %d, input to hash = %d", sport, hash_value, (uint32_t)sport << (sizeof(sport) * 8));
+	alvs_write_log(LOG_DEBUG, "service_idx = %d, sched_idx = %d, sport = %d, ", service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value, sport);
+	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = %d, input to hash = %d", sport, hash_value, (uint32_t)sport << (sizeof(sport) * 8));
 	if (likely(rc == 0)) {
 		if (is_fallback) {
 			/* TODO add fallback implementation */
 		} else {
 			/*get server info*/
-			alvs_write_log(LOG_INFO, "service_idx = %d, server_idx = %d", service_index, cmem_alvs.sched_info_result.server_index);
+			alvs_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d", service_index, cmem_alvs.sched_info_result.server_index);
 			rc = alvs_server_info_lookup(cmem_alvs.sched_info_result.server_index);
 
 			if (likely(rc == 0)) {

@@ -109,7 +109,7 @@ enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 	/*perform lookup in service info DB*/
 	rc = alvs_service_info_lookup(service_index);
 
-	 alvs_write_log(LOG_INFO, "(slow path) (ip->dest = 0x%x tcp->dest = %d proto=%d) service_idx = %d",
+	 alvs_write_log(LOG_DEBUG, "(slow path) (ip->dest = 0x%x tcp->dest = %d proto=%d) service_idx = %d",
 			ip_hdr->daddr,
 			tcp_hdr->dest,
 			ip_hdr->protocol,

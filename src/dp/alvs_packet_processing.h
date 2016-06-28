@@ -62,7 +62,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	 struct  alvs_service_classification_result *service_class_res_ptr;
 	 struct  alvs_conn_classification_result *conn_class_res_ptr;
 
-	 alvs_write_log(LOG_INFO, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+	 alvs_write_log(LOG_DEBUG, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
 			cmem_alvs.conn_class_key.client_ip,
 			cmem_alvs.conn_class_key.client_port,
 			cmem_alvs.conn_class_key.virtual_ip,
