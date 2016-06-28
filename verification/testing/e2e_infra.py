@@ -34,15 +34,15 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 
 	# start ALVS daemon and DP
 	ezbox.connect()
+	ezbox.terminate_cp_app()
 	ezbox.modify_run_cpus(use_4k_cpus)
  	ezbox.reset_chip()
 	ezbox.config_vips(vip_list)
- 	ezbox.terminate_cp_app()
 	ezbox.flush_ipvs()
- 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
- 	ezbox.run_cp()
- 	ezbox.run_dp(args='--run_cpus 16-127')
- 	ezbox.wait_for_cp_app()
+	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+	ezbox.run_cp()
+	ezbox.run_dp(args='--run_cpus 16-127')
+	ezbox.wait_for_cp_app()
 
 	if use_director:
 		services = dict((vip, []) for vip in vip_list )
@@ -115,15 +115,20 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 '''
 	general_checker: This checker should run in all tests before clean_players
 '''
-def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True}):
+def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	rc = True
+	host_rc = True
+	syslog_rc = True
 	if 'host_stat_clean' in expected:
 		rc = host_stats_checker(ezbox)
 		if expected['host_stat_clean'] == False:
-			rc = (not rc)
-		
-	return rc
+			host_rc = (True if rc == False else False)
+	if 'syslog_clean' in expected:
+		rc = syslog_checker(ezbox)
+		if expected['syslog_clean'] == False:
+			syslog_rc = (True if rc == False else False)
+
+	return (host_rc and syslog_rc)
 
 '''
 	host_stats_checker: checkes all ipvs statistics on host are zero.
@@ -157,6 +162,31 @@ def host_stats_checker(ezbox):
 		print 'Error - running "ipvsadm -Ln --stats" on host failed '
 	return rc
 
+'''
+	syslog_checker: checkes syslog for errors
+'''
+def syslog_checker(ezbox):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	syslog_dict = {}
+	rc=[True for i in range(8)]
+	rc[0], syslog_dict['daemon error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<err"')
+	rc[1], syslog_dict['daemon crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<crit>"')
+	rc[2], syslog_dict['daemon debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<debug>"')
+	rc[3], syslog_dict['daemon emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<emerg>"')
+	rc[4], syslog_dict['dp error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<err"')
+	rc[5], syslog_dict['dp crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<crit>"')
+	rc[6], syslog_dict['dp debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<debug>"')
+	rc[7], syslog_dict['dp emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<emerg>"')
+	ret = False if False in rc else True
+	if ret:
+		for key, value in syslog_dict.items():
+			if len(value) > 0:
+				print '%s found in syslog:' %key
+				print value
+				ret = False
+	else:
+		print 'ERROR: problem reading syslog !'
+	return ret
 
 '''
 	client_checker: Supports up to 100 steps (0-99)
