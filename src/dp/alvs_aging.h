@@ -48,13 +48,13 @@ void alvs_handle_aging_event(uint32_t event_id)
 {
 	uint32_t conn_index;
 	uint32_t last_conn_index;
-	uint32_t iteration_num = event_id >> LOG2(ALVS_AGING_TIMER_EVENTS_PER_ITERATION);
+	uint32_t iteration_num = event_id / ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
 
-	event_id &= ALVS_AGING_TIMER_EVENT_ID_MASK;
-	last_conn_index = (event_id + 1) << LOG2(ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB);
+	event_id %= ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
+	last_conn_index = (event_id + 1) * ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB;
 
 	/*scan ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB entries in connection DB and check if their aging bit is set*/
-	for (conn_index = event_id << LOG2(ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB);
+	for (conn_index = event_id * ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB;
 		conn_index < last_conn_index;
 		conn_index++) {
 		if (alvs_conn_info_lookup(conn_index) == 0) {
@@ -94,24 +94,6 @@ void alvs_handle_aging_event(uint32_t event_id)
 				alvs_conn_delete(conn_index);
 				continue;
 			}
-#if 0 /*old implementation*/
-
-			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED &&
-				((iteration_num & LOG2(ALVS_TCP_EST_MULTIPLIER)) == 0)) {
-				if (cmem_alvs.conn_info_result.aging_bit == 0) {
-					alvs_conn_delete(conn_index);
-				}
-				return;
-			}
-
-			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_CLOSE_WAIT &&
-				((iteration_num & LOG2(ALVS_TCP_CLOSE_WAIT_MULTIPLIER)) == 0)) {
-				if (cmem_alvs.conn_info_result.aging_bit == 0) {
-					alvs_conn_delete(conn_index);
-				}
-				return;
-			}
-#endif
 		}
 	}
 }
