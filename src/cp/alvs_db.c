@@ -218,27 +218,40 @@ void alvs_db_destroy(void)
 	index_pool_destroy(&server_index_pool);
 }
 
+#define EXCLUDE_WEIGHT_ZERO 0x1
+#define EXCLUDE_INACTIVE    0x2
+
 /**************************************************************************//**
  * \brief       Get number of active servers assigned to a service
  *
  * \param[in]   service          - reference to the service
  * \param[out]  server_count     - number of active servers
+ * \param[in]   flags            - any combination of the following:
+ *                                    EXCLUDE_WEIGHT_ZERO
+ *                                    EXCLUDE_INACTIVE
  *
  * \return      ALVS_DB_OK - service exists (info is filled with service
  *                           information if it not NULL).
  *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
  */
 enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
-					     uint32_t *server_count)
+					     uint32_t *server_count,
+					     uint32_t flags)
 {
 	int rc;
 	sqlite3_stmt *statement;
 	char sql[256];
 
 	sprintf(sql, "SELECT COUNT (nps_index) AS server_count FROM servers "
-		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
-		"AND active=1;",
+		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d",
 		service->ip, service->port, service->protocol);
+	if (flags & EXCLUDE_WEIGHT_ZERO) {
+		strcat(sql, " AND weight>0");
+	}
+	if (flags & EXCLUDE_INACTIVE) {
+		strcat(sql, " AND active=1");
+	}
+	strcat(sql, ";");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
@@ -356,7 +369,7 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 	sqlite3_finalize(statement);
 
 	if (full_service) {
-		if (internal_db_get_server_count(service, &server_count) == ALVS_DB_INTERNAL_ERROR) {
+		if (internal_db_get_server_count(service, &server_count, EXCLUDE_INACTIVE) == ALVS_DB_INTERNAL_ERROR) {
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 		service->server_count = server_count;
@@ -470,21 +483,31 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
  *
  * \param[in]   service          - reference to the service
  * \param[out]  server_info      - array of the servers (maximum ALVS_SIZE_OF_SCHED_BUCKET=256)
+ * \param[in]   flags            - any combination of the following:
+ *                                    EXCLUDE_WEIGHT_ZERO
+ *                                    EXCLUDE_INACTIVE
  *
  * \return      ALVS_DB_OK - operation succeeded.
  *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
  */
 enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
-					    struct alvs_db_server *server_info)
+					    struct alvs_db_server *server_info,
+					    uint32_t flags)
 {
 	int rc;
 	sqlite3_stmt *statement;
 	char sql[256];
 
 	sprintf(sql, "SELECT * FROM servers "
-		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
-		"AND active=1;",
+		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d",
 		service->ip, service->port, service->protocol);
+	if (flags & EXCLUDE_WEIGHT_ZERO) {
+		strcat(sql, " AND weight>0");
+	}
+	if (flags & EXCLUDE_INACTIVE) {
+		strcat(sql, " AND active=1");
+	}
+	strcat(sql, ";");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
@@ -807,7 +830,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 	}
 
 	write_log(LOG_DEBUG, "Getting list of servers.\n");
-	if (internal_db_get_server_list(service, server_list) != ALVS_DB_OK) {
+	if (internal_db_get_server_list(service, server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
 		write_log(LOG_CRIT, "Can't retrieve server list - "
 			  "internal error.\n");
