@@ -110,7 +110,7 @@ enum infra_emem_spaces_params {
 
 /* Memory spaces */
 
-#define INFRA_X1_CLUSTER_CODE_SIZE          64
+#define INFRA_X1_CLUSTER_CODE_SIZE          128
 #define INFRA_ALL_CLUSTER_CODE_SIZE         512
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        4
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
