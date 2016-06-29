@@ -95,13 +95,6 @@ int main(int argc, char **argv)
 		rc = getopt_long(argc, argv, "", long_options, NULL);
 	} while (rc != -1);
 
-#ifndef EZ_SIM
-	/************************************************/
-	/* Run in the background as a daemon            */
-	/************************************************/
-	write_log(LOG_INFO, "Start daemon.\n");
-	daemon(0, 0);
-#endif
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT, signal_terminate_handler);
 	signal(SIGTERM, signal_terminate_handler);
@@ -128,7 +121,6 @@ int main(int argc, char **argv)
 		main_thread_graceful_stop();
 		exit(1);
 	}
-
 	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/

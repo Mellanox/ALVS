@@ -1,0 +1,25 @@
+# alvs
+
+##########################
+# ALVS network arguments #
+##########################
+
+# host network interface (include vlan, if needed)
+NETWORK_IF_NAME=eth0.1
+
+#####################
+# ALVS DP arguments #
+#####################
+
+# arguments for the dp application
+ALVS_DP_ARGS="--run_cpus 16-4095"
+
+# how many times to check for NPS liveness
+WAIT_FOR_NPS=500
+
+#####################
+# ALVS CP arguments #
+#####################
+
+# arguments for the cp application
+#ALVS_CP_ARGS=
