@@ -103,23 +103,14 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		printf("number of tags = %d\n", cmem_nw.mac_decode_result.number_of_tags);
 #endif
 
-		/*skip vlan tags and check next ethertype*/
-		next_et = frame_base + sizeof(struct ether_addr) + sizeof(struct ether_addr);
-
-		/*check if vlan and then skip*/
-		if (cmem_nw.mac_decode_result.number_of_tags) {
-			next_et += (4 << cmem_nw.mac_decode_result.number_of_tags);
-		}
-
-		/*check if ipv4 frame*/
-		if (*((uint16_t *)next_et) != ETHERTYPE_IP) {
+		if (!cmem_nw.mac_decode_result.last_tag_protocol_type.ipv4) {
 			printf("Not IPv4!\n");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
 
-		struct iphdr *ip_ptr = (struct iphdr *)(next_et + sizeof(uint16_t));
+		struct iphdr *ip_ptr = (struct iphdr *)(frame_base + cmem_nw.mac_decode_result.layer2_size);
 
 		/*skip L2 and validate IP is ok*/
 		ezdp_decode_ipv4((uint8_t *)ip_ptr, sizeof(struct iphdr),
@@ -134,13 +125,13 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			return;
 		}
 
-		if (ip_ptr->protocol != IPPROTO_TCP /*&& ip_ptr->protocol != IPPROTO_UDP*/) {
-			printf("Not TCP!\n");
-			nw_interface_inc_counter(NW_IF_STATS_NOT_UDP_OR_TCP);
+		/*in case of any error send frame to host*/
+		if (!cmem_nw.ipv4_decode_result.next_protocol.tcp) {
+			printf("!TCP - NOT supported\n");
+			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
-
 		/*check if need to check validity of TCP/UDP */
 
 		/*frame is OK, let's start alvs IF_STATS processing*/
