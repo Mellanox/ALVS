@@ -84,6 +84,11 @@ struct alvs_db_server {
 	struct ezdp_sum_addr     service_stats_base;
 };
 
+struct alvs_server_node {
+	struct alvs_db_server server;
+	struct alvs_server_node *next;
+};
+
 #define ALVS_DB_FILE_NAME "alvs.db"
 
 enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
@@ -479,24 +484,51 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
 }
 
 /**************************************************************************//**
+ * \brief       Free server cyclic list created by get_server_list().
+ *
+ * \param[in]   list   - reference to cyclist list
+ *
+ * \return      void
+ */
+void alvs_free_server_list(struct alvs_server_node *list)
+{
+	struct alvs_server_node *node, *temp;
+
+	if (list == NULL) {
+		return;
+	}
+
+	node = list;
+	do {
+		temp = node;
+		node = node->next;
+		free(temp);
+	} while (node != list);
+}
+
+/**************************************************************************//**
  * \brief       Get All active servers assigned to a service
  *
  * \param[in]   service          - reference to the service
- * \param[out]  server_info      - array of the servers (maximum ALVS_SIZE_OF_SCHED_BUCKET=256)
+ * \param[out]  server_info      - reference to head Cyclic list of the servers
  * \param[in]   flags            - any combination of the following:
  *                                    EXCLUDE_WEIGHT_ZERO
  *                                    EXCLUDE_INACTIVE
  *
- * \return      ALVS_DB_OK - operation succeeded.
+ * \return      ALVS_DB_OK - operation succeeded. In case of no servers
+ *                           server_info is updated to NULL.
+ *                           The returned list must be freed using
+ *                           the free_server_list function.
  *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
  */
 enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
-					    struct alvs_db_server *server_info,
+					    struct alvs_server_node **server_list,
 					    uint32_t flags)
 {
 	int rc;
 	sqlite3_stmt *statement;
 	char sql[256];
+	struct alvs_server_node *node;
 
 	sprintf(sql, "SELECT * FROM servers "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d",
@@ -520,20 +552,31 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_step(statement);
 
+	*server_list = NULL;
+
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
-		server_info->nps_index = sqlite3_column_int(statement, 5);
-		server_info->weight = sqlite3_column_int(statement, 6);
-		server_info->conn_flags = sqlite3_column_int(statement, 7);
-		server_info->server_flags = sqlite3_column_int(statement, 8);
-		server_info->routing_alg = (enum alvs_routing_type)sqlite3_column_int(statement, 9);
-		server_info->u_thresh = sqlite3_column_int(statement, 10);
-		server_info->l_thresh = sqlite3_column_int(statement, 11);
-		server_info->active = sqlite3_column_int(statement, 12);
-		server_info->server_stats_base.raw_data = sqlite3_column_int(statement, 13);
-		server_info->service_stats_base.raw_data = sqlite3_column_int(statement, 14);
+		node = (struct alvs_server_node *)malloc(sizeof(struct alvs_server_node));
+		node->server.nps_index = sqlite3_column_int(statement, 5);
+		node->server.weight = sqlite3_column_int(statement, 6);
+		node->server.conn_flags = sqlite3_column_int(statement, 7);
+		node->server.server_flags = sqlite3_column_int(statement, 8);
+		node->server.routing_alg = (enum alvs_routing_type)sqlite3_column_int(statement, 9);
+		node->server.u_thresh = sqlite3_column_int(statement, 10);
+		node->server.l_thresh = sqlite3_column_int(statement, 11);
+		node->server.active = sqlite3_column_int(statement, 12);
+		node->server.server_stats_base.raw_data = sqlite3_column_int(statement, 13);
+		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 14);
 
-		server_info++;
+		if (*server_list == NULL) {
+			node->next = node;
+			*server_list = node;
+		} else {
+			node->next = (*server_list)->next;
+			(*server_list)->next = node;
+			(*server_list) = node;
+		}
+
 		rc = sqlite3_step(statement);
 	}
 
@@ -542,11 +585,16 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 		write_log(LOG_CRIT, "SQL error: %s\n",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
+		alvs_free_server_list(*server_list);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
+
+	if (*server_list != NULL) {
+		(*server_list) = (*server_list)->next;
+	}
 
 	return ALVS_DB_OK;
 }
@@ -811,8 +859,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 {
 	uint32_t ind;
 	uint32_t weight = 0;
-	uint32_t server_index = 0;
-	struct alvs_db_server server_list[ALVS_SIZE_OF_SCHED_BUCKET];
+	struct alvs_server_node *server_list;
 	struct alvs_sched_info_key sched_info_key;
 	struct alvs_sched_info_result sched_info_result;
 
@@ -830,7 +877,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 	}
 
 	write_log(LOG_DEBUG, "Getting list of servers.\n");
-	if (internal_db_get_server_list(service, server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
+	if (internal_db_get_server_list(service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
 		write_log(LOG_CRIT, "Can't retrieve server list - "
 			  "internal error.\n");
@@ -842,8 +889,8 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 		write_log(LOG_DEBUG, "Algorithm is 'source hash'.\n");
 		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
-			sched_info_result.server_index = bswap_32(server_list[server_index].nps_index);
-			write_log(LOG_DEBUG, "(%d) %d --> %d\n", service->nps_index, ind, server_list[server_index].nps_index);
+			sched_info_result.server_index = bswap_32(server_list->server.nps_index);
+			write_log(LOG_DEBUG, "(%d) %d --> %d\n", service->nps_index, ind, server_list->server.nps_index);
 			if (infra_modify_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
 						sizeof(struct alvs_sched_info_key), &sched_info_result,
 						sizeof(struct alvs_sched_info_result)) == false) {
@@ -852,12 +899,9 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 			}
 
 			weight++;
-			if (weight >= server_list[server_index].weight) {
+			if (weight >= server_list->server.weight) {
 				weight = 0;
-				server_index++;
-				if (server_index == service->server_count) {
-					server_index = 0;
-				}
+				server_list = server_list->next;
 			}
 		}
 		break;
@@ -866,6 +910,8 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 		write_log(LOG_NOTICE, "Algorithm not supported.\n");
 		return ALVS_DB_NOT_SUPPORTED;
 	}
+
+	alvs_free_server_list(server_list);
 
 	return ALVS_DB_OK;
 }
