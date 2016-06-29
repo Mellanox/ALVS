@@ -199,6 +199,7 @@ def client_checker(log_dir, expected={}, step_count = 1):
 	
 	file_list = [log_dir+'/'+f for f in listdir(log_dir) if isfile(join(log_dir, f))]
 	all_responses = dict((i,{}) for i in range(step_count))
+	all_vip_responses = dict((i,{}) for i in range(step_count))
 	for filename in file_list:
 		if filename[-1].isdigit():
 			step = int(filename[-1])
@@ -208,13 +209,19 @@ def client_checker(log_dir, expected={}, step_count = 1):
 			step = 0
 		client_ip = filename[filename.find('client_')+7 : filename.find('.log')]
 		client_responses = {}
+		vip_responses = {}
 		logfile=open(filename, 'r')
 		for line in logfile:
 			if len(line) > 2 and line[0] != '#':
 				split_line = line.split(':')
-				key = split_line[1].strip()
-				client_responses[key] = client_responses.get(key, 0) + 1
-		all_responses[step][client_ip] = client_responses	 
+				server = split_line[1].strip()
+				vip = split_line[0].strip()
+				client_responses[server] = client_responses.get(server, 0) + 1
+				if vip not in vip_responses.keys():
+					vip_responses[vip] = {}
+				vip_responses[vip][server] = vip_responses[vip].get(server, 0) + 1
+		all_responses[step][client_ip] = client_responses
+		all_vip_responses[step][client_ip] = vip_responses
 	
 	for step, responses in all_responses.items():
 		if step_count > 1:
@@ -281,7 +288,41 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					if ip not in expected_servers:
 						print 'ERROR: client received response from unexpected server. server ip = %s , list of expected servers: %s' %(ip, expected_servers)
 						rc =  False
- 
+			
+			if 'check_distribution' in expected_dict:
+				servers = expected_dict['check_distribution'][0]
+				services = expected_dict['check_distribution'][1]
+				sd_percent = expected_dict['check_distribution'][2]
+				
+				vips_responses = all_vip_responses[step][client_ip]
+				
+				for vip,servers_responses_dict in vips_responses.items():
+					print "check distribution for service: %s" %vip
+					servers_per_service = [s for s in servers if s.vip == vip]
+					total_per_service = 0
+					for rip, count in servers_responses_dict.items():
+						total_per_service += count
+					
+					sd = total_per_service*sd_percent
+					print 'standard deviation is currently 2 percent =  %d' %(sd)
+					
+					totalWeights = 0.0
+					for s in servers_per_service:
+						#print 'weight of server %s = %d' %(s.ip,s.weight)
+						totalWeights += s.weight
+					#print 'total weights of all servers for current service = %d' %(totalWeights)
+					
+					for s in servers_per_service:
+						responses_num_without_sd = (total_per_service*s.weight)/totalWeights
+						if s.ip not in servers_responses_dict.keys():
+							actual_responses = 0
+						else:
+							actual_responses = servers_responses_dict[s.ip]
+						diff = abs(actual_responses - responses_num_without_sd)
+						if diff > sd:
+							print 'ERROR: client should received: %d responses from server: %s with standard deviation: %d. Actual number of responses was: %d' %(responses_num_without_sd,s.ip,sd,actual_responses)
+							rc =  False
+
 		if 'no_connection_closed' in expected_dict:
 			if expected_dict['no_connection_closed'] == True and connection_closed == True:
 				print 'ERROR: client received connection closed Error.'

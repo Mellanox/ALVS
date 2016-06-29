@@ -27,8 +27,8 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 1
-server_count = 1
+request_count = 100 
+server_count = 5
 client_count = 1
 service_count = 1
 
@@ -75,51 +75,37 @@ def user_init(setup_num):
 	return (server_list, ezbox, client_list, vip_list)
 
 def client_execution(client, vip):
-	connTimeout = 30
-	client.exec_params += " -i %s -r %d -t %d" %(vip, request_count,connTimeout)
+	client.exec_params += " -i %s -r %d" %(vip, request_count)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	process_list = []
-	port = '80'
 	vip = vip_list[0]
-	
-	ezbox.add_service(vip, port)
-	for server in server_list:
-		server.set_extra_large_index_html()
-		ezbox.add_server(server.vip, port, server.ip, port)
-	
+	port = '80'
 
+	ezbox.add_service(vip, port, sched_alg='rr' ,sched_alg_opt='')
+	for server in server_list:
+		ezbox.add_server(vip, port, server.ip, port)
+	
+	time.sleep(5) 
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
-	
-	time.sleep(7)
-	
-	print 'remove server[0]'
-	ezbox.delete_server(server_list[0].vip, port, server_list[0].ip, port)
-	
- 	for p in process_list:
- 		p.join()
- 	
+	for p in process_list:
+		p.join()
+		
 	print 'End user test'
 
-def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
+def run_user_checker(server_list, ezbox, client_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict = {}
-	expected_dict = {'client_response_count':request_count,
-						'client_count': len(client_list),
- 						'no_connection_closed': False,
- 						'no_404': True}
+	expected_dict= {'client_response_count':request_count,
+					'client_count': len(client_list), 
+					'no_404': True,
+					'server_count_per_client':server_count}
 	
-	if client_checker(log_dir, expected_dict, 1):
-		print 'Test passed !!!'
-		return 0
-	else:
-		print 'Test failed !!!'
-		return 1
+	return client_checker(log_dir, expected_dict)
 
 #===============================================================================
 # main function
@@ -134,17 +120,23 @@ def main():
 	setup_num  = int(sys.argv[1])
   	server_list, ezbox, client_list, vip_list = user_init(setup_num)
   
-	init_players(server_list, ezbox, client_list, vip_list)
+	init_players(server_list, ezbox, client_list, vip_list, True)
     	
 	run_user_test(server_list, ezbox, client_list, vip_list)
     	
 	log_dir = collect_logs(server_list, ezbox, client_list)
- 
-	clean_players(server_list, ezbox, client_list)
+
+	gen_rc = general_checker(server_list, ezbox, client_list,expected={'host_stat_clean':False})
 	
-	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	clean_players(server_list, ezbox, client_list, True)
 	
-	exit(exit_value)
-	
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
+ 	
+	if user_rc and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
 
 main()
