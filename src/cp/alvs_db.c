@@ -1363,7 +1363,8 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
 		write_log(LOG_NOTICE, "Can't delete service. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+
+			  cp_service.ip, cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1379,7 +1380,19 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	/* Delete service from internal DB */
+	/* Get servers to delete */
+	internal_db_get_server_count(&cp_service, &cp_service.server_count, EXCLUDE_INACTIVE);
+
+	/* Get list of servers to delete */
+	write_log(LOG_DEBUG, "Getting list of servers.\n");
+	if (internal_db_get_server_list(&cp_service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
+		/* Can't retrieve server list */
+		write_log(LOG_CRIT, "Can't retrieve server list - "
+			  "internal error.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Delete service from internal DB and deactivate servers */
 	if (internal_db_delete_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
 		write_log(LOG_CRIT, "Failed to delete service from internal DB.\n");
 		return ALVS_DB_INTERNAL_ERROR;
@@ -1409,24 +1422,10 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Deactivate all servers */
-	write_log(LOG_DEBUG, "Getting list of servers.\n");
-	if (internal_db_get_server_list(&cp_service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
-		/* Can't retrieve server list */
-		write_log(LOG_CRIT, "Can't retrieve server list - "
-			  "internal error.\n");
-		return ALVS_DB_INTERNAL_ERROR;
-	}
-
-	internal_db_get_server_count(&cp_service, &cp_service.server_count, EXCLUDE_INACTIVE);
 	for (ind = 0; ind < cp_service.server_count; ind++) {
-		/* Deactivate server in struct and in internal DB */
+		write_log(LOG_DEBUG, "Deactivating server with nps_index %d.\n", server_list->server.nps_index);
+		/* Deactivate server in struct */
 		server_list->server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
-		if (internal_db_deactivate_server(&cp_service, &server_list->server) == ALVS_DB_INTERNAL_ERROR) {
-			write_log(LOG_CRIT, "Failed to deactivate server in internal DB.\n");
-			alvs_free_server_list(server_list);
-			return ALVS_DB_INTERNAL_ERROR;
-		}
-
 		build_nps_server_info_key(&server_list->server, &nps_server_info_key);
 		build_nps_server_info_result(&server_list->server, &nps_server_info_result);
 		if (infra_modify_entry(STRUCT_ID_ALVS_SERVER_INFO,
