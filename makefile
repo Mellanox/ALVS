@@ -1,5 +1,17 @@
+ifdef DEBUG
+    SUFFIX := _debug
+else
+    SUFFIX :=
+endif
+
 # All Target
 all: dp cp
+
+install: all
+	tar -czvf alvs$(SUFFIX).tar.gz bin -C install .
+
+install-clean:
+	rm -f alvs$(SUFFIX).tar.gz
 
 dp:
 	mkdir -p build/src/dp
@@ -21,5 +33,5 @@ cp-clean:
 
 clean: dp-clean cp-clean
 	rm -rf bin	
-	rm -rf build	
+	rm -rf build
 	
