@@ -791,13 +791,12 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 
 	/* set single cycle and update mode */
 	hash_params.bSingleCycle = true;
-	hash_params.eCacheMode = EZapiStruct_CacheMode_FULL;
-
 	if (params->updated_from_dp == true) {
 		hash_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
 	} else {
 		hash_params.eUpdateMode = EZapiStruct_UpdateMode_CP;
+		hash_params.eCacheMode = EZapiStruct_CacheMode_FULL;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
 	}
 
