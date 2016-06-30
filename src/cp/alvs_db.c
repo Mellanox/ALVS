@@ -1353,6 +1353,7 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	struct alvs_service_classification_key nps_service_classification_key;
 	struct alvs_server_info_key nps_server_info_key;
 	struct alvs_server_info_result nps_server_info_result;
+	struct alvs_server_node *server_list;
 
 	/* Check if service exists in internal DB */
 	cp_service.ip = ip_vs_service->addr;
@@ -1408,7 +1409,6 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Deactivate all servers */
-	struct alvs_server_node *server_list;
 	write_log(LOG_DEBUG, "Getting list of servers.\n");
 	if (internal_db_get_server_list(&cp_service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
