@@ -313,7 +313,10 @@ void alvs_conn_delete(uint32_t conn_index)
 
 	ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
 
+#if 0
+	/*TODO -find a solution*/
 	alvs_update_connection_statistics(-1, -1, 1);
+#endif
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
