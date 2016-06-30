@@ -1347,9 +1347,12 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
  */
 enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 {
+	uint32_t ind;
 	struct alvs_db_service cp_service;
 	struct alvs_service_info_key nps_service_info_key;
 	struct alvs_service_classification_key nps_service_classification_key;
+	struct alvs_server_info_key nps_server_info_key;
+	struct alvs_server_info_result nps_server_info_result;
 
 	/* Check if service exists in internal DB */
 	cp_service.ip = ip_vs_service->addr;
@@ -1404,16 +1407,49 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	if (cp_service.server_count > 0) {
-		cp_service.server_count = 0;
-		/* Delete scheduling information from NPS search structure (if existed) */
-		write_log(LOG_DEBUG, "Deleting scheduling information.\n");
-		enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
+	/* Deactivate all servers */
+	struct alvs_server_node *server_list;
+	write_log(LOG_DEBUG, "Getting list of servers.\n");
+	if (internal_db_get_server_list(&cp_service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
+		/* Can't retrieve server list */
+		write_log(LOG_CRIT, "Can't retrieve server list - "
+			  "internal error.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
 
-		if (rc != ALVS_DB_OK) {
-			write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
-			return rc;
+	internal_db_get_server_count(&cp_service, &cp_service.server_count, EXCLUDE_INACTIVE);
+	for (ind = 0; ind < cp_service.server_count; ind++) {
+		/* Deactivate server in struct and in internal DB */
+		server_list->server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
+		if (internal_db_deactivate_server(&cp_service, &server_list->server) == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Failed to deactivate server in internal DB.\n");
+			alvs_free_server_list(server_list);
+			return ALVS_DB_INTERNAL_ERROR;
 		}
+
+		build_nps_server_info_key(&server_list->server, &nps_server_info_key);
+		build_nps_server_info_result(&server_list->server, &nps_server_info_result);
+		if (infra_modify_entry(STRUCT_ID_ALVS_SERVER_INFO,
+				       &nps_server_info_key,
+				       sizeof(struct alvs_server_info_key),
+				       &nps_server_info_result,
+				       sizeof(struct alvs_server_info_result)) == false) {
+			write_log(LOG_CRIT, "Failed to modify server info entry.\n");
+			alvs_free_server_list(server_list);
+			return ALVS_DB_NPS_ERROR;
+		}
+	}
+
+	alvs_free_server_list(server_list);
+	cp_service.server_count = 0;
+
+	/* Delete scheduling information from NPS search structure (if existed) */
+	write_log(LOG_DEBUG, "Deleting scheduling information.\n");
+	enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
+
+	if (rc != ALVS_DB_OK) {
+		write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
+		return rc;
 	}
 
 	write_log(LOG_INFO, "Service (ip=0x%08x, port=%d, protocol=%d) deleted successfully.\n",
