@@ -32,23 +32,23 @@ def end_log():
 	log_file.close()
 
 def myReadHtml(ip,source_ip,source_port):
-	log("connecting from source address = " + source_ip + ":" + str(source_port))
+	log("#connecting from source address = " + source_ip + ":" + str(source_port))
 	
 	source_ip_and_port = (source_ip,source_port)
 	
-	log("Createing HTTPConnection ...")
+	#log("#Createing HTTPConnection ...")
 	conn = httplib.HTTPConnection(host=ip,source_address=source_ip_and_port)
 	
-	log("Reuesting index.html ...")
+	#log("#Reuesting index.html ...")
 	conn.request("GET", "/index.html")
 
-	log("Getting response ...")
+	#log("#Getting response ...")
 	response = conn.getresponse()
 	
 	data = response.read()
-	log( ip + ":" + str(source_port) + " : " + data)
+	log( ip + " : " + data)
 	
-	log("Closing connection...")
+	#log("#Closing connection...")
 	conn.close()
 	
 	return data.strip()
@@ -98,14 +98,18 @@ if __name__ == "__main__":
 					(13,"192.168.0.53"),(17,"192.168.0.53"),
 					(15,"192.168.0.54"),(36,"192.168.0.54")]
 		
-	exitVal = 0
+	exitVal = 1
+	response_count = 0
 	for port_server in port_server_dict:
 		response_server = myReadHtml(options.http_ip, options.client_ip, port_server[0])
-		if response_server != port_server[1]:
+		if response_server == port_server[1]:
+			response_count += 1
+		else:
 			log("Error: Response server for service: " + options.http_ip + " and port: " + str(port_server[0]) + " should be : " + port_server[1] + " instead of: " + response_server)
-			exitVal = 1
-	if exitVal == 0:
+
+	if response_count == 10:
 		log("Test passed !!!")
+		exitVal = 0
 	else:
 		log("Test failed !!!")
 	end_log()

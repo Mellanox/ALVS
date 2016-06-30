@@ -329,7 +329,7 @@ def client_checker(log_dir, expected={}, step_count = 1):
 						total_per_service += count
 					
 					sd = total_per_service*sd_percent
-					print 'standard deviation is currently 2 percent =  %d' %(sd)
+					print 'standard deviation is currently %.02f percent' %(sd_percent)
 					
 					totalWeights = 0.0
 					for s in servers_per_service:

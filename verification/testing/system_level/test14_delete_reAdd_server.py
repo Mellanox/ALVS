@@ -135,14 +135,13 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 						'client_count': len(client_list), 
  						'no_404': True,
  						'no_connection_closed': True,
- 					 	'server_count_per_client':server_count/service_count}
+ 					 	'server_count_per_client':server_count/service_count,
+ 					 	'expected_servers': server_list,
+ 					 	'check_distribution':(server_list,vip_list,0.02)}
 	
 	if client_checker(log_dir, expected_dict, 2):
-		print 'Test passed !!!'
-		return 0
-	else:
-		print 'Test failed !!!'
-		return 1
+		return True
+	return False
 
 #===============================================================================
 # main function
@@ -155,19 +154,26 @@ def main():
 		exit(1)
 	
 	setup_num  = int(sys.argv[1])
-  	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-  
-	init_players(server_list, ezbox, client_list, vip_list)
-    	
+	
+	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+	
+	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
+	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-    	
+	
 	log_dir = collect_logs(server_list, ezbox, client_list)
- 
-	clean_players(server_list, ezbox, client_list)
+
+	gen_rc = general_checker(server_list, ezbox, client_list,expected={'syslog_clean':False})
 	
-	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	clean_players(server_list, ezbox, client_list, use_director=True)
 	
-	exit(exit_value)
-	
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir,vip_list)
+ 	
+	if user_rc and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
 
 main()

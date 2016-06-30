@@ -50,16 +50,16 @@ def user_init(setup_num):
 						  eth='ens6'))
 		index+=1
 	
- 	script_dirname = os.path.dirname(os.path.realpath(__file__))
+	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango",
- 						  exe_path    = script_dirname,
- 						  exe_script  = "test3_client_requests.py",
- 						  exec_params = ""))
+						  exe_path    = script_dirname,
+						  exe_script  = "test3_client_requests.py",
+						  exec_params = ""))
 		index+=1
 	
 
@@ -82,7 +82,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list, setup_num):
 	ezbox.add_service(vip, port)
 	for server in server_list:
 		ezbox.add_server(vip, port, server.ip, port)
-	
+	time.sleep(5)
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,setup_num)))
 	for p in process_list:
@@ -91,7 +91,8 @@ def run_user_test(server_list, ezbox, client_list, vip_list, setup_num):
 		p.join()
 	
 	print 'End user test'
-	pass
+	return process_list[0].exitcode
+
 #===============================================================================
 # main function
 #===============================================================================
@@ -102,19 +103,25 @@ def main():
 		print "Usage: client_requests.py <setup_num>"
 		exit(1)
 	
-	
 	setup_num  = int(sys.argv[1])
+	
 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-
-	init_players(server_list, ezbox, client_list, vip_list)
 	
-	run_user_test(server_list, ezbox, client_list, vip_list, setup_num)
+	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
 	
-	collect_logs(server_list, ezbox, client_list)
+	test_rc = run_user_test(server_list, ezbox, client_list, vip_list,setup_num)
 	
-	clean_players(server_list, ezbox, client_list)
+	log_dir = collect_logs(server_list, ezbox, client_list)
+
+	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-
-
-
+	clean_players(server_list, ezbox, client_list, use_director=True)
+	
+	if test_rc == 0 and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
+	
 main()

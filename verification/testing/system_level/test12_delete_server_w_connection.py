@@ -56,16 +56,16 @@ def user_init(setup_num):
 						  eth='ens6'))
 		index+=1
 	
- 	script_dirname = os.path.dirname(os.path.realpath(__file__))
+	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango",
- 						  exe_path    = script_dirname,
- 						  exe_script  = "basic_client_requests.py",
- 						  exec_params = ""))
+						  exe_path    = script_dirname,
+						  exe_script  = "basic_client_requests.py",
+						  exec_params = ""))
 		index+=1
 	
 
@@ -101,9 +101,9 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print 'remove server[0]'
 	ezbox.delete_server(server_list[0].vip, port, server_list[0].ip, port)
 	
- 	for p in process_list:
- 		p.join()
- 	
+	for p in process_list:
+		p.join()
+	
 	print 'End user test'
 
 def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
@@ -111,15 +111,10 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	expected_dict = {}
 	expected_dict = {'client_response_count':request_count,
 						'client_count': len(client_list),
- 						'no_connection_closed': False,
- 						'no_404': True}
+						'no_connection_closed': False,
+						'no_404': True}
 	
-	if client_checker(log_dir, expected_dict, 1):
-		print 'Test passed !!!'
-		return 0
-	else:
-		print 'Test failed !!!'
-		return 1
+	return client_checker(log_dir, expected_dict, 1)
 
 #===============================================================================
 # main function
@@ -132,19 +127,26 @@ def main():
 		exit(1)
 	
 	setup_num  = int(sys.argv[1])
-  	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-  
-	init_players(server_list, ezbox, client_list, vip_list)
-    	
+	
+	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+	
+	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
+	
 	run_user_test(server_list, ezbox, client_list, vip_list)
-    	
+	
 	log_dir = collect_logs(server_list, ezbox, client_list)
- 
-	clean_players(server_list, ezbox, client_list)
+
+	gen_rc = general_checker(server_list, ezbox, client_list,expected={'syslog_clean':False})
 	
-	exit_value = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	clean_players(server_list, ezbox, client_list, use_director=True)
 	
-	exit(exit_value)
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir,vip_list)
 	
+	if user_rc and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
 
 main()
