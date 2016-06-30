@@ -29,6 +29,7 @@ class HttpServer(player):
 		self.weight = weight
 	def init_server(self, index_str):
 		self.connect()
+		self.clear_arp_table()
 		self.start_http_daemon()
 		self.configure_loopback()
 		self.disable_arp()

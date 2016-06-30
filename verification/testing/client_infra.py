@@ -30,7 +30,10 @@ class HttpClient(player):
 		self.logfile_name = '/root/client_%s.log'%ip
 		self.exec_params += ' -l %s' %self.logfile_name
 		self.loglist = [self.logfile_name]
+
 	def init_client(self):
+		self.connect()
+		self.clear_arp_table()
 		pass
 
 	def clean_client(self):

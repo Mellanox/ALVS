@@ -601,6 +601,9 @@ class player(object):
 
 	def connect(self):
 		self.ssh.connect()
+
+	def clear_arp_table(self):
+		self.ssh.execute_command('ip neigh flush all')
 		
 	def logout(self):
 		self.ssh.logout()

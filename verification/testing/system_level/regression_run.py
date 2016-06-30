@@ -20,13 +20,14 @@ sys.path.insert(0,parentdir)
 sys.path.insert(0,currentdir) 
 
 #===============================================================================
-if len(sys.argv) != 3:
-	print "script expects exactly 2 input arguments"
-	print "Usage: regression_run.py <setup_num> <list_name>"
+if len(sys.argv) != 4:
+	print "script expects exactly 3 input arguments"
+	print "Usage: regression_run.py <setup_num> <list_name> <True/False (use 4 k CPUs)>"
 	exit(1)
 
 setup_num  = sys.argv[1]
 list_name = sys.argv[2]
+use_4_k_cpus = sys.argv[3].lower()
 
 try:
 	filename = currentdir+'/lists/'+list_name
@@ -40,7 +41,7 @@ for line in list_file:
 		test = line[:-1]
 		print 'running test %s ...' % test
 		logfilename = '%s_log' %test
-		cmd = currentdir + '/' + test + ' ' + setup_num + ' > ' +logfilename
+		cmd = currentdir + '/' + test + ' ' + setup_num + ' ' + use_4_k_cpus + ' > ' +logfilename
 		retval = os.system(cmd)
 		
 		if retval != 0 :

@@ -41,17 +41,27 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	ezbox.flush_ipvs()
 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 	ezbox.run_cp()
-	ezbox.run_dp(args='--run_cpus 16-127')
-	ezbox.wait_for_cp_app()
-
+	if use_4k_cpus:
+		ezbox.run_dp(args='--run_cpus 16-4095')
+		ezbox.wait_for_cp_app()
+		# wait for DP application:
+		time.sleep(20)
+	else:
+		ezbox.run_dp(args='--run_cpus 16-511')
+		ezbox.wait_for_cp_app()
+		# wait for DP application:
+		time.sleep(10)
+	
 	if use_director:
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_director(services)
-	ezbox.flush_ipvs()
-
-	
+		#wait for director
+		time.sleep(5)
+		#flush director configurations
+		ezbox.flush_ipvs()
+		time.sleep(1)
 	
 	# init client
 	for c in client_list:
@@ -190,8 +200,18 @@ def syslog_checker(ezbox):
 
 '''
 	client_checker: Supports up to 100 steps (0-99)
+	checkers:
+		client_count 	= how many clients were in the test
+		no_404			= no 404 error is expected (true/false)
+		server_count_per_client	= how many servers are expected per client
+		client_response_count	= how many responses are expected per client
+		expected_servers		= what servers are expected in test
+		expected_servers_per_client	= what servers are expected per client 
+		check_distribution			= check distribution is according to weights
+		no_connection_closed		= no connection closed is expected (true/false)
 '''
 def client_checker(log_dir, expected={}, step_count = 1):
+	
 	rc = True
 	
 	if len(expected) == 0:
@@ -266,7 +286,6 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					rc = False
 			if 'expected_servers' in expected_dict:
 				expected_servers_failed = False
-				expected_servers = expected_dict['expected_servers']
 				
 				expected_servers_list  = [s.ip for s in expected_dict['expected_servers']]
 								

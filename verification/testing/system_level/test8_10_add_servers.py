@@ -177,34 +177,24 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	print 'End user test step 1'
 
 
-
-#===============================================================================
-# Function: set_user_params
-#
-# Brief:
-#===============================================================================
-def run_user_checker(server_list, ezbox, client_list, log_dir):
+def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	expected_dict = {}
 	expected_dict[0] = {'client_response_count':g_request_count,
 					'client_count'            : len(client_list), 
-					'server_count_per_client' :  len(server_list) - g_servers_to_add,
+					'server_count_per_client' : len(server_list) - g_servers_to_add,
+					'no_connection_closed'    : True,
 					'no_404'                  : True}
 	expected_dict[1] = {'client_response_count':g_request_count,
 					'client_count'            : len(client_list),
-					'server_count_per_client' :  len(server_list),
+					'server_count_per_client' : len(server_list),
 					'expected_servers'        : server_list,
+					'check_distribution'      : (server_list,vip_list,0.02),
+					'no_connection_closed'    : True,
 					'no_404'                  : True}
 	
-	if client_checker(log_dir, expected_dict, 2):
-		print 'Test passed !!!'
-		exit(0)
-	else:
-		print 'Test failed !!!'
-		exit(1)
-
-
+	return client_checker(log_dir, expected_dict, 2)
 
 #===============================================================================
 # Function: set_user_params
@@ -282,13 +272,15 @@ def set_user_params(setup_num, test):
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
-	usage = "usage: %prog [-s, -t]"
+	usage = "usage: %prog [-s, -t, -u]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	parser.add_option("-s", "--setup_num", dest="setup_number",
 					  help="Setup number", type="int")
 	parser.add_option("-t", "--test_num", dest="test_num",
 					  help="Number of test to run", default=8, type="int")
+	parser.add_option("-u", "--use_4_k_cpus", dest="use_4_k_cpus",
+					  help="true = use 4k cpu. false = use 512 cpus", default='true', type="str")
 
 	(options, args) = parser.parse_args()
 
@@ -296,20 +288,31 @@ def main():
 		log('HTTP IP is not given')
 		exit(1)
 
+	use_4_k_cpus = True if options.use_4_k_cpus.lower() == 'true' else False
+
 
 	set_user_params(options.setup_number, options.test_num) 
 	
 	server_list, ezbox, client_list, vip_list = user_init(g_setup_num)
 
-	init_players(server_list, ezbox, client_list, vip_list)
+	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 	
 	run_user_test_step(server_list, ezbox, client_list, vip_list)
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
-	clean_players(server_list, ezbox, client_list)
+	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-	run_user_checker(server_list, ezbox, client_list, log_dir)
+	clean_players(server_list, ezbox, client_list, True)
+	
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	
+	if user_rc and gen_rc:
+		print 'Test passed !!!'
+		exit(0)
+	else:
+		print 'Test failed !!!'
+		exit(1)
 
 
 main()
