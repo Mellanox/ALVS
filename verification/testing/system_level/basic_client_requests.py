@@ -14,6 +14,8 @@ import os
 import sys
 import inspect
 from urllib2 import HTTPError, URLError
+import socket
+from socket import *
 
 log_file = None
 
@@ -38,6 +40,9 @@ def readHtml(ip,connTimeout):
 	except URLError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
 		return ( "Failed to reach a server. Reason: %s" %str(e.reason) )
+	except socket.error as e:
+		log('%s : %s' %(ip, '404 ERROR'))
+		return ( "Socket error: %s" %(e) )
 	except:
 		log("Unexpected error: %s" %sys.exc_info()[0])
 		return ( "Unexpected error: %s" %sys.exc_info()[0] )
@@ -55,13 +60,15 @@ def readHtml(ip,connTimeout):
 	else:
 		html = str(html)
 		log('%s : %s' %(ip, html))
-	return html
+		
+	# end sucessfuly without errors
+	return None
 
 ################################################################################
 # Function: Main
 ################################################################################
 if __name__ == "__main__":
-	usage = "usage: %prog [-i, -l, -r]"
+	usage = "usage: %prog [-i, -l, -r -t]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	parser.add_option("-i", "--http_ip", dest="http_ip",
@@ -82,7 +89,7 @@ if __name__ == "__main__":
 	
 	# read from HTML server x times (x = options.num_of_requests)
 	for i in range(options.num_of_requests):
-		readHtml(options.http_ip,options.timeout) 
+		readHtml(options.http_ip,options.timeout)
 
 	end_log()
 

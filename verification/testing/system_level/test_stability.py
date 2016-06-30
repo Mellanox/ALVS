@@ -30,7 +30,7 @@ from e2e_infra import *
 # general porpuse
 g_request_count  = 500
 g_next_vm_index  = 0
-g_loops          = 100
+g_loops          = 10
 
 # got from user
 g_setup_num      = None
@@ -93,7 +93,7 @@ def user_init(setup_num):
 	return (server_list, ezbox, client_list, vip_list)
 
 #===============================================================================
-# Function: set_user_params
+# Function: client_execution
 #
 # Brief:
 #===============================================================================
@@ -102,7 +102,7 @@ def client_execution(client, vip):
 	client.execute()
 
 #===============================================================================
-# Function: set_user_params
+# Function: run_user_test_step
 #
 # Brief:
 #===============================================================================
@@ -190,7 +190,7 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	#===========================================================================
 	# Remove service - back to starting stage 
 	#===========================================================================
-	ezbox.delete_service(vip, port)
+	ezbox.flush_ipvs()
 
 		
 	print "FUNCTION " + sys._getframe().f_code.co_name + " Ended"
@@ -198,7 +198,7 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	
 	
 #===============================================================================
-# Function: set_user_params
+# Function: run_user_checker
 #
 # Brief:
 #===============================================================================
@@ -265,7 +265,7 @@ def main():
 	
 	server_list, ezbox, client_list, vip_list = user_init(g_setup_num)
 
-	init_players(server_list, ezbox, client_list, vip_list, use_4k_cpus=False)
+	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
 	
 	for i in range(g_loops):
 		print "-----------------------------------------------"
@@ -286,9 +286,12 @@ def main():
 			print "======================="
 		else:
 			print "test %d pass." %i
-			
+		
+		# preparing next loop
+		for c in client_list:
+			c.remove_last_log()
 
-	clean_players(server_list, ezbox, client_list)
+	clean_players(server_list, ezbox, client_list, use_director=True)
 	
 	exit(global_test_rc)
 

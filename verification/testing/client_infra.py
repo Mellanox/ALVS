@@ -35,10 +35,17 @@ class HttpClient(player):
 
 	def clean_client(self):
 		pass
+	
 	def add_log(self, new_log):
 		self.logfile_name = new_log
 		self.exec_params = self.exec_params[:self.exec_params.find('-l')] +'-l %s' %self.logfile_name 
 		self.loglist.append(new_log)
+		
+	def remove_last_log(self):
+		self.loglist.pop()
+		self.logfile_name = self.loglist[-1]
+		self.exec_params = self.exec_params[:self.exec_params.find('-l')] +'-l %s' %self.logfile_name 
+		
 	def get_log(self, dest_dir):
 		for log in self.loglist:
 			cmd = "sshpass -p %s scp -o StrictHostKeyChecking=no %s@%s:%s %s"%(self.password, self.username, self.hostname, log, dest_dir)
