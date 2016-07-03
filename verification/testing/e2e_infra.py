@@ -125,7 +125,7 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 '''
 	general_checker: This checker should run in all tests before clean_players
 '''
-def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True}):
+def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True, 'no_debug':True}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	host_rc = True
 	syslog_rc = True
@@ -133,10 +133,15 @@ def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean'
 		rc = host_stats_checker(ezbox)
 		if expected['host_stat_clean'] == False:
 			host_rc = (True if rc == False else False)
+		else:
+			host_rc = rc
 	if 'syslog_clean' in expected:
-		rc = syslog_checker(ezbox)
+		no_debug = expected.get('no_debug', True)
+		rc = syslog_checker(ezbox, no_debug)
 		if expected['syslog_clean'] == False:
 			syslog_rc = (True if rc == False else False)
+		else:
+			syslog_rc = rc
 
 	return (host_rc and syslog_rc)
 
@@ -175,18 +180,19 @@ def host_stats_checker(ezbox):
 '''
 	syslog_checker: checkes syslog for errors
 '''
-def syslog_checker(ezbox):
+def syslog_checker(ezbox, no_debug):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	syslog_dict = {}
 	rc=[True for i in range(8)]
 	rc[0], syslog_dict['daemon error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<err"')
 	rc[1], syslog_dict['daemon crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<crit>"')
-	rc[2], syslog_dict['daemon debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<debug>"')
 	rc[3], syslog_dict['daemon emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<emerg>"')
 	rc[4], syslog_dict['dp error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<err"')
 	rc[5], syslog_dict['dp crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<crit>"')
-	rc[6], syslog_dict['dp debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<debug>"')
 	rc[7], syslog_dict['dp emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<emerg>"')
+	if no_debug:
+		rc[2], syslog_dict['daemon debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<debug>"')
+		rc[6], syslog_dict['dp debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<debug>"')
 	ret = False if False in rc else True
 	if ret:
 		for key, value in syslog_dict.items():
@@ -196,6 +202,7 @@ def syslog_checker(ezbox):
 				ret = False
 	else:
 		print 'ERROR: problem reading syslog !'
+	
 	return ret
 
 '''
@@ -286,11 +293,10 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					rc = False
 			if 'expected_servers' in expected_dict:
 				expected_servers_failed = False
-				
 				expected_servers_list  = [s.ip for s in expected_dict['expected_servers']]
 								
 				for ip, count in client_responses.items():
-					if ip not in expected_servers_list:
+					if ip not in expected_servers_list and ip not in ['Connection closed ERROR','404 ERROR']:
 						print 'ERROR: client received response from unexpected server. server ip = %s ' %(ip)
 						expected_servers_failed = True
 						rc = False

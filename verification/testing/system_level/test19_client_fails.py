@@ -108,34 +108,29 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 
 def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict = {}
-	expected_dict[0] = {'client_response_count':request_count,
+	expected_dict = {'client_response_count':request_count,
 						'client_count': len(client_list),
  						'no_connection_closed': False,
  						'no_404': True}
 	
-	if client_checker(log_dir, expected_dict, 1):
-		print 'Test passed !!!'
-		return 0
-	else:
-		print 'Test failed !!!'
-		return 1
+	return client_checker(log_dir, expected_dict, 1)
 
 #===============================================================================
 # main function
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 2:
-		print "script expects exactly 1 input argument"
-		print "Usage: client_requests.py <setup_num>"
+	if len(sys.argv) != 3:
+		print "script expects exactly 2 input arguments"
+		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
 		exit(1)
 	
 	setup_num  = int(sys.argv[1])
-	
+	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
+
 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-	
-	init_players(server_list, ezbox, client_list, vip_list, True)
+
+	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 	
 	run_user_test(server_list, ezbox, client_list, vip_list)
 	
