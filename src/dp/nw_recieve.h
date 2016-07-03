@@ -72,7 +72,6 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		printf("Frame arrived from NW.\n");
 #endif
 
-		uint8_t *next_et;
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,
 					      NULL, 0);
