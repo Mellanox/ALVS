@@ -44,7 +44,8 @@ def readHtml(ip,connTimeout):
 		log('%s : %s' %(ip, '404 ERROR'))
 		return ( "Socket error: %s" %(e) )
 	except:
-		log("Unexpected error: %s" %sys.exc_info()[0])
+		log('%s : %s' %(ip, '404 ERROR'))
+		log("#Unexpected error: %s" %sys.exc_info()[0])
 		return ( "Unexpected error: %s" %sys.exc_info()[0] )
 		
 	   
