@@ -56,16 +56,16 @@ def user_init(setup_num):
 						  eth='ens6'))
 		index+=1
 	
- 	script_dirname = os.path.dirname(os.path.realpath(__file__))
+	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango",
- 						  exe_path    = script_dirname,
- 						  exe_script  = "basic_client_requests.py",
- 						  exec_params = ""))
+						  exe_path    = script_dirname,
+						  exe_script  = "basic_client_requests.py",
+						  exec_params = ""))
 		index+=1
 	
 
@@ -103,6 +103,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 	expected_dict= {'client_response_count':request_count,
 					'client_count': len(client_list), 
 					'no_404': True,
+					'no_connection_closed': True,
 					'server_count_per_client':server_count}
 	
 	return client_checker(log_dir, expected_dict)
@@ -118,20 +119,21 @@ def main():
 		exit(1)
 	
 	setup_num  = int(sys.argv[1])
-  	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-  
-	init_players(server_list, ezbox, client_list, vip_list, True)
-    	
+	
+	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+
+	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
+
 	run_user_test(server_list, ezbox, client_list, vip_list)
-    	
+
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
 	gen_rc = general_checker(server_list, ezbox, client_list,expected={'host_stat_clean':False})
 	
-	clean_players(server_list, ezbox, client_list, True)
+	clean_players(server_list, ezbox, client_list, use_director=True)
 	
 	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
- 	
+	
 	if user_rc and gen_rc:
 		print 'Test passed !!!'
 		exit(0)
