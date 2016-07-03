@@ -105,7 +105,7 @@ function run_coverity_cp {
 
 function run_coverity_dp {
 
-	ALVS_ACCEPTED_FP_DP=1
+	ALVS_ACCEPTED_FP_DP=0
 
 	echo "Creating $ALVS_COVERITY_RES_DIR_DP for DP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_DP &>> $LOG_FILE
