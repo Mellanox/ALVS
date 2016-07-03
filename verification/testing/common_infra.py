@@ -456,24 +456,31 @@ class ezbox_host:
 
 	def add_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -A -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
+		time.sleep(0.5)
 
 	def modify_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -E -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
+		time.sleep(0.5)
 
 	def delete_service(self, vip, port):
 		self.execute_command_on_host("ipvsadm -D -t %s:%s"%(vip,port))
+		time.sleep(0.5)
 
 	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
 		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
+		time.sleep(0.5)
 
 	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
 		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
+		time.sleep(0.5)
 
 	def delete_server(self, vip, service_port, server_ip, server_port):
 		self.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s"%(vip, service_port, server_ip, server_port))
+		time.sleep(0.5)
 
 	def flush_ipvs(self):
 		self.execute_command_on_host("ipvsadm -C")
+		time.sleep(0.5)
 
 	def clean_arp_table(self):
 		logging.log(logging.INFO, "clean arp table")
