@@ -174,7 +174,10 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
 	/*update scheduled connections and active connections*/
-	alvs_update_connection_statistics(1, 1, 0);
+	if (reset == 1)
+		alvs_update_connection_statistics(1, 0, 1);
+	else
+		alvs_update_connection_statistics(1, 1, 0);
 
 	alvs_unlock_connection(hash_value);
 
@@ -255,6 +258,9 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset_bit)
 		return rc;
 	}
 
+	if (cmem_alvs.conn_info_result.aging_bit == 1)
+		alvs_update_connection_statistics(0, -1, 1);
+
 	/* need to modify connection entry - change state for close and set aging bit on. */
 	cmem_alvs.conn_info_result.aging_bit = 0;
 	cmem_alvs.conn_info_result.delete_bit = 1;
@@ -311,12 +317,11 @@ void alvs_conn_delete(uint32_t conn_index)
 		return;
 	}
 
+	/*TODO -find a solution*/
+	alvs_update_connection_statistics(-1, 0, -1);
+
 	ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
 
-#if 0
-	/*TODO -find a solution*/
-	alvs_update_connection_statistics(-1, -1, 1);
-#endif
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
@@ -357,6 +362,8 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.table_work_area,
 			sizeof(cmem_wa.alvs_wa.table_work_area));
+
+	alvs_update_connection_statistics(0, 1, -1);
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
@@ -399,6 +406,7 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 			cmem_wa.alvs_wa.table_work_area,
 			sizeof(cmem_wa.alvs_wa.table_work_area));
 
+	alvs_update_connection_statistics(0, -1, 1);
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
 	return rc;
