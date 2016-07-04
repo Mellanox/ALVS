@@ -358,6 +358,93 @@ void parse_arguments(int argc, char **argv, uint32_t *num_cpus_set_p)
 	}
 }
 
+
+/******************************************************************************
+* \brief                Print info of running application:
+*                       Num of CPUs
+*                       Version
+*                       Memory
+*
+* \return               void
+*/
+void alvs_print_info(void)
+{
+	struct ezdp_mem_section_info mem_info;
+
+	alvs_write_log(LOG_INFO, "starting ALVS DP application.");
+	alvs_write_log(LOG_INFO, "num CPUs:            %d", num_cpus);
+	alvs_write_log(LOG_INFO, "Application version: %s.", version);
+	alvs_write_log(LOG_INFO, "ALVS MEMORY:");
+
+	/* print memory section info */
+	ezdp_get_mem_section_info(&mem_info, 0);
+
+	alvs_write_log(LOG_INFO, "  private_cmem size is             %d bytes\n",
+		       mem_info.private_cmem_size);
+	alvs_write_log(LOG_INFO, "  shared_cmem size is              %d bytes\n",
+		       mem_info.shared_cmem_size);
+
+	if (mem_info.cache_size > 0) {
+		alvs_write_log(LOG_INFO, "  cache size is                    %d bytes\n",
+			       mem_info.cache_size);
+	}
+	if (mem_info.imem_private_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_private data size is        %d bytes\n",
+			       mem_info.imem_private_data_size);
+	}
+	if (mem_info.imem_half_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_half_cluster code size is   %d bytes\n",
+			       mem_info.imem_half_cluster_code_size);
+	}
+	if (mem_info.imem_half_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_half_cluster data size is   %d bytes\n",
+			       mem_info.imem_half_cluster_data_size);
+	}
+	if (mem_info.imem_1_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_1_cluster code size is      %d bytes\n",
+			       mem_info.imem_1_cluster_code_size);
+	}
+	if (mem_info.imem_1_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_1_cluster data size is      %d bytes\n",
+			       mem_info.imem_1_cluster_data_size);
+	}
+	if (mem_info.imem_2_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_2_cluster code size is      %d bytes\n",
+			       mem_info.imem_2_cluster_code_size);
+	}
+	if (mem_info.imem_2_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_2_cluster data size is      %d bytes\n",
+			       mem_info.imem_2_cluster_data_size);
+	}
+	if (mem_info.imem_4_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_4_cluster code size is      %d bytes\n",
+			       mem_info.imem_4_cluster_code_size);
+	}
+	if (mem_info.imem_4_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_4_cluster data size is      %d bytes\n",
+			       mem_info.imem_4_cluster_data_size);
+	}
+	if (mem_info.imem_16_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_16_cluster code size is     %d bytes\n",
+			       mem_info.imem_16_cluster_code_size);
+	}
+	if (mem_info.imem_16_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_16_cluster data size is     %d bytes\n",
+			       mem_info.imem_16_cluster_data_size);
+	}
+	if (mem_info.imem_all_cluster_code_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_all_cluster code size is    %d bytes\n",
+			       mem_info.imem_all_cluster_code_size);
+	}
+	if (mem_info.imem_all_cluster_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  imem_all_cluster data size is    %d bytes\n",
+			       mem_info.imem_all_cluster_data_size);
+	}
+	if (mem_info.emem_data_size > 0) {
+		alvs_write_log(LOG_INFO, "  emem data size is                %d bytes\n",
+			       mem_info.emem_data_size);
+	}
+}
 /******************************************************************************
 * \brief                Main packet processing function
 *
@@ -369,7 +456,10 @@ void packet_processing(void)
 {
 	int32_t port_id;
 
-	printf("starting ALVS DP application....\n");
+	if (ezdp_get_cpu_id() == run_cpus[0]) {
+		alvs_print_info();
+	}
+
 
 	while (true) {
 		/* === Receive Frame === */
@@ -413,8 +503,6 @@ int main(int argc, char **argv)
 
 	is_child_process = false;
 
-	printf("Application version: %s\n", version);
-
 	/* Parse the run-time arguments */
 	parse_arguments(argc, argv, &num_cpus_set);
 
@@ -424,12 +512,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	/* get memory section info */
 	ezdp_get_mem_section_info(&mem_info, 0);
-
-	/* print memory section info */
-	printf("%s\n", ezdp_mem_section_info_str(&mem_info));
-
 	/* validate that at least 256 bytes thread cache is enabled*/
 	if (mem_info.cache_size < 256) {
 		printf("Too many cmem variables. Thread cache size is zero. private_cmem_size is %d shared_cmem_size is %d. Exiting...\n",
@@ -447,12 +530,15 @@ int main(int argc, char **argv)
 		/* run single process on processor 0*/
 		num_cpus = 1;
 
+		run_cpus[0] = 16;
+
 		/* init the application */
-		result = ezdp_init_local(0, 16, init_memory, 0, 0);
+		result = ezdp_init_local(0, run_cpus[0], init_memory, 0, 0);
 		if (result != 0) {
 			printf("ezdp_init_local failed %d %s. Exiting...\n", result, ezdp_get_err_msg());
 			exit(1);
 		}
+
 		result = ezframe_init_local();
 		if (result != 0) {
 			printf("ezframe_init_local failed. %d; %s. Exiting...\n", result, ezdp_get_err_msg());
@@ -460,7 +546,7 @@ int main(int argc, char **argv)
 		}
 
 		/* call to packet processing function */
-		ezdp_run(&packet_processing, 0);
+		ezdp_run(&packet_processing, num_cpus);
 
 		return 0;
 	}
@@ -479,7 +565,7 @@ int main(int argc, char **argv)
 		}
 
 		/* call to packet processing function */
-		ezdp_run(&packet_processing, 0);
+		ezdp_run(&packet_processing, num_cpus);
 
 		return 0;
 	}
@@ -508,7 +594,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			/* call to packet processing function */
-			ezdp_run(&packet_processing, 0);
+			ezdp_run(&packet_processing, num_cpus);
 
 			return 0;
 		}
