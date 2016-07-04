@@ -198,18 +198,21 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 2:
-		print "script expects exactly 1 input argument"
-		print "Usage: client_requests.py <setup_num>"
+	if len(sys.argv) != 3:
+		print "script expects exactly 2 input arguments"
+		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
 		exit(1)
-	print datetime.datetime.now()
-	test_res = 0
+
 	setup_num  = int(sys.argv[1])
+	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
+	test_res = 0
+	
+	print datetime.datetime.now()
 	
 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-	
-	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
-	
+
+	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
+
 	for server in server_list:
 		server.set_large_index_html()
 	

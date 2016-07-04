@@ -36,19 +36,15 @@ def myReadHtml(ip,source_ip,source_port):
 	
 	source_ip_and_port = (source_ip,source_port)
 	
-	#log("#Createing HTTPConnection ...")
 	conn = httplib.HTTPConnection(host=ip,source_address=source_ip_and_port)
 	
-	#log("#Reuesting index.html ...")
 	conn.request("GET", "/index.html")
 
-	#log("#Getting response ...")
 	response = conn.getresponse()
 	
 	data = response.read()
 	log( ip + " : " + data)
 	
-	#log("#Closing connection...")
 	conn.close()
 	
 	return data.strip()

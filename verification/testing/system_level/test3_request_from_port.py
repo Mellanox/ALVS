@@ -98,16 +98,17 @@ def run_user_test(server_list, ezbox, client_list, vip_list, setup_num):
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 2:
-		print "script expects exactly 1 input argument"
-		print "Usage: client_requests.py <setup_num>"
+	if len(sys.argv) != 3:
+		print "script expects exactly 2 input arguments"
+		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
 		exit(1)
-	
+
 	setup_num  = int(sys.argv[1])
-	
+	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
+
 	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-	
-	init_players(server_list, ezbox, client_list, vip_list, use_director=True, use_4k_cpus=False)
+
+	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 	
 	test_rc = run_user_test(server_list, ezbox, client_list, vip_list,setup_num)
 	
