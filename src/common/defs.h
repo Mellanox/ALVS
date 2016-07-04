@@ -102,7 +102,8 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_SEND_FRAME_FAIL              = 17,
 	ALVS_ERROR_CONN_MARK_TO_DELETE          = 18,
 	ALVS_ERROR_SERVICE_CLASS_LOOKUP         = 19,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 20
+	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 21
 };
 
 /* Posted Statistics */

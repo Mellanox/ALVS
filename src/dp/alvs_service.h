@@ -117,13 +117,10 @@ enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 	if (likely(rc == 0)) {
 		if (ip_hdr->protocol == IPPROTO_TCP) {
 			return alvs_tcp_schedule_new_connection(frame_base, service_index, ip_hdr, tcp_hdr);
-#if 0
-		} else if (ip_hdr->protocol == IPPROTO_UDP) {
-			printf("recieve UDP packet - TODO implementation!\n");
-		} else {
-			printf("error - unknown protocol!\n");
-#endif
 		}
+		/*drop frame - UDP is not supported*/
+		alvs_update_discard_statistics(ALVS_ERROR_UNSUPPORTED_PROTOCOL);
+		alvs_discard_frame();
 	} else {
 		/*drop frame*/
 		alvs_update_discard_statistics(ALVS_ERROR_SERVICE_INFO_LOOKUP);
