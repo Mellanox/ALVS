@@ -42,6 +42,10 @@
  *
  */
 
+#ifdef NDEBUG
 const char *version = "$Revision: 22.0100.0000 $";
+#else
+const char *version = "$Revision: 22.0100.0000-debug $";
+#endif
 
 #endif /* SRC_COMMON_VERSION_H_ */
