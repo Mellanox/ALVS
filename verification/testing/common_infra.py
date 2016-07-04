@@ -264,20 +264,23 @@ class ezbox_host:
 		return self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_CONN_CLASSIFICATION, channel_id = 0).result['num_entries']['number_of_entries']
 	
 	def get_service(self, vip, port, protocol):
-		class_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, 0, {'key' : "%08x%04x%04x" % (vip, port, protocol)}).result["params"]["entry"]["result"]).split(' ')
-		if (int(class_res[0], 16) >> 4) != 3:
+		class_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, 0, {'key' : "%08x%04x%04x" % (vip, port, protocol)})
+		warning_code=class_res.result.get('warning_code',None)
+		if warning_code != None :
 			return None
-		info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_INFO, 0, {'key' : class_res[2]}).result["params"]["entry"]["result"]).split(' ')
-		if (int(info_res[0], 16) >> 4) != 3:
-			print 'This should not happen!'
+		class_res = class_res.result["params"]["entry"]["result"].split(' ')
+		info_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVICE_INFO, 0, {'key' : class_res[1]})
+		warning_code=info_res.result.get('warning_code',None)
+		if warning_code != None :
 			return None
+		info_res = info_res.result["params"]["entry"]["result"].split(' ')
 
 		sched_info = []
 		for ind in range(256):
-			sched_index = int(class_res[2], 16) * 256 + ind
+			sched_index = int(class_res[1], 16) * 256 + ind
 			sched_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SCHED_INFO, 0, {'key' : "%04x" % sched_index}).result["params"]["entry"]["result"]).split(' ')
 			if (int(sched_res[0], 16) >> 4) == 3:
-				sched_info[ind] = int(''.join(sched_res[4:8]), 16)
+				sched_info.append(int(''.join(sched_res[4:8]), 16))
 
 		service = {'sched_alg' : int(info_res[0], 16) & 0xf,
 				   'server_count' : int(''.join(info_res[2:4]), 16),
