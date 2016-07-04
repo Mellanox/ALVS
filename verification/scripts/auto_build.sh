@@ -28,16 +28,22 @@ EOF
    exit 1
 }
 
+
+declare -i num_commits
+declare -i base_commit_num
+
+
 #######################################################################################
 
 function parse_cmd()
 {
     # check number of arguments
-    test $# -ne 2 && usage
+    test $# -ne 3 && usage
     
     # move arguments to variables
     git_project=$1
     git_branch=$2
+    base_commit_num=$3
 
     # print arguments
     echo ""    
@@ -360,6 +366,7 @@ function set_version_dir_variable()
 	cd $git_dir
 	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2)
 	num_commits=$(git rev-list HEAD | wc -l)
+	num_commits=$num_commits-$base_commit_num
 	version="${fixed_version}.${num_commits}"
 	version_dir=${branch_dir}"archive/"${version}/
 	echo "version		= $version"
