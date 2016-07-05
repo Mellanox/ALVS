@@ -57,19 +57,38 @@ static __always_inline
 bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport, uint32_t is_fallback)
 {
 	uint32_t rc;
+	uint32_t sip_hash;
+	uint32_t port_hash;
+	uint32_t final_hash;
 
-	uint32_t hash_value = ezdp_hash(sip,
-					sport << (sizeof(sport) * 8),
-					LOG2(ALVS_SIZE_OF_SCHED_BUCKET),
-					sizeof(sip) + sizeof(sport),
-					0,
-					EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
-					EZDP_HASH_PERMUTATION_0);
+	sip_hash = ezdp_hash(sip,
+			     0,
+			     32,
+			     sizeof(sip),
+			     0,
+			     EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
+			     EZDP_HASH_PERMUTATION_0);
+
+	port_hash = ezdp_hash(sport,
+			      0,
+			      32,
+			      sizeof(sport),
+			      2,
+			      EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
+			      EZDP_HASH_PERMUTATION_1);
+
+	final_hash = ezdp_hash(sip_hash,
+			       port_hash,
+			       LOG2(ALVS_SIZE_OF_SCHED_BUCKET),
+			       sizeof(sip_hash) + sizeof(port_hash),
+			       0,
+			       EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
+			       EZDP_HASH_PERMUTATION_3);
 
 	/*perform lookup in scheduling info DB*/
-	rc = alvs_server_sched_lookup(service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value);
-	alvs_write_log(LOG_DEBUG, "service_idx = %d, sched_idx = %d, sport = %d, ", service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + hash_value, sport);
-	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = %d, input to hash = %d", sport, hash_value, (uint32_t)sport << (sizeof(sport) * 8));
+	rc = alvs_server_sched_lookup(service_index * ALVS_SIZE_OF_SCHED_BUCKET + final_hash);
+	alvs_write_log(LOG_DEBUG, "service_idx = %d, sched_idx = %d, sport = %d, ", service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + final_hash, sport);
+	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = %d, input to hash = %d", sport, final_hash, (uint32_t)sport << (sizeof(sport) * 8));
 	if (likely(rc == 0)) {
 		if (is_fallback) {
 			/* TODO add fallback implementation */
