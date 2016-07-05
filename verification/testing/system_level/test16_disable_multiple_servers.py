@@ -116,6 +116,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	expected_servers = {}
 	for index, client in enumerate(client_list):
 		client_expected_servers=[s.ip for s in server_list if s.vip == vip_list[index%service_count]]
+		client_expected_servers.append('Connection closed ERROR')
 		expected_servers[client.ip] = client_expected_servers
 	expected_dict = {'client_response_count':request_count,
 						'client_count': len(client_list),

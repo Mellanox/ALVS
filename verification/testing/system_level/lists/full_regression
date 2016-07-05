@@ -8,3 +8,15 @@ test7_change_sh_alg.py
 test8_add_servers.py
 test9_add_servers.py
 test10_add_servers.py
+test11_delete_reAdd_server.py
+#test12_delete_server_w_connection.py
+test14_delete_reAdd_server.py
+test15_disable_server.py
+test16_disable_multiple_servers.py
+test17_replace_servers.py
+test22_add_del_add_service.py
+#test23_add_del_add_services.py
+test24_different_weight.py
+test26_change_weight.py
+test28_change_weight_down.py
+test29_change_weight_to_zero.py

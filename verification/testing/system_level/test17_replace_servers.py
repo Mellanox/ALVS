@@ -267,7 +267,7 @@ def main():
 
 	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 
-	run_user_test(server_list, ezbox, client_list, vip_list)
+	run_user_test_step(server_list, ezbox, client_list, vip_list)
 
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
@@ -275,7 +275,7 @@ def main():
 
 	clean_players(server_list, ezbox, client_list, True)
 
-	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
+	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
 
 	if client_rc and gen_rc:
 		print 'Test passed !!!'
