@@ -106,7 +106,8 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_CONN_MARK_TO_DELETE          = 18,
 	ALVS_ERROR_SERVICE_CLASS_LOOKUP         = 19,
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30	/* this value must be even */
+	ALVS_ERROR_NO_ACTIVE_SERVERS            = 21,
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 22
 };
 
 /* Posted Statistics */

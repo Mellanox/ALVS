@@ -1920,15 +1920,6 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 
 	if (cp_server.weight > 0) {
 		cp_service.server_count--;
-
-		/* Recalculate scheduling information */
-		rc = alvs_db_recalculate_scheduling_info(&cp_service);
-		if (rc != ALVS_DB_OK) {
-			write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
-			return rc;
-		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
-
 		build_nps_service_info_key(&cp_service, &nps_service_info_key);
 		build_nps_service_info_result(&cp_service, &nps_service_info_result);
 		if (infra_modify_entry(STRUCT_ID_ALVS_SERVICE_INFO,
@@ -1939,6 +1930,14 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 			write_log(LOG_CRIT, "Failed to change server count in service info entry.\n");
 			return ALVS_DB_NPS_ERROR;
 		}
+
+		/* Recalculate scheduling information */
+		rc = alvs_db_recalculate_scheduling_info(&cp_service);
+		if (rc != ALVS_DB_OK) {
+			write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
+			return rc;
+		}
+		write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
 	}
 
 	build_nps_server_info_key(&cp_server, &nps_server_info_key);

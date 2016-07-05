@@ -134,6 +134,12 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 static __always_inline
 bool alvs_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint16_t sport)
 {
+	if (unlikely(cmem_alvs.service_info_result.server_count == 0)) {
+		/*drop frame*/
+		alvs_update_discard_statistics(ALVS_ERROR_NO_ACTIVE_SERVERS);
+		alvs_discard_frame();
+		return false;
+	}
 	if (unlikely(alvs_sh_get_server_info(service_index,
 					     sip,
 					     cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_PORT ? sport : 0,
