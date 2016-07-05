@@ -1955,6 +1955,140 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	return ALVS_DB_OK;
 }
 
+
+
+
+/* TODO - This structure is used only in the workaround described in alvs_db_clear().
+ *        Once CP will fix the delete_all_entries bug this structure should be removed
+ */
+struct alvs_service_node {
+	struct alvs_db_service service;
+	struct alvs_service_node *next;
+};
+
+
+/* TODO - This function is used only in the workaround described in alvs_db_clear().
+ *        Once CP will fix the delete_all_entries bug this function should be removed
+ */
+enum alvs_db_rc internal_db_get_service_count(uint32_t *service_count)
+{
+	int rc;
+	sqlite3_stmt *statement;
+	char sql[256];
+
+	sprintf(sql, "SELECT COUNT (nps_index) AS service_count FROM services;");
+
+	/* Prepare SQL statement */
+	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s\n",
+			  sqlite3_errmsg(alvs_db));
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	/* In case of error return 0 */
+	if (rc != SQLITE_ROW) {
+		write_log(LOG_CRIT, "SQL error: %s\n",
+			  sqlite3_errmsg(alvs_db));
+		sqlite3_finalize(statement);
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* retrieve count from result,
+	 * finalize SQL statement and return count
+	 */
+	*service_count = sqlite3_column_int(statement, 0);
+	sqlite3_finalize(statement);
+	return ALVS_DB_OK;
+}
+
+/* TODO - This function is used only in the workaround described in alvs_db_clear().
+ *        Once CP will fix the delete_all_entries bug this function should be removed
+ */
+void alvs_free_service_list(struct alvs_service_node *list)
+{
+	struct alvs_service_node *node, *temp;
+
+	if (list == NULL) {
+		return;
+	}
+
+	node = list;
+	do {
+		temp = node;
+		node = node->next;
+		free(temp);
+	} while (node != list);
+}
+
+/* TODO - This function is used only in the workaround described in alvs_db_clear().
+ *        Once CP will fix the delete_all_entries bug this function should be removed
+ */
+enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_list)
+{
+	int rc;
+	sqlite3_stmt *statement;
+	char sql[256];
+	struct alvs_service_node *node;
+
+	sprintf(sql, "SELECT * FROM services;");
+
+	/* Prepare SQL statement */
+	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s\n",
+			  sqlite3_errmsg(alvs_db));
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	*service_list = NULL;
+
+	/* Collect service ids */
+	while (rc == SQLITE_ROW) {
+		node = (struct alvs_service_node *)malloc(sizeof(struct alvs_service_node));
+		node->service.ip = sqlite3_column_int(statement, 0);
+		node->service.port = sqlite3_column_int(statement, 1);
+		node->service.protocol = sqlite3_column_int(statement, 2);
+		node->service.nps_index = sqlite3_column_int(statement, 3);
+
+		if (*service_list == NULL) {
+			node->next = node;
+			*service_list = node;
+		} else {
+			node->next = (*service_list)->next;
+			(*service_list)->next = node;
+			(*service_list) = node;
+		}
+
+		rc = sqlite3_step(statement);
+	}
+
+	/* Error */
+	if (rc < SQLITE_ROW) {
+		write_log(LOG_CRIT, "SQL error: %s\n",
+			  sqlite3_errmsg(alvs_db));
+		sqlite3_finalize(statement);
+		alvs_free_service_list(*service_list);
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* finalize SQL statement */
+	sqlite3_finalize(statement);
+
+	if (*service_list != NULL) {
+		(*service_list) = (*service_list)->next;
+	}
+
+	return ALVS_DB_OK;
+}
+
+
 /**************************************************************************//**
  * \brief       API to clear all servers and services from ALVS DBs
  *
@@ -1964,17 +2098,52 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
  */
 enum alvs_db_rc alvs_db_clear(void)
 {
-	if (internal_db_clear_all() == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to delete all services in internal DB.\n");
+	/* TODO - There is a CP bug here. delete_all_entries doesn't do anything for cached hashes
+	 *        The workaround is to delete all entries in a loop.
+	 *        Once CP will fix the bug we need to remove the workaround and instead use the following call:
+	 *
+	 * if (infra_delete_all_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION) == false) {
+		  write_log(LOG_CRIT, "Failed to delete all entries from service classification DB in NPS.\n");
+		  return ALVS_DB_NPS_ERROR;
+	 * }
+	 */
+
+	/* TODO - workaround starts here */
+	uint32_t ind;
+	uint32_t service_count;
+	struct alvs_service_node *service_list;
+	struct alvs_service_classification_key nps_service_classification_key;
+
+	if (internal_db_get_service_count(&service_count) != ALVS_DB_OK) {
+		/* Can't retrieve service list */
+		write_log(LOG_CRIT, "Can't retrieve service list - "
+			  "internal error.\n");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
-	index_pool_rewind(&service_index_pool);
-	write_log(LOG_DEBUG, "Internal DB cleared.\n");
 
-	if (infra_delete_all_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION) == false) {
-		write_log(LOG_CRIT, "Failed to delete all entries from service classification DB in NPS.\n");
-		return ALVS_DB_NPS_ERROR;
+	/* Get list of servers to delete */
+	if (internal_db_get_service_list(&service_list) != ALVS_DB_OK) {
+		/* Can't retrieve service list */
+		write_log(LOG_CRIT, "Can't retrieve service list - "
+			  "internal error.\n");
+		return ALVS_DB_INTERNAL_ERROR;
 	}
+
+	for (ind = 0; ind < service_count; ind++) {
+		write_log(LOG_DEBUG, "Deleting service with nps_index %d.\n", service_list->service.nps_index);
+		build_nps_service_classification_key(&service_list->service,
+						     &nps_service_classification_key);
+		if (infra_delete_entry(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION,
+				       &nps_service_classification_key,
+				       sizeof(struct alvs_service_classification_key)) == false) {
+			write_log(LOG_CRIT, "Failed to delete service classification entry.\n");
+			return ALVS_DB_NPS_ERROR;
+		}
+	}
+
+	alvs_free_service_list(service_list);
+	/* TODO - workaround ends here */
+
 
 	if (infra_delete_all_entries(STRUCT_ID_ALVS_SERVICE_INFO) == false) {
 		write_log(LOG_CRIT, "Failed to delete all entries from service info DB in NPS.\n");
@@ -1985,6 +2154,13 @@ enum alvs_db_rc alvs_db_clear(void)
 		write_log(LOG_CRIT, "Failed to delete all entries from scheduling info DB in NPS.\n");
 		return ALVS_DB_NPS_ERROR;
 	}
+
+	if (internal_db_clear_all() == ALVS_DB_INTERNAL_ERROR) {
+		write_log(LOG_CRIT, "Failed to delete all services in internal DB.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+	index_pool_rewind(&service_index_pool);
+	write_log(LOG_DEBUG, "Internal DB cleared.\n");
 
 	write_log(LOG_INFO, "ALVS DBs cleared successfully.\n");
 	return ALVS_DB_OK;
