@@ -827,10 +827,13 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET active=1, server_flags=server_flags|%u "
+		"SET weight=%d, active=1, server_flags=server_flags|%u, "
+		"u_thresh=%d, l_thresh=%d, routing_alg=%d, conn_flags=%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
-		IP_VS_DEST_F_AVAILABLE,
+		server->weight, IP_VS_DEST_F_AVAILABLE,
+		server->u_thresh, server->l_thresh,
+		server->routing_alg, server->conn_flags,
 		service->ip, service->port, service->protocol,
 		server->ip, server->port);
 
@@ -1578,7 +1581,6 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.server_flags |= IP_VS_DEST_F_AVAILABLE;
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
 		cp_server.weight = ip_vs_dest->weight;
-		cp_server.active = true;
 		cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
