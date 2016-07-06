@@ -7,10 +7,11 @@ endif
 # All Target
 all: dp cp
 
-install: all
+install: install-clean all
 	tar -czvf alvs$(SUFFIX).tar.gz bin -C install .
 
 install-clean:
+	rm -rf bin
 	rm -f alvs$(SUFFIX).tar.gz
 
 dp:
