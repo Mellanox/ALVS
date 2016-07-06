@@ -25,12 +25,13 @@ ezbox.connect()
 ezbox.terminate_cp_app()
 ezbox.reset_chip()
 ezbox.flush_ipvs()
-ezbox.copy_cp_bin('bin/alvs_daemon')
+ezbox.copy_cp_bin(debug_mode=args['debug'])
 ezbox.run_cp()
-ezbox.copy_dp_bin('bin/alvs_dp')
+ezbox.copy_dp_bin(debug_mode=args['debug'])
 ezbox.wait_for_cp_app()
 ezbox.run_dp(args='--run_cpus 16-31')
 # ezbox.clean_director()
+
 
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
@@ -62,6 +63,8 @@ third_service.add_server(server1, weight='1')
 
 # create client
 client_object = client(management_ip=ip_list[3]['hostname'], data_ip=ip_list[3]['ip'])
+
+
      
 if 1 in scenarios_to_run:
     print "\nChecking Scenario 1"
@@ -250,7 +253,7 @@ if 4 in scenarios_to_run:
 ############################################################################
 # this scenario checks behavior when the arp table lookup is failing        
 ############################################################################         
-    print "Checking Scenario 4"
+    print "\nChecking Scenario 4"
     
     print "Delete the server arp entry"
     ezbox.execute_command_on_host("arp -d %s"%server1.data_ip)

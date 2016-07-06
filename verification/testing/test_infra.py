@@ -241,6 +241,9 @@ class service:
         
         # add the server to the services dictionary, will use it later on the director initialize
         service.services_dictionary[self.virtual_ip].append(new_server.data_ip)
+        
+        # need to wait until this will be executed on cp
+        time.sleep(1)
     
     def remove_server(self,server_to_delete):
         self.servers.remove(server_to_delete)
@@ -250,6 +253,9 @@ class service:
             print output
             exit(1)
     
+        # need to wait until this will be executed on cp
+        time.sleep(1)
+        
     def modify_server(self, server_to_modify):
         
         if server_to_modify not in self.servers:
@@ -277,6 +283,12 @@ class service:
             
         # remove from the global service dictionary
         del service.services_dictionary[self.virtual_ip]
+        
+        # decrement the service_counter 
+        service.services_counter -= 1
+        
+        # need to wait until this will be executed on cp
+        time.sleep(1)
            
 class arp_entry:
      
@@ -467,7 +479,10 @@ def read_test_arg(args):
     host_ip = None
     hard_reset = False
     log_file = 'test_log.log'
+    debug_mode = False
     
+    if '-debug' in args:
+        debug_mode = True
     if '-host_ip' in args:
         if '-ezbox' in args:
             print "dont use ezbox parameter with host_ip parameter"
@@ -566,7 +581,18 @@ def read_test_arg(args):
         print "<python script> -ezbox ezbox29 -cp_bin alvs_daemon -dp_bin alvs_dp -log_file test_log.log -scenarios 2,3"
         exit()
         
-    return {'setup_num':setup_num, 'ezbox_interface':ezbox_interface, 'data_ip':data_ip, 'log_file':log_file, 'host_ip':host_ip, 'nps_ip':nps_ip ,'cp_bin':cp_bin, 'dp_bin':dp_bin, 'scenarios':scenarios, 'ezbox':ezbox, 'hard_reset':hard_reset}       
+    return {'debug':debug_mode, 
+            'setup_num':setup_num, 
+            'ezbox_interface':ezbox_interface, 
+            'data_ip':data_ip, 
+            'log_file':log_file, 
+            'host_ip':host_ip, 
+            'nps_ip':nps_ip ,
+            'cp_bin':cp_bin, 
+            'dp_bin':dp_bin, 
+            'scenarios':scenarios, 
+            'ezbox':ezbox, 
+            'hard_reset':hard_reset}       
 
 def carry_around_add(a, b):
     c = a + b

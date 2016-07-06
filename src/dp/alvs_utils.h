@@ -84,30 +84,29 @@ void alvs_update_incoming_port_stats(uint32_t counter_id)
  * \return        void
  */
 static __always_inline
-void alvs_update_connection_statistics(int16_t sched_conn, int16_t active_conn, int16_t inactive_conn)
+void alvs_update_connection_statistics(int32_t sched_conn, int32_t active_conn, int32_t inactive_conn)
 {
 	/*handle service stats:
 	 *                    in pkts/in bytes
 	 *                    out pkts/out bytes
 	 *                    conn sched/refcnt (slow path)
 	 */
-	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_CONN_SCHED_OFFSET,
-				 sched_conn,
-				 0);
-
+	ezdp_add_posted_ctr(cmem_alvs.server_info_result.service_stats_base + ALVS_SERVICE_STATS_CONN_SCHED_OFFSET,
+			    sched_conn);
 	/*handle server stats:
 	 *                   in pkts/in bytes
 	 *                   out pkts/out bytes
 	 *                   conn sched/refcnt (slow path)
 	 *                   inactive conn/active conn (aging path/slow path)
 	 */
-	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_INACTIVE_ACTIVE_CONN_OFFSET,
-				 inactive_conn,
-				 active_conn);
+	ezdp_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET,
+			    active_conn);
 
-	ezdp_dual_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_CONN_SCHED_REFCNT_OFFSET,
-				 sched_conn,
-				 0);
+	ezdp_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_INACTIVE_CONN_OFFSET,
+			    inactive_conn);
+
+	ezdp_add_posted_ctr(cmem_alvs.server_info_result.server_stats_base + ALVS_SERVER_STATS_CONN_SCHED_OFFSET,
+			    sched_conn);
 }
 
 /******************************************************************************

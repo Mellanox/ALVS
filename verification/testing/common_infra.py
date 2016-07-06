@@ -39,14 +39,35 @@ STRUCT_ID_NW_ARP					   = 9
 #===============================================================================
 # STATS DEFINES
 #===============================================================================
-ALVS_SERVICES_MAX_ENTRIES	= 256
+ALVS_SERVICES_MAX_ENTRIES	 = 256
 ALVS_SERVERS_MAX_ENTRIES	 = ALVS_SERVICES_MAX_ENTRIES*1024
-ALVS_NUM_OF_SERVICE_STATS	= 6
+ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
-ALVS_NUM_OF_SERVER_STATS	 = 8
-NUM_OF_INTERFACES			= 5
-NW_NUM_OF_IF_STATS 			 = 10
-ALVS_NUM_OF_ALVS_ERROR_STATS = 20
+NUM_OF_INTERFACES			 = 5
+NW_NUM_OF_IF_STATS			  = 10
+
+ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO     = 0
+ALVS_ERROR_CANT_EXPIRE_CONNECTION       = 1
+ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE = 2
+ALVS_ERROR_CONN_INFO_LKUP_FAIL          = 3
+ALVS_ERROR_CONN_CLASS_ALLOC_FAIL        = 4
+ALVS_ERROR_CONN_INFO_ALLOC_FAIL         = 5
+ALVS_ERROR_CONN_INDEX_ALLOC_FAIL        = 6
+ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL      = 7
+ALVS_ERROR_FAIL_SH_SCHEDULING           = 8
+ALVS_ERROR_SERVER_INFO_LKUP_FAIL        = 9
+ALVS_ERROR_SERVER_IS_UNAVAILABLE        = 10
+ALVS_ERROR_SERVER_INDEX_LKUP_FAIL       = 11
+ALVS_ERROR_CONN_CLASS_LKUP_FAIL         = 12
+ALVS_ERROR_SERVICE_INFO_LOOKUP          = 13
+ALVS_ERROR_UNSUPPORTED_SCHED_ALGO       = 14
+ALVS_ERROR_CANT_MARK_DELETE             = 15
+ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL     = 16
+ALVS_ERROR_SEND_FRAME_FAIL              = 17
+ALVS_ERROR_CONN_MARK_TO_DELETE          = 18
+ALVS_ERROR_SERVICE_CLASS_LOOKUP         = 19
+ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20
+ALVS_NUM_OF_ALVS_ERROR_STATS            = 30
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
 EMEM_SERVICE_STATS_POSTED_OFFSET = EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS
@@ -55,16 +76,22 @@ EMEM_IF_STATS_POSTED_OFFSET	  = EMEM_SERVER_STATS_POSTED_OFFSET + ALVS_SERVERS_M
 EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*NUM_OF_INTERFACES
 
 
-NW_IF_STATS_FRAME_VALIDATION_FAIL   = 0,
-NW_IF_STATS_MAC_ERROR			   = 1,
+NW_IF_STATS_FRAME_VALIDATION_FAIL = 0,
+NW_IF_STATS_MAC_ERROR			  = 1,
 NW_IF_STATS_IPV4_ERROR			  = 2,
 NW_IF_STATS_NOT_MY_MAC			  = 3,
-NW_IF_STATS_NOT_IPV4				= 4,
+NW_IF_STATS_NOT_IPV4			  = 4,
 NW_IF_STATS_NOT_UDP_OR_TCP		  = 5,
 NW_IF_STATS_NO_VALID_ROUTE		  = 6,
-NW_IF_STATS_FAIL_ARP_LOOKUP		 = 7,
-NW_IF_STATS_FAIL_INTERFACE_LOOKUP   = 8,
+NW_IF_STATS_FAIL_ARP_LOOKUP		  = 7,
+NW_IF_STATS_FAIL_INTERFACE_LOOKUP = 8,
 NW_NUM_OF_IF_STATS				  = 10
+
+CLOSE_WAIT_DELETE_TIME = 16
+FIN_FLAG_DELETE_TIME = 60
+
+
+	
 #===============================================================================
 # Classes
 #===============================================================================
@@ -74,6 +101,10 @@ class ezbox_host:
 		self.setup = get_ezbox_names(setup_id)
 		self.ssh_object = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.run_app_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
+		
+		# clear syslog file
+		self.run_app_ssh.execute_command("echo "" > /var/log/syslog")
+		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
 
@@ -168,15 +199,21 @@ class ezbox_host:
 		self.copy_file_to_host(cp_bin, "/tmp/cp_bin")
 
 		if dp_bin!=None:
-			self.copy_dp_bin(dp_bin)		
+			self.copy_dp_bin(dp_bin=dp_bin)		
 		
 	def copy_file_to_host(self, filename, dest):
 		os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
 
-	def copy_cp_bin(self, cp_bin):
+	def copy_cp_bin(self, cp_bin='bin/alvs_daemon', debug_mode=False):
+		if debug_mode == True:
+			cp_bin = 'bin/alvs_daemon_debug'
+		
 		os.system("sshpass -p " + self.setup['password'] + " scp " + cp_bin + " " + self.setup['username'] + "@" + self.setup['host'] + ":/tmp/cp_bin")
 	
-	def copy_dp_bin(self, dp_bin):
+	def copy_dp_bin(self, dp_bin='bin/alvs_dp', debug_mode=False):
+		if debug_mode == True:
+			dp_bin = 'bin/alvs_dp_debug'
+
 		for i in range(10):
 			try:
 				ftp=FTP(self.setup['chip'])
@@ -200,13 +237,17 @@ class ezbox_host:
 		print
 		
 	def run_cp(self):
+		# run cp
 		self.run_app_ssh.execute_command("/tmp/cp_bin --agt_enabled")
 					
 	def wait_for_cp_app(self):
-		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
+# 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
+		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...'])
 		if output == 0:
+			
 			return True
 		elif output == 1:
+			
 			return False
 		elif output < 0:
 			print 'wait_for_cp_app: Error... (end of output)'
@@ -292,15 +333,18 @@ class ezbox_host:
 		return service
 
 	def get_connection(self, vip, vport, cip, cport, protocol):
-		print "key: " + "%08x%08x%04x%04x%04x" % (int(cip), int(vip), int(cport), int(vport), int(protocol)) 
-		class_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_CLASSIFICATION, 0, {'key' : "%08x%08x%04x%04x%04x" % (int(cip), int(vip), int(cport), int(vport), int(protocol))}).result["params"]["entry"]["result"]).split(' ')
-		print class_res
-		if (int(class_res[0], 16) >> 4) != 3:
+		class_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_CLASSIFICATION, 0, {'key' : "%08x%08x%04x%04x%04x" % (int(cip), int(vip), int(cport), int(vport), int(protocol))})
+		if 'warning_code' in class_res.result:
 			return None
-		info_res = str(self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_INFO, 0, {'key' : ''.join(class_res[4:8])}).result["params"]["entry"]["result"]).split(' ')
-		if (int(info_res[0], 16) >> 4) != 3:
+			
+		class_res = str(class_res.result["params"]["entry"]["result"]).split(' ')
+
+		info_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_INFO, 0, {'key' : ''.join(class_res[4:8])})
+		if 'warning_code' in info_res.result:
 			print 'This should not happen!'
-			return None
+			return None 
+
+		info_res = str(info_res.result["params"]["entry"]["result"]).split(' ')
 
 		conn = {'sync_bit' : (int(info_res[0], 16) >> 3) & 0x1,
 				'aging_bit' : (int(info_res[0], 16) >> 2) & 0x1,
@@ -503,29 +547,83 @@ class ezbox_host:
 	def get_error_stats(self, error_id):
 		if error_id < EMEM_ALVS_ERROR_STATS_POSTED_OFFSET or error_id > EMEM_SERVICE_STATS_POSTED_OFFSET:
 			return -1
-		temp_result = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=error_id, num_counters=1, double_operation=True)
-		return temp_result.result['posted_counter_config']['counters']
+		lsb = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=16, num_counters=1, double_operation=False).result['posted_counter_config']['counters'][0]['byte_value']
+		msb = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=16, num_counters=1, double_operation=False).result['posted_counter_config']['counters'][0]['byte_value_msb']
+		return lsb # return only the lsb (small amount of packets on tests)
 
 	def get_services_stats(self, service_id):
-		if service_id < EMEM_SERVICE_STATS_POSTED_OFFSET or service_id > EMEM_SERVER_STATS_POSTED_OFFSET:
+		if service_id < 0 or service_id > ALVS_SERVICES_MAX_ENTRIES:
 			return -1
-		temp_result = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=service_id, num_counters=1, double_operation=True)
-		return temp_result.result['posted_counter_config']['counters']
+		
+		counter_offset = EMEM_SERVICE_STATS_POSTED_OFFSET + service_id*ALVS_NUM_OF_SERVICE_STATS
+		
+		# return only the lsb (small amount of packets on tests)
+		service_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 
+															 partition=0, 
+															 range=True, 
+															 start_counter=counter_offset, 
+															 num_counters=ALVS_NUM_OF_SERVICE_STATS, 
+															 double_operation=False).result['posted_counter_config']['counters']
+	
+		stats_dict = {'SERVICE_STATS_IN_PKT':service_stats[0]['byte_value'],
+					  'SERVICE_STATS_IN_BYTES':service_stats[1]['byte_value'],
+					  'SERVICE_STATS_OUT_PKT':service_stats[2]['byte_value'],
+					  'SERVICE_STATS_OUT_BYTES':service_stats[3]['byte_value'],
+					  'SERVICE_STATS_CONN_SCHED':service_stats[4]['byte_value'],
+					  'SERVICE_STATS_REF_CNT':service_stats[5]['byte_value']}
+		return stats_dict
 
-	def get_servers_stats(self, service_id):
-		if service_id < EMEM_SERVER_STATS_POSTED_OFFSET or service_id > EMEM_IF_STATS_POSTED_OFFSET:
+	def get_servers_stats(self, server_id):
+		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
 			return -1
-		temp_result = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=service_id, num_counters=1, double_operation=True)
-		return temp_result.result['posted_counter_config']['counters'] 
-  
+		
+		counter_offset = EMEM_SERVER_STATS_POSTED_OFFSET + server_id*ALVS_NUM_OF_SERVER_STATS
+		
+		# return only the lsb (small amount of packets on tests)
+		server_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 
+															partition=0, 
+															range=True, 
+															start_counter=counter_offset, 
+															num_counters=ALVS_NUM_OF_SERVER_STATS, 
+															double_operation=False).result['posted_counter_config']['counters']
+		
+		stats_dict = {'SERVER_STATS_IN_PKT':server_stats[0]['byte_value'],
+					  'SERVER_STATS_IN_BYTES':server_stats[1]['byte_value'],
+					  'SERVER_STATS_OUT_PKT':server_stats[2]['byte_value'],
+					  'SERVER_STATS_OUT_BYTES':server_stats[3]['byte_value'],
+					  'SERVER_STATS_CONN_SCHED':server_stats[4]['byte_value'],
+					  'SERVER_STATS_REFCNT':server_stats[5]['byte_value'],
+					  'SERVER_STATS_INACTIVE_CONN':server_stats[6]['byte_value'],
+					  'SERVER_STATS_ACTIVE_CONN':server_stats[7]['byte_value']}
+		return stats_dict
+	
+
 	def get_interface_stats(self, interface_id):
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:
 			return -1
-		   
-		offset_counter = EMEM_IF_STATS_POSTED_OFFSET + interface_id*NW_NUM_OF_IF_STATS
-		temp_result = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=offset_counter, num_counters=1, double_operation=True)
-		return temp_result.result['posted_counter_config']['counters'] 
+		
+		counter_offset = EMEM_IF_STATS_POSTED_OFFSET + interface_id*NW_NUM_OF_IF_STATS
+		
+		# return only the lsb (small amount of packets on tests)
+		interface_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 
+															   partition=0, 
+															   range=True, 
+															   start_counter=counter_offset, 
+															   num_counters=NW_NUM_OF_IF_STATS, 
+															   double_operation=False).result['posted_counter_config']['counters']
 
+		stats_dict = {'NW_IF_STATS_FRAME_VALIDATION_FAIL':interface_stats[0]['byte_value'],
+					  'NW_IF_STATS_MAC_ERROR':interface_stats[1]['byte_value'],
+					  'NW_IF_STATS_IPV4_ERROR':interface_stats[2]['byte_value'],
+					  'NW_IF_STATS_NOT_MY_MAC':interface_stats[3]['byte_value'],
+					  'NW_IF_STATS_NOT_IPV4':interface_stats[4]['byte_value'],
+					  'NW_IF_STATS_NOT_UDP_OR_TCP':interface_stats[5]['byte_value'],
+					  'NW_IF_STATS_NO_VALID_ROUTE':interface_stats[6]['byte_value'],
+					  'NW_IF_STATS_FAIL_ARP_LOOKUP':interface_stats[7]['byte_value'],
+					  'NW_IF_STATS_FAIL_INTERFACE_LOOKUP':interface_stats[8]['byte_value']}
+					  
+		return stats_dict
+		
 
 
 class SshConnect:
@@ -580,13 +678,13 @@ class SshConnect:
 			return [False, "command failed: " + cmd]
 
 	def wait_for_msgs(self, msgs):
-		while (True):
+		for i in range(10):
 			index = self.ssh_object.expect_exact([pexpect.EOF, pexpect.TIMEOUT] + msgs)
 			if index == 0:
 				print self.ssh_object.before + self.ssh_object.match
 				return -1
 			elif index == 1:
-				print self.ssh_object.before
+				print "Timeout" #self.ssh_object.before
 			else:
 				return (index-2)
 
@@ -637,10 +735,38 @@ def get_setup_list(setup_num):
 	return setup_list
 
 def get_ezbox_names(setup_id):
-	setup_dict = {1:{'name':'ezbox29', 'host':'ezbox29-host', 'chip':'ezbox29-chip', 'interface':'eth0.6', 'username':'root', 'password':'ezchip', 'data_ip_hex_display': 'C0 A8 00 01', 'mac_address': '00 19 0f 25 68 aa'},
-				  2:{'name':'ezbox24', 'host':'ezbox24-host', 'chip':'ezbox24-chip', 'interface':'eth0.5', 'username':'root', 'password':'ezchip', 'data_ip_hex_display': 'C0 A8 00 02', 'mac_address': '00 19 0f 25 da 7a'},
-				  3:{'name':'ezbox35', 'host':'ezbox35-host', 'chip':'ezbox35-chip', 'interface':'eth0.7', 'username':'root', 'password':'ezchip', 'data_ip_hex_display': 'C0 A8 00 03', 'mac_address': '00 19 0f 27 23 2d'},
-				  4:{'name':'ezbox55', 'host':'ezbox55-host', 'chip':'ezbox55-chip', 'interface':'eth0.8', 'username':'root', 'password':'ezchip', 'data_ip_hex_display': 'C0 A8 00 04', 'mac_address': '00 19 0f 27 23 16'}}
+	setup_dict = {1:{'name':'ezbox29', 
+					 'host':'ezbox29-host', 
+					 'chip':'ezbox29-chip', 
+					 'interface':'eth0.6', 
+					 'username':'root', 
+					 'password':'ezchip', 
+					 'data_ip_hex_display': 'C0 A8 00 01', 
+					 'mac_address': '00 19 0f 25 68 aa'},
+				  2:{'name':'ezbox24', 
+					 'host':'ezbox24-host', 
+					 'chip':'ezbox24-chip', 
+					 'interface':'eth0.5', 
+					 'username':'root', 
+					 'password':'ezchip', 
+					 'data_ip_hex_display': 'C0 A8 00 02', 
+					 'mac_address': '00 19 0f 25 da 7a'},
+				  3:{'name':'ezbox35', 
+					 'host':'ezbox35-host', 
+					 'chip':'ezbox35-chip', 
+					 'interface':'eth0.7', 
+					 'username':'root', 
+					 'password':'ezchip', 
+					 'data_ip_hex_display': 'C0 A8 00 03', 
+					 'mac_address': '00 19 0f 27 23 2d'},
+				  4:{'name':'ezbox55', 
+					 'host':'ezbox55-host', 
+					 'chip':'ezbox55-chip', 
+					 'interface':'eth0.8', 
+					 'username':'root', 
+					 'password':'ezchip', 
+					 'data_ip_hex_display': 'C0 A8 00 04', 
+					 'mac_address': '00 19 0f 27 23 16'}}
 	
 	return setup_dict[setup_id]
 
@@ -661,9 +787,10 @@ def get_setup_vip(setup_num,index):
 #===============================================================================
 # Checker Functions
 #===============================================================================
+
 def check_connections(ezbox):
- 	print 'connection count = %d'  %ezbox.get_num_of_connections()
-	pass
+    print 'connection count = %d'  %ezbox.get_num_of_connections()
+    pass
 
 
 def ip2int(addr):															   

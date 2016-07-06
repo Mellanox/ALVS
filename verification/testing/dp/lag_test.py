@@ -22,9 +22,9 @@ ezbox.connect()
 ezbox.terminate_cp_app()
 ezbox.reset_chip()
 ezbox.flush_ipvs()
-ezbox.copy_cp_bin('bin/alvs_daemon')
+ezbox.copy_cp_bin(debug_mode=args['debug'])
 ezbox.run_cp()
-ezbox.copy_dp_bin('bin/alvs_dp')
+ezbox.copy_dp_bin(debug_mode=args['debug'])
 ezbox.wait_for_cp_app()
 ezbox.run_dp(args='--run_cpus 16-31')
 ezbox.clean_director()
@@ -66,6 +66,7 @@ pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_f
 
 # send 100 packets to different mac da and check the ports statistics , each port tx stats should be ~250 
 print "Send 1000 packets with different mac da"
+
 mac_da = '52:54:00:c5:15:41'
 for i in range(1000):
     ezbox.execute_command_on_host('arp -s %s %s'%(server1.data_ip, mac_da)) # change the arp entry to use different mac da for this service    

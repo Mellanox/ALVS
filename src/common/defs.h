@@ -57,14 +57,17 @@ enum alvs_service_posted_stats_offsets {
 	ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET       = 0,
 	ALVS_SERVICE_STATS_OUT_PKTS_BYTES_OFFSET      = 2,
 	ALVS_SERVICE_STATS_CONN_SCHED_OFFSET          = 4,
+	ALVS_SERVICE_STATS_REFCNT_OFFSET              = 5,
 	ALVS_NUM_OF_SERVICE_STATS                     = 6
 };
 
 enum alvs_server_posted_stats_offsets {
 	ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET        = 0,
 	ALVS_SERVER_STATS_OUT_PKTS_BYTES_OFFSET       = 2,
-	ALVS_SERVER_STATS_CONN_SCHED_REFCNT_OFFSET    = 4,
-	ALVS_SERVER_STATS_INACTIVE_ACTIVE_CONN_OFFSET = 6,
+	ALVS_SERVER_STATS_CONN_SCHED_OFFSET           = 4,
+	ALVS_SERVER_STATS_REFCNT_OFFSET               = 5,
+	ALVS_SERVER_STATS_INACTIVE_CONN_OFFSET        = 6,
+	ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET          = 7,
 	ALVS_NUM_OF_SERVER_STATS                      = 8
 };
 
@@ -103,7 +106,7 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_CONN_MARK_TO_DELETE          = 18,
 	ALVS_ERROR_SERVICE_CLASS_LOOKUP         = 19,
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 21
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30	/* this value must be even */
 };
 
 /* Posted Statistics */
