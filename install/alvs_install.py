@@ -96,7 +96,7 @@ def copy_alvs_files():
     print "Copying ALVS files...",
     sys.stdout.flush()
     for fsrc, fdst in ALVS_FILES:
-        if fsrc == 'alvs_defaults' and os.path.isfile(fdst):
+        if 'alvs_defaults' in fsrc and os.path.isfile(fdst):
             overwite = raw_input("Do you want to overwrite configuration [Y/n]? ")
             if overwite != 'Y':
                 continue
