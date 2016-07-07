@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <byteswap.h>
+#include <arpa/inet.h>
 #include "log.h"
 
 #include "alvs_db.h"
@@ -88,6 +89,13 @@ struct alvs_server_node {
 	struct alvs_db_server server;
 	struct alvs_server_node *next;
 };
+
+char *my_inet_ntoa(in_addr_t ip)
+{
+	struct in_addr ip_addr = {.s_addr = ip};
+
+	return inet_ntoa(ip_addr);
+}
 
 #define ALVS_DB_FILE_NAME "alvs.db"
 
@@ -1079,9 +1087,9 @@ void build_nps_service_info_result(struct alvs_db_service *cp_service,
 void build_nps_service_classification_key(struct alvs_db_service *cp_service,
 					  struct alvs_service_classification_key *nps_service_classification_key)
 {
-	nps_service_classification_key->service_address = cp_service->ip;
-	nps_service_classification_key->service_port = cp_service->port;
-	nps_service_classification_key->service_protocol = cp_service->protocol;
+	nps_service_classification_key->service_address = bswap_32(cp_service->ip);
+	nps_service_classification_key->service_port = bswap_16(cp_service->port);
+	nps_service_classification_key->service_protocol = bswap_16(cp_service->protocol);
 }
 
 /**************************************************************************//**
@@ -1125,8 +1133,8 @@ void build_nps_server_info_result(struct alvs_db_server *cp_server,
 	nps_server_info_result->routing_alg = cp_server->routing_alg;
 	nps_server_info_result->conn_flags = bswap_32(cp_server->conn_flags);
 	nps_server_info_result->server_flags = bswap_32(cp_server->server_flags);
-	nps_server_info_result->server_ip = cp_server->ip;
-	nps_server_info_result->server_port = cp_server->port;
+	nps_server_info_result->server_ip = bswap_32(cp_server->ip);
+	nps_server_info_result->server_port = bswap_16(cp_server->port);
 	nps_server_info_result->server_stats_base = bswap_32(cp_server->server_stats_base.raw_data);
 	nps_server_info_result->service_stats_base = bswap_32(cp_server->service_stats_base.raw_data);
 	nps_server_info_result->server_weight = bswap_16(cp_server->weight);
@@ -1165,14 +1173,14 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Check if service already exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, false)) {
 	case ALVS_DB_OK:
 		/* Service already exists */
-		write_log(LOG_NOTICE, "Can't add service. Service (ip=0x%08x, port=%d, protocol=%d) already exists.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't add service. Service (%s:%d, protocol=%d) already exists.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1180,8 +1188,8 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) doesn't exist\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
@@ -1244,8 +1252,8 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Service (ip=0x%08x, port=%d, protocol=%d) added successfully.\n",
-		  cp_service.ip, cp_service.port, cp_service.protocol);
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) added successfully.\n",
+		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
 
@@ -1274,14 +1282,14 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Check if service exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't modify service. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't modify service. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		       my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1289,8 +1297,8 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
@@ -1333,8 +1341,8 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Service (ip=0x%08x, port=%d, protocol=%d) modified successfully.\n",
-		  cp_service.ip, cp_service.port, cp_service.protocol);
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) modified successfully.\n",
+		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
 
@@ -1359,15 +1367,14 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	struct alvs_server_node *server_list;
 
 	/* Check if service exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't delete service. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't delete service. Service (%s:%d, protocol=%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1375,8 +1382,8 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
@@ -1454,8 +1461,8 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 		return rc;
 	}
 
-	write_log(LOG_INFO, "Service (ip=0x%08x, port=%d, protocol=%d) deleted successfully.\n",
-		  cp_service.ip, cp_service.port, cp_service.protocol);
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) deleted successfully.\n",
+		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
 
@@ -1473,14 +1480,14 @@ enum alvs_db_rc alvs_db_get_service_flags(struct ip_vs_service_user *ip_vs_servi
 	struct alvs_db_service cp_service;
 
 	/* Check if service exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_DEBUG, "Can't find service (ip=0x%08x, port=%d, protocol=%d).\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Can't find service (%s:%d, protocol=%d).\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1488,8 +1495,8 @@ enum alvs_db_rc alvs_db_get_service_flags(struct ip_vs_service_user *ip_vs_servi
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) found\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) found\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
@@ -1533,14 +1540,14 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	/* Check if service already exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't add server. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1548,8 +1555,8 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists.\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
@@ -1557,27 +1564,27 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	if (cp_service.server_count == ALVS_SIZE_OF_SCHED_BUCKET) {
-		write_log(LOG_NOTICE, "Can't add server. Service (ip=0x%08x, port=%d, protocol=%d) has maximum number of active servers.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) has maximum number of active servers.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	}
 
-	cp_server.ip = ip_vs_dest->addr;
-	cp_server.port = ip_vs_dest->port;
+	cp_server.ip = bswap_32(ip_vs_dest->addr);
+	cp_server.port = bswap_16(ip_vs_dest->port);
 	switch (internal_db_get_server(&cp_service, &cp_server)) {
 	case ALVS_DB_OK:
 		if (cp_server.active == true) {
 			/* Server exists. */
-			write_log(LOG_NOTICE, "Can't add server. Server (ip=0x%08x, port=%d) already exists.\n",
-			       cp_server.ip, cp_server.port);
+			write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) already exists.\n",
+				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
 
 		/* Server exists, but inactive.
 		 * Need to move server to be active
 		 */
-		write_log(LOG_DEBUG, "Server (ip=0x%08x, port=%d) exists (inactive).\n",
-			  cp_server.ip, cp_server.port);
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (inactive).\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		cp_server.server_flags |= IP_VS_DEST_F_AVAILABLE;
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
 		cp_server.weight = ip_vs_dest->weight;
@@ -1609,8 +1616,8 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_FAILURE:
 		/* server doesn't exist */
-		write_log(LOG_DEBUG, "Server (ip=0x%08x, port=%d) doesn't exist.\n",
-			  cp_server.ip, cp_server.port);
+		write_log(LOG_DEBUG, "Server (%s:%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		/* Server doesn't exist.
 		 * Create a new entry in server info.
 		 */
@@ -1684,8 +1691,8 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		}
 	}
 
-	write_log(LOG_INFO, "Server (ip=0x%08x, port=%d) added successfully.\n",
-		  cp_server.ip, cp_server.port);
+	write_log(LOG_INFO, "Server (%s:%d) added successfully.\n",
+		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
 
@@ -1720,14 +1727,14 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	/* Check if service already exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't modify server. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't modify server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1735,21 +1742,21 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	cp_server.ip = ip_vs_dest->addr;
-	cp_server.port = ip_vs_dest->port;
+	cp_server.ip = bswap_32(ip_vs_dest->addr);
+	cp_server.port = bswap_16(ip_vs_dest->port);
 	switch (internal_db_get_server(&cp_service, &cp_server)) {
 	case ALVS_DB_FAILURE:
 		/* Server exists. */
-		write_log(LOG_NOTICE, "Can't add server. Server (ip=0x%08x, port=%d) doesn't exist.\n",
-		       cp_server.ip, cp_server.port);
+		write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1758,14 +1765,14 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	case ALVS_DB_OK:
 		if (cp_server.active == false) {
 			/* Server exists, but inactive. */
-			write_log(LOG_NOTICE, "Can't modify server. Server (ip=0x%08x, port=%d) is inactive.\n",
-			       cp_server.ip, cp_server.port);
+			write_log(LOG_NOTICE, "Can't modify server. Server (%s:%d) is inactive.\n",
+				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
 
 		/* Server exists */
-		write_log(LOG_DEBUG, "Server (ip=0x%08x, port=%d) exists (active).\n",
-			  cp_server.ip, cp_server.port);
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		break;
 	default:
 		/* Can't reach here */
@@ -1831,8 +1838,8 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Server (ip=0x%08x, port=%d) modified successfully.\n",
-		  cp_server.ip, cp_server.port);
+	write_log(LOG_INFO, "Server (%s:%d) modified successfully.\n",
+		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
 
@@ -1859,14 +1866,14 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	struct alvs_server_info_result nps_server_info_result;
 
 	/* Check if service already exists in internal DB */
-	cp_service.ip = ip_vs_service->addr;
-	cp_service.port = ip_vs_service->port;
+	cp_service.ip = bswap_32(ip_vs_service->addr);
+	cp_service.port = bswap_16(ip_vs_service->port);
 	cp_service.protocol = bswap_16(ip_vs_service->protocol);
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't delete server. Service (ip=0x%08x, port=%d, protocol=%d) doesn't exist.\n",
-		       cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_NOTICE, "Can't delete server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1874,21 +1881,21 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (ip=0x%08x, port=%d, protocol=%d) exists.\n",
-			  cp_service.ip, cp_service.port, cp_service.protocol);
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.\n",
+			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
 		/* Can't reach here */
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	cp_server.ip = ip_vs_dest->addr;
-	cp_server.port = ip_vs_dest->port;
+	cp_server.ip = bswap_32(ip_vs_dest->addr);
+	cp_server.port = bswap_16(ip_vs_dest->port);
 	switch (internal_db_get_server(&cp_service, &cp_server)) {
 	case ALVS_DB_FAILURE:
 		/* Server exists. */
-		write_log(LOG_NOTICE, "Can't delete server. Server (ip=0x%08x, port=%d) doesn't exist.\n",
-		       cp_server.ip, cp_server.port);
+		write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) doesn't exist.\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -1897,14 +1904,14 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	case ALVS_DB_OK:
 		if (cp_server.active == false) {
 			/* Server exists, but inactive. */
-			write_log(LOG_NOTICE, "Can't delete server. Server (ip=0x%08x, port=%d) already inactive.\n",
-			       cp_server.ip, cp_server.port);
+			write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) already inactive.\n",
+				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
 
 		/* Server exists */
-		write_log(LOG_DEBUG, "Server (ip=0x%08x, port=%d) exists (active).\n",
-			  cp_server.ip, cp_server.port);
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).\n",
+			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		break;
 	default:
 		/* Can't reach here */
@@ -1951,8 +1958,8 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Server (ip=0x%08x, port=%d) deleted successfully.\n",
-		  cp_server.ip, cp_server.port);
+	write_log(LOG_INFO, "Server (%s:%d) deleted successfully.\n",
+		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
 
