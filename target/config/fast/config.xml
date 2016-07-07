@@ -17,18 +17,19 @@
             <cfg:IntMemSpaceParams>
                 <cfg:Index>2</cfg:Index>
                 <cfg:Enable>false</cfg:Enable>
+                <cfg:Size>1024</cfg:Size>
             </cfg:IntMemSpaceParams>
             <cfg:IntMemSpaceParams>
                 <cfg:Index>3</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>1_CLUSTER_CODE</cfg:Type>
-                <cfg:Size>64</cfg:Size>
+                <cfg:Size>128</cfg:Size>
             </cfg:IntMemSpaceParams>
             <cfg:IntMemSpaceParams>
                 <cfg:Index>4</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>4_CLUSTER_SEARCH</cfg:Type>
-                <cfg:Size>512</cfg:Size>
+                <cfg:Size>516</cfg:Size>
             </cfg:IntMemSpaceParams>
         </cfg:IntMemSpaceParamsFolder>
         <cfg:ExtMemSpaceParamsFolder>
@@ -36,8 +37,8 @@
                 <cfg:Index>0</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>SEARCH</cfg:Type>
-                <cfg:Size>2048</cfg:Size>
-                <cfg:Copies>1</cfg:Copies>
+                <cfg:Size>4096</cfg:Size>
+                <cfg:Copies>2</cfg:Copies>
             </cfg:ExtMemSpaceParams>
             <cfg:ExtMemSpaceParams>
                 <cfg:Index>1</cfg:Index>
@@ -45,12 +46,22 @@
                 <cfg:Size>1024</cfg:Size>
                 <cfg:MSID>1</cfg:MSID>
             </cfg:ExtMemSpaceParams>
+            <cfg:ExtMemSpaceParams>
+                <cfg:Index>2</cfg:Index>
+                <cfg:Enable>true</cfg:Enable>
+                <cfg:Type>SEARCH</cfg:Type>
+                <cfg:Size>4096</cfg:Size>
+                <cfg:Copies>2</cfg:Copies>
+                <cfg:MSID>2</cfg:MSID>
+            </cfg:ExtMemSpaceParams>
         </cfg:ExtMemSpaceParamsFolder>
         <cfg:IndexPoolParamsFolder>
             <cfg:IndexPoolParams>
                 <cfg:Pool>0</cfg:Pool>
                 <cfg:Enable>true</cfg:Enable>
-                <cfg:Search>true</cfg:Search>
+                <cfg:Search>false</cfg:Search>
+                <cfg:NumIndexes>33554432</cfg:NumIndexes>
+                <cfg:SkipPoolInit>true</cfg:SkipPoolInit>
             </cfg:IndexPoolParams>
             <cfg:IndexPoolParams>
                 <cfg:Pool>1</cfg:Pool>
@@ -60,7 +71,8 @@
             <cfg:IndexPoolParams>
                 <cfg:Pool>2</cfg:Pool>
                 <cfg:Enable>true</cfg:Enable>
-                <cfg:NumIndexes>1048576</cfg:NumIndexes>
+                <cfg:Search>true</cfg:Search>
+                <cfg:NumIndexes>33554432</cfg:NumIndexes>
             </cfg:IndexPoolParams>
         </cfg:IndexPoolParamsFolder>
         <cfg:ApplicationParamsFolder>
@@ -250,6 +262,7 @@
                 <cfg:KeySize>1</cfg:KeySize>
                 <cfg:ResultSize>16</cfg:ResultSize>
                 <cfg:MaxEntries>256</cfg:MaxEntries>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
                 <cfg:SpaceIndex>4</cfg:SpaceIndex>
             </cfg:TableParams>
             <cfg:TableParams>
@@ -258,7 +271,7 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>4</cfg:KeySize>
                 <cfg:ResultSize>32</cfg:ResultSize>
-                <cfg:MaxEntries>1048576</cfg:MaxEntries>
+                <cfg:MaxEntries>33554432</cfg:MaxEntries>
                 <cfg:MultiChannelDataMode>DIFFERENT</cfg:MultiChannelDataMode>
                 <cfg:UpdateMode>DP</cfg:UpdateMode>
                 <cfg:SpaceIndex>0</cfg:SpaceIndex>
@@ -270,7 +283,8 @@
                 <cfg:KeySize>1</cfg:KeySize>
                 <cfg:ResultSize>16</cfg:ResultSize>
                 <cfg:MaxEntries>256</cfg:MaxEntries>
-                <cfg:SpaceIndex>4</cfg:SpaceIndex>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
+                <cfg:SpaceIndex>1</cfg:SpaceIndex>
             </cfg:TableParams>
             <cfg:TableParams>
                 <cfg:StructId>6</cfg:StructId>
@@ -279,6 +293,7 @@
                 <cfg:KeySize>2</cfg:KeySize>
                 <cfg:ResultSize>16</cfg:ResultSize>
                 <cfg:MaxEntries>65536</cfg:MaxEntries>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
                 <cfg:SpaceIndex>0</cfg:SpaceIndex>
             </cfg:TableParams>
             <cfg:TableParams>
@@ -287,7 +302,8 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>4</cfg:KeySize>
                 <cfg:ResultSize>32</cfg:ResultSize>
-                <cfg:MaxEntries>32768</cfg:MaxEntries>
+                <cfg:MaxEntries>262144</cfg:MaxEntries>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
                 <cfg:SpaceIndex>0</cfg:SpaceIndex>
             </cfg:TableParams>
         </cfg:TableParamsFolder>
@@ -298,12 +314,15 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>14</cfg:KeySize>
                 <cfg:ResultSize>8</cfg:ResultSize>
-                <cfg:MaxEntries>1048576</cfg:MaxEntries>
+                <cfg:MaxEntries>33554432</cfg:MaxEntries>
                 <cfg:MultiChannelDataMode>DIFFERENT</cfg:MultiChannelDataMode>
                 <cfg:UpdateMode>DP</cfg:UpdateMode>
-                <cfg:MainTableSpaceIndex>0</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
-                <cfg:ResSpaceIndex>0</cfg:ResSpaceIndex>
+                <cfg:HashSize>26</cfg:HashSize>
+                <cfg:SigIndexPool>1</cfg:SigIndexPool>
+                <cfg:ResultIndexPool>2</cfg:ResultIndexPool>
+                <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
+                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
             <cfg:HashParams>
                 <cfg:StructId>4</cfg:StructId>
@@ -311,10 +330,11 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>8</cfg:KeySize>
                 <cfg:ResultSize>4</cfg:ResultSize>
-                <cfg:MaxEntries>4096</cfg:MaxEntries>
-                <cfg:MainTableSpaceIndex>0</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
-                <cfg:ResSpaceIndex>0</cfg:ResSpaceIndex>
+                <cfg:MaxEntries>256</cfg:MaxEntries>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
+                <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
+                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
             <cfg:HashParams>
                 <cfg:StructId>9</cfg:StructId>
@@ -323,9 +343,10 @@
                 <cfg:KeySize>4</cfg:KeySize>
                 <cfg:ResultSize>8</cfg:ResultSize>
                 <cfg:MaxEntries>65536</cfg:MaxEntries>
-                <cfg:MainTableSpaceIndex>0</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
-                <cfg:ResSpaceIndex>0</cfg:ResSpaceIndex>
+                <cfg:CacheMode>FULL</cfg:CacheMode>
+                <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
+                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
         </cfg:HashParamsFolder>
     </cfg:struct>
