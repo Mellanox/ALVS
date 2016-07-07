@@ -60,7 +60,6 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	 uint32_t rc;
 	 uint32_t found_result_size;
 	 struct  alvs_service_classification_result *service_class_res_ptr;
-	 struct  alvs_conn_classification_result *conn_class_res_ptr;
 
 	 alvs_write_log(LOG_DEBUG, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
 			cmem_alvs.conn_class_key.client_ip,
@@ -91,21 +90,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 			alvs_conn_do_route(frame_base);
 		} else if (service_data_path_res == ALVS_SERVICE_DATA_PATH_RETRY) {
 			/*all other packets tried to open new connection go through regular fast path*/
-			rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
-						    (void *)&cmem_alvs.conn_class_key,
-						    sizeof(struct alvs_conn_classification_key),
-						    (void **)&conn_class_res_ptr,
-						    &found_result_size, 0,
-						    cmem_wa.alvs_wa.conn_hash_wa,
-						    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
-			if (rc == 0) {
-				alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
-			} else {
-				alvs_write_log(LOG_ERR, "failed connection classification to newly created entry");
-				/*drop frame*/
-				alvs_update_discard_statistics(ALVS_ERROR_CONN_CLASS_LKUP_FAIL);
-				alvs_discard_frame();
-			}
+			alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, cmem_alvs.conn_result.conn_index);
 		} /* all other cases - drop or sent to host - packet was already processed. */
 	} else {
 		alvs_write_log(LOG_DEBUG, "fail service classification lookup");
