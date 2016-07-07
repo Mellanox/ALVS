@@ -27,9 +27,9 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 200 
-server_count = 5
-client_count = 5
+request_count = 500
+server_count  = 5
+client_count  = 5
 service_count = 1
 
 
