@@ -518,7 +518,7 @@ void alvs_nl_init(void)
 		write_log(LOG_CRIT, "Error setting socket PACKET_RESERVE options\n");
 		alvs_db_manager_exit_with_error();
 	}
-	retcode = fcntl(raw_sock, F_SETFL, O_RDWR|O_NONBLOCK);
+	retcode = fcntl(raw_sock, F_SETFL, O_RDWR);
 	if (retcode != 0) {
 		write_log(LOG_CRIT, "Error setting socket to be nonblocking & RDRW\n");
 		alvs_db_manager_exit_with_error();
