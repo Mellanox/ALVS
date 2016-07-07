@@ -112,9 +112,9 @@ class ezbox_host:
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
 		os.system("verification/testing/wait_for_connection.sh " + self.setup['chip'])
 
-	def execute_command_on_chip(self, cmd, sleep_time):
-		os.system("{ echo \"%s\"; sleep %d; } | telnet %s" %(cmd, sleep_time, self.setup['chip']))
-
+	def execute_command_on_chip(self, chip_cmd):
+		return self.ssh_object.execute_chip_command(chip_cmd)
+		
 	def modify_run_cpus(self, use_4k_cpus=True):
 		if use_4k_cpus:
 			cpus = "0,16-4095"
@@ -123,13 +123,20 @@ class ezbox_host:
 			cpus = "0,16-511"
 			print "Config CPUs: %s" %cpus
 
-		self.execute_command_on_chip("fw_setenv krn_possible_cpus %s" %cpus, 1)
-		self.execute_command_on_chip("fw_setenv krn_present_cpus %s" %cpus, 1)
+		self.execute_command_on_chip("fw_setenv krn_possible_cpus %s" %cpus)
+		self.execute_command_on_chip("fw_setenv krn_present_cpus %s" %cpus)
 
-	def clean(self, use_director=False):
+	def update_dp_papams(self, params=None):
+		cmd = "find /etc/default/alvs | xargs grep -l ALVS_DP_ARGS | xargs sed -i '/ALVS_DP_ARGS=/c\ALVS_DP_ARGS=\"%s\"' " %params
+		self.execute_command_on_host(cmd)
+
+	def clean(self, use_director=False, stop_service=False):
 		if use_director:
 			self.clean_director()
-		self.terminate_cp_app()
+			
+		if stop_service:
+			self.alvs_service_stop()
+			
 		self.logout()
 		
 	def init_director(self, services):
@@ -194,54 +201,44 @@ class ezbox_host:
 	def execute_command_on_host(self, cmd):
 		return self.ssh_object.execute_command(cmd)
 	
-	def copy_binaries(self, cp_bin, dp_bin=None):
+	def copy_binaries(self, alvs_daemon, alvs_dp=None):
 
-		self.copy_file_to_host(cp_bin, "/tmp/cp_bin")
+		self.copy_cp_bin(alvs_daemon)
 
-		if dp_bin!=None:
-			self.copy_dp_bin(dp_bin=dp_bin)		
+		if alvs_dp!=None:
+			self.copy_dp_bin(alvs_dp)
 		
 	def copy_file_to_host(self, filename, dest):
 		os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
 
-	def copy_cp_bin(self, cp_bin='bin/alvs_daemon', debug_mode=False):
+	def copy_cp_bin(self, alvs_daemon='bin/alvs_daemon', debug_mode=False):
 		if debug_mode == True:
-			cp_bin = 'bin/alvs_daemon_debug'
-		
-		os.system("sshpass -p " + self.setup['password'] + " scp " + cp_bin + " " + self.setup['username'] + "@" + self.setup['host'] + ":/tmp/cp_bin")
+			alvs_daemon += '_debug'
+		self.copy_file_to_host(alvs_daemon, "/usr/sbin/alvs_daemon")
 	
-	def copy_dp_bin(self, dp_bin='bin/alvs_dp', debug_mode=False):
+	def copy_dp_bin(self, alvs_dp='bin/alvs_dp', debug_mode=False):
 		if debug_mode == True:
-			dp_bin = 'bin/alvs_dp_debug'
+			alvs_dp += '_debug'
+		self.copy_file_to_host(alvs_dp, "/usr/lib/alvs/alvs_dp")
 
-		for i in range(10):
-			try:
-				ftp=FTP(self.setup['chip'])
-				break
-			except:
-				print "Fail to connect to chip, trying again"
-				time.sleep(5)
-				i += 1
-		ftp.login()
-		ftp.storbinary("STOR /tmp/dp_bin", open(dp_bin, 'rb'))
-		ftp.quit()
-		os.system("{ echo \"chmod +x tmp/dp_bin\"; sleep 1; } | telnet " + self.setup['chip'])
-					
+	def alvs_service(self, cmd):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"
+		self.run_app_ssh.execute_command("/etc/init.d/alvs " + cmd)
+
+	def alvs_service_start(self):
+		self.alvs_service("start")
+
+	def alvs_service_stop(self):
+		self.alvs_service("stop")
+
+	def alvs_service_restart(self):
+		self.alvs_service("restart")
 
 	def reset_chip(self):
 		self.run_app_ssh.execute_command("bsp_nps_power -r por")
 
-	def run_dp(self, args=''):
-		print "Run DP Bin"
-		os.system("{ echo \"./tmp/dp_bin %s &\"; sleep 3; } | telnet %s"%(args,self.setup['chip']))
-		print
-		
-	def run_cp(self):
-		# run cp
-		self.run_app_ssh.execute_command("/tmp/cp_bin --agt_enabled")
-					
 	def wait_for_cp_app(self):
-# 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
+		print "wait for CP application..."
 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...'])
 		if output == 0:
 			
@@ -256,28 +253,27 @@ class ezbox_host:
 			print 'wait_for_cp_app: Error... (Unknown output)'
 			return False
 		 
+	def wait_for_dp_app(self):
+		print "wait for DP application..."
+		output = self.syslog_ssh.wait_for_msgs(['starting ALVS DP application'])
+		if output == 0:
+			return True
+		elif output == 1:
+			return False
+		elif output < 0:
+			print sys._getframe().f_code.co_name + ": Error... (end of output)"
+			return False
+		else:
+			print sys._getframe().f_code.co_name + ": Error... (Unknown output)"
+			return False
+		 
 	def get_cp_app_pid(self):
-		retcode, output = self.ssh_object.execute_command("pidof cp_bin")		 
+		retcode, output = self.ssh_object.execute_command("pidof alvs_daemon")		 
 		if output == '':
 			return None
 		else:
 			return output.split(' ')[0]
 			
-	def terminate_cp_app(self):
-		
-		retries = 100 
-		
-		pid = self.get_cp_app_pid()
-		while pid != None:
-			if not (retries > 0):
-				print sys._getframe().f_code.co_name + " failed. Try to reset ezbox"
-				exit(1)
-			retcodde, output = self.run_app_ssh.execute_command("kill " + pid)
-			time.sleep(1)
-			pid = self.get_cp_app_pid()
-			retries -= 1
-			
-		 
 	def capture_packets(self, tcpdump_params = None):
 		if tcpdump_params == None:
 			tcpdump_params = 'dst' + self.setup['host']
@@ -676,6 +672,73 @@ class SshConnect:
 				return [True, '']
 		except:
 			return [False, "command failed: " + cmd]
+
+	#############################################################
+	# brief:	get exit code after command executed
+	#
+	# in params: None
+	#			
+	# return:	None	 
+	def get_execute_command_exit_code(self, is_telnet=False):
+		try:
+			self.ssh_object.sendline("echo $?")
+			if is_telnet:
+				self.ssh_object.expect(' #')
+			else:
+				self.ssh_object.prompt(timeout=120)
+			
+			exit_code = self.ssh_object.before.split('\n')[1]
+			exit_code = int(exit_code)
+				
+		except:
+			exit_code = None
+		
+		return exit_code
+
+	#############################################################
+	# brief:	exucute commnad on chip (NPS)
+	#
+	# details:	command use ssh_objet, telnet chip, send command & exit telnet
+	#
+	# in params: cmd - coommnad string for execute
+	#			
+	# return params: success - True for success, False for Error
+	#				output -  Command output results	 
+	def execute_chip_command(self, chip_cmd, wait_prompt=True):
+		print "Execute on chip: %s" %chip_cmd
+		
+		nps_internal_ip = "169.254.42.44"
+		try:
+			# telnet chip
+			cmd = "telnet %s" %nps_internal_ip
+			self.ssh_object.sendline(cmd)
+			self.ssh_object.expect(' #')
+			exit_code = self.get_execute_command_exit_code(True)
+ 			if (exit_code != 0):
+ 				raise Exception('commmand failed')
+			
+			# excute command
+			self.ssh_object.sendline(chip_cmd)
+			self.ssh_object.expect(' #')
+			output = '\n'.join(self.ssh_object.before.split('\n')[1:])
+			exit_code = self.get_execute_command_exit_code(True)
+ 			if (exit_code != 0):
+ 				raise Exception('commmand failed')
+			
+			# Exit telnet
+			self.ssh_object.sendline('exit')
+			self.ssh_object.prompt(timeout=120)
+			exit_code = self.get_execute_command_exit_code(False)
+ 			if (exit_code != 1):
+ 				raise Exception('commmand failed')
+			
+			return [True, output]
+		except:
+			if exit_code != None:
+				print "exit code " + str(exit_code)
+			else:
+				print "exit code is None..."
+			return [False, "command failed: " + chip_cmd]
 
 	def wait_for_msgs(self, msgs):
 		for i in range(10):

@@ -34,24 +34,26 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 
 	# start ALVS daemon and DP
 	ezbox.connect()
-	ezbox.terminate_cp_app()
+	
+	# validate chip is up
+	ezbox.alvs_service_start()
+	
+	if use_4k_cpus:
+		ezbox.update_dp_papams("--run_cpus 16-4095")
+	else:
+		ezbox.update_dp_papams("--run_cpus 16-511")
 	ezbox.modify_run_cpus(use_4k_cpus)
- 	ezbox.reset_chip()
+	
+	ezbox.alvs_service_stop()
 	ezbox.config_vips(vip_list)
 	ezbox.flush_ipvs()
 	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-	ezbox.run_cp()
-	if use_4k_cpus:
-		ezbox.run_dp(args='--run_cpus 16-4095')
-		ezbox.wait_for_cp_app()
-		# wait for DP application:
-		time.sleep(20)
-	else:
-		ezbox.run_dp(args='--run_cpus 16-511')
-		ezbox.wait_for_cp_app()
-		# wait for DP application:
-		time.sleep(10)
+	ezbox.alvs_service_start()
+
+	# wait for CP before initialize director
+	ezbox.wait_for_cp_app()
 	
+	# init director
 	if use_director:
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
@@ -68,6 +70,9 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 		print "init client: " + c.str()
 		c.init_client()
 	
+	
+	# wait for DP apps
+	ezbox.wait_for_dp_app()
 
 	
 #===============================================================================
