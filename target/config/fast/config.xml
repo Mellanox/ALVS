@@ -37,22 +37,30 @@
                 <cfg:Index>0</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>SEARCH</cfg:Type>
-                <cfg:Size>4096</cfg:Size>
+                <cfg:Size>2304</cfg:Size>
                 <cfg:Copies>2</cfg:Copies>
             </cfg:ExtMemSpaceParams>
             <cfg:ExtMemSpaceParams>
                 <cfg:Index>1</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
-                <cfg:Size>1024</cfg:Size>
+                <cfg:Size>256</cfg:Size>
                 <cfg:MSID>1</cfg:MSID>
             </cfg:ExtMemSpaceParams>
             <cfg:ExtMemSpaceParams>
                 <cfg:Index>2</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>SEARCH</cfg:Type>
-                <cfg:Size>4096</cfg:Size>
+                <cfg:Size>3584</cfg:Size>
                 <cfg:Copies>2</cfg:Copies>
                 <cfg:MSID>2</cfg:MSID>
+            </cfg:ExtMemSpaceParams>
+            <cfg:ExtMemSpaceParams>
+                <cfg:Index>3</cfg:Index>
+                <cfg:Enable>true</cfg:Enable>
+                <cfg:Type>SEARCH</cfg:Type>
+                <cfg:Size>1024</cfg:Size>
+                <cfg:Copies>2</cfg:Copies>
+                <cfg:MSID>3</cfg:MSID>
             </cfg:ExtMemSpaceParams>
         </cfg:ExtMemSpaceParamsFolder>
         <cfg:IndexPoolParamsFolder>
@@ -231,6 +239,33 @@
             </cfg:ProtocolDecoderParams>
         </cfg:ProtocolDecoderParamsFolder>
     </cfg:channel>
+    <cfg:stat>
+        <cfg:PostedPartitionParamsFolder>
+            <cfg:PostedPartitionParams>
+                <cfg:Partition>0</cfg:Partition>
+                <cfg:Enable>true</cfg:Enable>
+                <cfg:MSID>4</cfg:MSID>
+            </cfg:PostedPartitionParams>
+        </cfg:PostedPartitionParamsFolder>
+        <cfg:PostedGroupParamsFolder>
+            <cfg:PostedGroupParams>
+                <cfg:Partition>0</cfg:Partition>
+                <cfg:GroupType>OPTIMIZED</cfg:GroupType>
+                <cfg:StartCounter>0</cfg:StartCounter>
+                <cfg:NumCounters>3932160</cfg:NumCounters>
+            </cfg:PostedGroupParams>
+        </cfg:PostedGroupParamsFolder>
+        <cfg:PostedCountersFolder>
+            <cfg:PostedCounters>
+                <cfg:Partition>0</cfg:Partition>
+                <cfg:NumCounters>3932160</cfg:NumCounters>
+                <cfg:Clear>true</cfg:Clear>
+                <cfg:Counters>
+                    <cfg:PostedCounter/>
+                </cfg:Counters>
+            </cfg:PostedCounters>
+        </cfg:PostedCountersFolder>
+    </cfg:stat>
     <cfg:tm>
         <cfg:TopologyConfigurations>
             <cfg:TopologyConfiguration>
@@ -271,7 +306,7 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>4</cfg:KeySize>
                 <cfg:ResultSize>32</cfg:ResultSize>
-                <cfg:MaxEntries>33554432</cfg:MaxEntries>
+                <cfg:MaxEntries>67108864</cfg:MaxEntries>
                 <cfg:MultiChannelDataMode>DIFFERENT</cfg:MultiChannelDataMode>
                 <cfg:UpdateMode>DP</cfg:UpdateMode>
                 <cfg:SpaceIndex>0</cfg:SpaceIndex>
@@ -294,7 +329,7 @@
                 <cfg:ResultSize>16</cfg:ResultSize>
                 <cfg:MaxEntries>65536</cfg:MaxEntries>
                 <cfg:CacheMode>FULL</cfg:CacheMode>
-                <cfg:SpaceIndex>0</cfg:SpaceIndex>
+                <cfg:SpaceIndex>3</cfg:SpaceIndex>
             </cfg:TableParams>
             <cfg:TableParams>
                 <cfg:StructId>7</cfg:StructId>
@@ -304,7 +339,7 @@
                 <cfg:ResultSize>32</cfg:ResultSize>
                 <cfg:MaxEntries>262144</cfg:MaxEntries>
                 <cfg:CacheMode>FULL</cfg:CacheMode>
-                <cfg:SpaceIndex>0</cfg:SpaceIndex>
+                <cfg:SpaceIndex>3</cfg:SpaceIndex>
             </cfg:TableParams>
         </cfg:TableParamsFolder>
         <cfg:HashParamsFolder>
@@ -314,7 +349,7 @@
                 <cfg:StructMemoryArea>EXTERNAL</cfg:StructMemoryArea>
                 <cfg:KeySize>14</cfg:KeySize>
                 <cfg:ResultSize>8</cfg:ResultSize>
-                <cfg:MaxEntries>33554432</cfg:MaxEntries>
+                <cfg:MaxEntries>67108864</cfg:MaxEntries>
                 <cfg:MultiChannelDataMode>DIFFERENT</cfg:MultiChannelDataMode>
                 <cfg:UpdateMode>DP</cfg:UpdateMode>
                 <cfg:HashSize>26</cfg:HashSize>
