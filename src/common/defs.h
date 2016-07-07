@@ -108,7 +108,7 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
 	ALVS_ERROR_NO_ACTIVE_SERVERS            = 21,
 	ALVS_ERROR_CREATE_CONN_MEM_ERROR        = 22,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 24 /*MUST BE EVEN!*/
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /*MUST BE EVEN!*/
 };
 
 /* Posted Statistics */

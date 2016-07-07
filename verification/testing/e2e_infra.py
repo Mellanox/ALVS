@@ -53,28 +53,27 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	# wait for CP before initialize director
 	ezbox.wait_for_cp_app()
 	
-	# init director
-	if use_director:
-		services = dict((vip, []) for vip in vip_list )
-		for server in server_list:
-			services[server.vip].append((server.ip, server.weight))
-		ezbox.init_director(services)
-		#wait for director
-		time.sleep(5)
-		#flush director configurations
-		ezbox.flush_ipvs()
-		time.sleep(1)
-	
 	# init client
 	for c in client_list:
 		print "init client: " + c.str()
 		c.init_client()
 	
-	
-	# wait for DP apps
+	# wait for DP app
 	ezbox.wait_for_dp_app()
+	# init director
+	if use_director:
+		print 'Start Director'
+		time.sleep(1)
+		services = dict((vip, []) for vip in vip_list )
+		for server in server_list:
+			services[server.vip].append((server.ip, server.weight))
+		ezbox.init_director(services)
+		#wait for director
+		time.sleep(10)
+		#flush director configurations
+		ezbox.flush_ipvs()
+		time.sleep(1)
 
-	
 #===============================================================================
 # clean functions
 #===============================================================================
@@ -92,7 +91,7 @@ def clean_players(server_list, ezbox, client_list, use_director = False):
 		print "clean client: " + c.str()
 		c.clean_client()
 
-	ezbox.clean(use_director)
+	ezbox.clean(use_director,True)
 
 #===============================================================================
 # Run functions
@@ -130,10 +129,11 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 '''
 	general_checker: This checker should run in all tests before clean_players
 '''
-def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True, 'no_debug':True}):
+def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True, 'no_debug':True, 'no_open_connections':True, 'no_error_stats':True}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	host_rc = True
 	syslog_rc = True
+	stats_rc = True
 	if 'host_stat_clean' in expected:
 		rc = host_stats_checker(ezbox)
 		if expected['host_stat_clean'] == False:
@@ -147,8 +147,11 @@ def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean'
 			syslog_rc = (True if rc == False else False)
 		else:
 			syslog_rc = rc
-
-	return (host_rc and syslog_rc)
+	
+	if 'no_open_connections' in expected or 'no_error_stats' in expected:
+		stats_rc = statistics_checker(ezbox, no_errors=expected.get('no_error_stats', False), no_connections=expected.get('no_open_connections', False))
+		
+	return (host_rc and syslog_rc and stats_rc)
 
 '''
 	host_stats_checker: checkes all ipvs statistics on host are zero.
@@ -209,6 +212,48 @@ def syslog_checker(ezbox, no_debug):
 		print 'ERROR: problem reading syslog !'
 	
 	return ret
+
+'''
+	statistics_checker: checkes statistics counters for errors and open connections
+'''
+def statistics_checker(ezbox, no_errors=True, no_connections=True):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	connection_rc = True
+	error_rc = True
+	if no_connections:
+		time.sleep(60)
+		for i in range(ALVS_SERVICES_MAX_ENTRIES):
+			stats_dict = ezbox.get_services_stats(i)
+			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
+				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
+				connection_rc = False
+	
+	error_counters={ALVS_ERROR_CANT_EXPIRE_CONNECTION:'ALVS_ERROR_CANT_EXPIRE_CONNECTION',
+					ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE:'ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE',
+					ALVS_ERROR_CONN_INFO_LKUP_FAIL:'ALVS_ERROR_CONN_INFO_LKUP_FAIL',
+					ALVS_ERROR_CONN_CLASS_ALLOC_FAIL:'ALVS_ERROR_CONN_CLASS_ALLOC_FAIL',
+					ALVS_ERROR_CONN_INFO_ALLOC_FAIL:'ALVS_ERROR_CONN_INFO_ALLOC_FAIL',
+					ALVS_ERROR_CONN_INDEX_ALLOC_FAIL:'ALVS_ERROR_CONN_INDEX_ALLOC_FAIL',
+					ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL:'ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL',
+					ALVS_ERROR_FAIL_SH_SCHEDULING:'ALVS_ERROR_FAIL_SH_SCHEDULING',
+					ALVS_ERROR_SERVER_INFO_LKUP_FAIL:'ALVS_ERROR_SERVER_INFO_LKUP_FAIL',
+					ALVS_ERROR_SERVER_IS_UNAVAILABLE:'ALVS_ERROR_SERVER_IS_UNAVAILABLE',
+					ALVS_ERROR_SERVER_INDEX_LKUP_FAIL:'ALVS_ERROR_SERVER_INDEX_LKUP_FAIL',
+					ALVS_ERROR_CONN_CLASS_LKUP_FAIL:'ALVS_ERROR_CONN_CLASS_LKUP_FAIL',
+					ALVS_ERROR_SERVICE_INFO_LOOKUP:'ALVS_ERROR_SERVICE_INFO_LOOKUP',
+					ALVS_ERROR_CANT_MARK_DELETE:'ALVS_ERROR_CANT_MARK_DELETE',
+					ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL:'ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL',
+					ALVS_ERROR_SEND_FRAME_FAIL:'ALVS_ERROR_SEND_FRAME_FAIL',
+					ALVS_ERROR_SERVICE_CLASS_LOOKUP:'ALVS_ERROR_SERVICE_CLASS_LOOKUP',
+					ALVS_ERROR_CREATE_CONN_MEM_ERROR:'ALVS_ERROR_CREATE_CONN_MEM_ERROR'}
+	if no_errors:
+		for error_id,error_name in error_counters.items():
+			count = ezbox.get_error_stats(error_id)
+			if count > 0:
+				print 'ERROR: %s errors found. count = %d' %(error_name, count)
+				error_rc = False
+	
+	return (connection_rc and error_rc)
 
 '''
 	client_checker: Supports up to 100 steps (0-99)
