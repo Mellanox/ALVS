@@ -63,7 +63,7 @@ def main():
     (options, args) = parser.parse_args()
     if not options.http_ip:
         print 'HTTP IP is not given'
-        # format example http://10.157.7.210
+        # format example http://10.157.7.243
         return False
     
 
