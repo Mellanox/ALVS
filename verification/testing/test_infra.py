@@ -256,16 +256,18 @@ class service:
         # need to wait until this will be executed on cp
         time.sleep(1)
         
-    def modify_server(self, server_to_modify):
+    def modify_server(self, server_to_modify, weight=1):
         
         if server_to_modify not in self.servers:
             print "Error, Server is not exist on Service"
             exit(1)
              
-        result, output = self.ezbox.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s"%(self.virtual_ip, self.port, server_to_modify.data_ip, self.port))
-        if result == False:
-            print "Error while removing Server from Service"
-            exit(1)
+        self.ezbox.modify_server(self.virtual_ip, self.port, server_to_modify.data_ip, self.port, weight, routing_alg_opt=' ')
+        
+#         result, output = self.ezbox.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s"%(self.virtual_ip, self.port, server_to_modify.data_ip, self.port))
+#         if result == False:
+#             print "Error while removing Server from Service"
+#             exit(1)
         
     def remove_service(self):
         result,output = self.ezbox.execute_command_on_host("ipvsadm -D -t %s:%s"%(self.virtual_ip, self.port))
@@ -618,14 +620,9 @@ def create_pcap_file(packets_list, output_pcap_file_name):
     # create temp text file
     os.system("rm -f verification/testing/dp/temp.txt")
     os.system("rm -f "+ output_pcap_file_name)
-#     time.sleep(5)
-#     cmd = "(echo 0000    " + packets_list[0].packet + ' '
-#     for packet in packets_list[1:]:
-#         cmd += " & echo 0000    " + packet.packet
-#     cmd += ") > temp.txt"   
         
-    for packet in packets_list:
-        os.system("echo 0000    " + packet.packet + " >> verification/testing/dp/temp.txt")
+    for packet_str in packets_list:
+        os.system("echo 0000    " + packet_str + " >> verification/testing/dp/temp.txt")
 
     os.system("echo 0000 >> verification/testing/dp/temp.txt")
     

@@ -12,6 +12,7 @@ import inspect
 import time
 import struct
 import socket
+import pprint
 
 from pexpect import pxssh
 import pexpect
@@ -44,32 +45,9 @@ ALVS_SERVERS_MAX_ENTRIES	 = ALVS_SERVICES_MAX_ENTRIES*1024
 ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
 NUM_OF_INTERFACES			 = 5
-NW_NUM_OF_IF_STATS			  = 10
+NW_NUM_OF_IF_STATS			 = 10
 
-ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO     = 0
-ALVS_ERROR_CANT_EXPIRE_CONNECTION       = 1
-ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE = 2
-ALVS_ERROR_CONN_INFO_LKUP_FAIL          = 3
-ALVS_ERROR_CONN_CLASS_ALLOC_FAIL        = 4
-ALVS_ERROR_CONN_INFO_ALLOC_FAIL         = 5
-ALVS_ERROR_CONN_INDEX_ALLOC_FAIL        = 6
-ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL      = 7
-ALVS_ERROR_FAIL_SH_SCHEDULING           = 8
-ALVS_ERROR_SERVER_INFO_LKUP_FAIL        = 9
-ALVS_ERROR_SERVER_IS_UNAVAILABLE        = 10
-ALVS_ERROR_SERVER_INDEX_LKUP_FAIL       = 11
-ALVS_ERROR_CONN_CLASS_LKUP_FAIL         = 12
-ALVS_ERROR_SERVICE_INFO_LOOKUP          = 13
-ALVS_ERROR_UNSUPPORTED_SCHED_ALGO       = 14
-ALVS_ERROR_CANT_MARK_DELETE             = 15
-ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL     = 16
-ALVS_ERROR_SEND_FRAME_FAIL              = 17
-ALVS_ERROR_CONN_MARK_TO_DELETE          = 18
-ALVS_ERROR_SERVICE_CLASS_LOOKUP         = 19
-ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20
-ALVS_ERROR_NO_ACTIVE_SERVERS            = 21
-ALVS_ERROR_CREATE_CONN_MEM_ERROR        = 22
-ALVS_NUM_OF_ALVS_ERROR_STATS            = 30
+ALVS_NUM_OF_ALVS_ERROR_STATS = 30
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
 EMEM_SERVICE_STATS_POSTED_OFFSET = EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS
@@ -112,7 +90,7 @@ class ezbox_host:
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
-		os.system("verification/testing/wait_for_connection.sh " + self.setup['chip'])
+
 
 	def execute_command_on_chip(self, chip_cmd):
 		return self.ssh_object.execute_chip_command(chip_cmd)
@@ -131,6 +109,7 @@ class ezbox_host:
 	def update_dp_papams(self, params=None):
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_DP_ARGS | xargs sed -i '/ALVS_DP_ARGS=/c\ALVS_DP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
+
 
 	def clean(self, use_director=False, stop_service=False):
 		if use_director:
@@ -240,35 +219,44 @@ class ezbox_host:
 		self.run_app_ssh.execute_command("bsp_nps_power -r por")
 
 	def wait_for_cp_app(self):
-		print "wait for CP application..."
+# 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
+		sys.stdout.write("Waiting for CP Application to load...")
+		sys.stdout.flush() 
 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...'])
+		print
 		if output == 0:
-			
 			return True
 		elif output == 1:
 			
 			return False
 		elif output < 0:
-			print 'wait_for_cp_app: Error... (end of output)'
+			print '\nwait_for_cp_app: Error... (end of output)'
 			return False
 		else:
-			print 'wait_for_cp_app: Error... (Unknown output)'
+			print '\nwait_for_cp_app: Error... (Unknown output)'
 			return False
-		 
+		
+
 	def wait_for_dp_app(self):
-		print "wait for DP application..."
+		sys.stdout.write("Waiting for DP application to load...")
+		sys.stdout.flush()
 		output = self.syslog_ssh.wait_for_msgs(['starting ALVS DP application'])
+		print
+
 		if output == 0:
 			return True
 		elif output == 1:
 			return False
 		elif output < 0:
-			print sys._getframe().f_code.co_name + ": Error... (end of output)"
+			print "\n" + sys._getframe().f_code.co_name + ": Error... (end of output)"
 			return False
 		else:
-			print sys._getframe().f_code.co_name + ": Error... (Unknown output)"
+			print "\n" + sys._getframe().f_code.co_name + ": Error... (Unknown output)"
 			return False
-		 
+
+		
+		
+
 	def get_cp_app_pid(self):
 		retcode, output = self.ssh_object.execute_command("pidof alvs_daemon")		 
 		if output == '':
@@ -278,9 +266,9 @@ class ezbox_host:
 			
 	def capture_packets(self, tcpdump_params = None):
 		if tcpdump_params == None:
-			tcpdump_params = 'dst' + self.setup['host']
+			tcpdump_params = 'dst ' + self.setup['host']
 
-		self.ssh_object.execute_command('tcpdump -w /tmp/dump.pcap -i ' + self.setup['interface'] + ' ' + tcpdump_params + ' &')
+		self.ssh_object.execute_command('pkill -HUP -f tcpdump; tcpdump -w /tmp/dump.pcap -i ' + self.setup['interface'] + ' ' + tcpdump_params + ' &')
 
 	def stop_capture(self):
 		self.ssh_object.execute_command('pkill -HUP -f tcpdump')
@@ -541,13 +529,33 @@ class ezbox_host:
 #		 self.ssh_object.prompt()			   # match the prompt
 #		 output = self.ssh_object.before		# print everything before the prompt.
 #		 logging.log(logging.DEBUG, output)
-	 
-	def get_error_stats(self, error_id):
-		if error_id < EMEM_ALVS_ERROR_STATS_POSTED_OFFSET or error_id > EMEM_SERVICE_STATS_POSTED_OFFSET:
-			return -1
-		lsb = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=16, num_counters=1, double_operation=False).result['posted_counter_config']['counters'][0]['byte_value']
-		msb = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=16, num_counters=1, double_operation=False).result['posted_counter_config']['counters'][0]['byte_value_msb']
-		return lsb # return only the lsb (small amount of packets on tests)
+	
+	def get_error_stats(self):
+		error_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False).result['posted_counter_config']['counters']
+		
+		stats_dict = {'ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO':error_stats[0]['byte_value'],
+					  'ALVS_ERROR_CANT_EXPIRE_CONNECTION':error_stats[1]['byte_value'],
+					  'ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE':error_stats[2]['byte_value'],
+					  'ALVS_ERROR_CONN_INFO_LKUP_FAIL':error_stats[3]['byte_value'],
+					  'ALVS_ERROR_CONN_CLASS_ALLOC_FAIL':error_stats[4]['byte_value'],
+					  'ALVS_ERROR_CONN_INFO_ALLOC_FAIL':error_stats[5]['byte_value'],
+					  'ALVS_ERROR_CONN_INDEX_ALLOC_FAIL':error_stats[6]['byte_value'],
+					  'ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL':error_stats[7]['byte_value'],
+					  'ALVS_ERROR_FAIL_SH_SCHEDULING':error_stats[8]['byte_value'],
+					  'ALVS_ERROR_SERVER_INFO_LKUP_FAIL':error_stats[9]['byte_value'],
+					  'ALVS_ERROR_SERVER_IS_UNAVAILABLE':error_stats[10]['byte_value'],
+					  'ALVS_ERROR_SERVER_INDEX_LKUP_FAIL':error_stats[11]['byte_value'],
+					  'ALVS_ERROR_CONN_CLASS_LKUP_FAIL':error_stats[12]['byte_value'],
+					  'ALVS_ERROR_SERVICE_INFO_LOOKUP':error_stats[13]['byte_value'],
+					  'ALVS_ERROR_UNSUPPORTED_SCHED_ALGO':error_stats[14]['byte_value'],
+					  'ALVS_ERROR_CANT_MARK_DELETE':error_stats[15]['byte_value'],
+					  'ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL':error_stats[16]['byte_value'],
+					  'ALVS_ERROR_SEND_FRAME_FAIL':error_stats[17]['byte_value'],
+					  'ALVS_ERROR_CONN_MARK_TO_DELETE':error_stats[18]['byte_value'],
+					  'ALVS_ERROR_SERVICE_CLASS_LOOKUP':error_stats[19]['byte_value'],
+					  'ALVS_ERROR_UNSUPPORTED_PROTOCOL':error_stats[20]['byte_value']}
+		
+		return stats_dict # return only the lsb (small amount of packets on tests)
 
 	def get_services_stats(self, service_id):
 		if service_id < 0 or service_id > ALVS_SERVICES_MAX_ENTRIES:
@@ -615,15 +623,53 @@ class ezbox_host:
 					  'NW_IF_STATS_IPV4_ERROR':interface_stats[2]['byte_value'],
 					  'NW_IF_STATS_NOT_MY_MAC':interface_stats[3]['byte_value'],
 					  'NW_IF_STATS_NOT_IPV4':interface_stats[4]['byte_value'],
-					  'NW_IF_STATS_NOT_UDP_OR_TCP':interface_stats[5]['byte_value'],
+					  'NW_IF_STATS_NOT_TCP':interface_stats[5]['byte_value'],
 					  'NW_IF_STATS_NO_VALID_ROUTE':interface_stats[6]['byte_value'],
 					  'NW_IF_STATS_FAIL_ARP_LOOKUP':interface_stats[7]['byte_value'],
 					  'NW_IF_STATS_FAIL_INTERFACE_LOOKUP':interface_stats[8]['byte_value']}
-					  
+					
 		return stats_dict
+	
+	def print_all_stats(self):
+		print
 		
-
-
+		# print error stats
+		print "Error Statistics"
+		error_stats = self.get_error_stats()
+		for key, value in error_stats.iteritems():
+			if value>0:
+				print "Error stats (%s): %d"%(key,value)
+				logging.log(logging.INFO,"Error stats (%s): %d"%(key,value))
+			
+		# print service stats
+		print "Services Statistics:"
+		for i in range(ALVS_SERVICES_MAX_ENTRIES):
+			service_stats = self.get_services_stats(i)
+			for key, value in service_stats.iteritems():
+				if value>0:
+					print "Service id %d stats (%s): %d"%(i,key,value)	
+					logging.log(logging.INFO,"Service id %d stats (%s): %d"%(i,key,value))
+		
+		# print servers stats
+		print "Server Statistics:"
+		# only prints the first 1000 servers (all the servers 256k takes a lot of time..)
+		for i in range(1000): 
+			server_stats = self.get_servers_stats(i)
+			for key, value in server_stats.iteritems():
+				if value>0:
+					print "Server id %d stats (%s): %d"%(i,key,value)
+					logging.log(logging.INFO,"Server id %d stats (%s): %d"%(i,key,value))
+		
+		# print interface stats
+		print "Interface Statistics:"
+		for i in range(NUM_OF_INTERFACES):
+			interface_stats = self.get_interface_stats(i)
+			for key, value in interface_stats.iteritems():
+				if value>0:
+					print "Interface %d stats (%s): %d"%(i,key,value)
+					logging.log(logging.INFO,"Interface %d stats (%s): %d"%(i,key,value))			
+		print
+		
 class SshConnect:
 	def __init__(self, hostname, username, password):
 
@@ -746,10 +792,11 @@ class SshConnect:
 		for i in range(10):
 			index = self.ssh_object.expect_exact([pexpect.EOF, pexpect.TIMEOUT] + msgs)
 			if index == 0:
-				print self.ssh_object.before + self.ssh_object.match
+				print "\n" + self.ssh_object.before + self.ssh_object.match
 				return -1
 			elif index == 1:
-				print "Timeout" #self.ssh_object.before
+				sys.stdout.write(".") # timeout
+				sys.stdout.flush()
 			else:
 				return (index-2)
 

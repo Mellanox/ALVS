@@ -22,23 +22,21 @@ if args['hard_reset']:
 
 # init ALVS daemon
 ezbox.connect()
-ezbox.terminate_cp_app()
-ezbox.reset_chip()
 ezbox.flush_ipvs()
+ezbox.alvs_service_stop()
 ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.run_cp()
 ezbox.copy_dp_bin(debug_mode=args['debug'])
+ezbox.alvs_service_start()
 ezbox.wait_for_cp_app()
-ezbox.run_dp(args='--run_cpus 16-511')
-    
+ezbox.wait_for_dp_app()
+ezbox.clean_director()
+
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
 
 # each setup can use different the virtual ip 
 virtual_ip_address_1 = get_setup_vip(args['setup_num'], 0)
 virtual_ip_address_2 = get_setup_vip(args['setup_num'], 1)
-
-
 
 # create servers
 server1 = real_server(management_ip=ip_list[0]['hostname'], data_ip=ip_list[0]['ip'])
@@ -54,9 +52,6 @@ first_service.add_server(server1, weight='1')
 
 second_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_2, port='80', schedule_algorithm = 'source_hash')
 second_service.add_server(server1, weight='1')
-
-# set the director
-# ezbox.init_director(service.services_dictionary)
 
 # create packet
 reset_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
@@ -106,18 +101,18 @@ data_packet.generate_packet()
 
 
 
-reset_fin_data_packets = create_pcap_file(packets_list=[reset_packet,fin_packet,data_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet1.pcap')
-reset_data_fin_packets = create_pcap_file(packets_list=[reset_packet,data_packet,fin_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet2.pcap')
-fin_reset_data_packets = create_pcap_file(packets_list=[fin_packet,reset_packet,data_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet3.pcap')
-fin_data_reset_packets = create_pcap_file(packets_list=[fin_packet,data_packet,reset_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet4.pcap')
-data_fin_reset_packets = create_pcap_file(packets_list=[data_packet,fin_packet,reset_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet5.pcap')
-data_reset_fin_packets = create_pcap_file(packets_list=[data_packet,reset_packet,fin_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet6.pcap')
-fin_data_packets = create_pcap_file(packets_list=[fin_packet, data_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet7.pcap')
-data_fin_packets = create_pcap_file(packets_list=[data_packet,fin_packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet8.pcap')
+reset_fin_data_packets = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet,data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet1.pcap')
+reset_data_fin_packets = create_pcap_file(packets_list=[reset_packet.packet,data_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet2.pcap')
+fin_reset_data_packets = create_pcap_file(packets_list=[fin_packet.packet,reset_packet.packet,data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet3.pcap')
+fin_data_reset_packets = create_pcap_file(packets_list=[fin_packet.packet,data_packet.packet,reset_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet4.pcap')
+data_fin_reset_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet,reset_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet5.pcap')
+data_reset_fin_packets = create_pcap_file(packets_list=[data_packet.packet,reset_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet6.pcap')
+fin_data_packets = create_pcap_file(packets_list=[fin_packet.packet, data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet7.pcap')
+data_fin_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet8.pcap')
 
-pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
+# pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
 
-# pcaps_with_reset = [reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
+pcaps_with_reset = [reset_packet.pcap_file_name, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
 
 pcaps_with_fin_no_reset = [fin_data_packets, data_fin_packets]
 
@@ -128,48 +123,48 @@ for pcap_to_send in pcaps_with_reset:
     print "\nSend %s packets with reset to slow path (connection not exist)\n"%pcap_to_send
     
     # delete and create service
-    print "Delete and Create Service"
-    first_service.remove_service()
-    first_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_1, port='80', schedule_algorithm = 'source_hash')
-    first_service.add_server(server1, weight='1')
-    
-    # verify that connection not exist
-    print "Connection is not exist"
-    connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-    if connection != None:
-        print "ERROR, connection was created, even though server is not exist\n"
-        exit(1)
-        
-    # capture all packets on server
-    server1.capture_packets_from_service(service=first_service)
-    
-    # send packet
-    print "Send Packet with reset to Service"
-    client_object.send_packet_to_nps(pcap_to_send)
-    
-    # verify that connection was made
-    connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-    if connection == None:
-        print "ERROR, connection is not exist\n"
-        exit(1)
-
-    # check how many packets were captured
-    packets_received = server1.stop_capture()
-    
-    if packets_received < 1 or packets_received > 3:
-        print "ERROR, wrong number of packets were received on server"
-        exit(1)
-    
-    print "Connection was made and packet was received on server"    
-    # wait 16 seconds and check that the connection was deleted
-    print "Check that connection is deleting after 16 seconds"
-    time.sleep(CLOSE_WAIT_DELETE_TIME)
-    
-    # verify that connection was deleted
-    connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-    if connection != None:
-        print "ERROR, connection wasnt deleted properly\n"
-        exit(1)
+#     print "Delete and Create Service"
+#     first_service.remove_service()
+#     first_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_1, port='80', schedule_algorithm = 'source_hash')
+#     first_service.add_server(server1, weight='1')
+#     
+#     # verify that connection not exist
+#     print "Connection is not exist"
+#     connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+#     if connection != None:
+#         print "ERROR, connection was created, even though server is not exist\n"
+#         exit(1)
+#         
+#     # capture all packets on server
+#     server1.capture_packets_from_service(service=first_service)
+#     
+#     # send packet
+#     print "Send Packet with reset to Service"
+#     client_object.send_packet_to_nps(pcap_to_send)
+#     
+#     # verify that connection was made
+#     connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+#     if connection == None:
+#         print "ERROR, connection is not exist\n"
+#         exit(1)
+# 
+#     # check how many packets were captured
+#     packets_received = server1.stop_capture()
+#     
+#     if packets_received < 1 or packets_received > 3:
+#         print "ERROR, wrong number of packets were received on server"
+#         exit(1)
+#     
+#     print "Connection was made and packet was received on server"    
+#     # wait 16 seconds and check that the connection was deleted
+#     print "Check that connection is deleting after 16 seconds"
+#     time.sleep(CLOSE_WAIT_DELETE_TIME)
+#     
+#     # verify that connection was deleted
+#     connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+#     if connection != None:
+#         print "ERROR, connection wasnt deleted properly\n"
+#         exit(1)
  
     ##########################################################################
     # run the same with an active connection, (fast path) 
@@ -191,34 +186,36 @@ for pcap_to_send in pcaps_with_reset:
     # capture all packets on server
     server1.capture_packets_from_service(service=first_service)
     
+    exit(1)
     # send packet
-    print "Send the packets with reset to service"
-    client_object.send_packet_to_nps(pcap_to_send)
- 
-    # verify that connection was made
-    connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-    if connection == None:
-        print "ERROR, connection was created, even though server is not exist\n"
-        exit(1)
-    
-    # check how many packets were captured
-    packets_received = server1.stop_capture()
-    
-    if packets_received < 1 or packets_received > 3: # after reset all packets should be dropped
-        print "ERROR, wrong number of packets were received on server"
-        print "Received %d packets"%packets_received
-        exit(1)
-    
-    print "Connection was made and packet was received on server"  
-    # wait 16 seconds and check that the connection was deleted
-    print "Check that connection is deleting after 16 seconds"
-    time.sleep(CLOSE_WAIT_DELETE_TIME)
-    
-    # verify that connection was deleted
-    connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-    if connection != None:
-        print "ERROR, connection wasnt deleted properly\n"
-        exit(1)       
+#     print "Send the packets with reset to service"
+#     client_object.send_packet_to_nps(reset_packet.pcap_file_name) #should be pcap_to_send
+#  
+#     # verify that connection was made
+#     time.sleep(1)
+#     connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+#     if connection == None:
+#         print "ERROR, connection was created, even though server is not exist\n"
+#         exit(1)
+#     
+#     # check how many packets were captured
+#     packets_received = server1.stop_capture()
+#     
+#     if packets_received < 1 or packets_received > 3: # after reset all packets should be dropped
+#         print "ERROR, wrong number of packets were received on server"
+#         print "Received %d packets"%packets_received
+#         exit(1)
+#     
+#     print "Connection was made and packet was received on server"  
+#     # wait 16 seconds and check that the connection was deleted
+#     print "Check that connection is deleting after 16 seconds"
+#     time.sleep(CLOSE_WAIT_DELETE_TIME)
+#     
+#     # verify that connection was deleted
+#     connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+#     if connection != None:
+#         print "ERROR, connection wasnt deleted properly\n"
+#         exit(1)       
         
 for pcap_to_send in pcaps_with_fin_no_reset:
     ##########################################################################

@@ -19,17 +19,15 @@ if args['hard_reset']:
 
 # init ALVS daemon
 ezbox.connect()
-ezbox.terminate_cp_app()
-ezbox.reset_chip()
 ezbox.flush_ipvs()
+ezbox.alvs_service_stop()
 ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.run_cp()
 ezbox.copy_dp_bin(debug_mode=args['debug'])
+ezbox.alvs_service_start()
 ezbox.wait_for_cp_app()
-ezbox.run_dp(args='--run_cpus 16-511')
+ezbox.wait_for_dp_app()
 ezbox.clean_director()
 
-time.sleep(10)
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
 
@@ -264,7 +262,7 @@ if connection == None:
     exit(1)
   
 # save the statistics before the packet transmision
-stats_before = ezbox.get_error_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL)
+stats_before = ezbox.get_error_stats()
 
 print "Delete server from service"    
 third_service.remove_server(server1)
@@ -275,10 +273,10 @@ client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name
 # check that packet was dropped 
 print "Check drop statistics"
 time.sleep(0.5)
-if ezbox.get_error_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL) != stats_before+1:
+if ezbox.get_error_stats()['ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL'] != stats_before['ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL']+1:
     print "ERROR, ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL stats is incorrect"
     print "stats before = %d"%stats_before
-    print "stats after packet transmit = %d"%ezbox.get_error_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL)
+    print "stats after packet transmit = %d"%ezbox.get_error_stats()['ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL']
     exit(1)
     
 # add server back

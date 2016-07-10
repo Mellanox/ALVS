@@ -19,15 +19,13 @@ if args['hard_reset']:
 
 # init ALVS daemon
 ezbox.connect()
-ezbox.terminate_cp_app()
-ezbox.reset_chip()
 ezbox.flush_ipvs()
+ezbox.alvs_service_stop()
 ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.run_cp()
 ezbox.copy_dp_bin(debug_mode=args['debug'])
+ezbox.alvs_service_start()
 ezbox.wait_for_cp_app()
-ezbox.run_dp(args='--run_cpus 16-31')
-ezbox.clean_director()
+ezbox.wait_for_dp_app()
 
 # disable the ldirector - causes noise on the nps ports..
 ezbox.execute_command_on_host('/usr/sbin/ldirectord stop')
@@ -60,7 +58,7 @@ data_packet1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          packet_length=64)
 data_packet1.generate_packet()
 
-packets_to_send_list = [data_packet1] * 500
+packets_to_send_list = [data_packet1.packet] * 500
 
 pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
 
@@ -68,7 +66,7 @@ pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_f
 print "Send 1000 packets with different mac da"
 
 mac_da = '52:54:00:c5:15:41'
-for i in range(1000):
+for i in range(500):
     ezbox.execute_command_on_host('arp -s %s %s'%(server1.data_ip, mac_da)) # change the arp entry to use different mac da for this service    
     client_object.send_packet_to_nps(data_packet1.pcap_file_name)
     mac_da = add2mac(mac_da, 1)
@@ -82,22 +80,22 @@ port2 = int(port2.get_struct_dict()['counter_value'],16)
 port3 = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,if_engine=1,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 port3 = int(port3.get_struct_dict()['counter_value'],16)
  
-if port0 < 250 * 0.90 or port0 > 250 * 1.1:
+if port0 < 125 * 0.90 or port0 > 125 * 1.1:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
     
-if port1 < 250 * 0.9 or port0 > 250 * 1.1:
+if port1 < 125 * 0.9 or port0 > 125 * 1.1:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
 
-if port2 < 250 * 0.9 or port0 > 250 * 1.1:
+if port2 < 125 * 0.9 or port0 > 125 * 1.1:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
 
-if port3 < 250 * 0.9 or port0 > 250 * 1.1:
+if port3 < 125 * 0.9 or port0 > 125 * 1.1:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
