@@ -2147,6 +2147,7 @@ enum alvs_db_rc alvs_db_clear(void)
 			write_log(LOG_CRIT, "Failed to delete service classification entry.\n");
 			return ALVS_DB_NPS_ERROR;
 		}
+		service_list = service_list->next;
 	}
 
 	alvs_free_service_list(service_list);
