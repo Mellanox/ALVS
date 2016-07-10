@@ -44,6 +44,7 @@
 #include <arpa/inet.h>
 #include "log.h"
 
+#include <EZapiStat.h>
 #include "alvs_db.h"
 #include "sqlite3.h"
 #include "stack.h"
@@ -934,9 +935,26 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
  *
  * \return      currently returns only zero
  */
-uint32_t get_num_active_conn(ezdp_sum_addr_t server_stats_base)
+uint64_t get_num_active_conn(uint32_t server_index)
 {
-	return 0;
+	EZstatus ret_val;
+	EZapiStat_PostedCounter posted_counter;
+	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	posted_counter_config.uiPartition = 0;
+	posted_counter.uiCounter = EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS) + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET;
+	posted_counter_config.pasCounters = &posted_counter;
+	posted_counter_config.bRange = false;
+	posted_counter_config.uiStartCounter = EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS) + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET;
+	posted_counter_config.uiNumCounters = 1;
+	posted_counter_config.bDoubleOperation = false;
+	ret_val = EZapiStat_Config(0, EZapiStat_StatCmd_GetPostedCounters, &posted_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		return false;
+	}
+
+	return posted_counter.uiByteValue + (posted_counter.uiByteValueMSB << 32);
 }
 
 /**************************************************************************//**
@@ -1868,7 +1886,7 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
 	cp_service.port = bswap_16(ip_vs_service->port);
-	cp_service.protocol = bswap_16(ip_vs_service->protocol);
+	cp_service.protocol = ip_vs_service->protocol;
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
@@ -2221,7 +2239,7 @@ void server_db_aging(void)
 
 		/* Collect server ids */
 		while (rc == SQLITE_ROW) {
-			if (get_num_active_conn(sqlite3_column_int(statement, 12)) == 0) {
+			if (get_num_active_conn(sqlite3_column_int(statement, 5)) == 0) {
 				cp_server.ip = sqlite3_column_int(statement, 0);
 				cp_server.port = sqlite3_column_int(statement, 1);
 				cp_service.ip = sqlite3_column_int(statement, 2);
