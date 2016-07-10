@@ -67,7 +67,7 @@ NW_IF_STATS_FAIL_ARP_LOOKUP		  = 7,
 NW_IF_STATS_FAIL_INTERFACE_LOOKUP = 8,
 NW_NUM_OF_IF_STATS				  = 10
 
-CLOSE_WAIT_DELETE_TIME = 16
+CLOSE_WAIT_DELETE_TIME = 32#16 #todo need to change it back to 16 after a fix to aging time.. 
 FIN_FLAG_DELETE_TIME = 60
 
 
@@ -90,7 +90,6 @@ class ezbox_host:
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
-
 
 	def execute_command_on_chip(self, chip_cmd):
 		return self.ssh_object.execute_chip_command(chip_cmd)
@@ -268,9 +267,6 @@ class ezbox_host:
 			print "\n" + sys._getframe().f_code.co_name + ": Error... (Unknown output)"
 			return False
 
-		
-		
-
 	def get_cp_app_pid(self):
 		retcode, output = self.ssh_object.execute_command("pidof alvs_daemon")		 
 		if output == '':
@@ -286,6 +282,7 @@ class ezbox_host:
 
 	def stop_capture(self):
 		self.ssh_object.execute_command('pkill -HUP -f tcpdump')
+		time.sleep(1)
 		result, output = self.ssh_object.execute_command('tcpdump -r /tmp/dump.pcap | wc -l')
 		if result == False:
 			print 'ERROR, reading captured num of packets was failed'
@@ -544,6 +541,12 @@ class ezbox_host:
 #		 output = self.ssh_object.before		# print everything before the prompt.
 #		 logging.log(logging.DEBUG, output)
 	
+
+	def clear_stats(self):
+		error_stats = self.cpe.cp.stat.set_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False, clear=True)
+		
+		
+
 	def get_error_stats(self):
 		error_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False).result['posted_counter_config']['counters']
 		
@@ -616,7 +619,6 @@ class ezbox_host:
 					  'SERVER_STATS_INACTIVE_CONN':server_stats[6]['byte_value'],
 					  'SERVER_STATS_ACTIVE_CONN':server_stats[7]['byte_value']}
 		return stats_dict
-	
 
 	def get_interface_stats(self, interface_id):
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:
@@ -813,7 +815,9 @@ class SshConnect:
 				sys.stdout.flush()
 			else:
 				return (index-2)
-
+		print "Error while waiting for message"
+		return -1
+	
 class player(object):
 	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
 		self.ip = ip
@@ -917,7 +921,6 @@ def get_setup_vip(setup_num,index):
 def check_connections(ezbox):
     print 'connection count = %d'  %ezbox.get_num_of_connections()
     pass
-
 
 def ip2int(addr):															   
 	return struct.unpack("!I", socket.inet_aton(addr))[0]					   

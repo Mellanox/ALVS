@@ -127,7 +127,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*in case of any error send frame to host*/
 		if (!cmem_nw.ipv4_decode_result.next_protocol.tcp) {
 			printf("!TCP - NOT supported\n");
-			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
+			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}

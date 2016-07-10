@@ -62,8 +62,8 @@ packets_to_send_list = [data_packet1.packet] * 500
 
 pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
 
-# send 100 packets to different mac da and check the ports statistics , each port tx stats should be ~250 
-print "Send 1000 packets with different mac da"
+# send 500 packets to different mac da and check the ports statistics , each port tx stats should be ~250 
+print "Send 500 packets with different mac da"
 
 mac_da = '52:54:00:c5:15:41'
 for i in range(500):

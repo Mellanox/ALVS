@@ -77,7 +77,7 @@ enum nw_if_posted_stats_offsets {
 	NW_IF_STATS_IPV4_ERROR              = 2,
 	NW_IF_STATS_NOT_MY_MAC              = 3,
 	NW_IF_STATS_NOT_IPV4                = 4,
-	NW_IF_STATS_NOT_UDP_OR_TCP          = 5,
+	NW_IF_STATS_NOT_TCP          	    = 5,
 	NW_IF_STATS_NO_VALID_ROUTE          = 6,
 	NW_IF_STATS_FAIL_ARP_LOOKUP         = 7,
 	NW_IF_STATS_FAIL_INTERFACE_LOOKUP   = 8,
@@ -108,7 +108,7 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
 	ALVS_ERROR_NO_ACTIVE_SERVERS            = 21,
 	ALVS_ERROR_CREATE_CONN_MEM_ERROR        = 22,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /*MUST BE EVEN!*/
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /* MUST BE EVEN! */
 };
 
 /* Posted Statistics */

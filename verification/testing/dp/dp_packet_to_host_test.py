@@ -7,7 +7,7 @@ from test_infra import *
 args = read_test_arg(sys.argv)	
 
 scenarios_to_run = args['scenarios']
-scenarios_to_run = [1,2,3,4,5,6,7,8]
+# scenarios_to_run = [1,2,3,4,5,6,7,8]
 
 log_file = "scheduling_algorithm_test.log"
 if 'log_file' in args:
@@ -91,7 +91,9 @@ if 1 in scenarios_to_run:
 		exit(1)
 		
 
-	print "Test Passed\n"
+
+	print "Scenario Passed\n"
+
 
 
 ####################################################################################################################
@@ -141,7 +143,9 @@ if 2 in scenarios_to_run:
 		print "Error on scenario, packet wasnt sent to host"
 		exit(1)
 
-	print "Test Passed\n"
+
+	print "Scenario Passed\n"
+
 ####################################################################################################################
 ############################### scenario 3: ip checksum error - send to host #######################################
 ####################################################################################################################
@@ -187,7 +191,9 @@ if 3 in scenarios_to_run:
 		exit(1)
 	print "Statistics OK"
 
-	print "Test Passed\n"
+
+	print "Scenario Passed\n"
+
 
 ####################################################################################################################
 ################## scenario 4: send a ipv6 to nps - packet should be send to host #########################
@@ -218,9 +224,11 @@ if 4 in scenarios_to_run:
 
 	time.sleep(0.5)
 	captured_packets = ezbox.stop_capture()   
-	  
+
+	
 	print "Captured " + str(captured_packets) + " Packets"   
-	  
+	
+
 	if captured_packets != 1:
 		print "Error on scenario, packet wasnt sent to host"
 		exit(1)
@@ -235,7 +243,9 @@ if 4 in scenarios_to_run:
 		exit(1)
 	print "Statistics OK"
 
-	print "Test Passed\n"
+
+	print "Scenario Passed\n"
+
 	
 #########################################################################################################
 ############################### scenario 5: mac error - send to host ####################################
@@ -251,27 +261,31 @@ if 5 in scenarios_to_run:
 	temp_str = mac_da + ' ' + mac_sa + ether_type + data
 	pcap_file = 'verification/testing/dp/pcap_files/1_packet.pcap'
 	string_to_pcap_file(temp_str, pcap_file) 
- 
+
 	# gather stats before
 	stats_before = 0
 	for i in range(5):
 		stats_before += ezbox.get_interface_stats(i)['NW_IF_STATS_MAC_ERROR']
 		
- 	# capture packets on host
-	ezbox.capture_packets()
+
+	# capture packets on host
+	ezbox.capture_packets('ipv4 and ether host ' + ezbox.setup['mac_address'].replace(' ',':'))
+
 	
 	print "Send arp packet to NPS"
 	client_vm.send_packet_to_nps(pcap_file)
 	
 	time.sleep(1)
 	captured_packets = ezbox.stop_capture()   
-	  
+
+	
 	print "Captured " + str(captured_packets) + " Packets"   
-	   
+	
 	if captured_packets != 1:
-	 	print "Error on scenario, packet wasnt sent to host"
+		print "Error on scenario, packet wasnt sent to host"
 		exit(1)
-		   
+
+
 	# gather stats after
 	stats_after = 0
 	for i in range(5):
@@ -282,4 +296,9 @@ if 5 in scenarios_to_run:
 		exit(1)
 	print "Statistics OK"
 	
-	print "Test Passed\n"
+
+	print "Scenario Passed"
+
+print
+print "Test Passed\n"
+

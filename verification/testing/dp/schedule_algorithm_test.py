@@ -114,7 +114,9 @@ if 1 in scenarios_to_run:
 	print "Server 3 received %d packets"%packets_received_3
 	
 	if packets_received_1 == 0 and packets_received_2 == 50 and packets_received_3 == 0:
-		print "Test Passed"
+
+		print "Scenario Passed"
+
 	else:
 		ezbox.print_all_stats()
 		print "Fail, received packets not as expected\n"
@@ -175,19 +177,23 @@ if 2 in scenarios_to_run:
 	print "Server 2 received %d packets"%packets_received_2
 	print "Server 3 received %d packets"%packets_received_3
 	
-	if packets_received_1 == 9 and packets_received_2 == 19 and packets_received_3 == 22:
+
+	if packets_received_1 == 10 and packets_received_2 == 22 and packets_received_3 == 18:
 	#	 server1.compare_received_packets_to_pcap_file(pcap_file='p1.pcap', pcap_file_on_server='/tmp/server_dump.pcap')
-		print "Test Passed"
+		print "Scenario Passed"
+
 	else:
 		ezbox.print_all_stats()
 		print "Fail, received packets not as expected\n"
 		exit(1)
 		
 		
-######################################################################################################################
+
+###################################################################################################################
 ########					   this scenario check the scheduling algorithm of source hash,				 ##########
 ########				  ip source and source port is changing, (service is on source port enable)		 ##########
-######################################################################################################################		
+###################################################################################################################		
+
 if 3 in scenarios_to_run:
 	print "\nChecking Scenario 3"
 	
@@ -197,7 +203,9 @@ if 3 in scenarios_to_run:
 	packet_list_to_send = []
 	
 	print "Creating Packets"
-	for i in range(50):
+
+	for i in range(500):
+
 		# set the packet size
 		if i < len(packet_sizes):
 			packet_size = packet_sizes[i]
@@ -240,7 +248,9 @@ if 3 in scenarios_to_run:
 	
 	if packets_received_1 == 17 and packets_received_2 == 17 and packets_received_3 == 16:
 	#	 server1.compare_received_packets_to_pcap_file(pcap_file='p1.pcap', pcap_file_on_server='/tmp/server_dump.pcap')
-		print "Test Passed"
+
+		print "Scenario Passed"
+
 	else:
 		ezbox.print_all_stats()
 		print "Fail, received packets not as expected\n"
@@ -282,7 +292,8 @@ if 4 in scenarios_to_run:
 		print "ERROR, packet wasnt forward to host\n"
 		exit(1)
 	
-	print "Test Passed"
+
+	print "Scenario Passed"
 	
 
 ezbox.print_all_stats()
@@ -306,3 +317,6 @@ ezbox.print_all_stats()
 # server2.close()
 # client.close()
 # ezbox.close()
+
+print
+print "Test Passed"

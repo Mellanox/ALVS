@@ -19,14 +19,14 @@ if args['hard_reset']:
 
 # init ALVS daemon
 ezbox.connect()
-ezbox.terminate_cp_app()
-ezbox.reset_chip()
 ezbox.flush_ipvs()
+ezbox.alvs_service_stop()
 ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.run_cp()
 ezbox.copy_dp_bin(debug_mode=args['debug'])
+ezbox.alvs_service_start()
 ezbox.wait_for_cp_app()
-ezbox.run_dp()
+ezbox.wait_for_dp_app()
+ezbox.clean_director()
 
 ip_list = get_setup_list(args['setup_num'])
 ezbox.flush_ipvs()    
