@@ -75,25 +75,60 @@ pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 int agt_enabled;
+EZapiChannel_EthIFType port_type;
 /******************************************************************************/
 
 int main(int argc, char **argv)
 {
 	int rc;
-	struct option long_options[] = { { "agt_enabled", no_argument,
-		&agt_enabled, true } };
+	int option_index;
 
-	agt_enabled = false;
+	struct option long_options[] = {
+		{ "agt_enabled", no_argument, &agt_enabled, true },
+		{ "port_type", required_argument, 0, 'p' },
+		{0, 0, 0, 0} };
+
 	cancel_application_flag = false;
 	main_thread = pthread_self();
 	open_log("ALVS_DAEMON");
-	write_log(LOG_INFO, "Starting ALVS daemon application...\n");
 
 	printf("Application version: %s\n", version);
 
-	do {
-		rc = getopt_long(argc, argv, "", long_options, NULL);
-	} while (rc != -1);
+	/* Defaults */
+	agt_enabled = false;
+	port_type = EZapiChannel_EthIFType_40GE;
+
+	while (true) {
+		rc = getopt_long(argc, argv, "", long_options, &option_index);
+		if (rc == -1) {
+			break;
+		}
+
+		switch (rc) {
+		case 0:
+			break;
+
+		case 'p':
+			if (strcmp(optarg, "10GE") == 0) {
+				port_type = EZapiChannel_EthIFType_10GE;
+			} else if (strcmp(optarg, "40GE") == 0) {
+				port_type = EZapiChannel_EthIFType_40GE;
+			} else if (strcmp(optarg, "100GE") == 0) {
+				port_type = EZapiChannel_EthIFType_100GE;
+			} else {
+				write_log(LOG_CRIT, "Port type argument is invalid (%s), valid values are 10GE, 40GE and 100GE.\n", optarg);
+				abort();
+			}
+			break;
+
+		case '?':
+			break;
+
+		default:
+			abort();
+		}
+	}
+
 
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT, signal_terminate_handler);
@@ -101,6 +136,10 @@ int main(int argc, char **argv)
 	signal(SIGILL, signal_terminate_handler);
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS, signal_terminate_handler);
+
+	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s) ...\n",
+		  port_type == EZapiChannel_EthIFType_10GE ? "10GE" : (port_type == EZapiChannel_EthIFType_40GE ? "40GE" : "100GE"),
+			  agt_enabled ? "True" : "False");
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
@@ -121,6 +160,9 @@ int main(int argc, char **argv)
 		main_thread_graceful_stop();
 		exit(1);
 	}
+
+	write_log(LOG_INFO, "ALVS daemon application is running...\n");
+
 	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/

@@ -53,13 +53,12 @@
 #include "defs.h"
 #include "user_defs.h"
 
+extern EZapiChannel_EthIFType port_type;
+
 EZagtRPCServer host_server;
 
 /* AGT port */
 #define INFRA_AGT_PORT              1234
-
-/* Interfaces */
-#define	INFRA_NW_IF_TYPE            EZapiChannel_EthIFType_10GE
 
 /* Host interface parameters */
 #define INFRA_HOST_IF_SIDE          1
@@ -225,7 +224,7 @@ bool infra_create_if_mapping(void)
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if (infra_create_intetface(network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 				network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
-				INFRA_NW_IF_TYPE,
+				port_type,
 				USER_BASE_LOGICAL_ID + ind) == false) {
 			return false;
 		}
