@@ -394,6 +394,7 @@ bool nw_db_constructor(void)
 	table_params.key_size = sizeof(struct nw_if_key);
 	table_params.result_size = sizeof(struct nw_if_result);
 	table_params.max_num_of_entries = 256;  /* TODO - define? */
+	table_params.updated_from_dp = false;
 	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
 			       INFRA_X1_CLUSTER_SEARCH_HEAP,
 			       &table_params) == false) {

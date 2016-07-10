@@ -67,6 +67,7 @@ struct infra_table_params {
 	uint32_t key_size;
 	uint32_t result_size;
 	uint32_t max_num_of_entries;
+	bool updated_from_dp;
 };
 
 /**************************************************************************//**

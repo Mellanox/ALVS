@@ -853,6 +853,7 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
 {
 	EZstatus ez_ret_val;
 	EZapiStruct_StructParams struct_params;
+	EZapiStruct_TableParams table_params;
 	EZapiStruct_TableMemMngParams table_mem_mng_params;
 
 	/* Get defaults of the structure */
@@ -881,6 +882,32 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		return false;
 	}
+
+
+	/* Get defaults of the table parameters */
+	memset(&table_params, 0, sizeof(table_params));
+
+	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashParams, &table_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	/* set single cycle and update mode */
+	table_params.eCacheMode = EZapiStruct_CacheMode_FULL;
+	if (params->updated_from_dp == true) {
+		table_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
+		table_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
+	} else {
+		table_params.eUpdateMode = EZapiStruct_UpdateMode_CP;
+		table_params.eCacheMode = EZapiStruct_CacheMode_FULL;
+		table_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
+	}
+
+	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashParams, &table_params);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
 
 	/* Get defaults of the table memory management */
 	memset(&table_mem_mng_params, 0, sizeof(table_mem_mng_params));

@@ -1036,6 +1036,7 @@ bool alvs_db_constructor(void)
 	table_params.key_size = sizeof(struct alvs_service_info_key);
 	table_params.result_size = sizeof(struct alvs_service_info_result);
 	table_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
+	table_params.updated_from_dp = false;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SERVICE_INFO, INFRA_X4_CLUSTER_SEARCH_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs service info table.\n");
@@ -1046,6 +1047,7 @@ bool alvs_db_constructor(void)
 	table_params.key_size = sizeof(struct alvs_sched_info_key);
 	table_params.result_size = sizeof(struct alvs_sched_info_result);
 	table_params.max_num_of_entries = ALVS_SCHED_MAX_ENTRIES;
+	table_params.updated_from_dp = false;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SCHED_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs scheduling info table.\n");
@@ -1056,6 +1058,7 @@ bool alvs_db_constructor(void)
 	table_params.key_size = sizeof(struct alvs_server_info_key);
 	table_params.result_size = sizeof(struct alvs_server_info_result);
 	table_params.max_num_of_entries = ALVS_SERVERS_MAX_ENTRIES;
+	table_params.updated_from_dp = false;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SERVER_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs server info table.\n");
@@ -1080,6 +1083,7 @@ bool alvs_db_constructor(void)
 	table_params.key_size = sizeof(struct alvs_conn_info_key);
 	table_params.result_size = sizeof(struct alvs_conn_info_result);
 	table_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
+	table_params.updated_from_dp = true;
 	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, INFRA_EMEM_SEARCH_TABLE_HEAP, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs conn info table.\n");
