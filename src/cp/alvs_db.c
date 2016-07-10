@@ -92,7 +92,7 @@ struct alvs_server_node {
 
 char *my_inet_ntoa(in_addr_t ip)
 {
-	struct in_addr ip_addr = {.s_addr = ip};
+	struct in_addr ip_addr = {.s_addr = bswap_32(ip)};
 
 	return inet_ntoa(ip_addr);
 }
