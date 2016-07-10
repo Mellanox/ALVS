@@ -14,6 +14,7 @@ test14_delete_reAdd_server.py
 test15_disable_server.py
 test16_disable_multiple_servers.py
 test17_replace_servers.py
+#test21_enable_server_using_server_lo.py - currenly failed due to bug
 test22_add_del_add_service.py
 #test23_add_del_add_services.py
 test24_different_weight.py
