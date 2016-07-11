@@ -931,30 +931,107 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 /**************************************************************************//**
  * \brief       Get number of active connections from a statistics counter
  *
- * \param[in]   server_stats_base   - address of statistics counter
+ * \param[in]   server_index   - index of server
  *
- * \return      currently returns only zero
+ * \return      number of active connections
  */
-uint64_t get_num_active_conn(uint32_t server_index)
+enum alvs_db_rc alvs_db_get_num_active_conn(uint32_t server_index,
+					    uint64_t *active_conn)
 {
+	union {
+		uint64_t raw_data;
+		struct {
+			uint32_t value_msb;
+			uint32_t value_lsb;
+		};
+	} value;
+
 	EZstatus ret_val;
 	EZapiStat_PostedCounter posted_counter;
 	EZapiStat_PostedCounterConfig posted_counter_config;
 
+	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
+	memset(&posted_counter, 0, sizeof(posted_counter));
+
 	posted_counter_config.uiPartition = 0;
-	posted_counter.uiCounter = EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS) + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET;
 	posted_counter_config.pasCounters = &posted_counter;
 	posted_counter_config.bRange = false;
 	posted_counter_config.uiStartCounter = EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS) + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET;
 	posted_counter_config.uiNumCounters = 1;
 	posted_counter_config.bDoubleOperation = false;
-	ret_val = EZapiStat_Config(0, EZapiStat_StatCmd_GetPostedCounters, &posted_counter_config);
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedCounters, &posted_counter_config);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
-		return false;
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.\n");
+		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	return posted_counter.uiByteValue + (posted_counter.uiByteValueMSB << 32);
+	value.value_lsb = posted_counter.uiByteValue;
+	value.value_msb = posted_counter.uiByteValueMSB;
+	*active_conn = value.raw_data;
+
+	return ALVS_DB_OK;
+}
+
+
+/**************************************************************************//**
+ * \brief       Clear all statistic counter of a server
+ *
+ * \param[in]   server_index   - index of server
+ *
+ * \return      true if operation succeeded
+ */
+enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
+{
+	EZstatus ret_val;
+	EZapiStat_PostedCounter posted_counter;
+	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
+	memset(&posted_counter, 0, sizeof(posted_counter));
+
+	posted_counter_config.uiPartition = 0;
+	posted_counter_config.pasCounters = &posted_counter;
+	posted_counter_config.bRange = true;
+	posted_counter_config.uiStartCounter = EMEM_SERVER_STATS_POSTED_OFFSET + server_index * ALVS_NUM_OF_SERVER_STATS;
+	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVER_STATS;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
+
+
+/**************************************************************************//**
+ * \brief       Clear all statistic counter of a service
+ *
+ * \param[in]   service_index   - index of service
+ *
+ * \return      true if operation succeeded
+ */
+enum alvs_db_rc alvs_db_clean_service_stats(uint32_t service_index)
+{
+	EZstatus ret_val;
+	EZapiStat_PostedCounter posted_counter;
+	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
+	memset(&posted_counter, 0, sizeof(posted_counter));
+
+	posted_counter_config.uiPartition = 0;
+	posted_counter_config.pasCounters = &posted_counter;
+	posted_counter_config.bRange = true;
+	posted_counter_config.uiStartCounter = EMEM_SERVICE_STATS_POSTED_OFFSET + service_index * ALVS_NUM_OF_SERVICE_STATS;
+	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVICE_STATS;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	return ALVS_DB_OK;
 }
 
 /**************************************************************************//**
@@ -1233,6 +1310,13 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 
 	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d\n",
 		  cp_service.sched_alg, cp_service.flags);
+
+	/* Clean service statistics */
+	write_log(LOG_DEBUG, "Cleaning service statistics.\n");
+	if (alvs_db_clean_service_stats(cp_service.nps_index) == ALVS_DB_INTERNAL_ERROR) {
+		write_log(LOG_CRIT, "Failed to clean statistics.\n");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
 
 	/* Add service info to internal DB */
 	if (internal_db_add_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
@@ -1659,6 +1743,13 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 			  cp_server.routing_alg, cp_server.conn_flags,
 			  cp_server.server_flags, cp_server.weight,
 			  cp_server.u_thresh, cp_server.l_thresh);
+
+		/* Clean service statistics */
+		write_log(LOG_DEBUG, "Cleaning server statistics.\n");
+		if (alvs_db_clean_server_stats(cp_server.nps_index) == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Failed to clean statistics.\n");
+			return ALVS_DB_INTERNAL_ERROR;
+		}
 
 		if (internal_db_add_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to add server to internal DB.\n");
@@ -2214,6 +2305,7 @@ void server_db_aging(void)
 	struct alvs_db_service cp_service;
 	struct alvs_db_server cp_server;
 	sigset_t sigs_to_block;
+	uint64_t value;
 
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGTERM);
@@ -2239,7 +2331,11 @@ void server_db_aging(void)
 
 		/* Collect server ids */
 		while (rc == SQLITE_ROW) {
-			if (get_num_active_conn(sqlite3_column_int(statement, 5)) == 0) {
+			if (alvs_db_get_num_active_conn(sqlite3_column_int(statement, 5), &value) == ALVS_DB_INTERNAL_ERROR) {
+				write_log(LOG_CRIT, "Delete server failed in aging thread\n");
+				server_db_exit_with_error();
+			}
+			if (value == 0) {
 				cp_server.ip = sqlite3_column_int(statement, 0);
 				cp_server.port = sqlite3_column_int(statement, 1);
 				cp_service.ip = sqlite3_column_int(statement, 2);
