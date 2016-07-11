@@ -36,17 +36,24 @@ def readHtml(ip,connTimeout):
 		response = urllib2.urlopen('http://'+ip, timeout=connTimeout)
 	except HTTPError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
-		rerun ( "The server couldn\'t fulfill the request. Error code: %s " %str(e.code) )
+		rc = "The server couldn\'t fulfill the request. Error code: %s " %str(e.code)
+		log("# " + rc)
+		return ( rc )
 	except URLError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
-		return ( "Failed to reach a server. Reason: %s" %str(e.reason) )
+		rc ="Failed to reach a server. Reason: %s" %str(e.reason)
+		log("# " + rc)
+		return ( rc )
 	except socket.error as e:
 		log('%s : %s' %(ip, '404 ERROR'))
-		return ( "Socket error: %s" %(e) )
+		rc = "Socket error: %s" %(e)
+		log("# " + rc)
+		return ( rc )
 	except:
 		log('%s : %s' %(ip, '404 ERROR'))
-		log("#Unexpected error: %s" %sys.exc_info()[0])
-		return ( "Unexpected error: %s" %sys.exc_info()[0] )
+		rc = "Unexpected error: %s" %sys.exc_info()[0]
+		log("# " + rc)
+		return ( rc )
 		
 	   
 	try:
