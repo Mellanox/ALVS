@@ -52,7 +52,7 @@ bool alvs_open_log(void)
 	syslog_info.applic_name_size =
 		snprintf(syslog_info.applic_name,
 			 SYSLOG_APPLIC_NAME_STRING_SIZE,
-			 " ALVS_DP ");
+			 " alvs_dp ");
 
 	/*get IP from string*/
 	inet_aton(SYSLOG_SERVER_IP, &dest_ip);

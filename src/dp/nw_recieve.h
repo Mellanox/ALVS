@@ -51,7 +51,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	uint8_t	*frame_base;
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
-		printf("fail interface lookup - port id =%d!\n", port_id);
+		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 		nw_host_do_route(frame, NULL);
 		return;
@@ -59,18 +59,13 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	/* === Check validity of received frame === */
 	if (unlikely(ezframe_valid(frame) != 0)) {
-#if 0
-		printf("Frame is invalid - send to host!\n");
-#endif
+		alvs_write_log(LOG_DEBUG, "frame is not valid");
 		nw_interface_inc_counter(NW_IF_STATS_FRAME_VALIDATION_FAIL);
 		nw_host_do_route(frame, frame_data);
 		return;
 	}
 
 	if (cmem_nw.interface_result.path_type == DP_PATH_FROM_NW_PATH) {
-#if 0
-		printf("Frame arrived from NW.\n");
-#endif
 
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,
@@ -82,7 +77,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_nw.mac_decode_result.error_codes.decode_error)) {
-			printf("Decode MAC failed!\n");
+			alvs_write_log(LOG_DEBUG, "Decode MAC failed!");
 			nw_interface_inc_counter(NW_IF_STATS_MAC_ERROR);
 			nw_host_do_route(frame, frame_base);
 			return;
@@ -90,20 +85,15 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*check if my_mac is set*/
 		if (unlikely(!cmem_nw.mac_decode_result.control.my_mac)) {
-#if 0
-			printf("Not my MAC!\n");
-#endif
+			alvs_write_log(LOG_DEBUG, "Not my MAC");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame, frame_base);
 			return;
 		}
 
-#if 0
-		printf("number of tags = %d\n", cmem_nw.mac_decode_result.number_of_tags);
-#endif
 
 		if (!cmem_nw.mac_decode_result.last_tag_protocol_type.ipv4) {
-			printf("Not IPv4!\n");
+			alvs_write_log(LOG_DEBUG, "Not IPv4!");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
 			nw_host_do_route(frame, frame_base);
 			return;
@@ -118,7 +108,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_nw.ipv4_decode_result.error_codes.decode_error)) {
-			printf("IPv4 decode failed!\n");
+			alvs_write_log(LOG_DEBUG, "IPv4 decode failed");
 			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
 			nw_host_do_route(frame, frame_base);
 			return;
@@ -126,7 +116,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*in case of any error send frame to host*/
 		if (!cmem_nw.ipv4_decode_result.next_protocol.tcp) {
-			printf("!TCP - NOT supported\n");
+			alvs_write_log(LOG_DEBUG, "!TCP - NOT supported");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 			nw_host_do_route(frame, frame_base);
 			return;
@@ -138,9 +128,6 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/
-#if 0
-		printf("Frame arrived from host.\n");
-#endif
 
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,
@@ -150,7 +137,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 					 frame_base,
 					 DEFAULT_NW_BASE_LOGICAL_ID);
 	} else {
-		printf("Error! no match in interface lookup!!\n");
+		alvs_write_log(LOG_DEBUG, "Error! no match in interface lookup!");
 		/*currently send frame to host without any change or any other operations*/
 		nw_interface_inc_counter(NW_IF_STATS_NO_VALID_ROUTE);
 		nw_host_do_route(frame, NULL);

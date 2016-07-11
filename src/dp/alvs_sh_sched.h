@@ -99,7 +99,7 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 
 			if (likely(rc == 0)) {
 				if (alvs_server_is_unavailable()) {
-					alvs_write_log(LOG_ERR, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
+					alvs_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
 					/*drop frame*/
 					alvs_update_discard_statistics(ALVS_ERROR_SERVER_IS_UNAVAILABLE);
 					alvs_discard_frame();
@@ -115,7 +115,7 @@ bool alvs_sh_get_server_info(uint8_t service_index, uint32_t sip, uint16_t sport
 			}
 		}
 	} else {
-		alvs_write_log(LOG_ERR, "service_idx = %d server_sched_lookup FAILED", service_index);
+		alvs_write_log(LOG_DEBUG, "service_idx = %d server_sched_lookup FAILED", service_index);
 		/*drop frame*/
 		alvs_update_discard_statistics(ALVS_ERROR_FAIL_SH_SCHEDULING);
 		alvs_discard_frame();

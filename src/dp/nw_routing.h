@@ -56,9 +56,6 @@ void nw_send_frame_to_network(ezframe_t __cmem * frame,
 					EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
 					EZDP_HASH_PERMUTATION_0);
 
-#if 0
-	printf("LAG hash result is logical id %d.\n", port_id + hash_value);
-#endif
 	if (nw_interface_lookup(port_id + hash_value) != 0) {
 		alvs_write_log(LOG_ERR, "network interface = %d lookup fail", port_id + hash_value);
 		/* drop frame!! */
@@ -85,9 +82,6 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 	 uint32_t found_result_size;
 	 struct nw_arp_result *arp_res_ptr;
 
-#if 0
-	 printf("ARP lookup for ip 0x%x!\n", dest_ip);
-#endif
 
 	 cmem_nw.arp_key.real_server_address = dest_ip;
 
@@ -103,26 +97,8 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 
 		/*copy dst mac*/
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-#if 0
-		printf("dst mac = %02x:%02x:%02x:%02x:%02x:%02x\n",
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[0],
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[1],
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[2],
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[3],
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[4],
-		       arp_res_ptr->dest_mac_addr.ether_addr_octet[5]);
-#endif
 		/*copy src mac*/
 		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
-#if 0
-		printf("src mac = %02x:%02x:%02x:%02x:%02x:%02x\n",
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[0],
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[1],
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[2],
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[3],
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[4],
-		       cmem_nw.interface_result.mac_address.ether_addr_octet[5]);
-#endif
 
 		/* Store modified segment data */
 		ezframe_store_buf(frame,
@@ -134,7 +110,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 					 buffer_base,
 					 arp_res_ptr->base_logical_id);
 	} else {
-		alvs_write_log(LOG_ERR, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
+		alvs_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
 		nw_discard_frame();
 		return;

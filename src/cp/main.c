@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 
 	cancel_application_flag = false;
 	main_thread = pthread_self();
-	open_log("ALVS_DAEMON");
+	open_log("alvs_daemon");
 
 	printf("Application version: %s\n", version);
 

@@ -96,7 +96,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint16_t server_index
 				    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 	if (rc == 0) {
 		cmem_alvs.conn_result.conn_index = conn_class_res_ptr->conn_index;
-		alvs_write_log(LOG_CRIT, "new connection was already created!!!! conn_index = %d", cmem_alvs.conn_result.conn_index);
+		alvs_write_log(LOG_DEBUG, "new connection was already created!!!! conn_index = %d", cmem_alvs.conn_result.conn_index);
 		alvs_unlock_connection(hash_value);
 		return ALVS_SERVICE_DATA_PATH_RETRY;
 	}
@@ -455,12 +455,9 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 		}
 
 		/*get destination server info*/
-#if 0
-		printf("Server index is 0x%x\n", cmem_alvs.conn_info_result.server_index);
-#endif
 		if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) != 0) {
 			/*no server info - weird error scenario*/
-			alvs_write_log(LOG_ERR, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+			alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 			/*drop frame*/
 			alvs_update_discard_statistics(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 			alvs_discard_frame();
@@ -475,7 +472,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d is unavailable ", conn_index, cmem_alvs.conn_info_result.server_index);
 			if (alvs_conn_mark_to_delete(conn_index, 0) != 0) {
 				/*unable to update connection - weird error scenario*/
-				alvs_write_log(LOG_ERR, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
 				alvs_update_discard_statistics(ALVS_ERROR_CANT_MARK_DELETE);
 				alvs_discard_frame();
@@ -492,7 +489,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d got RST = 1 go conn_mark_to_delete", conn_index, cmem_alvs.conn_info_result.server_index);
 			if (alvs_conn_mark_to_delete(conn_index, 1) != 0) {
 				/*unable to update connection - weird error scenario*/
-				alvs_write_log(LOG_ERR, "conn_idx  = %d, server_idx = %d conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
 				alvs_update_discard_statistics(ALVS_ERROR_CANT_MARK_DELETE);
 				alvs_discard_frame();
@@ -502,7 +499,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED && tcp_hdr->fin) {
 				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  ALVS_TCP_CONNECTION_ESTABLISHED got FIN = 1 ", conn_index);
 				if (alvs_conn_update_state(conn_index, ALVS_TCP_CONNECTION_CLOSE_WAIT) != 0) {
-					alvs_write_log(LOG_ERR, "conn_idx  = %d, update connection state to close FAIL", conn_index);
+					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, update connection state to close FAIL", conn_index);
 					/*drop frame*/
 					alvs_update_discard_statistics(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					alvs_discard_frame();
@@ -512,7 +509,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				/*set connection aging bit back to 1*/
 				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit", conn_index);
 				if (alvs_conn_refresh(conn_index) != 0) {
-					alvs_write_log(LOG_ERR, "conn_idx  = %d,  Refreshing aging bit FAILED", conn_index);
+					alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit FAILED", conn_index);
 					/*drop frame*/
 					alvs_update_discard_statistics(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					alvs_discard_frame();
