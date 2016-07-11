@@ -37,7 +37,7 @@
                 <cfg:Index>0</cfg:Index>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Type>SEARCH</cfg:Type>
-                <cfg:Size>2304</cfg:Size>
+                <cfg:Size>3500</cfg:Size>
                 <cfg:Copies>2</cfg:Copies>
             </cfg:ExtMemSpaceParams>
             <cfg:ExtMemSpaceParams>
@@ -68,7 +68,7 @@
                 <cfg:Pool>0</cfg:Pool>
                 <cfg:Enable>true</cfg:Enable>
                 <cfg:Search>false</cfg:Search>
-                <cfg:NumIndexes>33554432</cfg:NumIndexes>
+                <cfg:NumIndexes>67108864</cfg:NumIndexes>
                 <cfg:SkipPoolInit>true</cfg:SkipPoolInit>
             </cfg:IndexPoolParams>
             <cfg:IndexPoolParams>
@@ -356,7 +356,7 @@
                 <cfg:SigIndexPool>1</cfg:SigIndexPool>
                 <cfg:ResultIndexPool>2</cfg:ResultIndexPool>
                 <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
                 <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
             <cfg:HashParams>
@@ -368,7 +368,7 @@
                 <cfg:MaxEntries>256</cfg:MaxEntries>
                 <cfg:CacheMode>FULL</cfg:CacheMode>
                 <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
                 <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
             <cfg:HashParams>
@@ -380,7 +380,7 @@
                 <cfg:MaxEntries>65536</cfg:MaxEntries>
                 <cfg:CacheMode>FULL</cfg:CacheMode>
                 <cfg:MainTableSpaceIndex>2</cfg:MainTableSpaceIndex>
-                <cfg:SigSpaceIndex>2</cfg:SigSpaceIndex>
+                <cfg:SigSpaceIndex>0</cfg:SigSpaceIndex>
                 <cfg:ResSpaceIndex>2</cfg:ResSpaceIndex>
             </cfg:HashParams>
         </cfg:HashParamsFolder>
