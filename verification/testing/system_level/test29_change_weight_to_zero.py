@@ -124,9 +124,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	new_weight = 0
 
 	
-	print "wait 20 second for EZbox to raise"
-	time.sleep(20)
-	
 	#===========================================================================
 	# add service with servers
 	#===========================================================================
@@ -213,8 +210,10 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		ezbox.modify_server(vip, port, s.ip, port, weight=s.weight)
 		
 
+	print "wait 10 second for EZbox to update"
+	time.sleep(10)
+
 	process_list = []
-	time.sleep(5)
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_3'
 		client.add_log(new_log_name) 
@@ -310,7 +309,7 @@ def main():
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
-	gen_rc = general_checker(server_list, ezbox, client_list, expected={'syslog_clean':False})
+	gen_rc = general_checker(server_list, ezbox, client_list)
 	
 	clean_players(server_list, ezbox, client_list, use_director=True)
 	
