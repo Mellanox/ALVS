@@ -142,7 +142,7 @@ void nw_db_manager_table_init(void)
 }
 
 /******************************************************************************
- * \brief       Poll on all network BD changes
+ * \brief       Poll on all network DB changes
  *
  * \note        reads all received changes since table initialization and only
  *              after that, starts polling.

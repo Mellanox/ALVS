@@ -279,7 +279,7 @@ void alvs_db_manager_table_init(void)
 		write_log(LOG_CRIT, "Failed to receive IPVS service DB from kernel.\n");
 		alvs_db_manager_exit_with_error();
 	}
-	write_log(LOG_DEBUG, "Initial BD build. service count = %d\n", get_svcs->num_services);
+	write_log(LOG_DEBUG, "Initial DB build. service count = %d\n", get_svcs->num_services);
 	for (i = 0; i < get_svcs->num_services; i++) {
 		/* Add service */
 		if (alvs_db_add_service((struct ip_vs_service_user *)(&get_svcs->entrytable[i])) == ALVS_DB_INTERNAL_ERROR) {
