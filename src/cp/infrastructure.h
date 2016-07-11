@@ -47,7 +47,8 @@ enum infra_search_mem_heaps {
 	INFRA_X1_CLUSTER_SEARCH_HEAP,
 	INFRA_X4_CLUSTER_SEARCH_HEAP,
 	INFRA_EMEM_SEARCH_HASH_HEAP,
-	INFRA_EMEM_SEARCH_TABLE_HEAP,
+	INFRA_EMEM_SEARCH_1_TABLE_HEAP,
+	INFRA_EMEM_SEARCH_2_TABLE_HEAP,
 	INFRA_NOT_VALID_HEAP
 };
 
@@ -60,6 +61,10 @@ struct infra_hash_params {
 	bool updated_from_dp;
 	uint32_t sig_pool_id;
 	uint32_t result_pool_id;
+	enum infra_search_mem_heaps main_table_search_mem_heap;
+	enum infra_search_mem_heaps sig_table_search_mem_heap;
+	enum infra_search_mem_heaps res_table_search_mem_heap;
+
 };
 
 /*! Required parameters for table creation data structure  */
@@ -68,6 +73,7 @@ struct infra_table_params {
 	uint32_t result_size;
 	uint32_t max_num_of_entries;
 	bool updated_from_dp;
+	enum infra_search_mem_heaps search_mem_heap;
 };
 
 /**************************************************************************//**
@@ -132,28 +138,24 @@ bool infra_get_my_mac(struct ether_addr *my_mac);
  * \brief       Create hash data structure
  *
  * \param[in]   struct_id       - structure id of the hash
- * \param[in]   search_mem_heap - memory heap where hash should reside on
  * \param[in]   params          - parameters of the hash (size of key & result,
  *                                max number of entries and update mode)
  *
  * \return      bool - success or failure
  */
 bool infra_create_hash(uint32_t struct_id,
-		       enum infra_search_mem_heaps search_mem_heap,
 		       struct infra_hash_params *params);
 
 /**************************************************************************//**
  * \brief       Create table data structure
  *
  * \param[in]   struct_id       - structure id of the table
- * \param[in]   search_mem_heap - memory heap where table should reside on
  * \param[in]   params          - parameters of the table (size of key & result
  *                                and max number of entries)
  *
  * \return      bool - success or failure
  */
 bool infra_create_table(uint32_t struct_id,
-			enum infra_search_mem_heaps search_mem_heap,
 			struct infra_table_params *params);
 
 /**************************************************************************//**

@@ -114,16 +114,20 @@ enum infra_emem_spaces_params {
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        4
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
-#define INFRA_EMEM_SEARCH_HASH_SIZE         (4*1024)
-#define INFRA_EMEM_SEARCH_TABLE_SIZE        (4*1024)
-#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    1
+#define INFRA_EMEM_SEARCH_HASH_SIZE         (3584)
+#define INFRA_EMEM_SEARCH_1_TABLE_SIZE      (3500)
+#define INFRA_EMEM_SEARCH_2_TABLE_SIZE      (1*1024)
+
+#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    256
 
 #define NUM_OF_INT_MEMORY_SPACES            4
-#define NUM_OF_EXT_MEMORY_SPACES            3
+#define NUM_OF_EXT_MEMORY_SPACES            4
 
 /* Search MSIDs */
 #define EMEM_SEARCH_HASH_MSID              0x0
 #define EMEM_SEARCH_TABLE_MSID             0x1
+#define EMEM_SEARCH_1_TABLE_MSID	   0x7
+#define EMEM_SEARCH_2_TABLE_MSID	   0x8
 
 uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
@@ -141,10 +145,29 @@ uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_P
 
 uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
 	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_HASH_SIZE, EMEM_SEARCH_HASH_MSID, 0, INFRA_EMEM_SEARCH_HASH_HEAP},
-	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_TABLE_SIZE, EMEM_SEARCH_TABLE_MSID, 0, INFRA_EMEM_SEARCH_TABLE_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_1_TABLE_SIZE, EMEM_SEARCH_1_TABLE_MSID, 0, INFRA_EMEM_SEARCH_1_TABLE_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_2_TABLE_SIZE, EMEM_SEARCH_2_TABLE_MSID, 0, INFRA_EMEM_SEARCH_2_TABLE_HEAP},
 	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_SPINLOCK_MSID, 0, INFRA_NOT_VALID_HEAP}
 };
 
+/**************************************************************************//**
+ * \brief       get search memory heap type according to index
+ *
+ * \param[in]   memory_area       - index of the memory area
+  *
+ * \return      bool - external memory true, otherwise false
+ */
+bool is_external_search_memory_heap(enum infra_search_mem_heaps memory_area)
+{
+	switch (memory_area) {
+	case INFRA_EMEM_SEARCH_HASH_HEAP:
+	case INFRA_EMEM_SEARCH_1_TABLE_HEAP:
+	case INFRA_EMEM_SEARCH_2_TABLE_HEAP:
+		return true;
+	default:
+		return false;
+	}
+}
 /**************************************************************************//**
  * \brief       Create an interface on <side> and <port> with <type> and
  *              <logical_id>
@@ -541,7 +564,7 @@ bool infra_create_timers(void)
 	pmu_timer_params.bEnable = true;
 	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
 	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
-	pmu_timer_params.uiNumJobs = 15*1024*1024;
+	pmu_timer_params.uiNumJobs = 30*1024*1024;
 	pmu_timer_params.uiNanoSecPeriod = 0;
 	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
 
@@ -739,13 +762,12 @@ uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
  * \brief       Create hash data structure
  *
  * \param[in]   struct_id       - structure id of the hash
- * \param[in]   search_mem_heap - memory heap where hash should reside on
  * \param[in]   params          - parameters of the hash (size of key & result,
  *                                max number of entries and update mode)
  *
  * \return      bool - success or failure
  */
-bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_hash_params *params)
+bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 {
 	EZstatus ez_ret_val;
 	EZapiStruct_StructParams struct_params;
@@ -768,7 +790,8 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	struct_params.uiMaxEntries = params->max_num_of_entries;
 	struct_params.sChannelMap.bSingleDest = true;
 	struct_params.sChannelMap.uDest.uiChannel = 0;
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
+
+	if (is_external_search_memory_heap(params->main_table_search_mem_heap) == true) {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
@@ -817,18 +840,15 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
 	if (params->hash_size > 0) {
 		hash_mem_mng_params.uiHashSize = params->hash_size;
 	}
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
-		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
-	} else {
-		hash_mem_mng_params.eSigPageMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
-	}
+
 	if (params->updated_from_dp == true) {
 		hash_mem_mng_params.uiResultIndexPool = params->result_pool_id;
 		hash_mem_mng_params.uiSigIndexPool = params->sig_pool_id;
 	}
-	hash_mem_mng_params.uiMainTableSpaceIndex = index_of(search_mem_heap);
-	hash_mem_mng_params.uiSigSpaceIndex = index_of(search_mem_heap);
-	hash_mem_mng_params.uiResSpaceIndex = index_of(search_mem_heap);
+	hash_mem_mng_params.uiMainTableSpaceIndex = index_of(params->main_table_search_mem_heap);
+	hash_mem_mng_params.uiSigSpaceIndex = index_of(params->sig_table_search_mem_heap);
+	hash_mem_mng_params.uiResSpaceIndex = index_of(params->res_table_search_mem_heap);
+
 
 	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
@@ -842,13 +862,12 @@ bool infra_create_hash(uint32_t struct_id, enum infra_search_mem_heaps search_me
  * \brief       Create table data structure
  *
  * \param[in]   struct_id       - structure id of the table
- * \param[in]   search_mem_heap - memory heap where table should reside on
  * \param[in]   params          - parameters of the table (size of key & result
  *                                and max number of entries)
  *
  * \return      bool - success or failure
  */
-bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_mem_heap, struct infra_table_params *params)
+bool infra_create_table(uint32_t struct_id, struct infra_table_params *params)
 {
 	EZstatus ez_ret_val;
 	EZapiStruct_StructParams struct_params;
@@ -870,7 +889,7 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
 	struct_params.uiMaxEntries = params->max_num_of_entries;
 	struct_params.sChannelMap.bSingleDest = true;
 	struct_params.sChannelMap.uDest.uiChannel = 0;
-	if (search_mem_heap == INFRA_EMEM_SEARCH_HASH_HEAP || search_mem_heap == INFRA_EMEM_SEARCH_TABLE_HEAP) {
+	if (is_external_search_memory_heap(params->search_mem_heap) == true) {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
 	} else {
 		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
@@ -917,7 +936,7 @@ bool infra_create_table(uint32_t struct_id, enum infra_search_mem_heaps search_m
 	}
 
 	/* Set index of the memory heap */
-	table_mem_mng_params.uiSpaceIndex = index_of(search_mem_heap);
+	table_mem_mng_params.uiSpaceIndex = index_of(params->search_mem_heap);
 
 	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetTableMemMngParams, &table_mem_mng_params);
 

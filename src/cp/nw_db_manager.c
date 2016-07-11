@@ -383,7 +383,10 @@ bool nw_db_constructor(void)
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
-	if (infra_create_hash(STRUCT_ID_NW_ARP, INFRA_EMEM_SEARCH_HASH_HEAP,
+	hash_params.main_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
+	hash_params.sig_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
+	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
+	if (infra_create_hash(STRUCT_ID_NW_ARP,
 			      &hash_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating ARP table.\n");
 		return false;
@@ -395,8 +398,8 @@ bool nw_db_constructor(void)
 	table_params.result_size = sizeof(struct nw_if_result);
 	table_params.max_num_of_entries = 256;  /* TODO - define? */
 	table_params.updated_from_dp = false;
+	table_params.search_mem_heap = INFRA_X1_CLUSTER_SEARCH_HEAP;
 	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
-			       INFRA_X1_CLUSTER_SEARCH_HEAP,
 			       &table_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating interface table.\n");
 		return false;
