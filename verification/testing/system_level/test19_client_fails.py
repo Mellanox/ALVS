@@ -96,24 +96,47 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for p in process_list:
 		p.start()
 	
-	time.sleep(5)
+	print "wait to start..."
+	time.sleep(10)
 	
+	print "terminate client..."
 	for p in process_list:
 		p.terminate()
 	
+	print "wait to join..."
+	time.sleep(10)
+	
+	print "join client..."
 	for p in process_list:
 		p.join()
 	
 	print 'End user test'
 
-def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
+def run_user_checker(ezbox):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict = {'client_response_count':request_count,
-						'client_count': len(client_list),
-						'no_connection_closed': False,
-						'no_404': True}
 	
-	return client_checker(log_dir, expected_dict)
+	opened_connection = False
+	for i in range(ALVS_SERVICES_MAX_ENTRIES):
+		stats_dict = ezbox.get_services_stats(i)
+		if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
+			print 'The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
+			opened_connection = True
+	
+	print "wait 16 minutes for chip clean open connections..."
+	print "0 minutes..."
+	for i in range(4):
+		time.sleep(240)
+		print "%d minutes..." %((i+1)*4)
+	
+	closed_connection = True
+	print "check open connections again..."
+	for i in range(ALVS_SERVICES_MAX_ENTRIES):
+		stats_dict = ezbox.get_services_stats(i)
+		if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
+			print 'The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
+			closed_connection = False
+			
+	return (opened_connection and closed_connection)
 
 #===============================================================================
 # main function
@@ -134,15 +157,11 @@ def main():
 	
 	run_user_test(server_list, ezbox, client_list, vip_list)
 	
-	log_dir = collect_logs(server_list, ezbox, client_list)
-
-	gen_rc = general_checker(server_list, ezbox, client_list)
+	user_rc = run_user_checker(ezbox)
 	
 	clean_players(server_list, ezbox, client_list, use_director=True)
 	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir,vip_list)
-	
-	if user_rc and gen_rc:
+	if user_rc:
 		print 'Test passed !!!'
 		exit(0)
 	else:
