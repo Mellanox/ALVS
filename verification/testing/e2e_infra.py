@@ -63,7 +63,7 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	# init director
 	if use_director:
 		print 'Start Director'
-		time.sleep(1)
+		time.sleep(10)
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
@@ -227,31 +227,14 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
 				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
 				connection_rc = False
-	
-	error_counters={ALVS_ERROR_CANT_EXPIRE_CONNECTION:'ALVS_ERROR_CANT_EXPIRE_CONNECTION',
-					ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE:'ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE',
-					ALVS_ERROR_CONN_INFO_LKUP_FAIL:'ALVS_ERROR_CONN_INFO_LKUP_FAIL',
-					ALVS_ERROR_CONN_CLASS_ALLOC_FAIL:'ALVS_ERROR_CONN_CLASS_ALLOC_FAIL',
-					ALVS_ERROR_CONN_INFO_ALLOC_FAIL:'ALVS_ERROR_CONN_INFO_ALLOC_FAIL',
-					ALVS_ERROR_CONN_INDEX_ALLOC_FAIL:'ALVS_ERROR_CONN_INDEX_ALLOC_FAIL',
-					ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL:'ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL',
-					ALVS_ERROR_FAIL_SH_SCHEDULING:'ALVS_ERROR_FAIL_SH_SCHEDULING',
-					ALVS_ERROR_SERVER_INFO_LKUP_FAIL:'ALVS_ERROR_SERVER_INFO_LKUP_FAIL',
-					ALVS_ERROR_SERVER_IS_UNAVAILABLE:'ALVS_ERROR_SERVER_IS_UNAVAILABLE',
-					ALVS_ERROR_SERVER_INDEX_LKUP_FAIL:'ALVS_ERROR_SERVER_INDEX_LKUP_FAIL',
-					ALVS_ERROR_CONN_CLASS_LKUP_FAIL:'ALVS_ERROR_CONN_CLASS_LKUP_FAIL',
-					ALVS_ERROR_SERVICE_INFO_LOOKUP:'ALVS_ERROR_SERVICE_INFO_LOOKUP',
-					ALVS_ERROR_CANT_MARK_DELETE:'ALVS_ERROR_CANT_MARK_DELETE',
-					ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL:'ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL',
-					ALVS_ERROR_SEND_FRAME_FAIL:'ALVS_ERROR_SEND_FRAME_FAIL',
-					ALVS_ERROR_SERVICE_CLASS_LOOKUP:'ALVS_ERROR_SERVICE_CLASS_LOOKUP',
-					ALVS_ERROR_CREATE_CONN_MEM_ERROR:'ALVS_ERROR_CREATE_CONN_MEM_ERROR'}
+ 	
 	if no_errors:
-		for error_id,error_name in error_counters.items():
-			count = ezbox.get_error_stats(error_id)
-			if count > 0:
-				print 'ERROR: %s errors found. count = %d' %(error_name, count)
-				error_rc = False
+		error_stats = ezbox.get_error_stats()
+		for error_name, count in error_stats.items():
+			if 'ALVS_ERROR_SERVICE_CLASS_LOOKUP' != error_name:
+				if count > 0:
+					print 'ERROR: %s errors found. count = %d' %(error_name, count)
+					error_rc = False
 	
 	return (connection_rc and error_rc)
 

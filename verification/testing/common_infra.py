@@ -117,7 +117,8 @@ class ezbox_host:
 			
 		if stop_service:
 			self.alvs_service_stop()
-			
+		
+		self.clean_vips()
 		self.logout()
 		
 	def init_director(self, services):
@@ -166,6 +167,19 @@ class ezbox_host:
 	def config_vips(self, vip_list):
 		for index, vip in enumerate(vip_list):
 			self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.setup['interface'], index+2, vip))
+
+	def clean_vips(self):
+		interface = self.setup['interface']
+		rc, ret_val = self.execute_command_on_host("ifconfig")
+		ret_list = ret_val.split('\n')
+		for line in ret_list:
+			if interface in line:
+				split_line = line.split(' ')
+				vip_if = split_line[0]
+				if interface != vip_if:
+					index = (vip_if.split(':'))[1]
+					if index != '0':
+						self.execute_command_on_host("ifconfig %s down"%(vip_if))
 
 	def connect(self):
 		self.ssh_object.connect()

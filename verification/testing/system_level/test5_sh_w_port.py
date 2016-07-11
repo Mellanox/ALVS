@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-
+import time
 
 
 # pythons modules 
@@ -83,10 +83,12 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	process_list = []
 	vip = vip_list[0]
 	port = '80'
-
+	
 	ezbox.add_service(vip, port, sched_alg_opt='-b sh-port')
 	for server in server_list:
 		ezbox.add_server(vip, port, server.ip, port)
+	
+	time.sleep(5)
 	
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
