@@ -120,33 +120,18 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 
 	
 	#===========================================================================
-	# Set service & Add servers to service 
+	# Set services/servers & prepare server_list to add in the next step 
 	#===========================================================================
+	new_server_list = []
+	
 	ezbox.add_service(vip, port, g_sched_alg, g_sched_alg_opt)
-	for s in server_list:
-		ezbox.add_server(vip, port, s.ip, port)
+	for idx,s in enumerate(server_list):
+		if ( idx >= (g_server_count - g_servers_to_replace) ):
+			new_server_list.append(s)
+		else:
+			ezbox.add_server(vip, port, s.ip, port)
 
 
-	#===========================================================================
-	# Create new servers list & init servers
-	#===========================================================================
-	setup_list = get_setup_list(g_setup_num)
-	new_server_list=[]
-	for i in range(g_servers_to_replace):
-		# create new server object & add to list
-		new_server = HttpServer(ip   = setup_list[g_next_vm_index]['ip'],
-							hostname = setup_list[g_next_vm_index]['hostname'],
-							username = "root",
-							password = "3tango",
-							vip      = vip,
-							eth      ='ens6')
-		new_server_list.append(new_server)
-		g_next_vm_index+=1
-	
-		# init new server & add to service 
-		new_server.init_server(new_server.ip)
-
-	
 	#===========================================================================
 	# send requests & replace server while sending requests 
 	#===========================================================================
@@ -159,8 +144,9 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 
 	# remove servers from service (& form list)
 	# and add new server to service
-	for new_server in new_server_list:
-		removed_server = server_list.pop()
+	for idx,new_server in enumerate(new_server_list):
+		removed_server = server_list[idx]
+		
 		ezbox.delete_server(vip, port, removed_server.ip, port)			
 		ezbox.add_server(vip, port, new_server.ip, port)
 		
@@ -168,12 +154,6 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		print removed_server.ip + " removed" 
 		print new_server.ip + " added"
 		
-	# add new servers to list
-	for new_server in new_server_list:
-		server_list.append(new_server)
-
-	for p in process_list:
-		p.join()
 
 	#===========================================================================
 	# send requests after modifing servers list
@@ -199,14 +179,19 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 def run_user_checker(server_list, ezbox, client_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
+	server_list_step_2 = []
+	for idx in range(g_servers_to_replace, g_server_count):
+		server_list_step_2.append(server_list[idx])
+			
 	expected_dict = {}
 	expected_dict[0] = {'client_response_count':g_request_count,
 					'client_count'     : len(client_list), 
-					'no_404'           : True}
+					'no_404'           : True,
+					'expected_servers' : server_list}
 	expected_dict[1] = {'client_response_count':g_request_count,
 					'client_count'     : len(client_list), 
 					'no_404'           : True,
-					'expected_servers' : server_list}
+					'expected_servers' : server_list_step_2}
 	
 	return client_checker(log_dir, expected_dict, 2)
 
@@ -231,7 +216,7 @@ def set_user_params(setup_num):
 	g_setup_num = setup_num
 	
 	# static test configuration
-	g_server_count       = 10
+	g_server_count       = 15
 	g_client_count       = 5
 	g_service_count      = 1
 	g_servers_to_replace = 5
@@ -273,9 +258,9 @@ def main():
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 
-	clean_players(server_list, ezbox, client_list, True)
-
 	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
+
+	clean_players(server_list, ezbox, client_list, vip_list, True)
 
 	if client_rc and gen_rc:
 		print 'Test passed !!!'
