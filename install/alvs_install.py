@@ -23,7 +23,8 @@ ALVS_DP = '/usr/lib/alvs/alvs_dp'
 ALVS_DP_START = '/usr/share/alvs/start_alvs_dp'
 ALVS_RSYSLOG_CONF = '/etc/rsyslog.d/alvs.conf'
 ALVS_SYSCTL_CONF = '/etc/sysctl.d/alvs.conf'
-ALVS_PACKAGES = ['ipvsadm','libnl-3-200']
+ALVS_NETWORK_CONF = '/etc/network/interfaces.d/alvs.conf'
+ALVS_PACKAGES = ['ipvsadm','libnl-3-200','ldirectord']
 ALVS_MODULES = ['nlmon','ip_vs','8021q']
 ALVS_FILES = [('cfg/alvs_defaults',ALVS_CONFIG),
               ('scripts/alvs_init',ALVS_SERVICE),
@@ -31,10 +32,8 @@ ALVS_FILES = [('cfg/alvs_defaults',ALVS_CONFIG),
               ('bin/alvs_dp',ALVS_DP),
               ('scripts/start_alvs_dp.py',ALVS_DP_START),
               ('cfg/alvs_rsyslog.conf',ALVS_RSYSLOG_CONF),
-              ('cfg/alvs_sysctl.conf',ALVS_SYSCTL_CONF)]
-ALVS_NETWORK = {'auto nlmon':['iface nlmon inet manual',
-                              'pre-up /sbin/ip link add type nlmon',
-                              'pre-up /sbin/ip link set nlmon0 up']}
+              ('cfg/alvs_sysctl.conf',ALVS_SYSCTL_CONF),
+              ('cfg/alvs_network.conf',ALVS_NETWORK_CONF)]
 
 #############
 # Utilities #
@@ -129,27 +128,9 @@ def start_alvs_on_boot():
     print "Done!"
     return True
 
-def add_network_config():
-    print "Add ALVS network configurations...",
-    sys.stdout.flush()
-    network_conf = ALVS_NETWORK.copy()
-    with open('/etc/network/interfaces','r') as if_file:
-        for line in if_file:
-            if line.strip() in ALVS_NETWORK.keys():
-                network_conf.pop(line.strip())
-    if len(network_conf) == 0:
-        print "Done!"
-        return True
-    with open('/etc/network/interfaces','a') as if_file:
-        for if_name, if_config in network_conf.iteritems():
-            if_file.write("%s\n" % if_name)
-            for c in if_config:
-                if_file.write("%s\n" % c)
-    print "Done!"
-    return True
-
 def reload_configuration():
     print "Reload ALVS configurations...",
+    sys.stdout.flush()
     if not run_cmd("systemctl daemon-reload > /dev/null 2>&1"):
         return False
     if not run_cmd("service rsyslog restart > /dev/null 2>&1"):
@@ -161,6 +142,22 @@ def reload_configuration():
     print "Done!"
     return True
 
+def start_alvs():
+    print "Starting ALVS...",
+    sys.stdout.flush()
+    if not run_cmd("service alvs start > /dev/null 2>&1"):
+        return False
+    print "Done!"
+    return True
+
+def stop_alvs():
+    print "Stopping ALVS...",
+    sys.stdout.flush()
+    if not run_cmd("service alvs stop > /dev/null 2>&1"):
+        return False
+    print "Done!"
+    return True
+
 def install_alvs():
     print "Installing ALVS..."
     sys.stdout.flush()
@@ -168,6 +165,8 @@ def install_alvs():
     if to_install != 'Y':
         return True
     try:
+        if not stop_alvs():
+            raise Exception("Failed to stop ALVS")
         if not install_packages():
             raise Exception("Failed to install packages")
         if not add_modules():
@@ -176,18 +175,17 @@ def install_alvs():
             raise Exception("Cannot copy ALVS files")
         if not start_alvs_on_boot():
             raise Exception("Cannot add ALVS to boot sequence")
-        if not add_network_config():
-            raise Exception("Cannot add ALVS network configurations")
         if not add_nps_host():
             raise Exception("Cannot add NPS host")
         if not reload_configuration():
             raise Exception("Cannot reload configurations")
+        if not start_alvs():
+            print "Cannot start ALVS! Check configuration at %s" % ALVS_CONFIG
     except Exception, e:
         print "Installation failed! %s" % str(e)
         return False
     else:
         print "ALVS installation completed successfully"
-        print "You can configure the ALVS service at %s and start ALVS with '%s start'" % (ALVS_CONFIG, ALVS_SERVICE)
         return True
 
 ########

@@ -120,13 +120,7 @@ stop_daemon () {
 
 start_network() {
     log_action_begin_msg "Start ALVS internal network"
-    ifconfig $NETWORK_IF_NAME:alvs_log 169.254.42.41 netmask 255.255.255.248 up
-    case "$?" in
-        0) ;;
-        *) log_action_end_msg 1 
-           return 1 ;;
-    esac
-    ifconfig $NETWORK_IF_NAME:alvs_nps 169.254.42.43 netmask 255.255.255.248 up
+    ifconfig $NETWORK_IF_NAME:alvs_nps 169.254.42.41 netmask 255.255.255.248 up
     case "$?" in
         0) log_action_end_msg 0 
            return 0 ;;
@@ -138,12 +132,6 @@ start_network() {
 stop_network() {
     log_action_begin_msg "Stop ALVS internal network"
     ifconfig $NETWORK_IF_NAME:alvs_nps down > /dev/null 2>&1
-    case "$?" in
-        0) ;;
-        *) log_action_end_msg 1 
-           return 1 ;;
-    esac
-    ifconfig $NETWORK_IF_NAME:alvs_log down > /dev/null 2>&1
     case "$?" in
         0) log_action_end_msg 0 
            return 0 ;;
