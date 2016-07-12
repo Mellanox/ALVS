@@ -82,9 +82,6 @@ class ezbox_host:
 		self.ssh_object = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.run_app_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		
-		# clear syslog file
-		self.run_app_ssh.execute_command("echo "" > /var/log/syslog")
-		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
 
@@ -184,8 +181,8 @@ class ezbox_host:
 		self.ssh_object.connect()
 		self.run_app_ssh.connect()
 		self.syslog_ssh.connect()
-		self.syslog_ssh.execute_command("> /var/log/syslog")
-		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep ALVS', False)
+		self.syslog_ssh.execute_command("echo \"\" > /var/log/syslog")
+		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep alvs', False)
 		 
 	def logout(self):
 		self.ssh_object.logout()
@@ -239,15 +236,12 @@ class ezbox_host:
 		print
 		if output == 0:
 			return True
-		elif output == 1:
-			
-			return False
 		elif output < 0:
 			print '\nwait_for_cp_app: Error... (end of output)'
-			return False
+			exit(1)
 		else:
 			print '\nwait_for_cp_app: Error... (Unknown output)'
-			return False
+			exit(1)
 		
 
 	def wait_for_dp_app(self):
@@ -805,7 +799,7 @@ class SshConnect:
 			return [False, "command failed: " + chip_cmd]
 
 	def wait_for_msgs(self, msgs):
-		for i in range(10):
+		for i in range(40):
 			index = self.ssh_object.expect_exact([pexpect.EOF, pexpect.TIMEOUT] + msgs)
 			if index == 0:
 				print "\n" + self.ssh_object.before + self.ssh_object.match
