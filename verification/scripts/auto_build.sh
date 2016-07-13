@@ -7,7 +7,7 @@
 #
 #  Project:         All NPS_SOLUTION git projects
 #
-#  Description:     This script create release for BPS_SOLUTION projects
+#  Description:     This script create release for NPS_SOLUTION projects
 #
 #  Notes:           runs on nighly build
 #
@@ -16,21 +16,20 @@
 function usage()
 {
     cat <<EOF
-Usage: $script_name [GIT_PROJECT] [GIT_BRANCH]
+Usage: $script_name [GIT_PROJECT] [GIT_BRANCH] [BASE_COMMIT_NUM] [LOCAL_AUTO_BUILD]
+
 This script runs auto-build on a specific project & branch
 GIT_PROJECT:       Git project name
 GIT_BRANCH:        Git Branch name
+BASE_COMMIT_NUM:   Number of commit release start from
+LOCAL_AUTO_BUILD:  Auto build file located in GIT. this file continue with build after cloning GIT
 
 Examples:
-$script_name ALVS master
+$script_name ALVS master 200 ./verification/scripts/auto_build_local.sh
 
 EOF
    exit 1
 }
-
-
-declare -i num_commits
-declare -i base_commit_num
 
 
 #######################################################################################
@@ -38,18 +37,21 @@ declare -i base_commit_num
 function parse_cmd()
 {
     # check number of arguments
-    test $# -ne 3 && usage
+    test $# -ne 4 && usage
     
     # move arguments to variables
     git_project=$1
     git_branch=$2
     base_commit_num=$3
+    local_auto_build=$4
 
     # print arguments
     echo ""    
     echo "========== Args:  =========="
-    echo "Git project    = $git_project"
-    echo "Git branch     = $git_branch"
+    echo "Git project      = $git_project"
+    echo "Git branch       = $git_branch"
+    echo "Base commit num  = $base_commit_num"
+    echo "Local auto-build = $local_auto_build"
     echo "======== END Args  ========="
 }
 
@@ -62,11 +64,6 @@ function print_paths()
     echo "branch_dir            = $branch_dir"
     echo "wa_path               = $wa_path"
     echo "git_dir               = $git_dir"
-    echo "build_products_path   = $build_products_path"
-
-    echo "Links:"
-    echo "last_release_link     = $last_release_link"
-    echo "last_stable_link      = $last_stable_link"
 }
 
 #######################################################################################
@@ -76,10 +73,6 @@ function set_global_variables()
     echo -e "\n====== Set variables ======="
 
     exit_status=0
-    # init is_stable to true (no errors)
-    is_stable=1
-    # pre-command for realease folder
-    nps_sw_user_command="sudo -u nps_sw_release"
 
 	script_name=$(basename $0)
 	script_dir=$(cd $(dirname $0) && pwd)
@@ -89,14 +82,10 @@ function set_global_variables()
     
     # release paths
     branch_dir=${base_dir}${git_project}/${git_branch}/
-    
-    last_release_link=${branch_dir}"last_release"
-    last_stable_link=${branch_dir}"last_stable"
-    
+
     # WA paths
     wa_path="/root/auto_build_tmp/"${git_project}/${git_branch}/
     git_dir=$wa_path"$git_project/"
-    build_products_path=$wa_path"products/"
 
 	print_paths
 
@@ -121,15 +110,6 @@ function create_wa()
     if [ $? -ne 0 ]; then
         echo "ERROR: make dir ($wa_path) failed"
         exit_status=1
-        print_end_script
-        exit $exit_status
-    fi
-    
-    # make products folder
-    mkdir -p $build_products_path
-    if [ $? -ne 0 ]; then
-        exit_status=1
-        echo "ERROR: make dir ($build_products_path) failed"
         print_end_script
         exit $exit_status
     fi
@@ -167,180 +147,6 @@ function clone_git()
     
     echo "====== END Clone GIT ======="
 	return $exit_status
-}
-
-#######################################################################################
-
-function create_release_dir()
-{ 
-	echo -e "\n======= Create release directory ========="
-    
-	test -d $version_dir
-	if [ $? -eq 0 ]; then
-		echo "Version didn't change. Version $version"
-		exit_status=0
-		clean_wa_and_exit    
-	fi
-
-	# create release folder
-    echo "Creating folder $version_dir"
-    $nps_sw_user_command mkdir -p $version_dir
-    if [ $? -ne 0 ]; then
-		echo "ERROR: can creating release folder ($version_dir)"
-		exit_status=1
-		clean_wa_and_exit    
-    fi
-
-	echo "====== END Create release directory ======="
-}
-
-#######################################################################################
-
-function cp_tar_file_to_products()
-{
-	echo -e "\n======== $FUNCNAME ========="
-
-    # TODO: check if need folder variables
-    main_folder=$1
-    echo "main_folder   = $main_folder"
-
-	previos_dir=$(pwd)
-    cd $main_folder
-
-    echo pwd:
-    pwd
-    ls -ltr
-    mv *tar.gz $build_products_path
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to copy tar files"
-        is_stable=0
-    fi
-    
-    # back to previos folder
-    cd $previos_dir
-
-	echo "======== End: $FUNCNAME ========="
-}
-
-#######################################################################################
-
-function tar_folder_and_copy_to_products()
-{
-	echo -e "\n======== $FUNCNAME ========="
-
-    target=$1
-    main_folder=$2
-    sub_folder=$3
-    echo "target        = $target"
-    echo "main_folder   = $main_folder"
-    echo "sub_folder    = $sub_folder"
-
-	previos_dir=$(pwd)
-    test -d $main_folder$sub_folder
-    if [ $? -ne 0 ]; then
-        return
-    fi
-
-    # go to main folder
-    cd $main_folder
-    tar_file_name=$target.tar.gz
-    tar -zcf $tar_file_name $sub_folder
-    if [ $? -ne 0 ]; then
-        echo "WARNNING: failed to creare tar file $target"
-
-        # back to previos folder
-        cd $previos_dir
-        return
-    fi
-
-    cp_tar_file_to_products $main_folder
-    
-    # back to previos folder
-    cd $previos_dir
-
-	echo "======== End: $FUNCNAME ========="
-}
-
-#######################################################################################
-
-function build_and_add_bins()
-{
-	echo -e "\n======== Build ALVS and add bin files ========="
-	
-    cd $git_dir
-    
-    ./verification/scripts/make_all.sh release install
-    if [ $? -ne 0 ]; then
-        echo "Failed at make_all release in version $version!"
-        is_stable=0
-    fi
-    	
-	# Copy bin directory before make clean
-	cp_tar_file_to_products $git_dir
-
-
-	./verification/scripts/make_all.sh debug install
-	if [ $? -ne 0 ]; then
-        echo "ERROR: Failed at make_all debug in version $version!"
-        is_stable=0
-    fi
-
-	# Copy bin directory
-    cp_tar_file_to_products $git_dir
-    
-	echo -e "\n======== END Build ALVS and add bin files ========="
-}
-
-#######################################################################################
-
-function update_products_dir()
-{
-    echo -e "\n======== Update release directory ========"
-  
-    # Copy log files
-    tar_folder_and_copy_to_products "logs" $git_dir "logs/"
-
-	# create git.txt file which include last commit.
-	git log -1 > "git.txt"
-    if [ $? -ne 0 ]; then
-        echo "WARNNING: Creating git.txt failed"
-	else
-	    mv  $git_dir"git.txt" $build_products_path
-        if [ $? -ne 0 ]; then
-            echo "ERROR: failed to copy git.txt to product folder"
-        fi
-    fi
-
-	# copy version.h
-	cp $git_dir/src/common/version.h $build_products_path
-    if [ $? -ne 0 ]; then
-        echo "WARNNING: copy version.h failed"
-    fi
-
-    echo "======== END update release directory ========"
-}
-
-#######################################################################################
-
-function update_links()
-{
-    echo -e "\n======= Update links ========"
-
-    # update last build
-    echo "Last release link = $last_release_link"
-    echo "Last stable link  = $last_stable_link"
-
-    
-    $nps_sw_user_command ln -sfn $version_dir $last_release_link
-
-    # set last stable
-    if [ $is_stable -eq 1 ]; then
-        $nps_sw_user_command ln -sfn $version_dir $last_stable_link
-    else
-        echo "Warning: last stable link didn't updated"
-    fi
-
-    echo "===== END Update links ======"
 }
 
 #######################################################################################
@@ -401,18 +207,45 @@ function set_version_dir_variable()
 
 #######################################################################################
 
-function update_release_dir()
+function export_global_variables()
 { 
-    echo -e "\n======= Copy build products to release folder ========="
+    echo -e "\n======= Export global variables ========="
 
-    sshpass -p nps_sw_release11 scp -r $build_products_path/. nps_sw_release@l-nps-006:$version_dir
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to copy build product to $version_dir"
-        is_stable=0
-    fi
+    # Original args:
+    export git_project
+    export git_branch
+    export base_commit_num
+    
+    # Directories:
+    export base_dir
+    export branch_dir
+    export wa_path
+    export git_dir
 
-	echo "====== END Copy build products to release folder ========="
+	echo "====== END Export global variables ========="
 }
+
+
+#######################################################################################
+
+function unexport_global_variables()
+{ 
+    echo -e "\n======= Un-Export global variables ========="
+
+    # Original args:
+    unset git_project
+    unset git_branch
+    unset base_commit_num
+    
+    # Directories:
+    unset base_dir
+    unset branch_dir
+    unset wa_path
+    unset git_dir
+
+	echo "====== END Un-Export global variables ========="
+}
+
 
 #######################################################################################
 
@@ -430,22 +263,23 @@ function run_auto_build()
 	set_global_variables
 
     create_wa
-    
-	clone_git
-
-	set_version_dir_variable
-
-	create_release_dir
-
-	build_and_add_bins
-
-	update_products_dir
 	
-	update_release_dir
+	clone_git
+	
+	export_global_variables
 
-	update_links
+    # run build from git & check status
+	$local_auto_build 
+	exit_status=$?
+	if [ $exit_status -eq 0 ]; then
+        echo "Local Auto-Build passed"
+    else
+        echo "Local Auto-Build failed !!!"
+    fi
 
-	clean_wa_and_exit
+	unexport_global_variables
+
+    clean_wa_and_exit
 
 }
 
