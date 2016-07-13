@@ -165,8 +165,7 @@ def install_alvs():
     if to_install != 'Y':
         return True
     try:
-        if not stop_alvs():
-            raise Exception("Failed to stop ALVS")
+        stop_alvs()
         if not install_packages():
             raise Exception("Failed to install packages")
         if not add_modules():
