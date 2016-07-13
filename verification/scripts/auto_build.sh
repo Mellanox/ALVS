@@ -94,7 +94,7 @@ function set_global_variables()
     last_stable_link=${branch_dir}"last_stable"
     
     # WA paths
-    wa_path="/root/auto_build_tmp/"
+    wa_path="/root/auto_build_tmp/"${git_project}/${git_branch}/
     git_dir=$wa_path"$git_project/"
     build_products_path=$wa_path"products/"
 
@@ -196,6 +196,34 @@ function create_release_dir()
 
 #######################################################################################
 
+function cp_tar_file_to_products()
+{
+	echo -e "\n======== $FUNCNAME ========="
+
+    # TODO: check if need folder variables
+    main_folder=$1
+    echo "main_folder   = $main_folder"
+
+	previos_dir=$(pwd)
+    cd $main_folder
+
+    echo pwd:
+    pwd
+    ls -ltr
+    mv *tar.gz $build_products_path
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to copy tar files"
+        is_stable=0
+    fi
+    
+    # back to previos folder
+    cd $previos_dir
+
+	echo "======== End: $FUNCNAME ========="
+}
+
+#######################################################################################
+
 function tar_folder_and_copy_to_products()
 {
 	echo -e "\n======== $FUNCNAME ========="
@@ -225,11 +253,7 @@ function tar_folder_and_copy_to_products()
         return
     fi
 
-    mv  $tar_file_name $build_products_path
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to copy $target bin files"
-        is_stable=0
-    fi
+    cp_tar_file_to_products $main_folder
     
     # back to previos folder
     cd $previos_dir
@@ -245,25 +269,25 @@ function build_and_add_bins()
 	
     cd $git_dir
     
-    ./verification/scripts/make_all.sh release
+    ./verification/scripts/make_all.sh release install
     if [ $? -ne 0 ]; then
         echo "Failed at make_all release in version $version!"
         is_stable=0
     fi
     	
-    	
 	# Copy bin directory before make clean
-	tar_folder_and_copy_to_products "release" $git_dir "bin/"
+	cp_tar_file_to_products $git_dir
 
-	./verification/scripts/make_all.sh debug
+
+	./verification/scripts/make_all.sh debug install
 	if [ $? -ne 0 ]; then
         echo "ERROR: Failed at make_all debug in version $version!"
         is_stable=0
     fi
 
 	# Copy bin directory
-	tar_folder_and_copy_to_products "debug" $git_dir "bin/"
-
+    cp_tar_file_to_products $git_dir
+    
 	echo -e "\n======== END Build ALVS and add bin files ========="
 }
 
@@ -364,7 +388,7 @@ function set_version_dir_variable()
     echo -e "\n======= Setting version_dir variable ========="
 
 	cd $git_dir
-	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2)
+	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2| uniq)
 	num_commits=$(git rev-list HEAD | wc -l)
 	num_commits=$num_commits-$base_commit_num
 	version="${fixed_version}.${num_commits}"
