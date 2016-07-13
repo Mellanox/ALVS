@@ -28,11 +28,11 @@ function error_exit()
 function usage()
 {
     cat <<EOF
-Usage: $script_name [release | debug | all | EMPTY(both)]
+Usage: $script_name [release | debug | all | EMPTY (all), install]
 This script runs build on the current working area (release and/or debug)
 
 Examples:
-$script_name release
+$script_name release install
 
 EOF
    exit 1
@@ -43,22 +43,37 @@ EOF
 
 function parse_cmd()
 {
+    echo "args: "$@
     # check number of arguments
+    intall_flag=0
     
     test $# -eq 0
-    if [ $? -eq 0 ]; then
+    no_args=$?
+    test $# -eq 1
+    one_args=$?
+    test $# -eq 2
+    two_args=$?
+    
+    if [ $no_args -eq 0 ]; then
         compile_flag="all"
         return
     fi
     
-    test $# -eq 1
-    if [ $? -eq 0 ]; then
+    if [ $one_args -eq 0 ] || [ $two_args -eq 0 ]; then
         if [ "$1" == "release" ] ||  [ "$1" == "debug" ] ||  [ "$1" == "all" ]; then
             compile_flag=$1
         else
             usage
         fi
-    else
+        
+        if [ $two_args -eq 0 ]; then
+            if [ $2 == "install" ]; then
+                intall_flag=1
+            else
+                usage
+            fi
+        fi
+    else # more than 2 args
         usage
     fi
 }
@@ -111,6 +126,9 @@ function make_release()
 
     # prepare compilation parameters
     make_params="all"
+    if [ $intall_flag = 1 ]; then
+        make_params="install"
+    fi
     make_clean_file=$wa_path"make_clean_release.log"
     make_log_file=$wa_path"make_release.log"
 
@@ -139,6 +157,9 @@ function make_debug()
     
     # prepare compilation parameters
     make_params="all"
+    if [ $intall_flag == 1 ]; then
+        make_params="install"
+    fi
     make_clean_file=$wa_path"make_clean_debug.log"
     make_log_file=$wa_path"make_debug.log"
 
