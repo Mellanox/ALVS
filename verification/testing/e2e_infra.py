@@ -140,6 +140,10 @@ def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean'
 			host_rc = (True if rc == False else False)
 		else:
 			host_rc = rc
+	if host_rc == False:
+		print "Error: host statistic failed. expected host_stat_clean = " + str(expected['host_stat_clean'])
+		
+		
 	if 'syslog_clean' in expected:
 		no_debug = expected.get('no_debug', True)
 		rc = syslog_checker(ezbox, no_debug)
@@ -147,9 +151,15 @@ def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean'
 			syslog_rc = (True if rc == False else False)
 		else:
 			syslog_rc = rc
+	if syslog_rc == False:
+		print "Error: syslog checker failed . expected syslog_clean = " + str(expected['syslog_clean'])
+	
 	
 	if 'no_open_connections' in expected or 'no_error_stats' in expected:
 		stats_rc = statistics_checker(ezbox, no_errors=expected.get('no_error_stats', False), no_connections=expected.get('no_open_connections', False))
+	if stats_rc == False:
+		print "Error: Statistic checker failed."
+
 		
 	return (host_rc and syslog_rc and stats_rc)
 
@@ -171,7 +181,7 @@ def host_stats_checker(ezbox):
 				for stat in stats:
 					if stat != '0':
 						rc = False
-						print 'Error - statistics for service %s:%s are not zero: %s' %(vip,port, ' '.join(stats))
+						print 'Note: statistics for service %s:%s are not zero: %s' %(vip,port, ' '.join(stats))
 						break
 			if '->' == split_line[0]:
 				ip, port = split_line[1].split(':')
@@ -179,7 +189,7 @@ def host_stats_checker(ezbox):
 				for stat in stats:
 					if stat != '0':
 						rc = False
-						print 'Error - statistics for server %s:%s are not zero: %s' %(ip,port, ' '.join(stats))
+						print 'Note: statistics for server %s:%s are not zero: %s' %(ip,port, ' '.join(stats))
 						break
 	else:
 		print 'Error - running "ipvsadm -Ln --stats" on host failed '
