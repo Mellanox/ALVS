@@ -38,11 +38,12 @@ ALVS_FILES = [('cfg/alvs_defaults',ALVS_CONFIG),
 #############
 # Utilities #
 #############
-def run_cmd(cmd):
+def run_cmd(cmd, check_result=True):
     rc = os.system(cmd)
-    if rc != 0:
-        print "ERROR: Failed to execute '%s'" % cmd
-        return False
+    if check_result is True:
+        if rc != 0:
+            print "ERROR: Failed to execute '%s'" % cmd
+            return False
     return True
 
 ################
@@ -153,7 +154,7 @@ def start_alvs():
 def stop_alvs():
     print "Stopping ALVS...",
     sys.stdout.flush()
-    if not run_cmd("service alvs stop > /dev/null 2>&1"):
+    if not run_cmd("service alvs stop > /dev/null 2>&1", False):
         return False
     print "Done!"
     return True
@@ -163,6 +164,7 @@ def install_alvs():
     sys.stdout.flush()
     to_install = raw_input("Do you want to continue [Y/n]? ")
     if to_install != 'Y':
+        print "Not installing ALVS."
         return True
     try:
         stop_alvs()
