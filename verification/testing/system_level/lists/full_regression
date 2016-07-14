@@ -1,6 +1,6 @@
-#test1_request_wo_ser.py
-#test2_request_wo_ser2.py
-#test3_request_from_port.py
+test1_request_wo_ser.py
+test2_request_wo_ser2.py
+test3_request_from_port.py
 test4_sh_wo_port.py
 test5_sh_w_port.py
 test6_sh_w_port_2_services.py
@@ -21,3 +21,4 @@ test24_different_weight.py
 test26_change_weight.py
 test28_change_weight_down.py
 test29_change_weight_to_zero.py
+test30_unsupported_alg.py
