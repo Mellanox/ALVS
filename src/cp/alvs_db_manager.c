@@ -200,11 +200,11 @@ static struct nla_policy alvs_dest_policy[IPVS_DEST_ATTR_MAX + 1] = {
 void alvs_db_manager_main(bool *cancel_application_flag)
 {
 	alvs_db_manager_cancel_application_flag = cancel_application_flag;
-	write_log(LOG_DEBUG, "alvs_db_manager_init...\n");
+	write_log(LOG_DEBUG, "alvs_db_manager_init...");
 	alvs_db_manager_init();
-	write_log(LOG_DEBUG, "alvs_db_manager_table_init...\n");
+	write_log(LOG_DEBUG, "alvs_db_manager_table_init...");
 	alvs_db_manager_table_init();
-	write_log(LOG_INFO, "alvs_db_manager_poll...\n");
+	write_log(LOG_INFO, "alvs_db_manager_poll...");
 	alvs_db_manager_poll();
 	alvs_db_manager_delete();
 }
@@ -221,7 +221,7 @@ void alvs_db_manager_poll(void)
 	uint8_t *buffer = malloc(MAX_MSG_SIZE);
 
 	if (buffer == NULL) {
-		write_log(LOG_CRIT, "Failed to allocate buffer\n");
+		write_log(LOG_CRIT, "Failed to allocate buffer");
 		alvs_db_manager_exit_with_error();
 	}
 	saddr_size = sizeof(saddr);
@@ -253,7 +253,7 @@ void alvs_db_manager_init(void)
 
 	alvs_nl_init();
 	if (alvs_db_init(alvs_db_manager_cancel_application_flag) != ALVS_DB_OK) {
-		write_log(LOG_CRIT, "Failed to create SQL DB.\n");
+		write_log(LOG_CRIT, "Failed to create SQL DB.");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -276,21 +276,21 @@ void alvs_db_manager_table_init(void)
 	/* Get all services */
 	get_svcs = alvs_get_services();
 	if (get_svcs == NULL) {
-		write_log(LOG_CRIT, "Failed to receive IPVS service DB from kernel.\n");
+		write_log(LOG_CRIT, "Failed to receive IPVS service DB from kernel.");
 		alvs_db_manager_exit_with_error();
 	}
-	write_log(LOG_DEBUG, "Initial DB build. service count = %d\n", get_svcs->num_services);
+	write_log(LOG_DEBUG, "Initial DB build. service count = %d", get_svcs->num_services);
 	for (i = 0; i < get_svcs->num_services; i++) {
 		/* Add service */
 		if (alvs_db_add_service((struct ip_vs_service_user *)(&get_svcs->entrytable[i])) == ALVS_DB_INTERNAL_ERROR) {
-			write_log(LOG_CRIT, "Failed to add service during table init - received internal error.\n");
+			write_log(LOG_CRIT, "Failed to add service during table init - received internal error.");
 			free(get_svcs);
 			alvs_db_manager_exit_with_error();
 		}
 		/* Get all servers of the current service */
 		dests = alvs_get_dests(&get_svcs->entrytable[i]);
 		if (dests == NULL) {
-			write_log(LOG_CRIT, "Failed to receive IPVS server DB from kernel.\n");
+			write_log(LOG_CRIT, "Failed to receive IPVS server DB from kernel.");
 			free(get_svcs);
 			alvs_db_manager_exit_with_error();
 		}
@@ -298,7 +298,7 @@ void alvs_db_manager_table_init(void)
 			/* Add server */
 			if (alvs_db_add_server((struct ip_vs_service_user *)(&get_svcs->entrytable[i]),
 				       (struct ip_vs_dest_user *)(&dests->entrytable[j])) ==  ALVS_DB_INTERNAL_ERROR) {
-				write_log(LOG_CRIT, "Failed to add server during table init - received internal error.\n");
+				write_log(LOG_CRIT, "Failed to add server during table init - received internal error.");
 				free(get_svcs);
 				free(dests);
 				alvs_db_manager_exit_with_error();
@@ -316,7 +316,7 @@ void alvs_db_manager_table_init(void)
  */
 void alvs_db_manager_delete(void)
 {
-	write_log(LOG_DEBUG, "delete ALVS DB manager...\n");
+	write_log(LOG_DEBUG, "delete ALVS DB manager...");
 	genl_unregister_family(&alvs_genl_ops);
 	if (raw_sock != 0) {
 		close(raw_sock);
@@ -355,7 +355,7 @@ void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr)
 	if (hdr->nlmsg_type == family && (hdr->nlmsg_flags & NLM_F_REQUEST)) {
 		msg = nlmsg_convert(hdr);
 		if (msg == NULL) {
-			write_log(LOG_ERR, "Error in nlmsg_convert\n");
+			write_log(LOG_ERR, "Error in nlmsg_convert");
 			return;
 		}
 		nlmsg_set_proto(msg, NETLINK_GENERIC);
@@ -379,13 +379,13 @@ int alvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg
 	nl_sock = nl_socket_alloc();
 	if (nl_sock == NULL) {
 		nlmsg_free(msg);
-		write_log(LOG_CRIT, "Failed to allocate NL socket\n");
+		write_log(LOG_CRIT, "Failed to allocate NL socket");
 		alvs_db_manager_exit_with_error();
 	}
 	if (genl_connect(nl_sock) < 0) {
 		nlmsg_free(msg);
 		nl_socket_free(nl_sock);
-		write_log(LOG_CRIT, "Failed to connect to socket\n");
+		write_log(LOG_CRIT, "Failed to connect to socket");
 		alvs_db_manager_exit_with_error();
 	}
 	family = genl_ctrl_resolve(nl_sock, IPVS_GENL_NAME);
@@ -393,7 +393,7 @@ int alvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg
 		nlmsg_free(msg);
 		nl_close(nl_sock);
 		nl_socket_free(nl_sock);
-		write_log(LOG_CRIT, "Unable to resolve family\n");
+		write_log(LOG_CRIT, "Unable to resolve family");
 		alvs_db_manager_exit_with_error();
 	}
 	/* To test connections and set the family */
@@ -403,21 +403,21 @@ int alvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg
 		return 0;
 	}
 	if (nl_socket_modify_cb(nl_sock, NL_CB_VALID, NL_CB_CUSTOM, func, arg) != 0) {
-		write_log(LOG_ERR, "Unable to modify NL callback\n");
+		write_log(LOG_ERR, "Unable to modify NL callback");
 		nlmsg_free(msg);
 		nl_close(nl_sock);
 		nl_socket_free(nl_sock);
 		return 1;
 	}
 	if (nl_send_auto_complete(nl_sock, msg) < 0) {
-		write_log(LOG_ERR, "Unable to send NL message\n");
+		write_log(LOG_ERR, "Unable to send NL message");
 		nlmsg_free(msg);
 		nl_close(nl_sock);
 		nl_socket_free(nl_sock);
 		return 1;
 	}
 	if (nl_recvmsgs_default(nl_sock) < 0) {
-		write_log(LOG_ERR, "Unable to receive NL message\n");
+		write_log(LOG_ERR, "Unable to receive NL message");
 		nlmsg_free(msg);
 		nl_close(nl_sock);
 		nl_socket_free(nl_sock);
@@ -446,21 +446,21 @@ void alvs_nl_init(void)
 
 	retcode = genl_register_family(&alvs_genl_ops);
 	if (retcode != 0) {
-		write_log(LOG_CRIT, "Failed to register protocol family\n");
+		write_log(LOG_CRIT, "Failed to register protocol family");
 		alvs_db_manager_exit_with_error();
 	}
 
 	/* Connect to netlink to test connection and set the family*/
 	if (alvs_nl_send_message(NULL, NULL, NULL) != 0) {
-		write_log(LOG_CRIT, "Failed to send NL message.\n");
+		write_log(LOG_CRIT, "Failed to send NL message.");
 	}
-	write_log(LOG_DEBUG, "IPVS NL family 0x%x\n", family);
+	write_log(LOG_DEBUG, "IPVS NL family 0x%x", family);
 	alvs_genl_ops.o_id = family;
 
 	/* Open raw socket */
 	raw_sock = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_ALL));
 	if (raw_sock < 0) {
-		write_log(LOG_CRIT, "Socket Allocation Error\n");
+		write_log(LOG_CRIT, "Socket Allocation Error");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -468,7 +468,7 @@ void alvs_nl_init(void)
 	/* Get the Interface Index */
 	sll.sll_ifindex = if_nametoindex("nlmon0");
 	if (sll.sll_ifindex == 0) {
-		write_log(LOG_CRIT, "Could not find netlink IF nlmon0\n");
+		write_log(LOG_CRIT, "Could not find netlink IF nlmon0");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -478,7 +478,7 @@ void alvs_nl_init(void)
 	sll.sll_pkttype = PACKET_HOST;
 	retcode = bind(raw_sock, (struct sockaddr *)&sll, sizeof(sll));
 	if (retcode < 0) {
-		write_log(LOG_CRIT, "Error binding raw socket to interface\n");
+		write_log(LOG_CRIT, "Error binding raw socket to interface");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -486,7 +486,7 @@ void alvs_nl_init(void)
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	if (setsockopt(raw_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-		write_log(LOG_CRIT, "Error setting socket timeout options\n");
+		write_log(LOG_CRIT, "Error setting socket timeout options");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -497,30 +497,30 @@ void alvs_nl_init(void)
 	mreq.mr_alen = 0;
 	retcode = setsockopt(raw_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
 	if (retcode < 0) {
-		write_log(LOG_CRIT, "Error setting socket PACKET_ADD_MEMBERSHIP options\n");
+		write_log(LOG_CRIT, "Error setting socket PACKET_ADD_MEMBERSHIP options");
 		alvs_db_manager_exit_with_error();
 	}
 	val = 1;
 	retcode = setsockopt(raw_sock, SOL_PACKET, PACKET_AUXDATA, &val, sizeof(val));
 	if (retcode < 0) {
-		write_log(LOG_CRIT, "Error setting socket PACKET_AUXDATA options\n");
+		write_log(LOG_CRIT, "Error setting socket PACKET_AUXDATA options");
 		alvs_db_manager_exit_with_error();
 	}
 	val = 2;
 	retcode = setsockopt(raw_sock, SOL_PACKET, PACKET_VERSION, &val, sizeof(val));
 	if (retcode < 0) {
-		write_log(LOG_CRIT, "Error setting socket PACKET_VERSION options\n");
+		write_log(LOG_CRIT, "Error setting socket PACKET_VERSION options");
 		alvs_db_manager_exit_with_error();
 	}
 	val = 4;
 	retcode = setsockopt(raw_sock, SOL_PACKET, PACKET_RESERVE, &val, sizeof(val));
 	if (retcode < 0) {
-		write_log(LOG_CRIT, "Error setting socket PACKET_RESERVE options\n");
+		write_log(LOG_CRIT, "Error setting socket PACKET_RESERVE options");
 		alvs_db_manager_exit_with_error();
 	}
 	retcode = fcntl(raw_sock, F_SETFL, O_RDWR);
 	if (retcode != 0) {
-		write_log(LOG_CRIT, "Error setting socket to be nonblocking & RDRW\n");
+		write_log(LOG_CRIT, "Error setting socket to be nonblocking & RDRW");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -560,12 +560,12 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	struct ip_vs_service_user svc;
 	struct ip_vs_dest_user dest;
 
-	write_log(LOG_DEBUG, "Received command %s\n", cmd->c_name);
+	write_log(LOG_DEBUG, "Received command %s", cmd->c_name);
 	/* Flush request */
 	if (cmd->c_id == IPVS_CMD_FLUSH) {
 		alvs_ret = alvs_db_clear();
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Problem flushing all data.\n");
+			write_log(LOG_ERR, "Problem flushing all data.");
 		}
 		return NL_OK;
 	}
@@ -577,7 +577,7 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	if (ret < 0)
 		return NL_SKIP;
 
-	write_log(LOG_DEBUG, "received service: protocol = %d, addr = 0x%08X, port = %d, fwmark = %d, sched_name = %s\n", svc.protocol, svc.addr, svc.port, svc.fwmark, svc.sched_name);
+	write_log(LOG_DEBUG, "received service: protocol = %d, addr = 0x%08x, port = %d, fwmark = %d, sched_name = %s", svc.protocol, svc.addr, svc.port, svc.fwmark, svc.sched_name);
 
 	if (cmd->c_id == IPVS_CMD_NEW_DEST || cmd->c_id == IPVS_CMD_SET_DEST || cmd->c_id == IPVS_CMD_DEL_DEST) {
 		/* For all destination related requests need to parse dest (server) */
@@ -587,54 +587,54 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
 		if (ret < 0)
 			return NL_SKIP;
-		write_log(LOG_DEBUG, "received dest: addr = 0x%08X, port = %d, weight = %d flags = 0x%08X\n", dest.addr, dest.port, dest.weight, dest.conn_flags);
+		write_log(LOG_DEBUG, "received dest: addr = 0x%08x, port = %d, weight = %d flags = 0x%08x", dest.addr, dest.port, dest.weight, dest.conn_flags);
 	}
 
 	switch (cmd->c_id) {
 	case IPVS_CMD_NEW_SERVICE:
 		alvs_ret = alvs_db_add_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem adding service: protocol = %d, addr = 0x%08X, port = %d, sched_name = %s retcode = %d\n", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem adding service: protocol = %d, addr = 0x%08x, port = %d, sched_name = %s retcode = %d", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_SERVICE:
 		alvs_ret = alvs_db_modify_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem updating service: protocol = %d, addr = 0x%08X, port = %d, sched_name = %s retcode = %d\n", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem updating service: protocol = %d, addr = 0x%08x, port = %d, sched_name = %s retcode = %d", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_SERVICE:
 		alvs_ret = alvs_db_delete_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem deleting service: protocol = %d, addr = 0x%08X, port = %d, sched_name = %s retcode = %d\n", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem deleting service: protocol = %d, addr = 0x%08x, port = %d, sched_name = %s retcode = %d", svc.protocol, svc.addr, svc.port, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_NEW_DEST:
 		alvs_ret = alvs_db_add_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem adding server: addr = 0x%08X, port = %d, weight = %d flags = 0x%08X retcode = %d\n", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem adding server: addr = 0x%08x, port = %d, weight = %d flags = 0x%08x retcode = %d", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_DEST:
 		alvs_ret = alvs_db_modify_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem updating server: addr = 0x%08X, port = %d, weight = %d flags = 0x%08X retcode = %d\n", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem updating server: addr = 0x%08x, port = %d, weight = %d flags = 0x%08x retcode = %d", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_DEST:
 		alvs_ret = alvs_db_delete_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem deleting server: addr = 0x%08X, port = %d, weight = %d flags = 0x%08X retcode = %d\n", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem deleting server: addr = 0x%08x, port = %d, weight = %d flags = 0x%08x retcode = %d", dest.addr, dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	default:
 		alvs_ret = ALVS_DB_NOT_SUPPORTED;
-		write_log(LOG_ERR, "Bad command received. command ID = %d\n", cmd->c_id);
+		write_log(LOG_ERR, "Bad command received. command ID = %d", cmd->c_id);
 	}
 
 
 	if (alvs_ret == ALVS_DB_INTERNAL_ERROR || alvs_ret == ALVS_DB_NPS_ERROR) {
-		write_log(LOG_CRIT, "Received fatal error from DBs. exiting.\n");
+		write_log(LOG_CRIT, "Received fatal error from DBs. exiting.");
 		alvs_db_manager_exit_with_error();
 	}
 
@@ -659,18 +659,18 @@ static int alvs_services_parse_cb(struct nl_msg *msg, void *arg)
 
 	retcode = genlmsg_parse(nlh, 0, attrs, IPVS_CMD_ATTR_MAX, alvs_cmd_policy);
 	if (retcode != 0) {
-		write_log(LOG_ERR, "Error parsing get services response message\n");
+		write_log(LOG_ERR, "Error parsing get services response message");
 		return -1;
 	}
 
 	if (attrs[IPVS_CMD_ATTR_SERVICE] == NULL) {
-		write_log(LOG_ERR, "Error parsing get services response message - no service attributes\n");
+		write_log(LOG_ERR, "Error parsing get services response message - no service attributes");
 		return -1;
 	}
 
 	retcode = nla_parse_nested(svc_attrs, IPVS_SVC_ATTR_MAX, attrs[IPVS_CMD_ATTR_SERVICE], alvs_svc_policy);
 	if (retcode != 0) {
-		write_log(LOG_ERR, "Error parsing get services response message - problem parsing services\n");
+		write_log(LOG_ERR, "Error parsing get services response message - problem parsing services");
 		return -1;
 	}
 
@@ -685,7 +685,7 @@ static int alvs_services_parse_cb(struct nl_msg *msg, void *arg)
 	      svc_attrs[IPVS_SVC_ATTR_NETMASK] &&
 	      svc_attrs[IPVS_SVC_ATTR_TIMEOUT] &&
 	      svc_attrs[IPVS_SVC_ATTR_FLAGS])) {
-		write_log(LOG_ERR, "Bad service attributes\n");
+		write_log(LOG_ERR, "Bad service attributes");
 		return -1;
 	}
 
@@ -735,18 +735,18 @@ static int alvs_dests_parse_cb(struct nl_msg *msg, void *arg)
 
 	retcode = genlmsg_parse(nlh, 0, attrs, IPVS_CMD_ATTR_MAX, alvs_cmd_policy);
 	if (retcode != 0) {
-		write_log(LOG_ERR, "Cannot parse get dests CB message\n");
+		write_log(LOG_ERR, "Cannot parse get dests CB message");
 		return -1;
 	}
 
 	if (attrs[IPVS_CMD_ATTR_DEST] == NULL) {
-		write_log(LOG_ERR, "Get dests CB message has no attributes\n");
+		write_log(LOG_ERR, "Get dests CB message has no attributes");
 		return -1;
 	}
 
 	retcode = nla_parse_nested(dest_attrs, IPVS_DEST_ATTR_MAX, attrs[IPVS_CMD_ATTR_DEST], alvs_dest_policy);
 	if (retcode != 0) {
-		write_log(LOG_ERR, "Get dests CB message - parse nested problem\n");
+		write_log(LOG_ERR, "Get dests CB message - parse nested problem");
 		return -1;
 	}
 
@@ -761,7 +761,7 @@ static int alvs_dests_parse_cb(struct nl_msg *msg, void *arg)
 	      dest_attrs[IPVS_DEST_ATTR_ACTIVE_CONNS] &&
 	      dest_attrs[IPVS_DEST_ATTR_INACT_CONNS] &&
 	      dest_attrs[IPVS_DEST_ATTR_PERSIST_CONNS])) {
-		write_log(LOG_ERR, "Get dests CB message - bad attributes\n");
+		write_log(LOG_ERR, "Get dests CB message - bad attributes");
 		return -1;
 	}
 
@@ -800,14 +800,14 @@ struct ip_vs_get_services *alvs_get_services(void)
 	len = sizeof(*get) + sizeof(struct ip_vs_service_entry);
 	get = malloc(len);
 	if (get == NULL) {
-		write_log(LOG_ERR, "Failed to allocate memory for service list\n");
+		write_log(LOG_ERR, "Failed to allocate memory for service list");
 		return NULL;
 	}
 	get->num_services = 0;
 
 	msg = alvs_nl_message(IPVS_CMD_GET_SERVICE, NLM_F_DUMP);
 	if (msg == NULL) {
-		write_log(LOG_ERR, "Failed to allocate NL message\n");
+		write_log(LOG_ERR, "Failed to allocate NL message");
 		free(get);
 		return NULL;
 	}
@@ -816,7 +816,7 @@ struct ip_vs_get_services *alvs_get_services(void)
 		return get;
 
 
-	write_log(LOG_ERR, "Failed to send NL IPVS_CMD_GET_SERVICE message\n");
+	write_log(LOG_ERR, "Failed to send NL IPVS_CMD_GET_SERVICE message");
 	free(get);
 	return NULL;
 }
@@ -835,7 +835,7 @@ static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user
 
 	/* Parse mandatory identifying service fields first */
 	if (nla == NULL || nla_parse_nested(attrs, IPVS_SVC_ATTR_MAX, nla, alvs_svc_policy)) {
-		printf("Error parsing service attributed");
+		write_log(LOG_ERR, "Error parsing service attributed");
 		return -1;
 	}
 
@@ -846,14 +846,14 @@ static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user
 	nla_fwmark      = attrs[IPVS_SVC_ATTR_FWMARK];
 
 	if (!(nla_af && (nla_fwmark || (nla_port && nla_protocol && nla_addr)))) {
-		printf("Error - bad service attribute");
+		write_log(LOG_ERR, "Error - bad service attribute");
 		return -1;
 	}
 
 	memset(ret_svc, 0, sizeof(struct ip_vs_service_user));
 
 	if (nla_get_u16(nla_af) != AF_INET) {
-		printf("Error - Not IPV4");
+		write_log(LOG_ERR, "Error - Not IPV4");
 		return -1;
 	}
 
@@ -900,7 +900,7 @@ static int alvs_genl_parse_dest(struct nlattr *nla, struct ip_vs_dest_user *ret_
 
 	/* Parse mandatory identifying destination fields first */
 	if (nla == NULL || nla_parse_nested(attrs, IPVS_DEST_ATTR_MAX, nla, alvs_dest_policy)) {
-		printf("Error parsing dest attributes\n");
+		write_log(LOG_ERR, "Error parsing dest attributes");
 		return -1;
 	}
 
@@ -908,7 +908,7 @@ static int alvs_genl_parse_dest(struct nlattr *nla, struct ip_vs_dest_user *ret_
 	nla_port = attrs[IPVS_DEST_ATTR_PORT];
 
 	if (!(nla_addr && nla_port)) {
-		printf("Error - bad dest attribute");
+		write_log(LOG_ERR, "Error - bad dest attribute");
 		return -1;
 	}
 
@@ -949,14 +949,14 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 	len = sizeof(*d) + sizeof(struct ip_vs_dest_entry) * svc->num_dests;
 	d = malloc(len);
 	if (d == NULL) {
-		write_log(LOG_ERR, "Failed to allocate destination list\n");
+		write_log(LOG_ERR, "Failed to allocate destination list");
 		return NULL;
 	}
 
 	if (svc->num_dests == 0) {
 		d = realloc(d, sizeof(*d) + sizeof(struct ip_vs_dest_entry));
 		if (d == NULL) {
-			write_log(LOG_ERR, "Failed to allocate dest\n");
+			write_log(LOG_ERR, "Failed to allocate dest");
 			return NULL;
 		}
 	}
@@ -968,14 +968,14 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 
 	msg = alvs_nl_message(IPVS_CMD_GET_DEST, NLM_F_DUMP);
 	if (msg == NULL) {
-		write_log(LOG_ERR, "Failed to allocate message\n");
+		write_log(LOG_ERR, "Failed to allocate message");
 		free(d);
 		return NULL;
 	}
 
 	nl_service = nla_nest_start(msg, IPVS_CMD_ATTR_SERVICE);
 	if (nl_service == NULL) {
-		write_log(LOG_ERR, "Failed to write service to message\n");
+		write_log(LOG_ERR, "Failed to write service to message");
 		nlmsg_free(msg);
 		free(d);
 		return NULL;
@@ -985,16 +985,16 @@ struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc)
 		NLA_PUT_U32(msg, IPVS_SVC_ATTR_FWMARK, ntohl(svc->fwmark));
 	} else {
 		addr.ip = svc->addr;
-		write_log(LOG_DEBUG, "Fill service details into message: protocol = 0x%x addr = 0x%x port = 0x%x\n", svc->protocol, svc->addr, svc->port);
+		write_log(LOG_DEBUG, "Fill service details into message: protocol = 0x%x addr = 0x%x port = 0x%x", svc->protocol, svc->addr, svc->port);
 		NLA_PUT_U16(msg, IPVS_SVC_ATTR_PROTOCOL, svc->protocol);
 		NLA_PUT(msg, IPVS_SVC_ATTR_ADDR, sizeof(union nf_inet_addr), &addr);
 		NLA_PUT_U16(msg, IPVS_SVC_ATTR_PORT, svc->port);
 	}
 
-	write_log(LOG_DEBUG, "Send get dests message\n");
+	write_log(LOG_DEBUG, "Send get dests message");
 	nla_nest_end(msg, nl_service);
 	if (alvs_nl_send_message(msg, alvs_dests_parse_cb, &d) != 0) {
-		write_log(LOG_ERR, "Failed to send get dests message\n");
+		write_log(LOG_ERR, "Failed to send get dests message");
 		free(d);
 		return NULL;
 	}
@@ -1020,7 +1020,7 @@ bool alvs_db_constructor(void)
 	struct infra_table_params table_params;
 	bool retcode;
 
-	write_log(LOG_DEBUG, "Creating service classification table.\n");
+	write_log(LOG_DEBUG, "Creating service classification table.");
 	hash_params.key_size = sizeof(struct alvs_service_classification_key);
 	hash_params.result_size = sizeof(struct alvs_service_classification_result);
 	hash_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
@@ -1031,11 +1031,11 @@ bool alvs_db_constructor(void)
 	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
 	retcode = infra_create_hash(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, &hash_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs service classification hash.\n");
+		write_log(LOG_CRIT, "Failed to create alvs service classification hash.");
 		return false;
 	}
 
-	write_log(LOG_DEBUG, "Creating service info table.\n");
+	write_log(LOG_DEBUG, "Creating service info table.");
 	table_params.key_size = sizeof(struct alvs_service_info_key);
 	table_params.result_size = sizeof(struct alvs_service_info_result);
 	table_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
@@ -1043,11 +1043,11 @@ bool alvs_db_constructor(void)
 	table_params.search_mem_heap = INFRA_X4_CLUSTER_SEARCH_HEAP;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SERVICE_INFO, &table_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs service info table.\n");
+		write_log(LOG_CRIT, "Failed to create alvs service info table.");
 		return false;
 	}
 
-	write_log(LOG_DEBUG, "Creating scheduling info table.\n");
+	write_log(LOG_DEBUG, "Creating scheduling info table.");
 	table_params.key_size = sizeof(struct alvs_sched_info_key);
 	table_params.result_size = sizeof(struct alvs_sched_info_result);
 	table_params.max_num_of_entries = ALVS_SCHED_MAX_ENTRIES;
@@ -1055,11 +1055,11 @@ bool alvs_db_constructor(void)
 	table_params.search_mem_heap = INFRA_EMEM_SEARCH_2_TABLE_HEAP;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SCHED_INFO, &table_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs scheduling info table.\n");
+		write_log(LOG_CRIT, "Failed to create alvs scheduling info table.");
 		return false;
 	}
 
-	write_log(LOG_DEBUG, "Creating server info table.\n");
+	write_log(LOG_DEBUG, "Creating server info table.");
 	table_params.key_size = sizeof(struct alvs_server_info_key);
 	table_params.result_size = sizeof(struct alvs_server_info_result);
 	table_params.max_num_of_entries = ALVS_SERVERS_MAX_ENTRIES;
@@ -1067,11 +1067,11 @@ bool alvs_db_constructor(void)
 	table_params.search_mem_heap = INFRA_EMEM_SEARCH_2_TABLE_HEAP;
 	retcode = infra_create_table(STRUCT_ID_ALVS_SERVER_INFO, &table_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs server info table.\n");
+		write_log(LOG_CRIT, "Failed to create alvs server info table.");
 		return false;
 	}
 
-	write_log(LOG_DEBUG, "Creating connection classification table.\n");
+	write_log(LOG_DEBUG, "Creating connection classification table.");
 	hash_params.key_size = sizeof(struct alvs_conn_classification_key);
 	hash_params.result_size = sizeof(struct alvs_conn_classification_result);
 	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
@@ -1084,11 +1084,11 @@ bool alvs_db_constructor(void)
 	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
 	retcode = infra_create_hash(STRUCT_ID_ALVS_CONN_CLASSIFICATION, &hash_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs conn classification hash.\n");
+		write_log(LOG_CRIT, "Failed to create alvs conn classification hash.");
 		return false;
 	}
 
-	printf("Creating connection info table.\n");
+	write_log(LOG_DEBUG, "Creating connection info table.");
 	table_params.key_size = sizeof(struct alvs_conn_info_key);
 	table_params.result_size = sizeof(struct alvs_conn_info_result);
 	table_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
@@ -1096,7 +1096,7 @@ bool alvs_db_constructor(void)
 	table_params.search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
 	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, &table_params);
 	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create alvs conn info table.\n");
+		write_log(LOG_CRIT, "Failed to create alvs conn info table.");
 		return false;
 	}
 

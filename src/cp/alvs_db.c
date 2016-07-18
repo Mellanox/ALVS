@@ -107,12 +107,12 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	char *zErrMsg = NULL;
 
 	if (index_pool_init(&server_index_pool, 32768) == false) {
-		write_log(LOG_CRIT, "Failed to init server index pool.\n");
+		write_log(LOG_CRIT, "Failed to init server index pool.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 	if (index_pool_init(&service_index_pool, 256) == false) {
 		index_pool_destroy(&server_index_pool);
-		write_log(LOG_CRIT, "Failed to init service index pool.\n");
+		write_log(LOG_CRIT, "Failed to init service index pool.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -123,14 +123,14 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 
 	rc = sqlite3_open(ALVS_DB_FILE_NAME, &alvs_db);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "Can't open database: %s\n",
+		write_log(LOG_CRIT, "Can't open database: %s",
 			  sqlite3_errmsg(alvs_db));
 		index_pool_destroy(&server_index_pool);
 		index_pool_destroy(&service_index_pool);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "ALVS_DB: Opened database successfully\n");
+	write_log(LOG_DEBUG, "ALVS_DB: Opened database successfully");
 
 	/* Create the services table:
 	 * Fields:
@@ -155,7 +155,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		index_pool_destroy(&server_index_pool);
 		index_pool_destroy(&service_index_pool);
@@ -199,7 +199,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		index_pool_destroy(&server_index_pool);
 		index_pool_destroy(&service_index_pool);
@@ -213,7 +213,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	rc = pthread_create(&server_db_aging_thread, NULL,
 			    (void * (*)(void *))server_db_aging, NULL);
 	if (rc != 0) {
-		write_log(LOG_CRIT, "Cannot start server_db_aging_thread: pthread_create failed for server DB aging.\n");
+		write_log(LOG_CRIT, "Cannot start server_db_aging_thread: pthread_create failed for server DB aging.");
 		return ALVS_DB_FATAL_ERROR;
 	}
 
@@ -270,7 +270,7 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -280,7 +280,7 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 
 	/* In case of error return 0 */
 	if (rc != SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		return ALVS_DB_INTERNAL_ERROR;
@@ -313,7 +313,7 @@ enum alvs_db_rc internal_db_clear_all(void)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -347,7 +347,7 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -357,7 +357,7 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 
 	/* Error */
 	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		return ALVS_DB_INTERNAL_ERROR;
@@ -366,7 +366,7 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 	/* Service not found */
 	if (rc == SQLITE_DONE) {
 		write_log(LOG_DEBUG,
-			  "No service found with required 3-tuple.\n");
+			  "No service found with required 3-tuple.");
 		sqlite3_finalize(statement);
 		return ALVS_DB_FAILURE;
 	}
@@ -417,7 +417,7 @@ enum alvs_db_rc internal_db_add_service(struct alvs_db_service *service)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -450,7 +450,7 @@ enum alvs_db_rc internal_db_modify_service(struct alvs_db_service *service)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -484,7 +484,7 @@ enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -553,7 +553,7 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -591,7 +591,7 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 
 	/* Error */
 	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		alvs_free_server_list(*server_list);
@@ -635,7 +635,7 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -645,7 +645,7 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 
 	/* Error */
 	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n", sqlite3_errmsg(alvs_db));
+		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -653,7 +653,7 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	/* Service not found */
 	if (rc == SQLITE_DONE) {
 		write_log(LOG_DEBUG, "No server found in required service "
-			  "with required 2-tuple.\n");
+			  "with required 2-tuple.");
 		sqlite3_finalize(statement);
 		return ALVS_DB_FAILURE;
 	}
@@ -705,7 +705,7 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -743,7 +743,7 @@ enum alvs_db_rc internal_db_modify_server(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -776,7 +776,7 @@ enum alvs_db_rc internal_db_delete_server(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -811,7 +811,7 @@ enum alvs_db_rc internal_db_deactivate_server(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -849,7 +849,7 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -875,38 +875,38 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 	struct alvs_sched_info_key sched_info_key;
 	struct alvs_sched_info_result sched_info_result;
 
-	write_log(LOG_DEBUG, "Recalculating scheduling info with %d servers.\n", service->server_count);
+	write_log(LOG_DEBUG, "Recalculating scheduling info with %d servers.", service->server_count);
 	if (service->server_count == 0) {
 		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
 			if (infra_delete_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
 						sizeof(struct alvs_sched_info_key)) == false) {
-				write_log(LOG_DEBUG, "Failed to delete a scheduling info entry.\n");
+				write_log(LOG_DEBUG, "Failed to delete a scheduling info entry.");
 				return ALVS_DB_NPS_ERROR;
 			}
 		}
 		return ALVS_DB_OK;
 	}
 
-	write_log(LOG_DEBUG, "Getting list of servers.\n");
+	write_log(LOG_DEBUG, "Getting list of servers.");
 	if (internal_db_get_server_list(service, &server_list, EXCLUDE_INACTIVE | EXCLUDE_WEIGHT_ZERO) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
 		write_log(LOG_CRIT, "Can't retrieve server list - "
-			  "internal error.\n");
+			  "internal error.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	switch (service->sched_alg) {
 	case ALVS_SOURCE_HASH_SCHEDULER:
-		write_log(LOG_DEBUG, "Algorithm is 'source hash'.\n");
+		write_log(LOG_DEBUG, "Algorithm is 'source hash'.");
 		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
 			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
 			sched_info_result.server_index = bswap_32(server_list->server.nps_index);
-			write_log(LOG_DEBUG, "(%d) %d --> %d\n", service->nps_index, ind, server_list->server.nps_index);
+			write_log(LOG_DEBUG, "(%d) %d --> %d", service->nps_index, ind, server_list->server.nps_index);
 			if (infra_modify_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
 						sizeof(struct alvs_sched_info_key), &sched_info_result,
 						sizeof(struct alvs_sched_info_result)) == false) {
-				write_log(LOG_CRIT, "Failed to modify a scheduling info entry.\n");
+				write_log(LOG_CRIT, "Failed to modify a scheduling info entry.");
 				return ALVS_DB_NPS_ERROR;
 			}
 
@@ -919,7 +919,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 		break;
 	default:
 		/* Other algorithms are currently not supported */
-		write_log(LOG_NOTICE, "Algorithm not supported.\n");
+		write_log(LOG_NOTICE, "Algorithm not supported.");
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -961,7 +961,7 @@ enum alvs_db_rc alvs_db_get_num_active_conn(uint32_t server_index,
 	posted_counter_config.bDoubleOperation = false;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedCounters, &posted_counter_config);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -996,7 +996,7 @@ enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
 	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVER_STATS;
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -1027,7 +1027,7 @@ enum alvs_db_rc alvs_db_clean_service_stats(uint32_t service_index)
 	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVICE_STATS;
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -1259,11 +1259,11 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 
 	/* Check is request is supported */
 	if (supported_protocol(ip_vs_service->protocol) == false) {
-		write_log(LOG_NOTICE, "Protocol (%d) is not supported.\n", ip_vs_service->protocol);
+		write_log(LOG_NOTICE, "Protocol (%d) is not supported.", ip_vs_service->protocol);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 	if (supported_sched_alg(get_sched_alg(ip_vs_service->sched_name)) == false) {
-		write_log(LOG_NOTICE, "Scheduling algorithm (%s) is not supported.\n", ip_vs_service->sched_name);
+		write_log(LOG_NOTICE, "Scheduling algorithm (%s) is not supported.", ip_vs_service->sched_name);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -1274,16 +1274,16 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	switch (internal_db_get_service(&cp_service, false)) {
 	case ALVS_DB_OK:
 		/* Service already exists */
-		write_log(LOG_NOTICE, "Can't add service. Service (%s:%d, protocol=%d) already exists.\n",
+		write_log(LOG_NOTICE, "Can't add service. Service (%s:%d, protocol=%d) already exists.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) doesn't exist\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) doesn't exist",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1295,10 +1295,10 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	 * Allocate an index for the new service
 	 */
 	if (index_pool_alloc(&service_index_pool, &cp_service.nps_index) == false) {
-		write_log(LOG_ERR, "Can't add service. Reached maximum.\n");
+		write_log(LOG_ERR, "Can't add service. Reached maximum.");
 		return ALVS_DB_NOT_SUPPORTED;
 	}
-	write_log(LOG_DEBUG, "Allocated nps_index = %d\n", cp_service.nps_index);
+	write_log(LOG_DEBUG, "Allocated nps_index = %d", cp_service.nps_index);
 
 	/* Fill information of the service */
 	cp_service.sched_alg = get_sched_alg(ip_vs_service->sched_name);
@@ -1308,19 +1308,19 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 		(EMEM_SERVICE_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
 		((EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
 
-	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d\n",
+	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d",
 		  cp_service.sched_alg, cp_service.flags);
 
 	/* Clean service statistics */
-	write_log(LOG_DEBUG, "Cleaning service statistics.\n");
+	write_log(LOG_DEBUG, "Cleaning service statistics.");
 	if (alvs_db_clean_service_stats(cp_service.nps_index) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to clean statistics.\n");
+		write_log(LOG_CRIT, "Failed to clean statistics.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	/* Add service info to internal DB */
 	if (internal_db_add_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to add service to internal DB.\n");
+		write_log(LOG_CRIT, "Failed to add service to internal DB.");
 		index_pool_release(&service_index_pool, cp_service.nps_index);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -1334,7 +1334,7 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 			    sizeof(struct alvs_service_info_key),
 			    &nps_service_info_result,
 			    sizeof(struct alvs_service_info_result)) == false) {
-		write_log(LOG_CRIT, "Failed to add service info entry to NPS.\n");
+		write_log(LOG_CRIT, "Failed to add service info entry to NPS.");
 		index_pool_release(&service_index_pool, cp_service.nps_index);
 		return ALVS_DB_NPS_ERROR;
 	}
@@ -1349,12 +1349,12 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 			    sizeof(struct alvs_service_classification_key),
 			    &nps_service_classification_result,
 			    sizeof(struct alvs_service_classification_result)) == false) {
-		write_log(LOG_CRIT, "Failed to add service classification entry to NPS.\n");
+		write_log(LOG_CRIT, "Failed to add service classification entry to NPS.");
 		index_pool_release(&service_index_pool, cp_service.nps_index);
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) added successfully.\n",
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) added successfully.",
 		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
@@ -1379,7 +1379,7 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 
 	/* Check if request is supported */
 	if (supported_sched_alg(get_sched_alg(ip_vs_service->sched_name)) == false) {
-		write_log(LOG_NOTICE, "Scheduling algorithm (%s) is not supported.\n", ip_vs_service->sched_name);
+		write_log(LOG_NOTICE, "Scheduling algorithm (%s) is not supported.", ip_vs_service->sched_name);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -1390,16 +1390,16 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't modify service. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't modify service. Service (%s:%d, protocol=%d) doesn't exist.",
 		       my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1412,12 +1412,12 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 	cp_service.sched_alg = get_sched_alg(ip_vs_service->sched_name);
 	cp_service.flags = ip_vs_service->flags;
 
-	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d\n",
+	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d",
 		  cp_service.sched_alg, cp_service.flags);
 
 	/* Modify service information in internal DB */
 	if (internal_db_modify_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to modify service in internal DB.\n");
+		write_log(LOG_CRIT, "Failed to modify service in internal DB.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -1426,9 +1426,9 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 		enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
 
 		if (rc == ALVS_DB_OK) {
-			write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
+			write_log(LOG_DEBUG, "Scheduling info recalculated.");
 		} else {
-			write_log(LOG_CRIT, "Failed to recalculate scheduling information.\n");
+			write_log(LOG_CRIT, "Failed to recalculate scheduling information.");
 			return rc;
 		}
 	}
@@ -1439,11 +1439,11 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 	if (infra_modify_entry(STRUCT_ID_ALVS_SERVICE_INFO, &nps_service_info_key,
 			       sizeof(struct alvs_service_info_key), &nps_service_info_result,
 			       sizeof(struct alvs_service_info_result)) == false) {
-		write_log(LOG_CRIT, "Failed to modify service info entry in NPS.\n");
+		write_log(LOG_CRIT, "Failed to modify service info entry in NPS.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) modified successfully.\n",
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) modified successfully.",
 		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
@@ -1475,16 +1475,16 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't delete service. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't delete service. Service (%s:%d, protocol=%d) doesn't exist.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1496,22 +1496,22 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	internal_db_get_server_count(&cp_service, &cp_service.server_count, EXCLUDE_INACTIVE);
 
 	/* Get list of servers to delete */
-	write_log(LOG_DEBUG, "Getting list of servers.\n");
+	write_log(LOG_DEBUG, "Getting list of servers.");
 	if (internal_db_get_server_list(&cp_service, &server_list, EXCLUDE_INACTIVE) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
 		write_log(LOG_CRIT, "Can't retrieve server list - "
-			  "internal error.\n");
+			  "internal error.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	/* Delete service from internal DB and deactivate servers */
 	if (internal_db_delete_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to delete service from internal DB.\n");
+		write_log(LOG_CRIT, "Failed to delete service from internal DB.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	/* Release service index */
-	write_log(LOG_DEBUG, "Releasing nps_index %d.\n", cp_service.nps_index);
+	write_log(LOG_DEBUG, "Releasing nps_index %d.", cp_service.nps_index);
 	index_pool_release(&service_index_pool, cp_service.nps_index);
 
 	/* Delete service classification to NPS search structure */
@@ -1520,7 +1520,7 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	if (infra_delete_entry(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION,
 			       &nps_service_classification_key,
 			       sizeof(struct alvs_service_classification_key)) == false) {
-		write_log(LOG_CRIT, "Failed to delete service classification entry.\n");
+		write_log(LOG_CRIT, "Failed to delete service classification entry.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
@@ -1529,13 +1529,13 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	if (infra_delete_entry(STRUCT_ID_ALVS_SERVICE_INFO,
 			       &nps_service_info_key,
 			       sizeof(struct alvs_service_info_key)) == false) {
-		write_log(LOG_CRIT, "Failed to delete service info entry.\n");
+		write_log(LOG_CRIT, "Failed to delete service info entry.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
 	/* Deactivate all servers */
 	for (ind = 0; ind < cp_service.server_count; ind++) {
-		write_log(LOG_DEBUG, "Deactivating server with nps_index %d.\n", server_list->server.nps_index);
+		write_log(LOG_DEBUG, "Deactivating server with nps_index %d.", server_list->server.nps_index);
 		/* Deactivate server in struct */
 		server_list->server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
 		build_nps_server_info_key(&server_list->server, &nps_server_info_key);
@@ -1545,7 +1545,7 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 				       sizeof(struct alvs_server_info_key),
 				       &nps_server_info_result,
 				       sizeof(struct alvs_server_info_result)) == false) {
-			write_log(LOG_CRIT, "Failed to modify server info entry.\n");
+			write_log(LOG_CRIT, "Failed to modify server info entry.");
 			alvs_free_server_list(server_list);
 			return ALVS_DB_NPS_ERROR;
 		}
@@ -1555,15 +1555,15 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	cp_service.server_count = 0;
 
 	/* Delete scheduling information from NPS search structure (if existed) */
-	write_log(LOG_DEBUG, "Deleting scheduling information.\n");
+	write_log(LOG_DEBUG, "Deleting scheduling information.");
 	enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
 
 	if (rc != ALVS_DB_OK) {
-		write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
+		write_log(LOG_CRIT, "Failed to delete scheduling information.");
 		return rc;
 	}
 
-	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) deleted successfully.\n",
+	write_log(LOG_INFO, "Service (%s:%d, protocol=%d) deleted successfully.",
 		  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 	return ALVS_DB_OK;
 }
@@ -1588,16 +1588,16 @@ enum alvs_db_rc alvs_db_get_service_flags(struct ip_vs_service_user *ip_vs_servi
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_DEBUG, "Can't find service (%s:%d, protocol=%d).\n",
+		write_log(LOG_DEBUG, "Can't find service (%s:%d, protocol=%d).",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) found\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) found",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1637,7 +1637,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 
 	/* Check if request is supported */
 	if (supported_routing_alg(get_routing_alg(ip_vs_dest->conn_flags)) == false) {
-		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.\n", get_routing_alg(ip_vs_dest->conn_flags));
+		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", get_routing_alg(ip_vs_dest->conn_flags));
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -1648,16 +1648,16 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) doesn't exist.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1666,7 +1666,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	if (cp_service.server_count == ALVS_SIZE_OF_SCHED_BUCKET) {
-		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) has maximum number of active servers.\n",
+		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) has maximum number of active servers.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	}
@@ -1677,7 +1677,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	case ALVS_DB_OK:
 		if (cp_server.active == true) {
 			/* Server exists. */
-			write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) already exists.\n",
+			write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) already exists.",
 				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
@@ -1685,7 +1685,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		/* Server exists, but inactive.
 		 * Need to move server to be active
 		 */
-		write_log(LOG_DEBUG, "Server (%s:%d) exists (inactive).\n",
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (inactive).",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		cp_server.server_flags |= IP_VS_DEST_F_AVAILABLE;
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
@@ -1694,7 +1694,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
 		if (internal_db_activate_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-			write_log(LOG_CRIT, "Server activation failed..\n");
+			write_log(LOG_CRIT, "Server activation failed..");
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
@@ -1707,27 +1707,27 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 				       sizeof(struct alvs_server_info_key),
 				       &nps_server_info_result,
 				       sizeof(struct alvs_server_info_result)) == false) {
-			write_log(LOG_CRIT, "Failed to modify server info entry.\n");
+			write_log(LOG_CRIT, "Failed to modify server info entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
 
 		break;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_CRIT, "Can't find server (internal error).\n");
+		write_log(LOG_CRIT, "Can't find server (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_FAILURE:
 		/* server doesn't exist */
-		write_log(LOG_DEBUG, "Server (%s:%d) doesn't exist.\n",
+		write_log(LOG_DEBUG, "Server (%s:%d) doesn't exist.",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		/* Server doesn't exist.
 		 * Create a new entry in server info.
 		 */
 		if (index_pool_alloc(&server_index_pool, &cp_server.nps_index) == false) {
-			write_log(LOG_ERR, "Can't add server. Reached maximum.\n");
+			write_log(LOG_ERR, "Can't add server. Reached maximum.");
 			return ALVS_DB_NOT_SUPPORTED;
 		}
-		write_log(LOG_DEBUG, "Allocated nps_index = %d\n", cp_server.nps_index);
+		write_log(LOG_DEBUG, "Allocated nps_index = %d", cp_server.nps_index);
 
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
 		cp_server.server_flags = IP_VS_DEST_F_AVAILABLE;
@@ -1739,20 +1739,20 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.server_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | (EMEM_SERVER_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) | ((EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
 		cp_server.service_stats_base.raw_data = cp_service.stats_base.raw_data;
 
-		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
+		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
 			  cp_server.routing_alg, cp_server.conn_flags,
 			  cp_server.server_flags, cp_server.weight,
 			  cp_server.u_thresh, cp_server.l_thresh);
 
 		/* Clean service statistics */
-		write_log(LOG_DEBUG, "Cleaning server statistics.\n");
+		write_log(LOG_DEBUG, "Cleaning server statistics.");
 		if (alvs_db_clean_server_stats(cp_server.nps_index) == ALVS_DB_INTERNAL_ERROR) {
-			write_log(LOG_CRIT, "Failed to clean statistics.\n");
+			write_log(LOG_CRIT, "Failed to clean statistics.");
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
 		if (internal_db_add_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-			write_log(LOG_CRIT, "Failed to add server to internal DB.\n");
+			write_log(LOG_CRIT, "Failed to add server to internal DB.");
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
@@ -1765,7 +1765,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 				    sizeof(struct alvs_server_info_key),
 				    &nps_server_info_result,
 				    sizeof(struct alvs_server_info_result)) == false) {
-			write_log(LOG_CRIT, "Failed to add server info entry.\n");
+			write_log(LOG_CRIT, "Failed to add server info entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
 
@@ -1781,10 +1781,10 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		/* Recalculate scheduling information */
 		rc = alvs_db_recalculate_scheduling_info(&cp_service);
 		if (rc != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Failed to delete scheduling information.\n");
+			write_log(LOG_ERR, "Failed to delete scheduling information.");
 			return rc;
 		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
+		write_log(LOG_DEBUG, "Scheduling info recalculated.");
 
 		build_nps_service_info_key(&cp_service,
 					   &nps_service_info_key);
@@ -1795,12 +1795,12 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 				       sizeof(struct alvs_service_info_key),
 				       &nps_service_info_result,
 				       sizeof(struct alvs_service_info_result)) == false) {
-			write_log(LOG_CRIT, "Failed to change server count in service info entry.\n");
+			write_log(LOG_CRIT, "Failed to change server count in service info entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
 	}
 
-	write_log(LOG_INFO, "Server (%s:%d) added successfully.\n",
+	write_log(LOG_INFO, "Server (%s:%d) added successfully.",
 		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
@@ -1831,7 +1831,7 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 
 	/* Check is request is supported */
 	if (supported_routing_alg(get_routing_alg(ip_vs_dest->conn_flags)) == false) {
-		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.\n", get_routing_alg(ip_vs_dest->conn_flags));
+		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", get_routing_alg(ip_vs_dest->conn_flags));
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -1842,16 +1842,16 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't modify server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't modify server. Service (%s:%d, protocol=%d) doesn't exist.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -1864,23 +1864,23 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	switch (internal_db_get_server(&cp_service, &cp_server)) {
 	case ALVS_DB_FAILURE:
 		/* Server exists. */
-		write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't add server. Server (%s:%d) doesn't exist.",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_CRIT, "Can't find server (internal error).\n");
+		write_log(LOG_CRIT, "Can't find server (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		if (cp_server.active == false) {
 			/* Server exists, but inactive. */
-			write_log(LOG_NOTICE, "Can't modify server. Server (%s:%d) is inactive.\n",
+			write_log(LOG_NOTICE, "Can't modify server. Server (%s:%d) is inactive.",
 				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
 
 		/* Server exists */
-		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).\n",
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		break;
 	default:
@@ -1895,13 +1895,13 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	cp_server.u_thresh = ip_vs_dest->u_threshold;
 	cp_server.l_thresh = ip_vs_dest->l_threshold;
 
-	write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
+	write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
 		  cp_server.routing_alg, cp_server.conn_flags,
 		  cp_server.server_flags, cp_server.weight, cp_server.u_thresh,
 		  cp_server.l_thresh);
 
 	if (internal_db_modify_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to modify server in internal DB.\n");
+		write_log(LOG_CRIT, "Failed to modify server in internal DB.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -1922,7 +1922,7 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 					       sizeof(struct alvs_service_info_key),
 					       &nps_service_info_result,
 					       sizeof(struct alvs_service_info_result)) == false) {
-				write_log(LOG_CRIT, "Failed to change server count in service info entry.\n");
+				write_log(LOG_CRIT, "Failed to change server count in service info entry.");
 				return ALVS_DB_NPS_ERROR;
 			}
 		}
@@ -1930,10 +1930,10 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 		/* Recalculate scheduling information */
 		rc = alvs_db_recalculate_scheduling_info(&cp_service);
 		if (rc != ALVS_DB_OK) {
-			write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
+			write_log(LOG_CRIT, "Failed to delete scheduling information.");
 			return rc;
 		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
+		write_log(LOG_DEBUG, "Scheduling info recalculated.");
 	}
 
 	build_nps_server_info_key(&cp_server, &nps_server_info_key);
@@ -1943,11 +1943,11 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 			    sizeof(struct alvs_server_info_key),
 			    &nps_server_info_result,
 			    sizeof(struct alvs_server_info_result)) == false) {
-		write_log(LOG_CRIT, "Failed to modify server info entry.\n");
+		write_log(LOG_CRIT, "Failed to modify server info entry.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Server (%s:%d) modified successfully.\n",
+	write_log(LOG_INFO, "Server (%s:%d) modified successfully.",
 		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
@@ -1981,16 +1981,16 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	switch (internal_db_get_service(&cp_service, true)) {
 	case ALVS_DB_FAILURE:
 		/* Service doesn't exist */
-		write_log(LOG_NOTICE, "Can't delete server. Service (%s:%d, protocol=%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't delete server. Service (%s:%d, protocol=%d) doesn't exist.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR, "Can't find service (internal error).\n");
+		write_log(LOG_ERR, "Can't find service (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* Service exists */
-		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.\n",
+		write_log(LOG_DEBUG, "Service (%s:%d, protocol=%d) exists.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		break;
 	default:
@@ -2003,23 +2003,23 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	switch (internal_db_get_server(&cp_service, &cp_server)) {
 	case ALVS_DB_FAILURE:
 		/* Server exists. */
-		write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) doesn't exist.\n",
+		write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) doesn't exist.",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		return ALVS_DB_FAILURE;
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
-		write_log(LOG_CRIT, "Can't find server (internal error).\n");
+		write_log(LOG_CRIT, "Can't find server (internal error).");
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		if (cp_server.active == false) {
 			/* Server exists, but inactive. */
-			write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) already inactive.\n",
+			write_log(LOG_NOTICE, "Can't delete server. Server (%s:%d) already inactive.",
 				  my_inet_ntoa(cp_server.ip), cp_server.port);
 			return ALVS_DB_FAILURE;
 		}
 
 		/* Server exists */
-		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).\n",
+		write_log(LOG_DEBUG, "Server (%s:%d) exists (active).",
 			  my_inet_ntoa(cp_server.ip), cp_server.port);
 		break;
 	default:
@@ -2030,7 +2030,7 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	/* Deactivate server in struct in in internal DB */
 	cp_server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
 	if (internal_db_deactivate_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to deactivate server in internal DB.\n");
+		write_log(LOG_CRIT, "Failed to deactivate server in internal DB.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -2043,17 +2043,17 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 				       sizeof(struct alvs_service_info_key),
 				       &nps_service_info_result,
 				       sizeof(struct alvs_service_info_result)) == false) {
-			write_log(LOG_CRIT, "Failed to change server count in service info entry.\n");
+			write_log(LOG_CRIT, "Failed to change server count in service info entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
 
 		/* Recalculate scheduling information */
 		rc = alvs_db_recalculate_scheduling_info(&cp_service);
 		if (rc != ALVS_DB_OK) {
-			write_log(LOG_CRIT, "Failed to delete scheduling information.\n");
+			write_log(LOG_CRIT, "Failed to delete scheduling information.");
 			return rc;
 		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.\n");
+		write_log(LOG_DEBUG, "Scheduling info recalculated.");
 	}
 
 	build_nps_server_info_key(&cp_server, &nps_server_info_key);
@@ -2063,11 +2063,11 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 			    sizeof(struct alvs_server_info_key),
 			    &nps_server_info_result,
 			    sizeof(struct alvs_server_info_result)) == false) {
-		write_log(LOG_CRIT, "Failed to modify server info entry.\n");
+		write_log(LOG_CRIT, "Failed to modify server info entry.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	write_log(LOG_INFO, "Server (%s:%d) deleted successfully.\n",
+	write_log(LOG_INFO, "Server (%s:%d) deleted successfully.",
 		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
 }
@@ -2098,7 +2098,7 @@ enum alvs_db_rc internal_db_get_service_count(uint32_t *service_count)
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -2108,7 +2108,7 @@ enum alvs_db_rc internal_db_get_service_count(uint32_t *service_count)
 
 	/* In case of error return 0 */
 	if (rc != SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		return ALVS_DB_INTERNAL_ERROR;
@@ -2156,7 +2156,7 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
@@ -2188,7 +2188,7 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 
 	/* Error */
 	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(alvs_db));
 		sqlite3_finalize(statement);
 		alvs_free_service_list(*service_list);
@@ -2220,7 +2220,7 @@ enum alvs_db_rc alvs_db_clear(void)
 	 *        Once CP will fix the bug we need to remove the workaround and instead use the following call:
 	 *
 	 * if (infra_delete_all_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION) == false) {
-		  write_log(LOG_CRIT, "Failed to delete all entries from service classification DB in NPS.\n");
+		  write_log(LOG_CRIT, "Failed to delete all entries from service classification DB in NPS.");
 		  return ALVS_DB_NPS_ERROR;
 	 * }
 	 */
@@ -2234,7 +2234,7 @@ enum alvs_db_rc alvs_db_clear(void)
 	if (internal_db_get_service_count(&service_count) != ALVS_DB_OK) {
 		/* Can't retrieve service list */
 		write_log(LOG_CRIT, "Can't retrieve service list - "
-			  "internal error.\n");
+			  "internal error.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
@@ -2242,18 +2242,18 @@ enum alvs_db_rc alvs_db_clear(void)
 	if (internal_db_get_service_list(&service_list) != ALVS_DB_OK) {
 		/* Can't retrieve service list */
 		write_log(LOG_CRIT, "Can't retrieve service list - "
-			  "internal error.\n");
+			  "internal error.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	for (ind = 0; ind < service_count; ind++) {
-		write_log(LOG_DEBUG, "Deleting service with nps_index %d.\n", service_list->service.nps_index);
+		write_log(LOG_DEBUG, "Deleting service with nps_index %d.", service_list->service.nps_index);
 		build_nps_service_classification_key(&service_list->service,
 						     &nps_service_classification_key);
 		if (infra_delete_entry(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION,
 				       &nps_service_classification_key,
 				       sizeof(struct alvs_service_classification_key)) == false) {
-			write_log(LOG_CRIT, "Failed to delete service classification entry.\n");
+			write_log(LOG_CRIT, "Failed to delete service classification entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
 		service_list = service_list->next;
@@ -2264,23 +2264,23 @@ enum alvs_db_rc alvs_db_clear(void)
 
 
 	if (infra_delete_all_entries(STRUCT_ID_ALVS_SERVICE_INFO) == false) {
-		write_log(LOG_CRIT, "Failed to delete all entries from service info DB in NPS.\n");
+		write_log(LOG_CRIT, "Failed to delete all entries from service info DB in NPS.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
 	if (infra_delete_all_entries(STRUCT_ID_ALVS_SCHED_INFO) == false) {
-		write_log(LOG_CRIT, "Failed to delete all entries from scheduling info DB in NPS.\n");
+		write_log(LOG_CRIT, "Failed to delete all entries from scheduling info DB in NPS.");
 		return ALVS_DB_NPS_ERROR;
 	}
 
 	if (internal_db_clear_all() == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to delete all services in internal DB.\n");
+		write_log(LOG_CRIT, "Failed to delete all services in internal DB.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 	index_pool_rewind(&service_index_pool);
-	write_log(LOG_DEBUG, "Internal DB cleared.\n");
+	write_log(LOG_DEBUG, "Internal DB cleared.");
 
-	write_log(LOG_INFO, "ALVS DBs cleared successfully.\n");
+	write_log(LOG_INFO, "ALVS DBs cleared successfully.");
 	return ALVS_DB_OK;
 }
 
@@ -2311,7 +2311,7 @@ void server_db_aging(void)
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
-	write_log(LOG_DEBUG, "Start aging thread\n");
+	write_log(LOG_DEBUG, "Start aging thread");
 
 	sprintf(sql, "SELECT * FROM servers "
 		"WHERE active=0;");
@@ -2321,7 +2321,7 @@ void server_db_aging(void)
 		/* Prepare SQL statement */
 		rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 		if (rc != SQLITE_OK) {
-			write_log(LOG_CRIT, "SQL error: %s\n",
+			write_log(LOG_CRIT, "SQL error: %s",
 				  sqlite3_errmsg(alvs_db));
 			server_db_exit_with_error();
 		}
@@ -2332,7 +2332,7 @@ void server_db_aging(void)
 		/* Collect server ids */
 		while (rc == SQLITE_ROW) {
 			if (alvs_db_get_num_active_conn(sqlite3_column_int(statement, 5), &value) == ALVS_DB_INTERNAL_ERROR) {
-				write_log(LOG_CRIT, "Delete server failed in aging thread\n");
+				write_log(LOG_CRIT, "Delete server failed in aging thread");
 				server_db_exit_with_error();
 			}
 			if (value == 0) {
@@ -2343,7 +2343,7 @@ void server_db_aging(void)
 				cp_service.protocol = sqlite3_column_int(statement, 4);
 
 				if (internal_db_delete_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-					write_log(LOG_CRIT, "Delete server failed in aging thread\n");
+					write_log(LOG_CRIT, "Delete server failed in aging thread");
 					server_db_exit_with_error();
 				}
 			}
@@ -2353,7 +2353,7 @@ void server_db_aging(void)
 
 		/* Error */
 		if (rc < SQLITE_ROW) {
-			write_log(LOG_CRIT, "SQL error: %s\n",
+			write_log(LOG_CRIT, "SQL error: %s",
 				  sqlite3_errmsg(alvs_db));
 			sqlite3_finalize(statement);
 			server_db_exit_with_error();

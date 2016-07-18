@@ -379,69 +379,69 @@ void alvs_print_info(void)
 	/* print memory section info */
 	ezdp_get_mem_section_info(&mem_info, 0);
 
-	alvs_write_log(LOG_DEBUG, "  private_cmem size is             %d bytes\n",
+	alvs_write_log(LOG_DEBUG, "  private_cmem size is             %d bytes",
 		       mem_info.private_cmem_size);
-	alvs_write_log(LOG_DEBUG, "  shared_cmem size is              %d bytes\n",
+	alvs_write_log(LOG_DEBUG, "  shared_cmem size is              %d bytes",
 		       mem_info.shared_cmem_size);
 
 	if (mem_info.cache_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  cache size is                    %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  cache size is                    %d bytes",
 			       mem_info.cache_size);
 	}
 	if (mem_info.imem_private_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_private data size is        %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_private data size is        %d bytes",
 			       mem_info.imem_private_data_size);
 	}
 	if (mem_info.imem_half_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_half_cluster code size is   %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_half_cluster code size is   %d bytes",
 			       mem_info.imem_half_cluster_code_size);
 	}
 	if (mem_info.imem_half_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_half_cluster data size is   %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_half_cluster data size is   %d bytes",
 			       mem_info.imem_half_cluster_data_size);
 	}
 	if (mem_info.imem_1_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_1_cluster code size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_1_cluster code size is      %d bytes",
 			       mem_info.imem_1_cluster_code_size);
 	}
 	if (mem_info.imem_1_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_1_cluster data size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_1_cluster data size is      %d bytes",
 			       mem_info.imem_1_cluster_data_size);
 	}
 	if (mem_info.imem_2_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_2_cluster code size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_2_cluster code size is      %d bytes",
 			       mem_info.imem_2_cluster_code_size);
 	}
 	if (mem_info.imem_2_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_2_cluster data size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_2_cluster data size is      %d bytes",
 			       mem_info.imem_2_cluster_data_size);
 	}
 	if (mem_info.imem_4_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_4_cluster code size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_4_cluster code size is      %d bytes",
 			       mem_info.imem_4_cluster_code_size);
 	}
 	if (mem_info.imem_4_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_4_cluster data size is      %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_4_cluster data size is      %d bytes",
 			       mem_info.imem_4_cluster_data_size);
 	}
 	if (mem_info.imem_16_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_16_cluster code size is     %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_16_cluster code size is     %d bytes",
 			       mem_info.imem_16_cluster_code_size);
 	}
 	if (mem_info.imem_16_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_16_cluster data size is     %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_16_cluster data size is     %d bytes",
 			       mem_info.imem_16_cluster_data_size);
 	}
 	if (mem_info.imem_all_cluster_code_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_all_cluster code size is    %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_all_cluster code size is    %d bytes",
 			       mem_info.imem_all_cluster_code_size);
 	}
 	if (mem_info.imem_all_cluster_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  imem_all_cluster data size is    %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  imem_all_cluster data size is    %d bytes",
 			       mem_info.imem_all_cluster_data_size);
 	}
 	if (mem_info.emem_data_size > 0) {
-		alvs_write_log(LOG_DEBUG, "  emem data size is                %d bytes\n",
+		alvs_write_log(LOG_DEBUG, "  emem data size is                %d bytes",
 			       mem_info.emem_data_size);
 	}
 }

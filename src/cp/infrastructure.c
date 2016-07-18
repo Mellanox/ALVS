@@ -329,7 +329,7 @@ bool infra_create_mem_partition(void)
 
 			/* Keep index in imem_spaces_params */
 			imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX] = int_mem_space_params.uiIndex;
-			write_log(LOG_DEBUG, "IMEM %d is in index %d\n", ind, int_mem_space_params.uiIndex);
+			write_log(LOG_DEBUG, "IMEM %d is in index %d", ind, int_mem_space_params.uiIndex);
 		}
 	}
 
@@ -365,7 +365,7 @@ bool infra_create_mem_partition(void)
 
 			/* Keep index in imem_spaces_params */
 			emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX] = ext_mem_space_params.uiIndex;
-			write_log(LOG_DEBUG, "EMEM %d is in index %d and msid %d.\n", ind, ext_mem_space_params.uiIndex, ext_mem_space_params.uiMSID);
+			write_log(LOG_DEBUG, "EMEM %d is in index %d and MSID %d.", ind, ext_mem_space_params.uiIndex, ext_mem_space_params.uiMSID);
 		}
 	}
 
@@ -436,7 +436,7 @@ bool infra_create_statistics(void)
 	posted_partition_params.uiPartition = 0;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedPartitionParams, &posted_partition_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedPartitionParams failed.");
 		return false;
 	}
 
@@ -447,7 +447,7 @@ bool infra_create_statistics(void)
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedPartitionParams, &posted_partition_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedPartitionParams failed.");
 		return false;
 	}
 
@@ -458,7 +458,7 @@ bool infra_create_statistics(void)
 	posted_group_params.eGroupType = EZapiStat_PostedGroupType_OPTIMIZED;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedGroupParams, &posted_group_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedGroupParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPostedGroupParams failed.");
 		return false;
 	}
 
@@ -467,7 +467,7 @@ bool infra_create_statistics(void)
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedGroupParams, &posted_group_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedGroupParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedGroupParams failed.");
 		return false;
 	}
 
@@ -557,7 +557,7 @@ bool infra_create_timers(void)
 	pmu_timer_params.uiTimer = 0;
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetPMUTimerParams, &pmu_timer_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetPMUTimerParams failed.\n");
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetPMUTimerParams failed.");
 		return false;
 	}
 
@@ -570,7 +570,7 @@ bool infra_create_timers(void)
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetPMUTimerParams, &pmu_timer_params);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetPMUTimerParams failed.\n");
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetPMUTimerParams failed.");
 		return false;
 	}
 
@@ -586,37 +586,37 @@ bool infra_created(void)
 {
 	/* create interfaces */
 	if (infra_create_if_mapping() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_if_mapping failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_if_mapping failed.");
 		return false;
 	}
 
 	/* create memory partition */
 	if (infra_create_mem_partition() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_mem_partition failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_mem_partition failed.");
 		return false;
 	}
 
 	/* create statistics */
 	if (infra_create_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_statistics failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_statistics failed.");
 		return false;
 	}
 
 	/* configure protocol decode */
 	if (infra_configure_protocol_decode() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_configure_protocol_decode failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_configure_protocol_decode failed.");
 		return false;
 	}
 
 	/* create index pools */
 	if (infra_create_index_pools() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_index_pools failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_index_pools failed.");
 		return false;
 	}
 
 	/* create index pools */
 	if (infra_create_timers() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_timers failed.\n");
+		write_log(LOG_CRIT, "setup_chip: infra_create_timers failed.");
 		return false;
 	}
 
@@ -638,7 +638,7 @@ bool infra_initialize_statistics(void)
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
 	posted_counter_config.pasCounters = malloc(sizeof(EZapiStat_PostedCounter));
 	if (posted_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.\n");
+		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.");
 		return false;
 	}
 	memset(posted_counter_config.pasCounters, 0, sizeof(EZapiStat_PostedCounter));
@@ -654,7 +654,7 @@ bool infra_initialize_statistics(void)
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
 	free(posted_counter_config.pasCounters);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
 		return false;
 	}
 
@@ -672,27 +672,27 @@ bool infra_initialized(void)
 
 	/* Launch NW DB constructor */
 	if (nw_db_constructor() == false) {
-		write_log(LOG_CRIT, "infra_initialized: nw_db_constructor failed.\n");
+		write_log(LOG_CRIT, "infra_initialized: nw_db_constructor failed.");
 		return false;
 	}
 
 	/* Launch ALVS DB constructor */
 	if (alvs_db_constructor() == false) {
-		write_log(LOG_CRIT, "infra_initialized: alvs_db_constructor failed.\n");
+		write_log(LOG_CRIT, "infra_initialized: alvs_db_constructor failed.");
 		return false;
 	}
 
 	/* Load partition */
-	write_log(LOG_DEBUG, "Load partition...\n");
+	write_log(LOG_DEBUG, "Load partition...");
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "setup_chip: load partition failed.\n");
+		write_log(LOG_CRIT, "setup_chip: load partition failed.");
 		return false;
 	}
 
 	/* Initialize statistics counters */
 	if (infra_initialize_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: initialize_statistics failed.\n");
+		write_log(LOG_CRIT, "setup_chip: initialize_statistics failed.");
 		return false;
 	}
 
@@ -754,7 +754,7 @@ uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
 	}
 
 	/* Should not get here */
-	write_log(LOG_CRIT, "Should not get here (with search_mem_heap=%d)\n", search_mem_heap);
+	write_log(LOG_CRIT, "Should not get here (with search_mem_heap=%d)", search_mem_heap);
 	return 0;
 }
 
@@ -1104,21 +1104,21 @@ bool infra_enable_agt(void)
 	/* Create rpc server for given port */
 	host_server = EZagtRPC_CreateServer(INFRA_AGT_PORT);
 	if (host_server == NULL) {
-		write_log(LOG_CRIT, "Can't create server for AGT\n");
+		write_log(LOG_CRIT, "Can't create server for AGT");
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagt_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "Can't register function for AGT\n");
+		write_log(LOG_CRIT, "Can't register function for AGT");
 		return false;
 	}
 
 	/* Register standard CP commands */
 	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "Can't register function for AGTcpMAIN\n");
+		write_log(LOG_CRIT, "Can't register function for AGTcpMAIN");
 		return false;
 	}
 
@@ -1126,7 +1126,7 @@ bool infra_enable_agt(void)
 	task = EZosTask_Spawn("agt", EZosTask_NORMAL_PRIORITY, 0x100000,
 			      (EZosTask_Spawn_FuncPtr)EZagtRPC_ServerRun, host_server);
 	if (task == EZosTask_INVALID_TASK) {
-		write_log(LOG_CRIT, "Can't spawn AGT\n");
+		write_log(LOG_CRIT, "Can't spawn AGT");
 		return false;
 	}
 

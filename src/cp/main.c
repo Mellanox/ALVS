@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			} else if (strcmp(optarg, "100GE") == 0) {
 				port_type = EZapiChannel_EthIFType_100GE;
 			} else {
-				write_log(LOG_CRIT, "Port type argument is invalid (%s), valid values are 10GE, 40GE and 100GE.\n", optarg);
+				write_log(LOG_CRIT, "Port type argument is invalid (%s), valid values are 10GE, 40GE and 100GE.", optarg);
 				abort();
 			}
 			break;
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS, signal_terminate_handler);
 
-	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s) ...\n",
+	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s) ...",
 		  port_type == EZapiChannel_EthIFType_10GE ? "10GE" : (port_type == EZapiChannel_EthIFType_40GE ? "40GE" : "100GE"),
 			  agt_enabled ? "True" : "False");
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	/* Initialize device, CP SDK host components    */
 	/* and AGT debug agent interface                */
 	/************************************************/
-	write_log(LOG_DEBUG, "NPS init ...\n");
+	write_log(LOG_DEBUG, "NPS init ...");
 	if (nps_init() == false) {
 		main_thread_graceful_stop();
 		exit(1);
@@ -155,22 +155,22 @@ int main(int argc, char **argv)
 	/************************************************/
 	/* Bring up control plane components        */
 	/************************************************/
-	write_log(LOG_DEBUG, "NPS bring up...\n");
+	write_log(LOG_DEBUG, "NPS bring up...");
 	if (nps_bringup() == false) {
 		main_thread_graceful_stop();
 		exit(1);
 	}
 
-	write_log(LOG_INFO, "ALVS daemon application is running...\n");
+	write_log(LOG_INFO, "ALVS daemon application is running...");
 
 	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/
-	write_log(LOG_DEBUG, "Start network DB manager thread...\n");
+	write_log(LOG_DEBUG, "Start network DB manager thread...");
 	rc = pthread_create(&nw_db_manager_thread, NULL,
 			    (void * (*)(void *))nw_db_manager_main, &cancel_application_flag);
 	if (rc != 0) {
-		write_log(LOG_CRIT, "Cannot start nw_db_manager_thread: pthread_create failed for network DB manager\n");
+		write_log(LOG_CRIT, "Cannot start nw_db_manager_thread: pthread_create failed for network DB manager");
 		main_thread_graceful_stop();
 		exit(1);
 	}
@@ -179,11 +179,11 @@ int main(int argc, char **argv)
 	/************************************************/
 	/* Start ALVS DB manager main thread            */
 	/************************************************/
-	write_log(LOG_DEBUG, "Start ALVS DB manager thread...\n");
+	write_log(LOG_DEBUG, "Start ALVS DB manager thread...");
 	rc = pthread_create(&alvs_db_manager_thread, NULL,
 			    (void * (*)(void *))alvs_db_manager_main, &cancel_application_flag);
 	if (rc != 0) {
-		write_log(LOG_CRIT, "Cannot start alvs_db_manager_thread: pthread_create failed for ALVS DB manager\n");
+		write_log(LOG_CRIT, "Cannot start alvs_db_manager_thread: pthread_create failed for ALVS DB manager");
 		main_thread_graceful_stop();
 		exit(1);
 	}
@@ -215,30 +215,30 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Create channel                               */
 	/************************************************/
-	write_log(LOG_DEBUG, "Creating channel...\n");
+	write_log(LOG_DEBUG, "Creating channel...");
 	ez_ret_val = EZapiChannel_Create(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Create returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Create returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Created state                                */
 	/************************************************/
-	write_log(LOG_DEBUG, "Created state...\n");
+	write_log(LOG_DEBUG, "Created state...");
 	if (infra_created() == false) {
-		write_log(LOG_CRIT, "nps_bringup failed: infra_created returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: infra_created returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Power-up channel                             */
 	/************************************************/
-	write_log(LOG_DEBUG, "Power-up channel...\n");
+	write_log(LOG_DEBUG, "Power-up channel...");
 	for (pup_phase = 1; pup_phase <= 4; pup_phase++) {
 		ez_ret_val = EZapiChannel_PowerUp(0, pup_phase);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_PowerUp phase %u failed.\n", pup_phase);
+			write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_PowerUp phase %u failed.", pup_phase);
 			return false;
 		}
 	}
@@ -246,66 +246,66 @@ bool nps_bringup(void)
 	/************************************************/
 	/* Powered-up state                             */
 	/************************************************/
-	write_log(LOG_DEBUG, "Powered-up state...\n");
+	write_log(LOG_DEBUG, "Powered-up state...");
 	if (infra_powered_up() == false) {
-		write_log(LOG_CRIT, "nps_bringup failed: infra_powered_up returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: infra_powered_up returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Initialize channel                           */
 	/************************************************/
-	write_log(LOG_DEBUG, "Initialize channel...\n");
+	write_log(LOG_DEBUG, "Initialize channel...");
 	ez_ret_val = EZapiChannel_Initialize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Initialize returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Initialize returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Initialized state                            */
 	/************************************************/
-	write_log(LOG_DEBUG, "Initialized state...\n");
+	write_log(LOG_DEBUG, "Initialized state...");
 	if (infra_initialized() == false) {
-		write_log(LOG_CRIT, "nps_bringup failed: infra_initialized returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: infra_initialized returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Finalize channel                             */
 	/************************************************/
-	write_log(LOG_DEBUG, "Finalize channel...\n");
+	write_log(LOG_DEBUG, "Finalize channel...");
 	ez_ret_val = EZapiChannel_Finalize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Finalize returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Finalize returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Finalized state                              */
 	/************************************************/
-	write_log(LOG_DEBUG, "Finalized state...\n");
+	write_log(LOG_DEBUG, "Finalized state...");
 	if (infra_finalized() == false) {
-		write_log(LOG_CRIT, "nps_bringup failed: infra_finalized returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: infra_finalized returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Channel GO                                   */
 	/************************************************/
-	write_log(LOG_DEBUG, "Channel GO...\n");
+	write_log(LOG_DEBUG, "Channel GO...");
 	ez_ret_val = EZapiChannel_Go(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Go returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Go returned an error.");
 		return false;
 	}
 
 	/************************************************/
 	/* Running state:                               */
 	/************************************************/
-	write_log(LOG_DEBUG, "Running state...\n");
+	write_log(LOG_DEBUG, "Running state...");
 	if (infra_running() == false) {
-		write_log(LOG_CRIT, "nps_bringup failed: infra_running returned an error.\n");
+		write_log(LOG_CRIT, "nps_bringup failed: infra_running returned an error.");
 		return false;
 	}
 
@@ -320,10 +320,10 @@ bool nps_init(void)
 	/************************************************/
 	/* Initialize Env                               */
 	/************************************************/
-	write_log(LOG_DEBUG, "Initialize Env...\n");
+	write_log(LOG_DEBUG, "Initialize Env...");
 	ez_ret_val = EZenv_Create();
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_init: EZenv_Create failed.\n");
+		write_log(LOG_CRIT, "nps_init: EZenv_Create failed.");
 		return false;
 	}
 	is_object_allocated[object_type_env] = true;
@@ -331,19 +331,19 @@ bool nps_init(void)
 	/************************************************/
 	/* Initialize EZdev                             */
 	/************************************************/
-	write_log(LOG_DEBUG, "Init EZdev...\n");
+	write_log(LOG_DEBUG, "Init EZdev...");
 	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
 #ifdef EZ_SIM
-	write_log(LOG_DEBUG, "Platform is simulator.\n");
+	write_log(LOG_DEBUG, "Platform is simulator.");
 	platform_params.ePlatform = EZdev_Platform_SIM;
 	platform_params.uiSimNumberOfConnections = 1;
 #else
-	write_log(LOG_DEBUG, "Platform is NPS chip.\n");
+	write_log(LOG_DEBUG, "Platform is NPS chip.");
 	platform_params.ePlatform = EZdev_Platform_UIO;
 #endif
 	ez_ret_val = EZdev_Create(&platform_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_init: EZdev_Create failed.\n");
+		write_log(LOG_CRIT, "nps_init: EZdev_Create failed.");
 		return false;
 	}
 	is_object_allocated[object_type_dev] = true;
@@ -351,18 +351,18 @@ bool nps_init(void)
 	/************************************************/
 	/* Create and run CP library                    */
 	/************************************************/
-	write_log(LOG_DEBUG, "Create CP library...\n");
+	write_log(LOG_DEBUG, "Create CP library...");
 	ez_ret_val = EZapiCP_Create();
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_init: EZapiCP_Create failed.\n");
+		write_log(LOG_CRIT, "nps_init: EZapiCP_Create failed.");
 		return false;
 	}
 	is_object_allocated[object_type_cp] = true;
 
-	write_log(LOG_DEBUG, "Run CP library...\n");
+	write_log(LOG_DEBUG, "Run CP library...");
 	ez_ret_val = EZapiCP_Go();
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_init: EZapiCP_Go failed.\n");
+		write_log(LOG_CRIT, "nps_init: EZapiCP_Go failed.");
 		return false;
 	}
 
@@ -370,9 +370,9 @@ bool nps_init(void)
 	/* Enable AGT debug agent interface             */
 	/************************************************/
 	if (agt_enabled == true) {
-		write_log(LOG_INFO, "Enable AGT...\n");
+		write_log(LOG_INFO, "Enable AGT...");
 		if (infra_enable_agt() == false) {
-			write_log(LOG_CRIT, "nps_init: infra_enable_agt failed.\n");
+			write_log(LOG_CRIT, "nps_init: infra_enable_agt failed.");
 			return false;
 		}
 		is_object_allocated[object_type_agt] = true;
@@ -419,7 +419,7 @@ void main_thread_graceful_stop(void)
 {
 	EZstatus ez_ret_val;
 
-	write_log(LOG_INFO, "Shut down ALVS daemon.\n");
+	write_log(LOG_INFO, "Shut down ALVS daemon.");
 	cancel_application_flag = true;
 	if (is_object_allocated[object_type_nw_db_manager]) {
 		pthread_join(nw_db_manager_thread, NULL);
@@ -428,28 +428,28 @@ void main_thread_graceful_stop(void)
 		pthread_join(alvs_db_manager_thread, NULL);
 	}
 	if (is_object_allocated[object_type_agt]) {
-		write_log(LOG_DEBUG, "Delete AGT\n");
+		write_log(LOG_DEBUG, "Delete AGT");
 		infra_disable_agt();
 	}
 	if (is_object_allocated[object_type_cp]) {
-		write_log(LOG_DEBUG, "Delete CP\n");
+		write_log(LOG_DEBUG, "Delete CP");
 		ez_ret_val = EZapiCP_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			write_log(LOG_ERR, "main_thread_graceful_stop: EZapiCP_Delete failed.\n");
+			write_log(LOG_ERR, "main_thread_graceful_stop: EZapiCP_Delete failed.");
 		}
 	}
 	if (is_object_allocated[object_type_dev]) {
-		write_log(LOG_DEBUG, "Delete dev\n");
+		write_log(LOG_DEBUG, "Delete dev");
 		ez_ret_val = EZdev_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			write_log(LOG_ERR, "main_thread_graceful_stop: EZdev_Delete failed.\n");
+			write_log(LOG_ERR, "main_thread_graceful_stop: EZdev_Delete failed.");
 		}
 	}
 	if (is_object_allocated[object_type_env]) {
-		write_log(LOG_DEBUG, "Delete env\n");
+		write_log(LOG_DEBUG, "Delete env");
 		ez_ret_val = EZenv_Delete();
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			write_log(LOG_ERR, "main_thread_graceful_stop: EZenv_Delete failed.\n");
+			write_log(LOG_ERR, "main_thread_graceful_stop: EZenv_Delete failed.");
 		}
 	}
 
