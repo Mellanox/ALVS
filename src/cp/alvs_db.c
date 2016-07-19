@@ -1748,11 +1748,13 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		write_log(LOG_DEBUG, "Cleaning server statistics.");
 		if (alvs_db_clean_server_stats(cp_server.nps_index) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to clean statistics.");
+			index_pool_release(&server_index_pool, cp_server.nps_index);
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
 		if (internal_db_add_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to add server to internal DB.");
+			index_pool_release(&server_index_pool, cp_server.nps_index);
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
@@ -1760,12 +1762,13 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 					  &nps_server_info_key);
 		build_nps_server_info_result(&cp_server,
 					     &nps_server_info_result);
-		if (infra_add_entry(STRUCT_ID_ALVS_SERVER_INFO,
-				    &nps_server_info_key,
-				    sizeof(struct alvs_server_info_key),
-				    &nps_server_info_result,
-				    sizeof(struct alvs_server_info_result)) == false) {
+		if (infra_modify_entry(STRUCT_ID_ALVS_SERVER_INFO,
+				       &nps_server_info_key,
+				       sizeof(struct alvs_server_info_key),
+				       &nps_server_info_result,
+				       sizeof(struct alvs_server_info_result)) == false) {
 			write_log(LOG_CRIT, "Failed to add server info entry.");
+			index_pool_release(&server_index_pool, cp_server.nps_index);
 			return ALVS_DB_NPS_ERROR;
 		}
 
@@ -2346,6 +2349,8 @@ void server_db_aging(void)
 					write_log(LOG_CRIT, "Delete server failed in aging thread");
 					server_db_exit_with_error();
 				}
+
+				index_pool_release(&server_index_pool, cp_server.nps_index);
 			}
 
 			rc = sqlite3_step(statement);
