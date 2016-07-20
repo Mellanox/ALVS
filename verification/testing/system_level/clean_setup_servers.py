@@ -25,6 +25,17 @@ from e2e_infra import *
 
 
 #===============================================================================
+# Function: set_user_params
+#
+# Brief:
+#===============================================================================
+def clean_server(server):
+	print "clean server: " + server.str()
+	server.connect()
+	server.clean_server()
+
+
+#===============================================================================
 # Function: main function
 #
 # Brief:
@@ -49,9 +60,15 @@ def main():
 						  vip = vip_list[0],
 						  eth='ens6'))
 
+	
+	process_list = []
 	for s in server_list:
-		print "clean server: " + s.str()
-		s.connect()
-		s.clean_server()
+		process_list.append(Process(target=clean_server, args=(s,)))
+	for p in process_list:
+		p.start()
+	for p in process_list:
+		p.join()
+			
+
 	
 main()
