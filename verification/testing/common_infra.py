@@ -846,11 +846,16 @@ class player(object):
 #===============================================================================
 # Setup Functions
 #===============================================================================
+g_setups_dir  = "/mswg/release/nps/solutions/ALVS/setups"
 
 def get_setup_list(setup_num):
 	setup_list = []
-	current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-	infile = open(current_dir+'/../setups/setup%d.csv'%setup_num, 'r')
+	
+	# Open list file
+	file_name = '%s/setup%d_vms.csv' %(g_setups_dir, setup_num)
+	infile    = open(file_name, 'r')
+	
+	# Extract list from file  
 	for line in infile:
 		input_list = line.strip().split(',')
 		if len(input_list) >= 2:
@@ -859,48 +864,41 @@ def get_setup_list(setup_num):
 	return setup_list
 
 def get_ezbox_names(setup_id):
-	setup_dict = {1:{'name':'ezbox29', 
-					 'host':'ezbox29-host', 
-					 'chip':'ezbox29-chip', 
-					 'interface':'eth0.6', 
-					 'username':'root', 
-					 'password':'ezchip', 
-					 'data_ip_hex_display': 'C0 A8 00 01', 
-					 'mac_address': '00 19 0f 25 68 aa'},
-				  2:{'name':'ezbox24', 
-					 'host':'ezbox24-host', 
-					 'chip':'ezbox24-chip', 
-					 'interface':'eth0.5', 
-					 'username':'root', 
-					 'password':'ezchip', 
-					 'data_ip_hex_display': 'C0 A8 00 02', 
-					 'mac_address': '00 19 0f 25 da 7a'},
-				  3:{'name':'ezbox35', 
-					 'host':'ezbox35-host', 
-					 'chip':'ezbox35-chip', 
-					 'interface':'eth0.7', 
-					 'username':'root', 
-					 'password':'ezchip', 
-					 'data_ip_hex_display': 'C0 A8 00 03', 
-					 'mac_address': '00 19 0f 27 23 2d'},
-				  4:{'name':'ezbox55', 
-					 'host':'ezbox55-host', 
-					 'chip':'ezbox55-chip', 
-					 'interface':'eth0.8', 
-					 'username':'root', 
-					 'password':'ezchip', 
-					 'data_ip_hex_display': 'C0 A8 00 04', 
-					 'mac_address': '00 19 0f 27 23 16'}}
+	setup_dict = []
 	
-	return setup_dict[setup_id]
+	# Open list file
+	file_name = '%s/ezboxes.csv' %(g_setups_dir)
+	infile    = open(file_name, 'r')
+	
+	# Extract list from file  
+	for line in infile:
+		input_list = line.strip().split(',')
+		if len(input_list) >= 2:
+			setup_dict.append({'name':             input_list[0],
+							'host':                input_list[1],
+							'chip':                input_list[2],
+							'interface':           input_list[3],
+							'username':            input_list[4],
+							'password':            input_list[5],
+							'data_ip_hex_display': input_list[6],
+							'mac_address':         input_list[7]})
+	
+	return setup_dict[setup_id-1]
 
 def get_setup_vip_list(setup_id):
-	setup_dict = {1:['192.168.1.x', '192.168.11.x'],
-				  2:['192.168.2.x', '192.168.12.x'],
-				  3:['192.168.3.x', '192.168.13.x'],
-				  4:['192.168.4.x', '192.168.14.x']}
+	setup_dict = []
 	
-	return setup_dict[setup_id]
+	# Open list file
+	file_name = '%s/vips.csv' %(g_setups_dir)
+	infile    = open(file_name, 'r')
+	
+	# Extract list from file  
+	for line in infile:
+		input_list = line.strip().split(',')
+		if len(input_list) >= 2:
+			setup_dict.append( [ input_list[0], input_list[1] ] )
+	
+	return setup_dict[setup_id-1]
 
 def get_vip(vip_list,index):
 	return vip_list[index/256].replace('x',str(index%256))
