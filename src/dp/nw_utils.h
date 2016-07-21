@@ -108,8 +108,7 @@ void nw_discard_frame(void)
  * \return        void
  */
 static __always_inline
-void nw_host_do_route(ezframe_t	__cmem * frame,
-		      uint8_t __cmem * frame_base __unused)
+void nw_host_do_route(ezframe_t	__cmem * frame)
 {
 	if (unlikely(nw_interface_lookup_host() != 0)) {
 		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
