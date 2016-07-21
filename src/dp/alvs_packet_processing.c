@@ -35,39 +35,36 @@
 
 #include "alvs_packet_processing.h"
 
-/******************************************************************************
- * \brief       alvs packet processing function
- *              perform connection classification - 5 tuple - DIP, dest port, CIP, client port and IP protocol
- *
- * \return        void
- */
-void alvs_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
+
+void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 {
-	 uint32_t rc;
-	 uint32_t found_result_size;
-	 struct  alvs_conn_classification_result *conn_class_res_ptr;
-	 struct tcphdr *tcp_hdr = (struct tcphdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
+	uint32_t rc;
+	uint32_t found_result_size;
+	struct  alvs_conn_classification_result *conn_class_res_ptr;
+	struct tcphdr *tcp_hdr = (struct tcphdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
 
-	 cmem_alvs.conn_class_key.virtual_ip = ip_hdr->daddr;
-	 cmem_alvs.conn_class_key.virtual_port = tcp_hdr->dest;
-	 cmem_alvs.conn_class_key.client_ip = ip_hdr->saddr;
-	 cmem_alvs.conn_class_key.client_port = tcp_hdr->source;
-	 cmem_alvs.conn_class_key.protocol = ip_hdr->protocol;
+	/* check if need to check validity of TCP */
 
-	 alvs_write_log(LOG_DEBUG, "Connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-			cmem_alvs.conn_class_key.client_ip,
-			cmem_alvs.conn_class_key.client_port,
-			cmem_alvs.conn_class_key.virtual_ip,
-			cmem_alvs.conn_class_key.virtual_port,
-			cmem_alvs.conn_class_key.protocol);
+	cmem_alvs.conn_class_key.virtual_ip = ip_hdr->daddr;
+	cmem_alvs.conn_class_key.virtual_port = tcp_hdr->dest;
+	cmem_alvs.conn_class_key.client_ip = ip_hdr->saddr;
+	cmem_alvs.conn_class_key.client_port = tcp_hdr->source;
+	cmem_alvs.conn_class_key.protocol = ip_hdr->protocol;
 
-	 rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
-				     (void *)&cmem_alvs.conn_class_key,
-				     sizeof(struct alvs_conn_classification_key),
-				     (void **)&conn_class_res_ptr,
-				     &found_result_size, 0,
-				     cmem_wa.alvs_wa.conn_hash_wa,
-				     sizeof(cmem_wa.alvs_wa.conn_hash_wa));
+	alvs_write_log(LOG_DEBUG, "Connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+		       cmem_alvs.conn_class_key.client_ip,
+		       cmem_alvs.conn_class_key.client_port,
+		       cmem_alvs.conn_class_key.virtual_ip,
+		       cmem_alvs.conn_class_key.virtual_port,
+		       cmem_alvs.conn_class_key.protocol);
+
+	rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
+				    (void *)&cmem_alvs.conn_class_key,
+				    sizeof(struct alvs_conn_classification_key),
+				    (void **)&conn_class_res_ptr,
+				    &found_result_size, 0,
+				    cmem_wa.alvs_wa.conn_hash_wa,
+				    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
 	if (rc == 0) {
 		/*handle fast path - connection exists*/
@@ -76,4 +73,42 @@ void alvs_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 		/*handle slow path  - opening new connection*/
 		alvs_unknown_packet_processing(frame_base, ip_hdr, tcp_hdr);
 	}
+}
+
+
+/******************************************************************************
+ * \brief       alvs packet processing function
+ *              perform connection classification - 5 tuple - DIP, dest port, CIP, client port and IP protocol
+ *
+ * \return        void
+ */
+void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, struct iphdr *ip_hdr, bool my_mac)
+{
+	if (cmem_nw.ipv4_decode_result.next_protocol.tcp) {
+		if (my_mac) {
+			alvs_tcp_processing(frame_base, ip_hdr);
+		} else {
+			alvs_write_log(LOG_DEBUG, "TCP - NOT supported with multicast");
+			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
+			nw_host_do_route(frame);
+		}
+	} else if (cmem_nw.ipv4_decode_result.next_protocol.udp) {
+		if (my_mac) {
+			// TODO - handle UDP
+			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
+			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+			nw_host_do_route(frame);
+		} else {
+			// TODO - handle State sync
+			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
+			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+			nw_host_do_route(frame);
+		}
+	} else {
+		alvs_write_log(LOG_DEBUG, "NOT supported protocol");
+		nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+		nw_host_do_route(frame);
+	}
+
+
 }

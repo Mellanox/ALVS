@@ -84,8 +84,8 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		}
 
 		/*check if my_mac is set*/
-		if (unlikely(!cmem_nw.mac_decode_result.control.my_mac)) {
-			alvs_write_log(LOG_DEBUG, "Not my MAC");
+		if (unlikely(!(cmem_nw.mac_decode_result.control.my_mac | cmem_nw.mac_decode_result.control.ipv4_multicast))) {
+			alvs_write_log(LOG_DEBUG, "Not my MAC or not multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame);
 			return;
@@ -114,17 +114,8 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			return;
 		}
 
-		/*in case of any error send frame to host*/
-		if (!cmem_nw.ipv4_decode_result.next_protocol.tcp) {
-			alvs_write_log(LOG_DEBUG, "!TCP - NOT supported");
-			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
-			nw_host_do_route(frame);
-			return;
-		}
-		/*check if need to check validity of TCP/UDP */
-
 		/*frame is OK, let's start alvs IF_STATS processing*/
-		alvs_packet_processing(frame_base, ip_ptr);
+		alvs_packet_processing(frame, frame_base, ip_ptr, cmem_nw.mac_decode_result.control.my_mac);
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/
