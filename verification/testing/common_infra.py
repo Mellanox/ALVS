@@ -21,7 +21,7 @@ from ftplib import FTP
 # pythons modules 
 from test_infra import *
 from unittest2 import result
-from test.test_zipimport import TEMP_ZIP
+
 
 #===============================================================================
 # Struct IDs
@@ -693,10 +693,14 @@ class SshConnect:
 	def connect(self):
 		print "Connecting to : " + self.ip_address + ", username: " + self.username + " password: " + self.password
 		self.ssh_object.login(self.ip_address, self.username, self.password, login_timeout=120)
-		print "Connected"
+		print self.ip_address + " Connected"
 		
 	def logout(self):
 		self.ssh_object.logout()
+
+	def recreate_ssh_object(self):
+		self.ssh_object = pxssh.pxssh()
+
 
 	#############################################################
 	# brief:	 exucute commnad on SSH object
@@ -811,7 +815,8 @@ class SshConnect:
 				return (index-2)
 		print "Error while waiting for message"
 		return -1
-	
+
+
 class player(object):
 	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
 		self.ip = ip

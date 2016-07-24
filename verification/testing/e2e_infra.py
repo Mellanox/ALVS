@@ -19,19 +19,29 @@ from server_infra import *
 from client_infra import *
 from test_infra import *
 
+from multiprocessing import Process
+
 	
 #===============================================================================
 # init functions
 #===============================================================================
 
 #------------------------------------------------------------------------------ 
-def init_players(server_list, ezbox, client_list, vip_list, use_director = False, use_4k_cpus=True):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# init HTTP servers 
-	for s in server_list:
-		print "init server: " + s.str()
-		s.init_server(s.ip)
+def init_server(server):
+	print "init server: " + server.str()
+	server.init_server(server.ip)
 
+
+#------------------------------------------------------------------------------ 
+def init_client(client):
+	print "init client: " + client.str()
+	client.init_client()
+
+
+#------------------------------------------------------------------------------ 
+def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=True):
+	print "init EZbox: " + ezbox.setup['name']
+	
 	# start ALVS daemon and DP
 	ezbox.connect()
 	
@@ -47,51 +57,123 @@ def init_players(server_list, ezbox, client_list, vip_list, use_director = False
 	ezbox.alvs_service_stop()
 	ezbox.config_vips(vip_list)
 	ezbox.flush_ipvs()
-	ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+	if True:
+		ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+	else:
+		ezbox.copy_and_install_alvs()
 	ezbox.alvs_service_start()
 
 	# wait for CP before initialize director
 	ezbox.wait_for_cp_app()
-	
-	# init client
-	for c in client_list:
-		print "init client: " + c.str()
-		c.init_client()
 	
 	# wait for DP app
 	ezbox.wait_for_dp_app()
 	# init director
 	if use_director:
 		print 'Start Director'
-		time.sleep(10)
+		time.sleep(6)
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_director(services)
 		#wait for director
-		time.sleep(10)
+		time.sleep(6)
 		#flush director configurations
 		ezbox.flush_ipvs()
-		time.sleep(1)
+
+
+#------------------------------------------------------------------------------ 
+def init_players(server_list, ezbox, client_list, vip_list, use_director = False, use_4k_cpus=True):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	# init ezbox in another proccess
+	ezbox_init_proccess = Process(target=init_ezbox, args=(ezbox, server_list, vip_list, use_director, use_4k_cpus))
+	ezbox_init_proccess.start()
+
+	# connect Ezbox (proccess work on ezbox copy and not on ezbox object
+	ezbox.connect()
+	
+	for s in server_list:
+		init_server(s)
+	for c in client_list:
+		init_client(c)
+
+	# Wait for EZbox proccess to finish
+	ezbox_init_proccess.join()
+
+	# Wait for all proccess to finish
+	if ezbox_init_proccess.exitcode:
+		print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
+		exit(ezbox_init_proccess.exitcode)
+
+
 
 #===============================================================================
 # clean functions
 #===============================================================================
 #------------------------------------------------------------------------------ 
+def clean_server(server):
+	print "clean server: " + server.str()
+	
+	# reconnect with new object
+	server.connect()
+	server.clean_server()
+
+
+#------------------------------------------------------------------------------ 
+def clean_client(client):
+	print "clean client: " + client.str()
+
+	# reconnect with new object
+	client.connect()
+	client.clean_client()
+	
+
+
+#------------------------------------------------------------------------------ 
+def clean_ezbox(ezbox, use_director):
+	print "Clean EZbox: " + ezbox.setup['name']
+	
+	# reconnect with new object
+	ezbox.connect()
+	ezbox.clean(use_director, True)
+
+
+#------------------------------------------------------------------------------ 
 def clean_players(server_list, ezbox, client_list, use_director = False):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	# init HTTP servers 
+
+	# Add servers, client & EZbox to proccess list
+	# in adition, recreate ssh object for the new proccess (patch)
+	process_list = []
 	for s in server_list:
-		print "clean server: " + s.str()
-		s.clean_server()
-
-
-	# init client
+		s.ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_server, args=(s,)))
+		
 	for c in client_list:
-		print "clean client: " + c.str()
-		c.clean_client()
+		c.ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_client, args=(c,)))
+	ezbox.ssh_object.recreate_ssh_object()
+	ezbox.run_app_ssh.recreate_ssh_object()
+	ezbox.syslog_ssh.recreate_ssh_object()
 
-	ezbox.clean(use_director,True)
+	process_list.append(Process(target=clean_ezbox, args=(ezbox, use_director,)))
+	
+	
+	# run clean for all player parallely
+	for p in process_list:
+		p.start()
+		
+	# Wait for all proccess to finish
+	for p in process_list:
+		p.join()
+
+	# Wait for all proccess to finish
+	for p in process_list:
+		if p.exitcode:
+			print p, p.exitcode
+			exit(p.exitcode)
+
 
 #===============================================================================
 # Run functions
@@ -118,8 +200,8 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 	dir_name = 'test_logs_'
 	if (setup_num != None):
 		dir_name += 'setup%s_' %setup_num
- 	dir_name += current_time
- 	cmd = "mkdir -p %s" %dir_name
+	dir_name += current_time
+	cmd = "mkdir -p %s" %dir_name
 	os.system(cmd)
 	for c in client_list:
 		c.get_log(dir_name)
@@ -237,7 +319,7 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
 				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
 				connection_rc = False
- 	
+	
 	if no_errors:
 		error_stats = ezbox.get_error_stats()
 		for error_name, count in error_stats.items():
