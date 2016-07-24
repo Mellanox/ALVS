@@ -94,12 +94,12 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, struc
 		}
 	} else if (cmem_nw.ipv4_decode_result.next_protocol.udp) {
 		if (my_mac) {
-			// TODO - handle UDP
+			/* TODO - handle UDP */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 			nw_host_do_route(frame);
 		} else {
-			// TODO - handle State sync
+			/* TODO - handle State sync */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 			nw_host_do_route(frame);
