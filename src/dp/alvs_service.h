@@ -84,7 +84,8 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 	}
 
 	return alvs_conn_create_new_entry(cmem_alvs.sched_info_result.server_index,
-					  (tcp_hdr->fin ? ALVS_TCP_CONNECTION_CLOSE_WAIT : ALVS_TCP_CONNECTION_ESTABLISHED),
+					  ((tcp_hdr->fin || tcp_hdr->rst) ? ALVS_TCP_CONNECTION_CLOSE_WAIT : ALVS_TCP_CONNECTION_ESTABLISHED),
+					  cmem_alvs.server_info_result.conn_flags,
 					  tcp_hdr->rst ? 1 : 0);
 }
 

@@ -234,22 +234,18 @@ struct alvs_conn_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
-	/*byte1*/
-	uint8_t              age_iteration;
-	/*byte2-3*/
-	uint16_t             server_index;
-	/*byte4*/
-	unsigned             /*reserved*/  : 8;
-	/*byte5*/
-	enum alvs_tcp_conn_state conn_state :8;
-	/*byte6-7*/
-	unsigned             /*reserved*/  : 16;
+	/*byte1-3*/
+	unsigned             /*reserved*/  : 24;
+	/*byte4-7*/
+	uint32_t             server_index;
 	/*byte8-11*/
 	struct ezdp_sum_addr conn_stats_base;
 	/*byte12-25*/
 	struct alvs_conn_classification_key conn_class_key;
-	/*byte26-27*/
-	unsigned             /*reserved*/  : 16;
+	/*byte26*/
+	enum alvs_tcp_conn_state conn_state :8;
+	/*byte27*/
+	uint8_t              age_iteration;
 	/*byte28-31*/
 	uint32_t             conn_flags;
 };

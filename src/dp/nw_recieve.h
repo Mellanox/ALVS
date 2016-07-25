@@ -49,6 +49,8 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 				int32_t port_id)
 {
 	uint8_t	*frame_base;
+	struct iphdr *ip_ptr;
+	bool my_mac;
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
 		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
@@ -91,6 +93,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			return;
 		}
 
+		my_mac = cmem_nw.mac_decode_result.control.my_mac;
 
 		if (!cmem_nw.mac_decode_result.last_tag_protocol_type.ipv4) {
 			alvs_write_log(LOG_DEBUG, "Not IPv4!");
@@ -99,7 +102,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			return;
 		}
 
-		struct iphdr *ip_ptr = (struct iphdr *)(frame_base + cmem_nw.mac_decode_result.layer2_size);
+		ip_ptr = (struct iphdr *)(frame_base + cmem_nw.mac_decode_result.layer2_size);
 
 		/*skip L2 and validate IP is ok*/
 		ezdp_decode_ipv4((uint8_t *)ip_ptr, sizeof(struct iphdr),
@@ -115,7 +118,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		}
 
 		/*frame is OK, let's start alvs IF_STATS processing*/
-		alvs_packet_processing(frame, frame_base, ip_ptr, cmem_nw.mac_decode_result.control.my_mac);
+		alvs_packet_processing(frame, frame_base, ip_ptr, my_mac);
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/
