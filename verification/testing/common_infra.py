@@ -84,6 +84,7 @@ class ezbox_host:
 		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
+		self.install_path = "alvs_install"
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
@@ -193,9 +194,7 @@ class ezbox_host:
 		return self.ssh_object.execute_command(cmd)
 	
 	def copy_binaries(self, alvs_daemon, alvs_dp=None):
-
 		self.copy_cp_bin(alvs_daemon)
-
 		if alvs_dp!=None:
 			self.copy_dp_bin(alvs_dp)
 		
@@ -211,6 +210,68 @@ class ezbox_host:
 		if debug_mode == True:
 			alvs_dp += '_debug'
 		self.copy_file_to_host(alvs_dp, "/usr/lib/alvs/alvs_dp")
+
+	def install_alvs(self):
+		try:
+			cmd = "./alvs_install.py"
+			self.ssh_object.ssh_object.sendline(cmd)
+			
+			# wait for: "Do you want to continue [Y/n]?"
+			self.ssh_object.ssh_object.expect("[Y/n]?", 20)
+			
+			# continue instalation
+			self.ssh_object.ssh_object.sendline('Y')
+			
+			# clean before / expect
+			try:
+				self.ssh_object.ssh_object.prompt(1)
+			except:
+				#print self.ssh_object.ssh_object.before
+				pass
+			
+			# wait for: "Do you want to overwrite configuration [Y/n]?"
+			self.ssh_object.ssh_object.expect("[Y/n]?", 20)
+			
+			# dont overide configuration & continue
+			self.ssh_object.ssh_object.sendline('n')
+			
+			self.ssh_object.ssh_object.prompt(60)
+			#print self.ssh_object.ssh_object.before
+
+			# look for success string ("ALVS installation completed successfully")
+			if "installation completed successfully" in self.ssh_object.ssh_object.before:
+				print "installation completed successfully"
+			else:
+				print "ERROR: instalation failed"
+			
+		except:
+			rc = "Unexpected error: %s" %sys.exc_info()[0]
+			pass
+
+
+	def copy_install_tar(self, install_tar):
+		func_name = sys._getframe().f_code.co_name
+		print "FUNCTION %s: copy %s to %s " %(func_name, install_tar, self.install_path)
+		self.execute_command_on_host("mkdir -p %s" %self.install_path)
+		self.copy_file_to_host(install_tar, self.install_path)
+
+	def install_tar(self, install_tar):
+		func_name = sys._getframe().f_code.co_name
+		print "FUNCTION %s: called" %(func_name)
+		
+		# CD folder & extract tar
+		self.execute_command_on_host("cd %s/" %self.install_path)
+		cmd = "tar xfv %s" %(install_tar)
+		self.execute_command_on_host(cmd)
+		
+		self.install_alvs()
+		
+		# back to previos folder
+		self.execute_command_on_host("cd -")
+
+	def copy_and_install_alvs(self, install_tar='alvs.tar.gz'):
+		self.copy_install_tar(install_tar)
+		self.install_tar(install_tar)
 
 	def alvs_service(self, cmd):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"

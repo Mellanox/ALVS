@@ -39,7 +39,7 @@ def init_client(client):
 
 
 #------------------------------------------------------------------------------ 
-def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=True):
+def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=True, use_install=True):
 	print "init EZbox: " + ezbox.setup['name']
 	
 	# start ALVS daemon and DP
@@ -57,10 +57,10 @@ def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=T
 	ezbox.alvs_service_stop()
 	ezbox.config_vips(vip_list)
 	ezbox.flush_ipvs()
-	if True:
-		ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-	else:
+	if use_install:
 		ezbox.copy_and_install_alvs()
+	else:
+		ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 	ezbox.alvs_service_start()
 
 	# wait for CP before initialize director
