@@ -21,17 +21,13 @@ bool index_pool_init(struct index_pool *pool, int max_size)
 {
 	uint32_t ind;
 
-	pool->pos = 0;
 	pool->max_size = max_size;
 	pool->data = (uint32_t *)malloc(max_size*sizeof(uint32_t));
 	if (pool->data == NULL) {
 		return false;
 	}
 
-	for (ind = 0; ind < pool->max_size; ind++) {
-		pool->data[ind] = ind;
-	}
-
+	index_pool_rewind(pool);
 	return true;
 }
 

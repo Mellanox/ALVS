@@ -1315,6 +1315,7 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	write_log(LOG_DEBUG, "Cleaning service statistics.");
 	if (alvs_db_clean_service_stats(cp_service.nps_index) == ALVS_DB_INTERNAL_ERROR) {
 		write_log(LOG_CRIT, "Failed to clean statistics.");
+		index_pool_release(&service_index_pool, cp_service.nps_index);
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
