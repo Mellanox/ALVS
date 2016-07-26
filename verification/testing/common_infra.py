@@ -103,10 +103,13 @@ class ezbox_host:
 		self.execute_command_on_chip("fw_setenv krn_possible_cpus %s" %cpus)
 		self.execute_command_on_chip("fw_setenv krn_present_cpus %s" %cpus)
 
-	def update_dp_papams(self, params=None):
+	def update_dp_params(self, params=None):
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_DP_ARGS | xargs sed -i '/ALVS_DP_ARGS=/c\ALVS_DP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
+	def update_cp_params(self, params=None):
+		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
+		self.execute_command_on_host(cmd)
 
 	def clean(self, use_director=False, stop_service=False):
 		if use_director:

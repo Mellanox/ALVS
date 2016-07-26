@@ -49,10 +49,11 @@ def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=T
 	ezbox.alvs_service_start()
 	
 	if use_4k_cpus:
-		ezbox.update_dp_papams("--run_cpus 16-4095")
+		ezbox.update_dp_params("--run_cpus 16-4095")
 	else:
-		ezbox.update_dp_papams("--run_cpus 16-511")
+		ezbox.update_dp_params("--run_cpus 16-511")
 	ezbox.modify_run_cpus(use_4k_cpus)
+	ezbox.update_cp_params("--agt_enabled --port_type=10GE")
 	
 	ezbox.alvs_service_stop()
 	ezbox.config_vips(vip_list)
