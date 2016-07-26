@@ -577,7 +577,7 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	if (ret < 0)
 		return NL_SKIP;
 
-	write_log(LOG_DEBUG, "received service: protocol = %d, addr = %s, port = %d, fwmark = %d, sched_name = %s", svc.protocol, inet_ntoa(svc.addr), svc.port, svc.fwmark, svc.sched_name);
+	write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", inet_ntoa(svc.addr), svc.protocol, svc.port, svc.fwmark, svc.sched_name);
 
 	if (cmd->c_id == IPVS_CMD_NEW_DEST || cmd->c_id == IPVS_CMD_SET_DEST || cmd->c_id == IPVS_CMD_DEL_DEST) {
 		/* For all destination related requests need to parse dest (server) */
