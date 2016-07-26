@@ -255,6 +255,7 @@ class ezbox_host:
 	def copy_install_tar(self, install_tar):
 		func_name = sys._getframe().f_code.co_name
 		print "FUNCTION %s: copy %s to %s " %(func_name, install_tar, self.install_path)
+		self.execute_command_on_host("rm -rf %s" %self.install_path)
 		self.execute_command_on_host("mkdir -p %s" %self.install_path)
 		self.copy_file_to_host(install_tar, self.install_path)
 
