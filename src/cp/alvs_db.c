@@ -2345,12 +2345,19 @@ void server_db_aging(void)
 				cp_service.ip = sqlite3_column_int(statement, 2);
 				cp_service.port = sqlite3_column_int(statement, 3);
 				cp_service.protocol = sqlite3_column_int(statement, 4);
+				cp_server.nps_index = sqlite3_column_int(statement, 5);
+
+				write_log(LOG_DEBUG, "Aging server %s:%d (index=%d) in service %s:%d (protocol=%d)",
+					  my_inet_ntoa(cp_server.ip), cp_server.port,
+					  cp_server.nps_index, my_inet_ntoa(cp_service.ip),
+					  cp_service.port, cp_service.protocol);
 
 				if (internal_db_delete_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
 					write_log(LOG_CRIT, "Delete server failed in aging thread");
 					server_db_exit_with_error();
 				}
 
+				write_log(LOG_DEBUG, "Releasing server index %d", cp_server.nps_index);
 				index_pool_release(&server_index_pool, cp_server.nps_index);
 			}
 

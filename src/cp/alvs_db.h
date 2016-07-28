@@ -52,6 +52,8 @@ enum alvs_db_rc {
 	ALVS_DB_FATAL_ERROR,
 };
 
+char *my_inet_ntoa(in_addr_t ip);
+
 /**************************************************************************//**
  * \brief       Initialize internal DB
  *

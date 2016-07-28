@@ -17,10 +17,18 @@ struct index_pool {
 	uint32_t max_size;
 };
 
-bool index_pool_init(struct index_pool *pool, int max_size)
+void index_pool_rewind(struct index_pool *pool)
 {
 	uint32_t ind;
 
+	pool->pos = 0;
+	for (ind = 0; ind < pool->max_size; ind++) {
+		pool->data[ind] = ind;
+	}
+}
+
+bool index_pool_init(struct index_pool *pool, int max_size)
+{
 	pool->max_size = max_size;
 	pool->data = (uint32_t *)malloc(max_size*sizeof(uint32_t));
 	if (pool->data == NULL) {
@@ -48,16 +56,6 @@ bool index_pool_alloc(struct index_pool *pool, uint32_t *value)
 	}
 	*value = pool->data[pool->pos++];
 	return true;
-}
-
-void index_pool_rewind(struct index_pool *pool)
-{
-	uint32_t ind;
-
-	pool->pos = 0;
-	for (ind = 0; ind < pool->max_size; ind++) {
-		pool->data[ind] = ind;
-	}
 }
 
 #endif /* _STACK_H_ */

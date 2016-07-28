@@ -42,6 +42,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
+#include <byteswap.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <netlink/netlink-compat.h>
@@ -574,10 +575,12 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	}
 	/* For all requests need to parse service (except for flush) */
 	ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+
 	if (ret < 0)
 		return NL_SKIP;
 
-	write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", inet_ntoa(svc.addr), svc.protocol, svc.port, svc.fwmark, svc.sched_name);
+
+	write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
 
 	if (cmd->c_id == IPVS_CMD_NEW_DEST || cmd->c_id == IPVS_CMD_SET_DEST || cmd->c_id == IPVS_CMD_DEL_DEST) {
 		/* For all destination related requests need to parse dest (server) */
@@ -587,44 +590,44 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
 		if (ret < 0)
 			return NL_SKIP;
-		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", inet_ntoa(dest.addr), dest.port, dest.weight, dest.conn_flags);
+		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags);
 	}
 
 	switch (cmd->c_id) {
 	case IPVS_CMD_NEW_SERVICE:
 		alvs_ret = alvs_db_add_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem adding service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", inet_ntoa(svc.addr), svc.port, svc.protocol, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem adding service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_SERVICE:
 		alvs_ret = alvs_db_modify_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem updating service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", inet_ntoa(svc.addr), svc.port, svc.protocol, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem updating service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_SERVICE:
 		alvs_ret = alvs_db_delete_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem deleting service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", inet_ntoa(svc.addr), svc.port, svc.protocol, svc.sched_name, alvs_ret);
+			write_log(LOG_NOTICE, "Problem deleting service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_NEW_DEST:
 		alvs_ret = alvs_db_add_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem adding server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", inet_ntoa(dest.addr), dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem adding server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_DEST:
 		alvs_ret = alvs_db_modify_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem updating server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", inet_ntoa(dest.addr), dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem updating server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_DEST:
 		alvs_ret = alvs_db_delete_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_NOTICE, "Problem deleting server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", inet_ntoa(dest.addr), dest.port, dest.weight, dest.conn_flags, alvs_ret);
+			write_log(LOG_NOTICE, "Problem deleting server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	default:
