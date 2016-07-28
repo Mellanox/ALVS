@@ -4,8 +4,8 @@
 # ALVS network arguments #
 ##########################
 
-# host network interface (include vlan, if needed)
-NETWORK_IF_NAME=eth0.1
+# host network interface (to add vlan 1, for examlpe, use: eth0.1)
+NETWORK_IF_NAME=eth0
 
 #####################
 # ALVS DP arguments #

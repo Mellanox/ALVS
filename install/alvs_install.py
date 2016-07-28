@@ -24,7 +24,7 @@ ALVS_DP_START = '/usr/share/alvs/start_alvs_dp'
 ALVS_RSYSLOG_CONF = '/etc/rsyslog.d/alvs.conf'
 ALVS_SYSCTL_CONF = '/etc/sysctl.d/alvs.conf'
 ALVS_NETWORK_CONF = '/etc/network/interfaces.d/alvs.conf'
-ALVS_PACKAGES = ['ipvsadm','libnl-3-200','ldirectord']
+ALVS_PACKAGES = ['ipvsadm','libnl-3-200']
 ALVS_MODULES = ['nlmon','ip_vs','8021q']
 ALVS_FILES = [('cfg/alvs_defaults',ALVS_CONFIG),
               ('scripts/alvs_init',ALVS_SERVICE),
