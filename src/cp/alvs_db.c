@@ -68,7 +68,7 @@ struct alvs_db_service {
 	uint8_t                    flags;
 	enum alvs_scheduler_type   sched_alg;
 	struct ezdp_sum_addr       stats_base;
-	uint32_t                   server_count;
+	uint16_t                   sched_entries_count;
 };
 
 struct alvs_db_server {
@@ -337,7 +337,6 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 {
 	int rc;
 	sqlite3_stmt *statement;
-	uint32_t server_count;
 	char sql[256];
 
 	sprintf(sql, "SELECT * FROM services "
@@ -381,13 +380,6 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
-
-	if (full_service) {
-		if (internal_db_get_server_count(service, &server_count, EXCLUDE_INACTIVE | EXCLUDE_WEIGHT_ZERO) == ALVS_DB_INTERNAL_ERROR) {
-			return ALVS_DB_INTERNAL_ERROR;
-		}
-		service->server_count = server_count;
-	}
 
 	return ALVS_DB_OK;
 }
@@ -858,6 +850,158 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 }
 
 /**************************************************************************//**
+ * \brief       Return GCD of two positive numbers
+ *
+ * \param[in]   num1   - server1 weight
+ * \param[in]   num2   - server2 weight
+ *
+ * \return      GCD(num1,num2)
+ */
+uint16_t alvs_db_gcd(uint16_t num1, uint16_t num2)
+{
+	uint16_t r;
+
+	while ((r = num1 % num2) != 0) {
+		num1 = num2;
+		num2 = r;
+	}
+	return num2;
+}
+
+/**************************************************************************//**
+ * \brief       Reduce all server's weight in server_list with GCD(server_list)
+ *
+ * \param[in]   server_list   - list of servers with weight > 0,
+ *				server_list != NULL
+ * \param[in]   server_count  - number of servers in list
+ *
+ */
+void alvs_db_reduce_weights(struct alvs_server_node *server_list, uint32_t server_count)
+{
+	uint16_t gcd, ind;
+
+	gcd = server_list->server.weight;
+	for (ind = 1; ind < server_count; ind++) {
+		server_list = server_list->next;
+		gcd = alvs_db_gcd(gcd, server_list->server.weight);
+		if (gcd == 1) {
+			return;
+		}
+	}
+	write_log(LOG_DEBUG, "GCD of server_list = %d", gcd);
+
+	write_log(LOG_DEBUG, "start divide weights of server_list with their GCD");
+	for (ind = 0; ind < server_count; ind++) {
+		server_list->server.weight = server_list->server.weight / gcd;
+		server_list = server_list->next;
+	}
+}
+
+/**************************************************************************//**
+ * \brief       Get server with max weight in server_list
+ *
+ * \param[in]   server_list   - list of servers with weight >= 0,
+ *				server_list != NULL
+ * \param[in]   server_count  - number of servers in list
+ *
+ * Note: NULL will be returned in case of all server's weight = 0
+ *
+ */
+struct alvs_server_node *alvs_db_get_max_weight_server(struct alvs_server_node *server_list, uint32_t server_count)
+{
+	struct alvs_server_node *max_server = NULL;
+	uint16_t max_weight = 0;
+	uint32_t ind;
+
+	/* Iterate over all servers and find the maximum weight */
+	for (ind = 0; ind < server_count; ind++) {
+		if (server_list->server.weight > max_weight) {
+			max_server = server_list;
+			max_weight = server_list->server.weight;
+		}
+		server_list = server_list->next;
+	}
+	return max_server;
+}
+
+/**************************************************************************//**
+ * \brief       Fills a bucket of 256 entries according to RR scheduling algorithm.
+ *
+ * \param[in]   bucket        - bucket of 256 entries to be filled with servers from server_list
+ *                              bucket must be initialized with NULL
+ *
+ * \param[in]   server_list   - list of servers with weight > 0,
+ *                              server_list != NULL
+ * \param[in]   server_count  - number of servers in list
+ *
+ */
+void alvs_db_rr_fill_buckets(struct alvs_db_server *bucket[], struct alvs_server_node *server_list, uint32_t server_count)
+{
+	uint32_t ind;
+
+	/* the bucket will include server_count entries filled with servers and other entries will be NULL */
+	for (ind = 0; ind < server_count && ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
+		bucket[ind] = &(server_list->server);
+		server_list = server_list->next;
+	}
+}
+
+/**************************************************************************//**
+ * \brief       Fills a bucket of 256 entries according to WRR scheduling algorithm.
+ *
+ * \param[in]   bucket        - bucket of 256 entries to be filled with servers from server_list
+ *                              bucket must be initialized with NULL
+ *
+ * \param[in]   server_list   - list of servers with weight > 0,
+ *                              server_list != NULL
+ * \param[in]   server_count  - number of servers in list
+ *
+ */
+void alvs_db_wrr_fill_buckets(struct alvs_db_server *bucket[], struct alvs_server_node *server_list, uint32_t server_count)
+{
+	uint32_t ind;
+	struct alvs_server_node *max;
+
+	/* The bucket will include Si*W(Si) entries, Si - server i, W(Si) - weight of server i, 0 <= i < server_count
+	 * other entries will be NULL.
+	 */
+	for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
+		max = alvs_db_get_max_weight_server(server_list, server_count);
+		if (max == NULL) {
+			break;
+		}
+		bucket[ind] = &(max->server);
+		max->server.weight--;
+	}
+}
+
+/**************************************************************************//**
+ * \brief       Fills a bucket of 256 entries according to SH scheduling algorithm.
+ *
+ * \param[in]   bucket        - bucket of 256 entries to be filled with servers from server_list
+ *
+ * \param[in]   server_list   - list of servers with weight > 0,
+ *                              server_list != NULL
+ * \param[in]   server_count  - number of servers in list
+ *
+ */
+void alvs_db_sh_fill_buckets(struct alvs_db_server *bucket[], struct alvs_server_node *server_list, uint32_t server_count)
+{
+	uint32_t ind;
+	uint16_t weight = 0;
+
+	/* the bucket will include 256 entries filled with servers from server_list according to server's weight */
+	for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
+		bucket[ind] = &(server_list->server);
+		weight++;
+		if (weight >= server_list->server.weight) {
+			weight = 0;
+			server_list = server_list->next;
+		}
+	}
+}
+
+/**************************************************************************//**
  * \brief       Recalculate scheduling info DB in NPS for a service.
  *
  * \param[in]   service   - reference to service
@@ -869,62 +1013,91 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
  */
 enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *service)
 {
-	uint32_t ind;
-	uint32_t weight = 0;
+	uint32_t ind, server_count;
+	struct alvs_db_server *server;
 	struct alvs_server_node *server_list;
 	struct alvs_sched_info_key sched_info_key;
 	struct alvs_sched_info_result sched_info_result;
-
-	write_log(LOG_DEBUG, "Recalculating scheduling info with %d servers.", service->server_count);
-	if (service->server_count == 0) {
-		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
-			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
-			if (infra_delete_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
-						sizeof(struct alvs_sched_info_key)) == false) {
-				write_log(LOG_DEBUG, "Failed to delete a scheduling info entry.");
-				return ALVS_DB_NPS_ERROR;
-			}
-		}
-		return ALVS_DB_OK;
-	}
+	struct alvs_db_server *servers_buckets[ALVS_SIZE_OF_SCHED_BUCKET] = {NULL};
 
 	write_log(LOG_DEBUG, "Getting list of servers.");
 	if (internal_db_get_server_list(service, &server_list, EXCLUDE_INACTIVE | EXCLUDE_WEIGHT_ZERO) != ALVS_DB_OK) {
 		/* Can't retrieve server list */
-		write_log(LOG_CRIT, "Can't retrieve server list - "
-			  "internal error.");
+		write_log(LOG_CRIT, "Can't retrieve server list! internal error.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	switch (service->sched_alg) {
-	case ALVS_SOURCE_HASH_SCHEDULER:
-		write_log(LOG_DEBUG, "Algorithm is 'source hash'.");
-		for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
-			sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
-			sched_info_result.server_index = bswap_32(server_list->server.nps_index);
-			write_log(LOG_DEBUG, "(%d) %d --> %d", service->nps_index, ind, server_list->server.nps_index);
+	if (internal_db_get_server_count(service, &server_count, EXCLUDE_INACTIVE | EXCLUDE_WEIGHT_ZERO) != ALVS_DB_OK) {
+		/* Can't retrieve server list */
+		write_log(LOG_CRIT, "Can't retrieve server count! internal error.");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+	write_log(LOG_DEBUG, "Number of servers for the relevant service is %d.", server_count);
+
+	/* Fill server buckets array according to algorithm */
+	if (server_count > 0) {
+		switch (service->sched_alg) {
+		case ALVS_SOURCE_HASH_SCHEDULER:
+			write_log(LOG_DEBUG, "filling bucket array according to SH scheduling algorithm.");
+			alvs_db_reduce_weights(server_list, server_count);
+			alvs_db_sh_fill_buckets(servers_buckets, server_list, server_count);
+			break;
+		case ALVS_ROUND_ROBIN_SCHEDULER:
+			write_log(LOG_DEBUG, "filling bucket array according to RR scheduling algorithm.");
+			alvs_db_rr_fill_buckets(servers_buckets, server_list, server_count);
+			break;
+		case ALVS_WEIGHTED_ROUND_ROBIN_SCHEDULER:
+			write_log(LOG_DEBUG, "filling bucket array according to WRR scheduling algorithm.");
+			alvs_db_reduce_weights(server_list, server_count);
+			alvs_db_wrr_fill_buckets(servers_buckets, server_list, server_count);
+			break;
+		default:
+			/* Other algorithms are currently not supported */
+			alvs_free_server_list(server_list);
+			write_log(LOG_NOTICE, "Algorithm not supported.");
+			return ALVS_DB_NOT_SUPPORTED;
+		}
+	}
+
+	/* Populate NPS scheduling info DB according to array */
+	service->sched_entries_count = 0;
+	for (ind = 0; ind < ALVS_SIZE_OF_SCHED_BUCKET; ind++) {
+		server = servers_buckets[ind];
+		sched_info_key.sched_index = bswap_16(service->nps_index * ALVS_SIZE_OF_SCHED_BUCKET + ind);
+		if (server != NULL) {
+			/* If server exists modify entry in DB.
+			 * In case no entry, CP treats 'modify' as 'add'
+			 */
+			sched_info_result.server_index = bswap_32(server->nps_index);
+			write_log(LOG_DEBUG, "(%d) %d --> %d", service->nps_index, ind, server->nps_index);
 			if (infra_modify_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
-						sizeof(struct alvs_sched_info_key), &sched_info_result,
-						sizeof(struct alvs_sched_info_result)) == false) {
-				write_log(LOG_CRIT, "Failed to modify a scheduling info entry.");
+					       sizeof(struct alvs_sched_info_key), &sched_info_result,
+					       sizeof(struct alvs_sched_info_result)) == false) {
+				write_log(LOG_ERR, "Failed to modify a scheduling info entry.");
+				alvs_free_server_list(server_list);
 				return ALVS_DB_NPS_ERROR;
 			}
 
-			weight++;
-			if (weight >= server_list->server.weight) {
-				weight = 0;
-				server_list = server_list->next;
+			/* update number of scheduling info entries in service */
+			service->sched_entries_count++;
+		} else {
+			/* If server doesn't exist delete entry in DB.
+			 * In case no entry, CP treats 'delete' as 'nop'
+			 */
+			write_log(LOG_DEBUG, "(%d) %d --> EMPTY", service->nps_index, ind);
+			if (infra_delete_entry(STRUCT_ID_ALVS_SCHED_INFO, &sched_info_key,
+					       sizeof(struct alvs_sched_info_key)) == false) {
+				write_log(LOG_ERR, "Failed to delete a scheduling info entry.");
+				alvs_free_server_list(server_list);
+				return ALVS_DB_NPS_ERROR;
 			}
 		}
-		break;
-	default:
-		/* Other algorithms are currently not supported */
-		write_log(LOG_NOTICE, "Algorithm not supported.");
-		return ALVS_DB_NOT_SUPPORTED;
 	}
 
+	/* Free the list when finished using */
 	alvs_free_server_list(server_list);
 
+	write_log(LOG_DEBUG, "Scheduling info recalculated.");
 	return ALVS_DB_OK;
 }
 
@@ -1125,6 +1298,12 @@ bool supported_sched_alg(enum alvs_scheduler_type sched_alg)
 	if (sched_alg == ALVS_SOURCE_HASH_SCHEDULER) {
 		return true;
 	}
+	if (sched_alg == ALVS_ROUND_ROBIN_SCHEDULER) {
+		return true;
+	}
+	if (sched_alg == ALVS_WEIGHTED_ROUND_ROBIN_SCHEDULER) {
+		return true;
+	}
 	return false;
 }
 
@@ -1167,9 +1346,12 @@ void build_nps_service_info_result(struct alvs_db_service *cp_service,
 				   struct alvs_service_info_result *nps_service_info_result)
 {
 	nps_service_info_result->sched_alg = cp_service->sched_alg;
-	nps_service_info_result->server_count = bswap_16(cp_service->server_count);
+	nps_service_info_result->sched_entries_count = bswap_16(cp_service->sched_entries_count);
 	nps_service_info_result->service_flags = bswap_32(cp_service->flags);
 	nps_service_info_result->service_stats_base = bswap_32(cp_service->stats_base.raw_data);
+	nps_service_info_result->service_sched_ctr = bswap_32((EZDP_INTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+		(EZDP_ALL_CLUSTER_DATA << EZDP_SUM_ADDR_MSID_OFFSET) |
+		(cp_service->nps_index << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 }
 
 /**************************************************************************//**
@@ -1303,7 +1485,7 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	/* Fill information of the service */
 	cp_service.sched_alg = get_sched_alg(ip_vs_service->sched_name);
 	cp_service.flags = ip_vs_service->flags;
-	cp_service.server_count = 0;
+	cp_service.sched_entries_count = 0;
 	cp_service.stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
 		(EMEM_SERVICE_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
 		((EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
@@ -1422,13 +1604,11 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	if (prev_sched_alg != cp_service.sched_alg && cp_service.server_count > 0) {
+	if (prev_sched_alg != cp_service.sched_alg) {
 		/* Recalculate scheduling information */
 		enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
 
-		if (rc == ALVS_DB_OK) {
-			write_log(LOG_DEBUG, "Scheduling info recalculated.");
-		} else {
+		if (rc != ALVS_DB_OK) {
 			write_log(LOG_CRIT, "Failed to recalculate scheduling information.");
 			return rc;
 		}
@@ -1462,6 +1642,7 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 {
 	uint32_t ind;
+	uint32_t server_count;
 	struct alvs_db_service cp_service;
 	struct alvs_service_info_key nps_service_info_key;
 	struct alvs_service_classification_key nps_service_classification_key;
@@ -1494,7 +1675,7 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Get servers to delete */
-	internal_db_get_server_count(&cp_service, &cp_service.server_count, EXCLUDE_INACTIVE);
+	internal_db_get_server_count(&cp_service, &server_count, EXCLUDE_INACTIVE);
 
 	/* Get list of servers to delete */
 	write_log(LOG_DEBUG, "Getting list of servers.");
@@ -1535,7 +1716,7 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	/* Deactivate all servers */
-	for (ind = 0; ind < cp_service.server_count; ind++) {
+	for (ind = 0; ind < server_count; ind++) {
 		write_log(LOG_DEBUG, "Deactivating server with nps_index %d.", server_list->server.nps_index);
 		/* Deactivate server in struct */
 		server_list->server.server_flags &= ~IP_VS_DEST_F_AVAILABLE;
@@ -1553,10 +1734,9 @@ enum alvs_db_rc alvs_db_delete_service(struct ip_vs_service_user *ip_vs_service)
 	}
 
 	alvs_free_server_list(server_list);
-	cp_service.server_count = 0;
 
 	/* Delete scheduling information from NPS search structure (if existed) */
-	write_log(LOG_DEBUG, "Deleting scheduling information.");
+	write_log(LOG_DEBUG, "Updating scheduling information.");
 	enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
 
 	if (rc != ALVS_DB_OK) {
@@ -1629,6 +1809,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 			   struct ip_vs_dest_user *ip_vs_dest)
 {
 	enum alvs_db_rc rc;
+	uint32_t server_count;
 	struct alvs_db_service cp_service;
 	struct alvs_db_server cp_server;
 	struct alvs_server_info_key nps_server_info_key;
@@ -1666,7 +1847,9 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	if (cp_service.server_count == ALVS_SIZE_OF_SCHED_BUCKET) {
+	/* check if service has maximum servers already */
+	internal_db_get_server_count(&cp_service, &server_count, EXCLUDE_INACTIVE);
+	if (server_count == ALVS_SIZE_OF_SCHED_BUCKET) {
 		write_log(LOG_NOTICE, "Can't add server. Service (%s:%d, protocol=%d) has maximum number of active servers.",
 			  my_inet_ntoa(cp_service.ip), cp_service.port, cp_service.protocol);
 		return ALVS_DB_FAILURE;
@@ -1780,15 +1963,12 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	if (ip_vs_dest->weight > 0) {
-		cp_service.server_count++;
-
 		/* Recalculate scheduling information */
 		rc = alvs_db_recalculate_scheduling_info(&cp_service);
 		if (rc != ALVS_DB_OK) {
 			write_log(LOG_ERR, "Failed to delete scheduling information.");
 			return rc;
 		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.");
 
 		build_nps_service_info_key(&cp_service,
 					   &nps_service_info_key);
@@ -1910,34 +2090,25 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	if (cp_server.weight != prev_weight) {
-		if ((cp_server.weight == 0) || (prev_weight == 0)) {
-			if (cp_server.weight == 0) {
-				cp_service.server_count--;
-			} else {
-				cp_service.server_count++;
-			}
-
-			build_nps_service_info_key(&cp_service,
-						   &nps_service_info_key);
-			build_nps_service_info_result(&cp_service,
-						      &nps_service_info_result);
-			if (infra_modify_entry(STRUCT_ID_ALVS_SERVICE_INFO,
-					       &nps_service_info_key,
-					       sizeof(struct alvs_service_info_key),
-					       &nps_service_info_result,
-					       sizeof(struct alvs_service_info_result)) == false) {
-				write_log(LOG_CRIT, "Failed to change server count in service info entry.");
-				return ALVS_DB_NPS_ERROR;
-			}
-		}
-
 		/* Recalculate scheduling information */
 		rc = alvs_db_recalculate_scheduling_info(&cp_service);
 		if (rc != ALVS_DB_OK) {
 			write_log(LOG_CRIT, "Failed to delete scheduling information.");
 			return rc;
 		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.");
+
+		build_nps_service_info_key(&cp_service,
+					   &nps_service_info_key);
+		build_nps_service_info_result(&cp_service,
+					      &nps_service_info_result);
+		if (infra_modify_entry(STRUCT_ID_ALVS_SERVICE_INFO,
+				       &nps_service_info_key,
+				       sizeof(struct alvs_service_info_key),
+				       &nps_service_info_result,
+				       sizeof(struct alvs_service_info_result)) == false) {
+			write_log(LOG_CRIT, "Failed to change server count in service info entry.");
+			return ALVS_DB_NPS_ERROR;
+		}
 	}
 
 	build_nps_server_info_key(&cp_server, &nps_server_info_key);
@@ -2039,7 +2210,13 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	}
 
 	if (cp_server.weight > 0) {
-		cp_service.server_count--;
+		/* Recalculate scheduling information */
+		rc = alvs_db_recalculate_scheduling_info(&cp_service);
+		if (rc != ALVS_DB_OK) {
+			write_log(LOG_CRIT, "Failed to delete scheduling information.");
+			return rc;
+		}
+
 		build_nps_service_info_key(&cp_service, &nps_service_info_key);
 		build_nps_service_info_result(&cp_service, &nps_service_info_result);
 		if (infra_modify_entry(STRUCT_ID_ALVS_SERVICE_INFO,
@@ -2050,14 +2227,6 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 			write_log(LOG_CRIT, "Failed to change server count in service info entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
-
-		/* Recalculate scheduling information */
-		rc = alvs_db_recalculate_scheduling_info(&cp_service);
-		if (rc != ALVS_DB_OK) {
-			write_log(LOG_CRIT, "Failed to delete scheduling information.");
-			return rc;
-		}
-		write_log(LOG_DEBUG, "Scheduling info recalculated.");
 	}
 
 	build_nps_server_info_key(&cp_server, &nps_server_info_key);

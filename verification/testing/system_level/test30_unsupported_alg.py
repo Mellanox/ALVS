@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 100 
+request_count = 10
 server_count = 5
 client_count = 1
 service_count = 1
@@ -84,18 +84,20 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	vip = vip_list[0]
 	port = '80'
 
-	ezbox.add_service(vip, port, sched_alg='rr' ,sched_alg_opt='')
+	ezbox.add_service(vip, port, sched_alg='lc' ,sched_alg_opt='')
 	for server in server_list:
 		ezbox.add_server(vip, port, server.ip, port)
 	
-	time.sleep(5) 
+	print "wait 6 second for EZbox to update"
+	time.sleep(6)
+	
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
 		p.join()
-		
+	
 	print 'End user test'
 
 def run_user_checker(server_list, ezbox, client_list, log_dir):

@@ -324,7 +324,7 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 	if no_errors:
 		error_stats = ezbox.get_error_stats()
 		for error_name, count in error_stats.items():
-			if 'ALVS_ERROR_SERVICE_CLASS_LOOKUP' != error_name:
+			if error_name not in ['ALVS_ERROR_SERVICE_CLASS_LOOKUP', 'ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL', 'ALVS_ERROR_CONN_MARK_TO_DELETE']:
 				if count > 0:
 					print 'ERROR: %s errors found. count = %d' %(error_name, count)
 					error_rc = False
@@ -459,17 +459,25 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					
 					totalWeights = 0.0
 					for s in servers_per_service:
-						#print 'weight of server %s = %d' %(s.ip,s.weight)
-						totalWeights += s.weight
+						if "rr" in expected_dict['check_distribution']:
+							totalWeights += 1
+						else:
+							totalWeights += s.weight
 					#print 'total weights of all servers for current service = %d' %(totalWeights)
+					#print 'total per service = %d' %total_per_service
 					
 					for s in servers_per_service:
-						responses_num_without_sd = (total_per_service*s.weight)/totalWeights
+						if "rr" in expected_dict['check_distribution']:
+							w = 1
+						else:
+							w = s.weight
+						responses_num_without_sd = (total_per_service*w)/totalWeights
 						if s.ip not in servers_responses_dict.keys():
 							actual_responses = 0
 						else:
 							actual_responses = servers_responses_dict[s.ip]
 						diff = abs(actual_responses - responses_num_without_sd)
+						#print "diff = %s, sd = %s" %(diff,sd)
 						if diff > sd:
 							print 'ERROR: client should received: %d responses from server: %s with standard deviation: %d. Actual number of responses was: %d' %(responses_num_without_sd,s.ip,sd,actual_responses)
 							rc =  False

@@ -380,7 +380,7 @@ class ezbox_host:
 				sched_info.append(int(''.join(sched_res[4:8]), 16))
 
 		service = {'sched_alg' : int(info_res[0], 16) & 0xf,
-				   'server_count' : int(''.join(info_res[2:4]), 16),
+				   'sched_info_entries' : int(''.join(info_res[2:4]), 16),
 				   'stats_base' : int(''.join(info_res[8:12]), 16),
 				   'flags' : int(''.join(info_res[12:16]), 16),
 				   'sched_info' : sched_info
@@ -617,7 +617,7 @@ class ezbox_host:
 					  'ALVS_ERROR_CONN_INFO_ALLOC_FAIL':error_stats[5]['byte_value'],
 					  'ALVS_ERROR_CONN_INDEX_ALLOC_FAIL':error_stats[6]['byte_value'],
 					  'ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL':error_stats[7]['byte_value'],
-					  'ALVS_ERROR_FAIL_SH_SCHEDULING':error_stats[8]['byte_value'],
+					  'ALVS_ERROR_SCHEDULING_FAIL':error_stats[8]['byte_value'],
 					  'ALVS_ERROR_SERVER_INFO_LKUP_FAIL':error_stats[9]['byte_value'],
 					  'ALVS_ERROR_SERVER_IS_UNAVAILABLE':error_stats[10]['byte_value'],
 					  'ALVS_ERROR_SERVER_INDEX_LKUP_FAIL':error_stats[11]['byte_value'],

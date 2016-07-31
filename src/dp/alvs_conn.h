@@ -57,18 +57,15 @@ uint32_t alvs_conn_info_lookup(uint32_t conn_index)
 
 /******************************************************************************
  * \brief       create a new entry in connection info and connection classification
- *              DBs. the function first locks the connection (using DP spinlock) and
- *              then allocates new index from connection index pool. this index is used
+ *              DBs. the connection lock should be taken before running this function.
+ *              new index from connection index pool is being allocated. this index is used
  *              as the key to the connection info DB and as the result to the connection
  *              info DB.
  *              this function is called only after all scheduling process is done so all
  *              info for entry is taken from the service and server data.
  *              the connection classification key is built from the service classification key
  *              plus other fields taken from the frame itself.
- *              to prevent any race conditions or cases were 2 threads are trying to create the
- *              same connection we use a DP spinlock and busy wait of all threads which are locked.
- *              locked threads will wait until all creation process is done and then will continue to
- *              regular connection data path.
+
  *
  * \return      return alvs_service_output_result:
  *                      ALVS_SERVICE_DATA_PATH_IGNORE - frame was sent to host or dropped
@@ -81,42 +78,13 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 							   uint32_t flags, bool reset)
 {
 	uint32_t conn_index;
-	uint32_t rc;
-	ezdp_hashed_key_t hash_value;
-	uint32_t found_result_size;
-	struct  alvs_conn_classification_result *conn_class_res_ptr;
-
-	alvs_lock_connection(&hash_value);
-
-	rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
-				    (void *)&cmem_alvs.conn_class_key,
-				    sizeof(struct alvs_conn_classification_key),
-				    (void **)&conn_class_res_ptr,
-				    &found_result_size, 0,
-				    cmem_wa.alvs_wa.conn_hash_wa,
-				    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
-	if (rc == 0) {
-		cmem_alvs.conn_result.conn_index = conn_class_res_ptr->conn_index;
-		alvs_write_log(LOG_DEBUG, "new connection was already created!!!! conn_index = %d", cmem_alvs.conn_result.conn_index);
-		alvs_unlock_connection(hash_value);
-		return ALVS_SERVICE_DATA_PATH_RETRY;
-	}
-	if (rc == EIO)	{
-		alvs_update_discard_statistics(ALVS_ERROR_CREATE_CONN_MEM_ERROR);
-		alvs_discard_frame();
-		alvs_write_log(LOG_CRIT, "try to create new connection --> memory error!");
-		alvs_unlock_connection(hash_value);
-		return ALVS_SERVICE_DATA_PATH_IGNORE;
-	}
 
 	/*allocate new index*/
 	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
 	if (conn_index == EZDP_NULL_INDEX) {
 		alvs_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server_index, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
 		/*drop frame*/
-		alvs_update_discard_statistics(ALVS_ERROR_CONN_INDEX_ALLOC_FAIL);
-		alvs_discard_frame();
-		alvs_unlock_connection(hash_value);
+		alvs_discard_and_stats(ALVS_ERROR_CONN_INDEX_ALLOC_FAIL);
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
 
@@ -158,7 +126,6 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 				 cmem_wa.alvs_wa.conn_hash_wa,
 				 sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
-	alvs_unlock_connection(hash_value);
 
 	alvs_write_log(LOG_DEBUG, "conn_idx = %d server_idx = %d added successfully ", conn_index, server_index);
 
@@ -415,8 +382,7 @@ void alvs_conn_do_route(uint8_t *frame_base)
 	} else {
 		alvs_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.routing_alg);
 		/*drop frame*/
-		alvs_update_discard_statistics(ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO);
-		alvs_discard_frame();
+		alvs_discard_and_stats(ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO);
 		return;
 	}
 
@@ -453,8 +419,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			/*server in not available - close connection*/
 			alvs_write_log(LOG_DEBUG, "conn_idx  = %d reset_bit = 1 already", conn_index);
 			/*drop frame*/
-			alvs_update_discard_statistics(ALVS_ERROR_CONN_MARK_TO_DELETE);
-			alvs_discard_frame();
+			alvs_discard_and_stats(ALVS_ERROR_CONN_MARK_TO_DELETE);
 			return;
 		}
 
@@ -463,8 +428,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			/*no server info - weird error scenario*/
 			alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 			/*drop frame*/
-			alvs_update_discard_statistics(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
-			alvs_discard_frame();
+			alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 			return;
 		}
 
@@ -478,13 +442,11 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				/*unable to update connection - weird error scenario*/
 				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
-				alvs_update_discard_statistics(ALVS_ERROR_CANT_MARK_DELETE);
-				alvs_discard_frame();
+				alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
 				return;
 			}
 			/*silent drop the packet and continue*/
-			alvs_update_discard_statistics(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL);
-			alvs_discard_frame();
+			alvs_discard_and_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL);
 			return;
 		}
 
@@ -495,8 +457,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				/*unable to update connection - weird error scenario*/
 				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
-				alvs_update_discard_statistics(ALVS_ERROR_CANT_MARK_DELETE);
-				alvs_discard_frame();
+				alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
 				return;
 			}
 		} else {
@@ -505,8 +466,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				if (alvs_conn_update_state(conn_index, ALVS_TCP_CONNECTION_CLOSE_WAIT) != 0) {
 					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, update connection state to close FAIL", conn_index);
 					/*drop frame*/
-					alvs_update_discard_statistics(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
-					alvs_discard_frame();
+					alvs_discard_and_stats(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					return;
 				}
 			} else if (cmem_alvs.conn_info_result.aging_bit == 0) { /*check if we need to update the aging bit*/
@@ -515,8 +475,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				if (alvs_conn_refresh(conn_index) != 0) {
 					alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit FAILED", conn_index);
 					/*drop frame*/
-					alvs_update_discard_statistics(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
-					alvs_discard_frame();
+					alvs_discard_and_stats(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					return;
 				}
 			}
@@ -527,8 +486,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 		/*no classification info - weird error scenario*/
 		alvs_write_log(LOG_ERR, "conn_idx  = %d,  fail lookup to connection info DB ", conn_index);
 		/*drop frame*/
-		alvs_update_discard_statistics(ALVS_ERROR_CONN_INFO_LKUP_FAIL);
-		alvs_discard_frame();
+		alvs_discard_and_stats(ALVS_ERROR_CONN_INFO_LKUP_FAIL);
 		return;
 	}
 }

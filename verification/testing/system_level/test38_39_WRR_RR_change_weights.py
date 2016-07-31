@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-
+import copy
 
 
 # pythons modules 
@@ -27,11 +27,10 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 50
-server_count = 10
-client_count = 5
-service_count = 5
-
+request_count = 1000
+server_count = 5
+client_count = 1
+service_count = 1
 
 
 #===============================================================================
@@ -47,14 +46,19 @@ def user_init(setup_num):
 	setup_list = get_setup_list(setup_num)
 
 	server_list=[]
+
+	w=2
 	for i in range(server_count):
 		server_list.append(HttpServer(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
 						  password = "3tango", 
-						  vip = vip_list[i%service_count],#servers0,5->service 0 ..... servers4,9->service 4
-						  eth='ens6'))
+						  vip = vip_list[0],
+						  eth='ens6',
+						  weight=w))
+		print "init server %d weight = %d" %(i,w)
 		index+=1
+		w+=5
 	
 	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
@@ -78,111 +82,113 @@ def client_execution(client, vip):
 	client.exec_params += " -i %s -r %d" %(vip, request_count)
 	client.execute()
 
-def run_user_test(server_list, ezbox, client_list, vip_list):
+def run_user_test(server_list, ezbox, client_list, vip_list, sched_algorithm):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	process_list = []
 	port = '80'
+	vip = vip_list[0]
 	
-	#add services
-	for i in range(service_count):
-		ezbox.add_service(vip_list[i], port)
+	print "service %s is set with %s scheduling algorithm" %(vip,sched_algorithm)
+	ezbox.add_service(vip, port, sched_alg=sched_algorithm, sched_alg_opt='')
+	
 	for server in server_list:
-		ezbox.add_server(server.vip, port, server.ip, port)
+		print "adding server %s to service %s" %(server.ip,server.vip)
+		ezbox.add_server(server.vip, port, server.ip, port,server.weight)
 	
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
-	for index, client in enumerate(client_list):
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+	
+	for client in client_list:
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
 		p.join()
-
-	#remove services
+	
+	new_weight = 20
+	print 'changing weight of server %s from %d to %d' %(server_list[0].ip, server_list[0].weight, new_weight)
+	server_list[0].weight = new_weight
+	ezbox.modify_server(vip, port, server_list[0].ip, port, weight=new_weight)
+	new_weight = 32
+	print 'changing weight of server %s from %d to %d' %(server_list[1].ip, server_list[1].weight, new_weight)
+	server_list[1].weight = new_weight
+	ezbox.modify_server(vip, port, server_list[1].ip, port, weight=new_weight)
+	
 	process_list = []
-	for i in range(service_count):
-		ezbox.delete_service(vip_list[i], port)
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
-	for index, client in enumerate(client_list):
+	
+	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
 		p.join()
+		
+	print 'End user test'	
 
-	#add services with different servers
-	process_list = []
-	for i in range(service_count):
-		ezbox.add_service(vip_list[i], port)
-	#change service foreach server
-	for i in range(server_count):
-		server_list[i].update_vip(vip_list[(i+1)%service_count])#servers0,5->service 1 ..... servers4,9->service 0
-	for server in server_list:
-		ezbox.add_server(server.vip, port, server.ip, port)
-	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
-	for index, client in enumerate(client_list):
-		new_log_name = client.logfile_name+'_2'
-		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
-	for p in process_list:
-		p.start()
-	for p in process_list:
-		p.join()
-  		
-	print 'End user test'
-
-def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
+def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list, sched_alg):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	expected_dict = {}
-	expected_dict[0] = {'client_response_count':request_count,
-						'client_count': len(client_list), 
-						'no_404': True,
-						'no_connection_closed': True,
-					 	'server_count_per_client':server_count/service_count}
-	expected_dict[1] = {'client_response_count':request_count,
-						'client_count': len(client_list), 
-						'no_404': False,
-						'no_connection_closed': True,
-					 	'server_count_per_client':1}
-	expected_dict[2] = {'client_response_count':request_count,
-						'client_count': len(client_list), 
-						'no_404': True,
-						'no_connection_closed': True,
-					 	'server_count_per_client':server_count/service_count}
+	old_server_list = copy.deepcopy(server_list)
+	old_server_list[0].weight = 20
+	old_server_list[1].weight = 32
+	sd = 0.02
 	
-	return client_checker(log_dir, expected_dict, 3)
+	expected_dict[0] = {'client_response_count':request_count,
+						'client_count': len(client_list),
+						'no_connection_closed': True,
+						'no_404': True,
+						'expected_servers':old_server_list,
+						'check_distribution':(old_server_list,vip_list,sd,sched_alg)}
+	expected_dict[1] = {'client_response_count':request_count,
+						'client_count': len(client_list),
+						'no_connection_closed': True,
+						'no_404': True,
+						'expected_servers':server_list,
+						'check_distribution':(server_list,vip_list,sd,sched_alg)}
+	
+	return client_checker(log_dir, expected_dict,2)
 
 #===============================================================================
 # main function
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 3:
-		print "script expects exactly 2 input arguments"
-		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
+
+	usage = "usage: %prog [-s, -a, -u]"
+	parser = OptionParser(usage=usage, version="%prog 1.0")
+	
+	parser.add_option("-s", "--setup_num", dest="setup_number",
+					  help="Setup number", type="int")
+	parser.add_option("-a", "--sched_alg", dest="sched_alg",
+					  help="scheduling algorithm to run with", default="rr", type="str")
+	parser.add_option("-u", "--use_4_k_cpus", dest="use_4_k_cpus",
+					  help="true = use 4k cpu. false = use 512 cpus", default='true', type="str")
+
+	(options, args) = parser.parse_args()
+
+	if not options.setup_number:
+		log('HTTP IP is not given')
 		exit(1)
 
-	setup_num  = int(sys.argv[1])
-	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
-
-	server_list, ezbox, client_list, vip_list = user_init(setup_num)
+	use_4_k_cpus = True if options.use_4_k_cpus.lower() == 'true' else False
+	
+	server_list, ezbox, client_list, vip_list = user_init(options.setup_number)
 
 	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 	
-	run_user_test(server_list, ezbox, client_list, vip_list)
+	run_user_test(server_list, ezbox, client_list, vip_list, options.sched_alg)
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-	clean_players(server_list, ezbox, client_list, use_director=True)
+	clean_players(server_list, ezbox, client_list, True)
 	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir,vip_list)
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list, options.sched_alg)
 	
 	if user_rc and gen_rc:
 		print 'Test passed !!!'

@@ -59,8 +59,7 @@ void nw_send_frame_to_network(ezframe_t __cmem * frame,
 	if (nw_interface_lookup(port_id + hash_value) != 0) {
 		alvs_write_log(LOG_ERR, "network interface = %d lookup fail", port_id + hash_value);
 		/* drop frame!! */
-		alvs_update_discard_statistics(ALVS_ERROR_SEND_FRAME_FAIL);
-		alvs_discard_frame();
+		alvs_discard_and_stats(ALVS_ERROR_SEND_FRAME_FAIL);
 		return;
 	}
 

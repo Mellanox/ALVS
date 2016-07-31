@@ -67,6 +67,16 @@ enum alvs_service_output_result {
  * ALVS definitions
  ***************************************************************/
 
+#define ALVS_SCHED_RR_RETRIES 10
+
+enum alvs_sched_server_result {
+	ALVS_SCHED_SERVER_SUCCESS       = 0,
+	ALVS_SCHED_SERVER_FAILED        = 1,
+	ALVS_SCHED_SERVER_EMPTY         = 2,
+	ALVS_SCHED_SERVER_UNAVAILABLE   = 3,
+	ALVS_SCHED_LAST
+};
+
 #define ALVS_CONN_LOCK_ELEMENTS_COUNT (256 * 1024)
 #define ALVS_CONN_LOCK_ELEMENTS_MASK  (ALVS_CONN_LOCK_ELEMENTS_COUNT - 1)
 

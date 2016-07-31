@@ -86,7 +86,7 @@ if __name__ == "__main__":
 	parser.add_option("-r", "--requests", dest="num_of_requests",
 					  help="Number of HTTP requests", default=1, type="int")
 	parser.add_option("-t", "--timeout", dest="timeout",
-					  help="Http Connection timeout", default=5, type="int")
+					  help="Http Connection timeout", default=8, type="int")
 
 	(options, args) = parser.parse_args()
 	init_log(options.log_file_name)

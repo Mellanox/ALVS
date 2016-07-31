@@ -192,6 +192,10 @@ class service:
 			self.schedule_algorithm = 'sh'
 		elif schedule_algorithm == 'source_hash_with_source_port':
 			self.schedule_algorithm = 'sh -b sh-port'
+		elif schedule_algorithm == 'rr':
+			self.schedule_algorithm = 'rr'
+		elif schedule_algorithm == 'wrr':
+			self.schedule_algorithm = 'wrr'
 		else:
 			print 'This Schedule algorithm is not supported'
 			exit(1)

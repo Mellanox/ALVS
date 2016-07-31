@@ -116,9 +116,9 @@ struct alvs_service_info_result {
 	/*byte1*/
 	unsigned             /*reserved*/  : 8;
 	/*byte2-3*/
-	uint16_t             server_count;
+	uint16_t             sched_entries_count;
 	/*byte4-7*/
-	unsigned             /*reserved*/  : 32; /*place holder for scheduling ptr*/
+	ezdp_sum_addr_t      service_sched_ctr; /* scheduling counter */
 	/*byte8-11*/
 	ezdp_sum_addr_t      service_stats_base;
 	/*byte12-15*/
@@ -202,6 +202,7 @@ CASSERT(sizeof(struct alvs_conn_classification_result) == 8);
  * Connection info DB defs
  *********************************/
 
+/*must be >0 and <256 due to use of ezdp_mod*/
 enum alvs_tcp_conn_state {
 	ALVS_TCP_CONNECTION_ESTABLISHED = 60,
 	ALVS_TCP_CONNECTION_CLOSE_WAIT	= 1

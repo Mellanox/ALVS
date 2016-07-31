@@ -133,6 +133,17 @@ void alvs_discard_frame(void)
 }
 
 /******************************************************************************
+ * \brief         discard frame and update alvs error counters.
+ * \return        void
+ */
+static __always_inline
+void alvs_discard_and_stats(enum alvs_error_stats_offsets error_id)
+{
+	alvs_update_discard_statistics(error_id);
+	alvs_discard_frame();
+}
+
+/******************************************************************************
  * \brief         perform a lock on connection ( 5 tuple) using DP spinlock
  *
  * \return        0 - success
