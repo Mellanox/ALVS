@@ -151,7 +151,7 @@ enum alvs_sched_server_result alvs_sched_get_server_info(uint8_t service_index, 
 			alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 			return ALVS_SCHED_SERVER_FAILED;
 		}
-		if (alvs_server_is_unavailable()) {
+		if (alvs_server_overload_on_create_conn(cmem_alvs.sched_info_result.server_index) & IP_VS_DEST_F_OVERLOAD) {
 			alvs_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
 			return ALVS_SCHED_SERVER_UNAVAILABLE;
 		}

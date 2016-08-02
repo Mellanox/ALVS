@@ -143,6 +143,7 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 
 unlock:
 	alvs_unlock_connection(hash_value);
+	alvs_write_log(LOG_DEBUG, "alvs_unlock_connection");
 out:
 	return result;
 }

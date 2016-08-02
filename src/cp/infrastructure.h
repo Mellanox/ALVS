@@ -206,4 +206,14 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
  */
 bool infra_delete_all_entries(uint32_t struct_id);
 
+/**************************************************************************//**
+ * \brief       translate msid to msid_select
+ *
+ * \param[in]   external_memory       - bool if this msid external
+ *		Note - now this function is only for external memory
+ *		emem_msid	- emem_msid - msid for translation
+ * \return      msid_select
+ */
+uint32_t infra_from_msid_to_index(bool external_memory, uint32_t emem_msid);
+
 #endif /* _INFRASTRUCTURE_H_ */

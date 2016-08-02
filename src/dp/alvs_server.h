@@ -39,16 +39,6 @@
 
 #include <linux/ip_vs.h>
 
-/******************************************************************************
- * \brief       check if server is unavailable
- *
- * \return      return true in case server is unavailable (down), false otherwise.
- */
-static __always_inline
-bool alvs_server_is_unavailable(void)
-{
-	return  (cmem_alvs.server_info_result.server_weight <= 0 || (cmem_alvs.server_info_result.server_flags & IP_VS_DEST_F_OVERLOAD));
-}
 
 /******************************************************************************
  * \brief       lookup in scheduling info table according to a given index
@@ -75,6 +65,155 @@ uint32_t alvs_server_info_lookup(uint32_t server_index)
 	return ezdp_lookup_table_entry(&shared_cmem_alvs.server_info_struct_desc,
 				server_index, &cmem_alvs.server_info_result,
 				sizeof(struct alvs_server_info_result), 0);
+
+}
+
+
+/******************************************************************************
+ * \brief       alvs_server_overload_on_create_conn - update overloaded flag according to
+ *              the current connections in the process
+ *              of creation of the new  connection. when process of available server is executed.
+ *
+ * \return	none
+ */
+
+static __always_inline
+int alvs_server_overload_on_create_conn(uint16_t server_index)
+{
+
+	uint64_t counter = 0;
+	uint32_t server_flags = 0;
+
+	/* alvs_conn_create_new_entry
+	 * We need to check if overloaded bit should be set as
+	 * number of connections per this server is increased.
+	 */
+	ezdp_read_and_inc_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
+	if (cmem_alvs.server_info_result.u_thresh != 0) {
+		counter = cmem_wa.alvs_wa.counter_work_area + 1;
+
+		alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
+		alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d",
+			       server_index, cmem_alvs.server_info_result.server_flags,
+			       cmem_alvs.server_info_result.u_thresh,
+			       cmem_alvs.server_info_result.l_thresh,
+			       (uint32_t)counter);
+		if (counter == cmem_alvs.server_info_result.u_thresh) {
+			/* read if OVERLOADED was set before - if yes - new connection can not created */
+			/* it's required if number of connections was reduced by function of delete_connection */
+			/* but OVERLOADED flag wasn't cleared */
+			server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
+			if (server_flags & IP_VS_DEST_F_OVERLOAD) {
+				/* if OVERLOAD flag is set - connection can not be created */
+				ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+						    1);
+				return server_flags;
+			}
+			/*need to set OVERLOAD for the next bind_connection*/
+			ezdp_atomic_or32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, IP_VS_DEST_F_OVERLOAD);
+			alvs_write_log(LOG_DEBUG, "counter %d == u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+			/* return NOT_OVERLOADED - this bit set for next connections*/
+			return !IP_VS_DEST_F_OVERLOAD;
+		} else if (counter > cmem_alvs.server_info_result.u_thresh) {
+			/* set OVERLOADED - as due race this bit can be still unset*/
+			ezdp_atomic_or32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, IP_VS_DEST_F_OVERLOAD);
+			/* its not allowed to open new connections if the counter of current connections (including preset connection) is above thresholds*/
+			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+					    1);
+			alvs_write_log(LOG_DEBUG, "counter %d > u_thresh %d ", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh);
+			/* return OVERLOADED - in summary number connections above upper threshold */
+			return IP_VS_DEST_F_OVERLOAD;
+		}
+		/* the case - number of connections less than upper threshold */
+		/* check if number of connections is bellow l_thresholds */
+		/* it can be if server is modified with l_thresh greater that it was */
+		/* so in creation of new connection should check if number of connections below of l_thres */
+		/* if yes - clear overloading */
+		if (cmem_alvs.server_info_result.l_thresh != 0) {
+			if (counter <= cmem_alvs.server_info_result.l_thresh) {
+				/* if number of connections is bellow thresholds clear OVERLOAD flag */
+				ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base,
+							   ~IP_VS_DEST_F_OVERLOAD);
+				alvs_write_log(LOG_DEBUG, "counter %d <= l_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+				return !IP_VS_DEST_F_OVERLOAD;
+			}
+		}
+		/* if number of connections between low threshold and high threshold return current server_flag */
+		server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
+		if (server_flags & IP_VS_DEST_F_OVERLOAD) {
+			/* if OVERLOAD flag is set - connection can not be created */
+			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+					    1);
+		}
+		alvs_write_log(LOG_DEBUG, " counter %d < u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+		/* return current server_flag */
+		return server_flags;
+
+	} else {
+		alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
+		alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d",
+			       server_index, cmem_alvs.server_info_result.server_flags,
+			       cmem_alvs.server_info_result.u_thresh,
+			       cmem_alvs.server_info_result.l_thresh);
+		/* if upper threshold == 0 -> low threshold == 0 -> increase number of connections and return 0 */
+		alvs_write_log(LOG_DEBUG, " cmem_alvs.server_info_result.u_thresh = 0");
+		return !IP_VS_DEST_F_OVERLOAD;
+	}
+}
+
+/******************************************************************************
+ * \brief       alvs_server_overload_on_delete_conn - update overloaded flag according to
+ *              the current connections in the process
+ *              of deleting connection. Can be called from delete connection process or during failure of allocation of
+ *              index in the creation of the new connection.
+ *
+ * \return	none
+ */
+static __always_inline
+void alvs_server_overload_on_delete_conn(uint16_t server_index)
+{
+
+	uint64_t counter = 0;
+
+	/* this function is called from delete_connection, so OVERLOAD bit can be clear */
+	ezdp_read_and_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
+
+	if (cmem_alvs.server_info_result.u_thresh == 0) {
+		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh = l_thresh = 0");
+		ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
+		return;
+	}
+	/* get sched_conns for the formula for updating over_loaded flag*/
+	counter = cmem_wa.alvs_wa.counter_work_area - 1;
+
+	alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_delete_conn");
+	alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d, overloaded_flags = 0x%x",
+		       server_index, cmem_alvs.server_info_result.server_flags,
+		       cmem_alvs.server_info_result.u_thresh,
+		       cmem_alvs.server_info_result.l_thresh,
+		       (uint32_t)counter,
+		       ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base));
+
+	if (cmem_alvs.server_info_result.l_thresh != 0) {
+		/* check if low threshold is not 0 */
+		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.l_thresh != 0");
+		if (counter < cmem_alvs.server_info_result.l_thresh) {
+			/* if number of connections drops below the low threshold - OVERLOAD flag should be cleared */
+			alvs_write_log(LOG_DEBUG, "counter %d < cmem_alvs.server_info_result.l_thresh %d", (uint32_t)counter, cmem_alvs.server_info_result.l_thresh);
+			ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
+		}
+	} else if (cmem_alvs.server_info_result.u_thresh != 0) {
+		/* check if upper threshold is not 0 */
+		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh != 0");
+		if (counter * 4 < cmem_alvs.server_info_result.u_thresh * 3) {
+			/* if number of connections of the current drops below  three forth of its upper connection threshold. */
+			/* if yes - clear OVERLOAD bit */
+			alvs_write_log(LOG_DEBUG, "counter * 4 < cmem_alvs.server_info_result.u_thresh * 3");
+			ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
+		}
+	}
 
 }
 

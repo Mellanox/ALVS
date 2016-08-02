@@ -286,17 +286,16 @@ struct alvs_server_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	unsigned             /*reserved*/  : 8;
+	unsigned             server_flags  : 8;
 	/*byte2-3*/
-	uint16_t             server_weight;
-	/*byte8-11*/
+	uint16_t             server_port;
+	/*byte4-7*/
 	ezdp_sum_addr_t      server_stats_base;
 	/*byte8-11*/
 	in_addr_t            server_ip;
-	/*byte12-13*/
-	uint16_t             server_port;
-	/*byte14-15*/
-	unsigned             /*reserved*/  : 16;
+	/*byte12-15*/
+
+	ezdp_sum_addr_t      server_on_demand_stats_base;
 	/*byte16-19*/
 	ezdp_sum_addr_t      service_stats_base;
 	/*byte20-23*/
@@ -305,7 +304,7 @@ struct alvs_server_info_result {
 	/*byte24-27*/
 	uint32_t             conn_flags;
 	/*byte28-31*/
-	uint32_t             server_flags;
+	ezdp_sum_addr_t      server_flags_dp_base;
 };
 
 CASSERT(sizeof(struct alvs_server_info_result) == 32);

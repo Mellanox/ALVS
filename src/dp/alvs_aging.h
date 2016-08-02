@@ -66,6 +66,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				alvs_conn_delete(conn_index);
 				continue;
 			}
@@ -78,6 +79,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0));
 				continue;
 			}
@@ -91,6 +93,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				alvs_conn_delete(conn_index);
 				continue;
 			}

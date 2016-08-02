@@ -43,7 +43,7 @@
 #define EZlog_LEVEL EZlog_LEVEL_TRACE
 #endif
 #define EZlog_COMP EZlog_COMP_CP_ALL
-#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_API
+#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_PRM
 
 /*****************************************************************************/
 /*! \fn void write_log(char *s)

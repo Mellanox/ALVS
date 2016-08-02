@@ -83,6 +83,8 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
 	if (conn_index == EZDP_NULL_INDEX) {
 		alvs_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server_index, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
+		alvs_server_overload_on_delete_conn(server_index);
+
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_CONN_INDEX_ALLOC_FAIL);
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
@@ -112,8 +114,8 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 			     &cmem_alvs.conn_info_result,
 			     sizeof(struct alvs_conn_info_result),
 			     EZDP_UNCONDITIONAL,
-			     cmem_wa.alvs_wa.table_work_area,
-			     sizeof(cmem_wa.alvs_wa.table_work_area));
+			     cmem_wa.alvs_wa.conn_info_table_wa,
+			     sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 
 	cmem_alvs.conn_result.conn_index = conn_index;
 
@@ -172,8 +174,8 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 			&cmem_alvs.conn_info_result,
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
-			cmem_wa.alvs_wa.table_work_area,
-			sizeof(cmem_wa.alvs_wa.table_work_area));
+			cmem_wa.alvs_wa.conn_info_table_wa,
+			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -222,8 +224,8 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 			&cmem_alvs.conn_info_result,
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
-			cmem_wa.alvs_wa.table_work_area,
-			sizeof(cmem_wa.alvs_wa.table_work_area));
+			cmem_wa.alvs_wa.conn_info_table_wa,
+			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -251,6 +253,7 @@ void alvs_conn_delete(uint32_t conn_index)
 		} else {
 			alvs_update_connection_statistics(-1, 0, -1);
 		}
+		alvs_server_overload_on_delete_conn(cmem_alvs.conn_info_result.server_index);
 	}
 
 	/*1st remove the classification entry*/
@@ -269,8 +272,8 @@ void alvs_conn_delete(uint32_t conn_index)
 	if (ezdp_delete_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 				conn_index,
 				0,
-				cmem_wa.alvs_wa.table_work_area,
-				sizeof(cmem_wa.alvs_wa.table_work_area)) != 0) {
+				cmem_wa.alvs_wa.conn_info_table_wa,
+				sizeof(cmem_wa.alvs_wa.conn_info_table_wa)) != 0) {
 		alvs_unlock_connection(hash_value);
 		alvs_write_log(LOG_DEBUG, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
 		return;
@@ -315,8 +318,8 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 			&cmem_alvs.conn_info_result,
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
-			cmem_wa.alvs_wa.table_work_area,
-			sizeof(cmem_wa.alvs_wa.table_work_area));
+			cmem_wa.alvs_wa.conn_info_table_wa,
+			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
@@ -356,8 +359,8 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 			&cmem_alvs.conn_info_result,
 			sizeof(struct alvs_conn_info_result),
 			EZDP_UNCONDITIONAL,
-			cmem_wa.alvs_wa.table_work_area,
-			sizeof(cmem_wa.alvs_wa.table_work_area));
+			cmem_wa.alvs_wa.conn_info_table_wa,
+			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
 	return rc;

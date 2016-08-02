@@ -45,6 +45,7 @@
 #include "log.h"
 
 #include <EZapiStat.h>
+#include <EZapiPrm.h>
 #include "alvs_db.h"
 #include "sqlite3.h"
 #include "stack.h"
@@ -78,12 +79,14 @@ struct alvs_db_server {
 	uint8_t                  active;
 	uint32_t                 nps_index;
 	uint32_t                 conn_flags;
-	uint32_t                 server_flags;
+	uint8_t                 server_flags;
 	enum alvs_routing_type   routing_alg;
-	uint32_t                 u_thresh;
-	uint32_t                 l_thresh;
+	uint16_t                 u_thresh;
+	uint16_t                 l_thresh;
 	struct ezdp_sum_addr     server_stats_base;
 	struct ezdp_sum_addr     service_stats_base;
+	struct ezdp_sum_addr     server_on_demand_stats_base;
+	struct ezdp_sum_addr     server_flags_dp_base;
 };
 
 struct alvs_server_node {
@@ -192,6 +195,8 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 		"active BOOLEAN NOT NULL,"
 		"server_stats_base INT NOT NULL,"
 		"service_stats_base INT NOT NULL,"
+		"server_on_demand_stats_base INT NOT NULL,"
+		"server_flags_dp_base INT NOT NULL,"
 		"PRIMARY KEY (ip,port,srv_ip,srv_port,srv_protocol),"
 		"FOREIGN KEY (srv_ip,srv_port,srv_protocol) "
 		"REFERENCES services(ip,port,protocol));";
@@ -293,6 +298,56 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 	sqlite3_finalize(statement);
 	return ALVS_DB_OK;
 }
+
+
+/**************************************************************************//**
+ * \brief       Update server_flags (OVERLOADED bit) according to the predefined algorithm
+ *
+ * \param[in]   server   - server received from CP.
+ *
+ * \return      true if operation succeeded
+ */
+
+
+enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_server)
+{
+
+	uint32_t server_flags = 0;
+	EZstatus ret_val;
+
+	write_log(LOG_DEBUG, "raw = 0x%x ext = %d msid = %d, lsb_addr = 0x%x",
+		  cp_server->server_flags_dp_base.raw_data,
+		  (cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET,
+		  (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
+			  (uint32_t)EMEM_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags));
+
+	write_log(LOG_DEBUG, "from_msid %d to index %d", (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
+		  infra_from_msid_to_index(1, (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET));
+
+	ret_val =  EZapiPrm_WriteMem(0, /*uiChannelId*/
+				   (((cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET) == EZDP_EXTERNAL_MS) ? EZapiPrm_MemId_EXT_MEM : EZapiPrm_MemId_INT_MEM, /*eMemId*/
+				    infra_from_msid_to_index(1, (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET),
+				    EMEM_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags),
+				    0, /* uiMSBAddress */
+				    0, /* bRange */
+				    0, /* uiRangeSize */
+				    0, /* uiRangeStep */
+				    0, /* bSingleCopy */
+				    0, /* bGCICopy */
+				    0, /* uiCopyIndex */
+				    sizeof(server_flags),
+				    (EZuc8 *)&server_flags,   /*pucData*/
+				    0                /* pSpecialParams */);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "alvs_db_clean_alloc_memory: EZapiPrm_WriteMem failed.");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	return ALVS_DB_OK;
+
+}
+
 
 /**************************************************************************//**
  * \brief       Delete all services, set all servers to inactive.
@@ -568,7 +623,8 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 		node->server.active = sqlite3_column_int(statement, 12);
 		node->server.server_stats_base.raw_data = sqlite3_column_int(statement, 13);
 		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 14);
-
+		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 15);
+		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, 16);
 		if (*server_list == NULL) {
 			node->next = node;
 			*server_list = node;
@@ -661,7 +717,8 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	server->active = sqlite3_column_int(statement, 12);
 	server->server_stats_base.raw_data = sqlite3_column_int(statement, 13);
 	server->service_stats_base.raw_data = sqlite3_column_int(statement, 14);
-
+	server->server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 15);
+	server->server_flags_dp_base.raw_data = sqlite3_column_int(statement, 16);
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
 
@@ -686,13 +743,15 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO servers "
-		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, routing_alg, u_thresh, l_thresh, active, server_stats_base, service_stats_base) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
+		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, routing_alg, u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base,server_flags_dp_base) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
 		server->ip, server->port, service->ip, service->port,
 		service->protocol, server->nps_index,
 		server->weight, server->conn_flags, server->server_flags,
 		server->routing_alg, server->u_thresh, server->l_thresh,
-		server->active, server->server_stats_base.raw_data, server->service_stats_base.raw_data);
+		server->active, server->server_stats_base.raw_data, server->service_stats_base.raw_data,
+		server->server_on_demand_stats_base.raw_data,
+		server->server_flags_dp_base.raw_data);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -1158,6 +1217,23 @@ enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
 	EZstatus ret_val;
 	EZapiStat_PostedCounter posted_counter;
 	EZapiStat_PostedCounterConfig posted_counter_config;
+	EZapiStat_LongCounterConfig long_counter_config;
+	EZapiStat_LongCounter long_counter;
+
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+	memset(&long_counter, 0, sizeof(long_counter));
+
+	long_counter_config.uiPartition = 0;
+	long_counter_config.bRange = true;
+	long_counter_config.uiStartCounter = EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+	long_counter_config.uiNumCounters = ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+	long_counter_config.pasCounters = &long_counter;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounterValues, &long_counter_config);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
 
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
 	memset(&posted_counter, 0, sizeof(posted_counter));
@@ -1409,14 +1485,15 @@ void build_nps_server_info_result(struct alvs_db_server *cp_server,
 {
 	nps_server_info_result->routing_alg = cp_server->routing_alg;
 	nps_server_info_result->conn_flags = bswap_32(cp_server->conn_flags);
-	nps_server_info_result->server_flags = bswap_32(cp_server->server_flags);
+	nps_server_info_result->server_flags = cp_server->server_flags;
 	nps_server_info_result->server_ip = bswap_32(cp_server->ip);
 	nps_server_info_result->server_port = bswap_16(cp_server->port);
 	nps_server_info_result->server_stats_base = bswap_32(cp_server->server_stats_base.raw_data);
 	nps_server_info_result->service_stats_base = bswap_32(cp_server->service_stats_base.raw_data);
-	nps_server_info_result->server_weight = bswap_16(cp_server->weight);
-	nps_server_info_result->u_thresh = bswap_32(cp_server->u_thresh);
-	nps_server_info_result->l_thresh = bswap_32(cp_server->l_thresh);
+	nps_server_info_result->server_on_demand_stats_base = bswap_32(cp_server->server_on_demand_stats_base.raw_data);
+	nps_server_info_result->server_flags_dp_base = bswap_32(cp_server->server_flags_dp_base.raw_data);
+	nps_server_info_result->u_thresh = bswap_16(cp_server->u_thresh);
+	nps_server_info_result->l_thresh = bswap_16(cp_server->l_thresh);
 }
 
 /**************************************************************************//**
@@ -1823,6 +1900,10 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
+	if (ip_vs_dest->l_threshold > ip_vs_dest->u_threshold) {
+		write_log(LOG_ERR, "l_threshold %d > u_threshold %d", ip_vs_dest->l_threshold, ip_vs_dest->u_threshold);
+		return ALVS_DB_NOT_SUPPORTED;
+	}
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
 	cp_service.port = bswap_16(ip_vs_service->port);
@@ -1922,16 +2003,29 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
 		cp_server.server_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | (EMEM_SERVER_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) | ((EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
 		cp_server.service_stats_base.raw_data = cp_service.stats_base.raw_data;
+		cp_server.server_on_demand_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+			(EMEM_SERVER_STATS_ON_DEMAND_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
+			((EMEM_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
+		cp_server.server_flags_dp_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
+			(EMEM_SERVER_FLAGS_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
+			((EMEM_SERVER_FLAGS_OFFSET + cp_server.nps_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
 
-		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
+		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
 			  cp_server.routing_alg, cp_server.conn_flags,
 			  cp_server.server_flags, cp_server.weight,
 			  cp_server.u_thresh, cp_server.l_thresh);
+		write_log(LOG_DEBUG, "raw = 0x%x msid = %d, element_index = %d", cp_server.server_flags_dp_base.raw_data, cp_server.server_flags_dp_base.msid, cp_server.server_flags_dp_base.element_index);
 
 		/* Clean service statistics */
 		write_log(LOG_DEBUG, "Cleaning server statistics.");
 		if (alvs_db_clean_server_stats(cp_server.nps_index) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to clean statistics.");
+			index_pool_release(&server_index_pool, cp_server.nps_index);
+			return ALVS_DB_INTERNAL_ERROR;
+		}
+
+		if (alvs_clear_overloaded_flag_of_server(&cp_server) == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Failed to clean allocated memory.");
 			index_pool_release(&server_index_pool, cp_server.nps_index);
 			return ALVS_DB_INTERNAL_ERROR;
 		}
@@ -2019,6 +2113,10 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
+	if (ip_vs_dest->l_threshold > ip_vs_dest->u_threshold) {
+		write_log(LOG_ERR, "l_threshold %d > u_threshold %d", ip_vs_dest->l_threshold, ip_vs_dest->u_threshold);
+		return ALVS_DB_NOT_SUPPORTED;
+	}
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
 	cp_service.port = bswap_16(ip_vs_service->port);
@@ -2076,10 +2174,17 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	cp_server.conn_flags = ip_vs_dest->conn_flags;
 	cp_server.weight = ip_vs_dest->weight;
 	cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
+
+	if ((ip_vs_dest->u_threshold == 0) || (ip_vs_dest->u_threshold > cp_server.u_thresh)) {
+		if (alvs_clear_overloaded_flag_of_server(&cp_server) == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Failed to alvs_clear_overloaded_flag_of_server.");
+			return ALVS_DB_INTERNAL_ERROR;
+		}
+	}
 	cp_server.u_thresh = ip_vs_dest->u_threshold;
 	cp_server.l_thresh = ip_vs_dest->l_threshold;
 
-	write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
+	write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
 		  cp_server.routing_alg, cp_server.conn_flags,
 		  cp_server.server_flags, cp_server.weight, cp_server.u_thresh,
 		  cp_server.l_thresh);

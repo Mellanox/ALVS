@@ -431,7 +431,54 @@ bool infra_create_statistics(void)
 	EZstatus ret_val;
 	EZapiStat_PostedPartitionParams posted_partition_params;
 	EZapiStat_PostedGroupParams posted_group_params;
+	EZapiStat_PartitionParams on_demand_partition_params;
+	EZapiStat_GroupParams on_demand_group_params;
 
+	/* Get on_demand statistics defaults for partition 0 */
+	memset(&on_demand_partition_params, 0, sizeof(on_demand_partition_params));
+
+	on_demand_partition_params.uiPartition = 0;
+
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPartitionParams, &on_demand_partition_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPartitionParams failed.\n");
+		return false;
+	}
+
+	/* Set MSID */
+	on_demand_partition_params.uiPartition = 0;
+	on_demand_partition_params.bEnable = TRUE;
+	on_demand_partition_params.uiMSID = USER_ON_DEMAND_STATS_MSID;
+	on_demand_partition_params.uiUnitMask = 0xf;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPartitionParams, &on_demand_partition_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_ConfigCmd_SetPartitionParams failed.\n");
+		return false;
+	}
+
+	/* Get posted statistics defaults for partition 0 */
+	memset(&on_demand_group_params, 0, sizeof(on_demand_group_params));
+
+	on_demand_group_params.uiPartition = 0;
+	on_demand_group_params.eGroupType = EZapiStat_GroupType_STANDARD;
+
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetGroupParams, &on_demand_group_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetGroupParams failed.");
+		return false;
+	}
+
+	on_demand_group_params.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &on_demand_group_params);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_ConfigCmd_SetGroupParams failed.");
+		return false;
+	}
 	/* Get posted statistics defaults for partition 0 */
 	memset(&posted_partition_params, 0, sizeof(posted_partition_params));
 	posted_partition_params.uiPartition = 0;
@@ -634,6 +681,33 @@ bool infra_initialize_statistics(void)
 {
 	EZstatus ret_val;
 	EZapiStat_PostedCounterConfig posted_counter_config;
+	EZapiStat_LongCounterConfig long_counter_config;
+
+	/* Set posted statistics values to be 0 */
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+	long_counter_config.pasCounters = malloc(sizeof(EZapiStat_LongCounter));
+	if (long_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: long_counter_config malloc failed.");
+		return false;
+	}
+	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
+
+	long_counter_config.uiPartition = 0;
+	long_counter_config.bRange = TRUE;
+	long_counter_config.uiStartCounter = 0;
+	long_counter_config.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+	long_counter_config.uiRangeStep = 1;
+	long_counter_config.pasCounters[0].uiValue = 0;
+	long_counter_config.pasCounters[0].uiValueMSB = 0;
+	long_counter_config.pasCounters[0].bEnableThresholdMsg = FALSE;
+	long_counter_config.pasCounters[0].uiThreshold = 58;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
+	free(long_counter_config.pasCounters);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		return false;
+	}
 
 	/* Set posted statistics values to be 0 */
 	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
@@ -732,7 +806,22 @@ bool infra_running(void)
 	/* Do nothing */
 	return true;
 }
+uint32_t infra_from_msid_to_index(bool external_memory, uint32_t emem_msid)
+{
+	uint32_t ind;
 
+	if (external_memory) {
+		/* Find the memory type in emem_spaces_params */
+		for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
+			if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID] == emem_msid) {
+				return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
+			}
+		}
+	}
+	/* Should not get here */
+	write_log(LOG_CRIT, "Should not get here (with emem_msid=%d)", emem_msid);
+	return 0;
+}
 /**************************************************************************//**
  * \brief       Find the index of the required memory heap
  *

@@ -154,6 +154,7 @@ void alvs_lock_connection(ezdp_hashed_key_t *hash_value)
 	/*calc hash key for lock*/
 	*hash_value = ezdp_bulk_hash((uint8_t *)&cmem_alvs.conn_class_key, sizeof(struct alvs_conn_classification_key));
 	cmem_alvs.conn_spinlock.addr.address = *hash_value & ALVS_CONN_LOCK_ELEMENTS_MASK;
+	alvs_write_log(LOG_DEBUG, "cmem_alvs.conn_spinlock.addr.address = 0x%x", cmem_alvs.conn_spinlock.addr.address);
 	ezdp_lock_spinlock(&cmem_alvs.conn_spinlock);
 }
 

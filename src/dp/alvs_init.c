@@ -73,8 +73,8 @@ bool init_alvs_shared_cmem(void)
 	/*Init connection info DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_ALVS_CONN_INFO,
 					     &shared_cmem_alvs.conn_info_struct_desc,
-					     cmem_wa.alvs_wa.table_work_area,
-					     sizeof(cmem_wa.alvs_wa.table_work_area));
+					     cmem_wa.alvs_wa.table_struct_work_area,
+					     sizeof(cmem_wa.alvs_wa.table_struct_work_area));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_CONN_INFO, result, ezdp_get_err_msg());
@@ -92,8 +92,8 @@ bool init_alvs_shared_cmem(void)
 	/*Init server info DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_ALVS_SERVER_INFO,
 					     &shared_cmem_alvs.server_info_struct_desc,
-					     cmem_wa.alvs_wa.table_work_area,
-					     sizeof(cmem_wa.alvs_wa.table_work_area));
+					     cmem_wa.alvs_wa.table_struct_work_area,
+					     sizeof(cmem_wa.alvs_wa.table_struct_work_area));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_SERVER_INFO, result, ezdp_get_err_msg());
@@ -111,8 +111,8 @@ bool init_alvs_shared_cmem(void)
 	/*Init sched info DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_ALVS_SCHED_INFO,
 					     &shared_cmem_alvs.sched_info_struct_desc,
-					     cmem_wa.alvs_wa.table_work_area,
-					     sizeof(cmem_wa.alvs_wa.table_work_area));
+					     cmem_wa.alvs_wa.table_struct_work_area,
+					     sizeof(cmem_wa.alvs_wa.table_struct_work_area));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_SCHED_INFO, result, ezdp_get_err_msg());
@@ -152,8 +152,8 @@ bool init_alvs_shared_cmem(void)
 	/*Init service info DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_ALVS_SERVICE_INFO,
 					     &shared_cmem_alvs.service_info_struct_desc,
-					     cmem_wa.alvs_wa.table_work_area,
-					     sizeof(cmem_wa.alvs_wa.table_work_area));
+					     cmem_wa.alvs_wa.table_struct_work_area,
+					     sizeof(cmem_wa.alvs_wa.table_struct_work_area));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_SERVICE_INFO, result, ezdp_get_err_msg());
