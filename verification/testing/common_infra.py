@@ -835,6 +835,7 @@ class SshConnect:
 		print "Execute on chip: %s" %chip_cmd
 		
 		nps_internal_ip = "169.254.42.44"
+		exit_code       = None
 		try:
 			# telnet chip
 			cmd = "telnet %s" %nps_internal_ip
