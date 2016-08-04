@@ -202,7 +202,10 @@ class ezbox_host:
 			self.copy_dp_bin(alvs_dp)
 		
 	def copy_file_to_host(self, filename, dest):
-		os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
+		rc =  os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
+		if rc:
+			print "ERROR: failed to copy %s to %s" %(filename, dest)
+			exit(1) 
 
 	def copy_cp_bin(self, alvs_daemon='bin/alvs_daemon', debug_mode=False):
 		if debug_mode == True:
@@ -233,12 +236,12 @@ class ezbox_host:
 				pass
 			
 			# wait for: "Do you want to overwrite configuration [Y/n]?"
-			self.ssh_object.ssh_object.expect("[Y/n]?", 20)
+			self.ssh_object.ssh_object.expect("[Y/n]?", 30)
 			
 			# dont overide configuration & continue
 			self.ssh_object.ssh_object.sendline('n')
 			
-			self.ssh_object.ssh_object.prompt(60)
+			self.ssh_object.ssh_object.prompt(80)
 			#print self.ssh_object.ssh_object.before
 
 			# look for success string ("ALVS installation completed successfully")
@@ -246,10 +249,12 @@ class ezbox_host:
 				print "installation completed successfully"
 			else:
 				print "ERROR: instalation failed"
+				exit(1)
 			
 		except:
 			rc = "Unexpected error: %s" %sys.exc_info()[0]
-			pass
+			print rc
+			exit(0)
 
 
 	def copy_install_tar(self, install_tar):
