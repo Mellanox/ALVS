@@ -21,7 +21,13 @@ from common_infra import *
 
 
 class HttpClient(player):
-	def __init__(self, ip, hostname, username, password, exe_path, exe_script, exec_params):
+	def __init__(self, ip, hostname,
+				username    = "root",
+				password    = "3tango",
+				exe_path    = os.path.dirname(os.path.realpath(__file__)),
+				exe_script  = "system_level/basic_client_requests.py",
+				exec_params = ""):
+		
 		# init parent class
 		super(HttpClient, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
 		# Init class variables

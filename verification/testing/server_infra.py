@@ -17,8 +17,18 @@ import pexpect
 #===============================================================================
 # Classes
 #===============================================================================
+
 class HttpServer(player):
-	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None, vip=None, net_mask="255.255.255.255", eth="eth0", weight=1):
+	def __init__(self, ip, hostname,
+				username    = "root",
+				password    = "3tango",
+				exe_path    = None,
+				exe_script  = None,
+				exec_params = None,
+				vip         = None,
+				net_mask    = "255.255.255.255",
+				eth         = 'ens6',
+				weight      = 1):
 		# init parent class
 		super(HttpServer, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
 		# Init class variables
