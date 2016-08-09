@@ -192,6 +192,8 @@ class service:
 			self.schedule_algorithm = 'sh'
 		elif schedule_algorithm == 'source_hash_with_source_port':
 			self.schedule_algorithm = 'sh -b sh-port'
+		elif schedule_algorithm == 'source_hash_with_source_port_fallback':
+			self.schedule_algorithm = 'sh -b sh-port,sh-fallback'
 		elif schedule_algorithm == 'rr':
 			self.schedule_algorithm = 'rr'
 		elif schedule_algorithm == 'wrr':
@@ -220,9 +222,9 @@ class service:
 		# add an entry in services dictionary, will use it later on the server director on ezbox
 		service.services_dictionary[self.virtual_ip] = []
 		
-	def add_server(self, new_server, weight='1'):
+	def add_server(self, new_server, weight='1', u_thresh = '0', l_thresh = '0'):
 		self.servers.append(new_server)
-		cmd = "ipvsadm -a -t %s:%s -r %s:%s -w %s" % (self.virtual_ip, self.port, new_server.data_ip, self.port, weight)
+		cmd = "ipvsadm -a -t %s:%s -r %s:%s -w %s -x %s -y %s" % (self.virtual_ip, self.port, new_server.data_ip, self.port, weight, u_thresh, l_thresh)
 
 		result, output = self.ezbox.execute_command_on_host(cmd)		
 		if result == False:
@@ -260,13 +262,13 @@ class service:
 		# need to wait until this will be executed on cp
 		time.sleep(1)
 		
-	def modify_server(self, server_to_modify, weight=1):
+	def modify_server(self, server_to_modify, weight=1, u_thresh=0, l_thresh=0):
 		
 		if server_to_modify not in self.servers:
 			print "Error, Server is not exist on Service"
 			exit(1)
 			
-		self.ezbox.modify_server(self.virtual_ip, self.port, server_to_modify.data_ip, self.port, weight, routing_alg_opt=' ')
+		self.ezbox.modify_server(self.virtual_ip, self.port, server_to_modify.data_ip, self.port, weight, u_thresh=u_thresh, l_thresh=l_thresh)
 		
 # 		 result, output = self.ezbox.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s"%(self.virtual_ip, self.port, server_to_modify.data_ip, self.port))
 # 		 if result == False:

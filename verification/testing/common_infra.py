@@ -46,7 +46,7 @@ ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
 NUM_OF_INTERFACES			 = 5
 NW_NUM_OF_IF_STATS			 = 10
-
+ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
 ALVS_NUM_OF_ALVS_ERROR_STATS = 30
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
@@ -54,6 +54,8 @@ EMEM_SERVICE_STATS_POSTED_OFFSET = EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NU
 EMEM_SERVER_STATS_POSTED_OFFSET  = EMEM_SERVICE_STATS_POSTED_OFFSET + ALVS_SERVICES_MAX_ENTRIES * ALVS_NUM_OF_SERVICE_STATS
 EMEM_IF_STATS_POSTED_OFFSET	  = EMEM_SERVER_STATS_POSTED_OFFSET + ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVER_STATS
 EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*NUM_OF_INTERFACES
+
+EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
 
 
 NW_IF_STATS_FRAME_VALIDATION_FAIL = 0,
@@ -578,8 +580,8 @@ class ezbox_host:
 		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
 		time.sleep(0.5)
 
-	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
-		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
+	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
+		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
 		time.sleep(0.5)
 
 	def delete_server(self, vip, service_port, server_ip, server_port):
@@ -683,6 +685,24 @@ class ezbox_host:
 					  'SERVER_STATS_INACTIVE_CONN':server_stats[6]['byte_value'],
 					  'SERVER_STATS_ACTIVE_CONN':server_stats[7]['byte_value']}
 		return stats_dict
+
+	def get_server_sched_connections_stats(self, server_id):
+		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
+			return -1
+		
+		counter_offset = EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_id * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS
+		sched_connections_on_server =  self.cpe.cp.stat.get_long_counter_values(channel_id=0, 
+																				partition=0, 
+																				range=1, 
+		                                             							start_counter=counter_offset, 
+		                                             	    					num_counters=ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS, 
+		                                             		  	     			read=0, 
+		                                             		  	     			use_shadow_group=0).result['long_counter_config']['counters']
+
+		
+		print sched_connections_on_server
+		return sched_connections_on_server[0]['value']
+
 
 	def get_interface_stats(self, interface_id):
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:

@@ -184,10 +184,11 @@ bool alvs_sched_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint
 	enum alvs_sched_server_result sched_server_result;
 	uint32_t is_fallback = cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_FALLBACK;
 	uint32_t final_hash;
+	int offset, tmp_offset;
 
 	sport = cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_PORT ? sport : 0;
 	final_hash = alvs_sched_sh_get_scheduling_index(sip, sport);
-	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = %d, input to hash = %d", sport, final_hash, (uint32_t)sport << (sizeof(sport) * 8));
+	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = 0x%x, input to hash = %d", sport, final_hash, (uint32_t)sport << (sizeof(sport) * 8));
 
 	sched_server_result = alvs_sched_get_server_info(service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + final_hash);
 	if (likely(sched_server_result == ALVS_SCHED_SERVER_SUCCESS)) {
@@ -197,12 +198,22 @@ bool alvs_sched_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint
 	/* update statistics for special cases */
 	if (unlikely(sched_server_result == ALVS_SCHED_SERVER_UNAVAILABLE)) {
 		if (unlikely(is_fallback)) {
-			/*TODO add fallback implementation*/
-			alvs_write_log(LOG_ERR, "service_idx = %d, NO FALLBACK IMPLEMENTATION", service_index);
+			for (offset = 0; offset < ALVS_SIZE_OF_SCHED_BUCKET; offset++) {
+				tmp_offset = (offset + final_hash) & (ALVS_SIZE_OF_SCHED_BUCKET-1);
+				sched_server_result = alvs_sched_get_server_info(service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + tmp_offset);
+				if (likely(sched_server_result == ALVS_SCHED_SERVER_SUCCESS)) {
+					return true;
+				}
+				if (unlikely(sched_server_result != ALVS_SCHED_SERVER_UNAVAILABLE))
+					break;
+			}
+			if (unlikely(sched_server_result == ALVS_SCHED_SERVER_UNAVAILABLE))
+				alvs_discard_and_stats(ALVS_ERROR_SERVER_IS_UNAVAILABLE);
 		} else {
 			alvs_discard_and_stats(ALVS_ERROR_SERVER_IS_UNAVAILABLE);
 		}
-	} else if (unlikely(sched_server_result == ALVS_SCHED_SERVER_EMPTY)) {
+	}
+	if (unlikely(sched_server_result == ALVS_SCHED_SERVER_EMPTY)) {
 		/*for sh, such case can happen only if during scheduling all the available servers were removed*/
 		alvs_sched_handle_no_active_servers();
 		return false;
