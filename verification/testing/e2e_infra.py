@@ -23,8 +23,125 @@ from multiprocessing import Process
 
 	
 #===============================================================================
+# Function: generic_main
+#
+# Brief:	Generic main function for tests
+#===============================================================================
+def generic_main():
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		
+	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d]"
+	parser = OptionParser(usage=usage, version="%prog 1.0")
+	
+	bool_choices = ['true', 'false', 'True', 'False']
+	parser.add_option("-s", "--setup_num", dest="setup_num",
+					  help="Setup number. range (1..4)", type="int")
+	parser.add_option("-m", "--modify_run_cpus", dest="modify_run_cpus", choices=bool_choices,
+					  help="modify run CPUs while running test. (default=True)")
+	parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus", choices=bool_choices,
+					  help="true = use 4k cpu. false = use 512 cpus (defailt=True).  in case modify_run_cpus is false, use_4k_cpus ignored")
+	parser.add_option("-i", "--use_install", dest="use_install", choices=bool_choices,
+					  help="Use instalation tar.gz file")
+	parser.add_option("-f", "--install_file", dest="install_file",
+					  help="instalation tar.gz file name")
+	parser.add_option("-b", "--copy_binaries", dest="copy_binaries", choices=bool_choices,
+					  help="Copy binaries instead using alvs.tar.gz (defailt=True). in case use_install is true, copy_binaries ignored")
+	parser.add_option("-d", "--use_director", dest="use_director", choices=bool_choices,
+					  help="Use director at host")
+	(options, args) = parser.parse_args()
+
+	# validate options
+	if not options.setup_num:
+		print 'ERROR: setup_num is not given'
+		exit(1)
+	if (options.setup_num == 0) or (options.setup_num > 6):
+		print 'ERROR: setup_num is not in range'
+		exit(1)
+
+	# set user configuration
+	config = {}
+	if options.modify_run_cpus:
+		config['modify_run_cpus'] = bool_str_to_bool(options.modify_run_cpus)
+	if options.use_4k_cpus:
+		config['use_4k_cpus']     = bool_str_to_bool(options.use_4k_cpus)
+	if options.use_install:
+		config['use_install']     = bool_str_to_bool(options.use_install)
+	if options.install_file:
+		config['install_file']    = options.install_file
+	if options.copy_binaries:
+		config['copy_binaries']   = bool_str_to_bool(options.copy_binaries)
+	if options.use_director:
+		config['use_director']    = bool_str_to_bool(options.use_director)
+	
+	config['setup_num'] = options.setup_num
+	
+	print config
+	
+	return config
+
+#===============================================================================
 # init functions
 #===============================================================================
+
+#===============================================================================
+# Function: generic_init
+#
+# Brief:	generic init for tests
+#
+# returns: dictinary with:
+#             'next_vm_idx'
+#             'vip_list'
+#             'setup_list'
+#             'server_list'
+#             'client_list'
+#             'ezbox'
+#===============================================================================
+def generic_init(setup_num, service_count, server_count, client_count):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	next_vm_idx = 0
+	vip_list    = [get_setup_vip(setup_num,i) for i in range(service_count)]
+	setup_list  = get_setup_list(setup_num)
+
+	# Create servers list
+	server_list=[]
+	for i in range(server_count):
+		server = HttpServer(ip       = setup_list[next_vm_idx]['ip'],
+						    hostname = setup_list[next_vm_idx]['hostname'])
+		server_list.append(server)
+		next_vm_idx+=1
+	
+	# Create clients list
+	client_list=[]
+	for i in range(client_count):
+		client = HttpClient(ip       = setup_list[next_vm_idx]['ip'],
+						    hostname = setup_list[next_vm_idx]['hostname'])
+		client_list.append(client)
+		next_vm_idx+=1
+
+	# get EZbox
+	ezbox = ezbox_host(setup_num)
+	
+	
+	# conver to dictionary and return it
+	dict={}
+	dict['next_vm_idx'] = next_vm_idx
+	dict['vip_list']    = vip_list
+	dict['setup_list']  = setup_list
+	dict['server_list'] = server_list
+	dict['client_list'] = client_list 
+	dict['ezbox']       = ezbox 
+
+	return dict
+
+
+#------------------------------------------------------------------------------ 
+def convert_generic_init_to_user_format(dict):
+	return ( dict['server_list'],
+			 dict['ezbox'],
+			 dict['client_list'],
+			 dict['vip_list'] )
+
 
 #------------------------------------------------------------------------------ 
 def init_server(server):
@@ -38,30 +155,30 @@ def init_client(client):
 	client.init_client()
 
 
-#------------------------------------------------------------------------------ 
-def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=True, use_install=True):
+#------------------------------------------------------------------------------
+def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	print "init EZbox: " + ezbox.setup['name']
 	
 	# start ALVS daemon and DP
 	ezbox.connect()
 	
-	# validate chip is up
-	ezbox.alvs_service_start()
-	
-	if use_4k_cpus:
-		ezbox.update_dp_params("--run_cpus 16-4095")
-	else:
-		ezbox.update_dp_params("--run_cpus 16-511")
-	ezbox.modify_run_cpus(use_4k_cpus)
+	# set CP, DP params
+	if test_config['modify_run_cpus']:
+		# validate chip is up
+		ezbox.alvs_service_start()
+		ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
 	ezbox.update_cp_params("--agt_enabled --port_type=10GE")
 	
 	ezbox.alvs_service_stop()
 	ezbox.config_vips(vip_list)
 	ezbox.flush_ipvs()
-	if use_install:
-		ezbox.copy_and_install_alvs()
+	
+	
+	if test_config['use_install']:
+		ezbox.copy_and_install_alvs(test_config['install_file'])
 	else:
-		ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+		if test_config['copy_binaries']:
+			ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 	ezbox.alvs_service_start()
 
 	# wait for CP before initialize director
@@ -70,7 +187,7 @@ def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=T
 	# wait for DP app
 	ezbox.wait_for_dp_app()
 	# init director
-	if use_director:
+	if test_config['use_director']:
 		print 'Start Director'
 		time.sleep(6)
 		services = dict((vip, []) for vip in vip_list )
@@ -83,12 +200,46 @@ def init_ezbox(ezbox, server_list, vip_list, use_director = False, use_4k_cpus=T
 		ezbox.flush_ipvs()
 
 
-#------------------------------------------------------------------------------ 
-def init_players(server_list, ezbox, client_list, vip_list, use_director = False, use_4k_cpus=True):
+#------------------------------------------------------------------------------
+def fill_default_config(test_config):
+	
+	# define default configuration 
+	default_config = {'setup_num'       : None,  # supply by user
+					  'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored
+					  'use_4k_cpus'     : True,
+					  'use_install'     : True,  # in case use_install is true, copy_binaries ignored
+					  'install_file'    : 'alvs.tar.gz',
+					  'copy_binaries'   : True,
+					  'use_director'    : True}
+	
+	# Check user configuration
+	for key in test_config:
+		if key not in default_config:
+			print "WARNING: key %s supply by test_config is not supported" %key
+			
+	# Add missing configuration
+	for key in default_config:
+		if key not in test_config:
+			test_config[key] = default_config[key]
+	
+	# Print configuration
+	print "configuration test_config:"
+	for key in test_config:
+		print "     " + '{0: <16}'.format(key) + ": " + str(test_config[key])
+		
+
+	return test_config
+
+
+#------------------------------------------------------------------------------
+def init_players(server_list, ezbox, client_list, vip_list, test_config={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
+	test_config = fill_default_config(test_config)
+	
 	# init ezbox in another proccess
-	ezbox_init_proccess = Process(target=init_ezbox, args=(ezbox, server_list, vip_list, use_director, use_4k_cpus))
+	ezbox_init_proccess = Process(target=init_ezbox,
+								  args=(ezbox, server_list, vip_list, test_config))
 	ezbox_init_proccess.start()
 
 	# connect Ezbox (proccess work on ezbox copy and not on ezbox object

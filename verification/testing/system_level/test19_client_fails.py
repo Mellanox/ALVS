@@ -56,16 +56,10 @@ def user_init(setup_num):
 						  eth='ens6'))
 		index+=1
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path= script_dirname,
-						  exe_script  = "basic_client_requests.py",
-						  exec_params = ""))
+						  hostname = setup_list[index]['hostname']))
 		index+=1
 	
 

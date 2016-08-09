@@ -75,15 +75,9 @@ def user_init(setup_num):
 	
  	# get clients list
 	client_list=[]
- 	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	for i in range(g_client_count):
 		client_list.append(HttpClient(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
- 						  exe_path    = script_dirname,
- 						  exe_script  = "basic_client_requests.py",
- 						  exec_params = ""))
+						  hostname = setup_list[g_next_vm_index]['hostname']))
 		g_next_vm_index+=1
 	
 
@@ -273,33 +267,16 @@ def set_user_params(setup_num, test):
 #	request distributed evenly between 2 servers.
 #	When getting new server response, requests distribute evenly between 3 servers"
 #===============================================================================
-def main():
+def tests8_10_main(test_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	usage = "usage: %prog [-s, -t, -u]"
-	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
-	parser.add_option("-s", "--setup_num", dest="setup_number",
-					  help="Setup number", type="int")
-	parser.add_option("-t", "--test_num", dest="test_num",
-					  help="Number of test to run", default=8, type="int")
-	parser.add_option("-u", "--use_4_k_cpus", dest="use_4_k_cpus",
-					  help="true = use 4k cpu. false = use 512 cpus", default='true', type="str")
-
-	(options, args) = parser.parse_args()
-
-	if not options.setup_number:
-		log('HTTP IP is not given')
-		exit(1)
-
-	use_4_k_cpus = True if options.use_4_k_cpus.lower() == 'true' else False
-
-
-	set_user_params(options.setup_number, options.test_num) 
+	config = generic_main()
 	
-	server_list, ezbox, client_list, vip_list = user_init(g_setup_num)
+	set_user_params(config['setup_num'], test_num) 
 
-	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
+	
+	init_players(server_list, ezbox, client_list, vip_list, config)
 	
 	run_user_test_step(server_list, ezbox, client_list, vip_list)
 	
@@ -318,5 +295,3 @@ def main():
 		print 'Test failed !!!'
 		exit(1)
 
-
-main()

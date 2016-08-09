@@ -27,9 +27,9 @@ from e2e_infra import *
 # Test Globals
 #===============================================================================
 request_count = 1000
-server_count = 10
-client_count = 10
-service_count = 2
+server_count = 12
+client_count = 3
+service_count = 3
 
 
 #===============================================================================
@@ -39,7 +39,7 @@ service_count = 2
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
-	service0_num_servers = 6
+	service_num_servers = 4
 	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
 
 	index = 0
@@ -47,7 +47,7 @@ def user_init(setup_num):
 
 	server_list=[]
 	w=1
-	for i in range(service0_num_servers):
+	for i in range(service_num_servers):
 		server_list.append(HttpServer(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
@@ -55,11 +55,12 @@ def user_init(setup_num):
 						  vip = vip_list[0],
 						  eth='ens6',
 						  weight=w))
-		print "init server %d weight = %d" %(i,w)
+		print "init server %d weight = %d" %(index,w)
 		index+=1
 		w+=1
 	
-	for i in range(service0_num_servers,server_count):
+	w=7
+	for i in range(service_num_servers):
 		server_list.append(HttpServer(ip = setup_list[index]['ip'],
 						  hostname = setup_list[index]['hostname'], 
 						  username = "root", 
@@ -67,20 +68,27 @@ def user_init(setup_num):
 						  vip = vip_list[1],
 						  eth='ens6',
 						  weight=w))
-		print "init server %d weight = %d" %(i,w)
+		print "init server %d weight = %d" %(index,w)
 		index+=1
-		w+=1
+		w+=4
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
+	w=4
+	for i in range(service_num_servers):
+		server_list.append(HttpServer(ip = setup_list[index]['ip'],
+						  hostname = setup_list[index]['hostname'], 
+						  username = "root", 
+						  password = "3tango", 
+						  vip = vip_list[2],
+						  eth='ens6',
+						  weight=w))
+		print "init server %d weight = %d" %(index,w)
+		index+=1
+		w+=2
+	
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path    = script_dirname,
-						  exe_script  = "basic_client_requests.py",
-						  exec_params = ""))
+						  hostname = setup_list[index]['hostname']))
 		index+=1
 	
 
@@ -141,32 +149,16 @@ def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list, sched_al
 #===============================================================================
 # main function
 #===============================================================================
-def main():
+def tests35_36_main(sched_alg):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	usage = "usage: %prog [-s, -a, -u]"
-	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
-	parser.add_option("-s", "--setup_num", dest="setup_number",
-					  help="Setup number", type="int")
-	parser.add_option("-a", "--sched_alg", dest="sched_alg",
-					  help="scheduling algorithm to run with", default="rr", type="str")
-	parser.add_option("-u", "--use_4_k_cpus", dest="use_4_k_cpus",
-					  help="true = use 4k cpu. false = use 512 cpus", default='true', type="str")
-
-	(options, args) = parser.parse_args()
-
-	if not options.setup_number:
-		log('HTTP IP is not given')
-		exit(1)
-
-	use_4_k_cpus = True if options.use_4_k_cpus.lower() == 'true' else False
+	config = generic_main()
 	
-	server_list, ezbox, client_list, vip_list = user_init(options.setup_number)
-
-	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
 	
-	run_user_test(server_list, ezbox, client_list, vip_list, options.sched_alg)
+	init_players(server_list, ezbox, client_list, vip_list, config)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list, sched_alg)
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
@@ -174,7 +166,7 @@ def main():
 	
 	clean_players(server_list, ezbox, client_list, True)
 	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list, options.sched_alg)
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list, sched_alg)
 	
 	if user_rc and gen_rc:
 		print 'Test passed !!!'
@@ -183,4 +175,3 @@ def main():
 		print 'Test failed !!!'
 		exit(1)
 
-main()

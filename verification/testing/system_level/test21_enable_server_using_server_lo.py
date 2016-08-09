@@ -31,10 +31,6 @@ from e2e_infra import *
 g_request_count  = 500
 g_next_vm_index  = 0
 
-# got from user
-g_setup_num      = None
-g_use_4k_cpus    = None
-
 # Configured acording to test number
 g_server_count   = 5
 g_client_count   = 2
@@ -72,16 +68,10 @@ def user_init(setup_num):
 						  eth='ens6'))
 		g_next_vm_index+=1
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(g_client_count):
 		client_list.append(HttpClient(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path    = script_dirname,
-						  exe_script  = "basic_client_requests.py",
-						  exec_params = ""))
+						  hostname = setup_list[g_next_vm_index]['hostname']))
 		g_next_vm_index+=1
 	
 
@@ -188,24 +178,13 @@ def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list):
 
 
 #===============================================================================
-# Function: set_user_params
+# Function: print_params
 #
 # Brief:
 #===============================================================================
-def set_user_params(setup_num, use_4k_cpus):
-	# modified global variables
-	global g_setup_num
-	global g_use_4_k_cpus
-	
+def print_params():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
-	# user configuration
-	g_setup_num   = setup_num
-	g_use_4k_cpus = True if use_4k_cpus.lower() == 'true' else False 
-	
-	# print configuration
-	print "setup_num:      " + str(g_setup_num)
-	print "use_4k_cpus     " + str(g_use_4k_cpus)
 	print "service_count:  " + str(g_service_count)
 	print "server_count:   " + str(g_server_count)
 	print "client_count:   " + str(g_client_count)
@@ -213,22 +192,20 @@ def set_user_params(setup_num, use_4k_cpus):
 
 
 #===============================================================================
-# Function: set_user_params
+# Function: main
 #
 # Brief:
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 3:
-		print "script expects exactly 2 input arguments"
-		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
-		exit(1)
 	
-	set_user_params( int(sys.argv[1]), sys.argv[2])
+	print_params()
+
+	config = generic_main()
 	
-	server_list, ezbox, client_list, vip_list = user_init(g_setup_num)
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
 	
-	init_players(server_list, ezbox, client_list, vip_list, True, g_use_4k_cpus)
+	init_players(server_list, ezbox, client_list, vip_list, config)
 	
 	run_user_test(server_list, ezbox, client_list, vip_list)
 	

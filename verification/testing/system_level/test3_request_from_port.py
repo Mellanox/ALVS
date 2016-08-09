@@ -35,38 +35,16 @@ def user_init(setup_num):
 	client_count = 1
 	service_count = 1
 
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-
-	index = 0
-	setup_list = get_setup_list(setup_num)
-
-	server_list=[]
-	for i in range(server_count):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6'))
-		index+=1
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path    = script_dirname,
-						  exe_script  = "test3_client_requests.py",
-						  exec_params = ""))
-		index+=1
-	
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
 
-	# EZbox
-	ezbox = ezbox_host(setup_num)
+	for c in dict['client_list']:
+		c.exe_script = "test3_client_requests.py"
 
-	return (server_list, ezbox, client_list, vip_list)
+	return convert_generic_init_to_user_format(dict)
+
 
 def client_execution(client, vip, setup_num):
 	repeat = 10 
@@ -98,19 +76,14 @@ def run_user_test(server_list, ezbox, client_list, vip_list, setup_num):
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 3:
-		print "script expects exactly 2 input arguments"
-		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
-		exit(1)
-
-	setup_num  = int(sys.argv[1])
-	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
-
-	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-
-	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
 	
-	test_rc = run_user_test(server_list, ezbox, client_list, vip_list,setup_num)
+	config = generic_main()
+	
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
+	
+	init_players(server_list, ezbox, client_list, vip_list, config)
+	
+	test_rc = run_user_test(server_list, ezbox, client_list, vip_list,config['setup_num'])
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 

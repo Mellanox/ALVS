@@ -58,16 +58,10 @@ def user_init(setup_num):
 		index+=1
 		w+=1
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path    = script_dirname,
-						  exe_script  = "basic_client_requests.py",
-						  exec_params = ""))
+						  hostname = setup_list[index]['hostname']))
 		index+=1
 	
 
@@ -122,32 +116,16 @@ def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list, sched_al
 #===============================================================================
 # main function
 #===============================================================================
-def main():
+def test_33_34_main(sched_alg):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	usage = "usage: %prog [-s, -a, -u]"
-	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
-	parser.add_option("-s", "--setup_num", dest="setup_number",
-					  help="Setup number", type="int")
-	parser.add_option("-a", "--sched_alg", dest="sched_alg",
-					  help="scheduling algorithm to run with", default="rr", type="str")
-	parser.add_option("-u", "--use_4_k_cpus", dest="use_4_k_cpus",
-					  help="true = use 4k cpu. false = use 512 cpus", default='true', type="str")
-
-	(options, args) = parser.parse_args()
-
-	if not options.setup_number:
-		log('HTTP IP is not given')
-		exit(1)
-
-	use_4_k_cpus = True if options.use_4_k_cpus.lower() == 'true' else False
+	config = generic_main()
 	
-	server_list, ezbox, client_list, vip_list = user_init(options.setup_number)
-
-	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
 	
-	run_user_test(server_list, ezbox, client_list, vip_list, options.sched_alg)
+	init_players(server_list, ezbox, client_list, vip_list, config)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list, sched_alg)
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
@@ -155,14 +133,11 @@ def main():
 	
 	clean_players(server_list, ezbox, client_list, True)
 	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list, options.sched_alg)
+	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list, sched_alg)
 	
 	if user_rc and gen_rc:
 		print 'Test passed !!!'
 		exit(0)
 	else:
-		print 'Test failed !!!'
+		print "Test failed !!!, user_rc %s gen_rc %s" %(str(user_rc), str(gen_rc))
 		exit(1)
-
-
-main()

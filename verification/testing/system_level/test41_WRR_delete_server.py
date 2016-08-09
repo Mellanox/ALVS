@@ -59,16 +59,10 @@ def user_init(setup_num):
 		index+=1
 		w=5*index
 	
-	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	client_list=[]
 	for i in range(client_count):
 		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
-						  exe_path    = script_dirname,
-						  exe_script  = "basic_client_requests.py",
-						  exec_params = ""))
+						  hostname = setup_list[index]['hostname']))
 		index+=1
 	
 
@@ -151,17 +145,12 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 #===============================================================================
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	if len(sys.argv) != 3:
-		print "script expects exactly 2 input arguments"
-		print "Usage: client_requests.py <setup_num> <True/False (use 4 k CPUs)>"
-		exit(1)
-
-	setup_num  = int(sys.argv[1])
-	use_4_k_cpus = True if sys.argv[2].lower() == 'true' else False
-
-	server_list, ezbox, client_list, vip_list = user_init(setup_num)
-
-	init_players(server_list, ezbox, client_list, vip_list, True, use_4_k_cpus)
+	
+	config = generic_main()
+	
+	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
+	
+	init_players(server_list, ezbox, client_list, vip_list, config)
 	
 	run_user_test(server_list, ezbox, client_list, vip_list)
 	

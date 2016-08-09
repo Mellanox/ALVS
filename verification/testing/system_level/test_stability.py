@@ -75,15 +75,9 @@ def user_init(setup_num):
 	
  	# get clients list
 	client_list=[]
- 	script_dirname = os.path.dirname(os.path.realpath(__file__))
 	for i in range(g_client_count):
 		client_list.append(HttpClient(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname'], 
-						  username = "root", 
-						  password = "3tango",
- 						  exe_path    = script_dirname,
- 						  exe_script  = "basic_client_requests.py",
- 						  exec_params = ""))
+						  hostname = setup_list[g_next_vm_index]['hostname']))
 		g_next_vm_index+=1
 	
 

@@ -109,6 +109,16 @@ class ezbox_host:
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_DP_ARGS | xargs sed -i '/ALVS_DP_ARGS=/c\ALVS_DP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
+	def update_dp_cpus(self, use_4k_cpus=True):
+		# upfate DP params
+		if use_4k_cpus:
+			self.update_dp_params("--run_cpus 16-4095")
+		else:
+			self.update_dp_params("--run_cpus 16-511")
+		
+		# modify NPS present & posible CPUs
+		self.modify_run_cpus(use_4k_cpus)
+
 	def update_cp_params(self, params=None):
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
@@ -243,7 +253,7 @@ class ezbox_host:
 			# dont overide configuration & continue
 			self.ssh_object.ssh_object.sendline('n')
 			
-			self.ssh_object.ssh_object.prompt(80)
+			self.ssh_object.ssh_object.prompt(300)
 			#print self.ssh_object.ssh_object.before
 
 			# look for success string ("ALVS installation completed successfully")
@@ -256,7 +266,7 @@ class ezbox_host:
 		except:
 			rc = "Unexpected error: %s" %sys.exc_info()[0]
 			print rc
-			exit(0)
+			exit(1)
 
 
 	def copy_install_tar(self, install_tar):
@@ -938,7 +948,18 @@ class player(object):
 		
 	def str(self):
 		return self.ip
- 
+
+	def execute_command(self, cmd):
+		self.ssh.execute_command(cmd)
+		
+	def copy_file_to_player(self, filename, dest):
+		rc =  os.system("sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest)
+		if rc:
+			print "ERROR: failed to copy %s to %s" %(filename, dest)
+		
+		return rc
+
+
 #===============================================================================
 # Setup Functions
 #===============================================================================
@@ -1015,3 +1036,7 @@ def ip2int(addr):
  
 def int2ip(addr):															   
 	return socket.inet_ntoa(struct.pack("!I", addr)) 
+
+def bool_str_to_bool(str):
+	return True if str.lower() == 'true' else False
+
