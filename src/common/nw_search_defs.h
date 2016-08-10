@@ -127,4 +127,59 @@ struct nw_arp_result {
 
 CASSERT(sizeof(struct nw_arp_result) == 8);
 
+/*********************************
+ * FIB DB defs
+ *********************************/
+/* FIB */
+#define NW_FIB_TCAM_SIDE                0
+#define NW_FIB_TCAM_LOOKUP_TABLE_COUNT  1
+#define NW_FIB_TCAM_TABLE               0
+#define NW_FIB_TCAM_PROFILE             0
+#define NW_FIB_TCAM_MAX_SIZE	        0x2000
+
+enum nw_fib_type {
+	NW_FIB_NEIGHBOR       = 0,
+	/* Destination IP is neighbor. use it for ARP */
+	NW_FIB_GW             = 1,
+	/* Destination IP is GW. use result IP */
+	NW_FIB_DROP   = 2
+	/* unknown handling. Drop frame */
+};
+
+
+/*key*/
+struct nw_fib_key {
+	/* bytes 0-3 */
+	uint32_t             rsv0;
+
+	/* bytes 4-5 */
+	uint16_t             rsv1;
+
+	/* bytes 6-9 */
+	in_addr_t            dest_ip;
+} __packed;
+
+CASSERT(sizeof(struct nw_fib_key) == 10);
+
+/*result*/
+struct nw_fib_result {
+	/* byte 0-2 */
+#ifdef ALVS_BIG_ENDIAN
+	unsigned             match         : EZDP_LOOKUP_INT_TCAM_8B_DATA_RESULT_MATCH_SIZE;
+	unsigned             /*reserved*/  : 23;
+
+#else
+	unsigned             /*reserved*/  : 23;
+	unsigned             match         : EZDP_LOOKUP_INT_TCAM_8B_DATA_RESULT_MATCH_SIZE;
+
+#endif
+	/* byte 3 */
+	enum nw_fib_type     result_type    : 8;
+
+	/* bytes 4-7 */
+	in_addr_t            dest_ip;
+};
+
+CASSERT(sizeof(struct nw_fib_result) == 8);
+
 #endif /* NW_SEARCH_DEFS_H_ */

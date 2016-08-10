@@ -76,6 +76,17 @@ struct infra_table_params {
 	enum infra_search_mem_heaps search_mem_heap;
 };
 
+/*! Required parameters for tcam creation data structure  */
+struct infra_tcam_params {
+	uint32_t side;
+	uint32_t profile;
+	uint32_t lookup_table_count;
+	uint32_t table;
+	uint32_t key_size;
+	uint32_t result_size;
+	uint32_t max_num_of_entries;
+};
+
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
  *
@@ -133,6 +144,15 @@ void infra_disable_agt(void);
  *              false - can't find tap interface file
  */
 bool infra_get_my_mac(struct ether_addr *my_mac);
+
+/**************************************************************************//**
+ * \brief       Create TCAM data structure
+ *
+ * \param[in]   params          - parameters of the tcam
+ *
+ * \return      bool - success or failure
+ */
+bool infra_create_tcam(struct infra_tcam_params *params);
 
 /**************************************************************************//**
  * \brief       Create hash data structure
@@ -196,6 +216,40 @@ bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size,
  * \return      bool - success or failure
  */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
+
+/**************************************************************************//**
+ * \brief       Add an entry to a TCAM data structure
+ *
+ * \param[in]   side            - side of TCAM table (0/1)
+ * \param[in]   table           - table number
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   mask            - reference to mask
+ * \param[in]   index           - index in table
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_add_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
+			  void *mask, uint32_t index, void *result, uint32_t result_size);
+
+/**************************************************************************//**
+ * \brief       Delete an entry from a TCAM data structure
+ *
+ * \param[in]   side            - side of TCAM table (0/1)
+ * \param[in]   table           - table number
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   mask            - reference to mask
+ * \param[in]   index           - index in table
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_delete_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
+				  void *mask, uint32_t index, void *result, uint32_t result_size);
 
 /**************************************************************************//**
  * \brief       Delete all entries from a data structure

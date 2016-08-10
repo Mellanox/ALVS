@@ -170,7 +170,7 @@ def main():
 	
 	log_dir = collect_logs(server_list, ezbox, client_list)
 
-	gen_rc = general_checker(server_list, ezbox, client_list)
+	gen_rc = general_checker(server_list, ezbox, client_list, expected={'no_open_connections': False})
 	
 	clean_players(server_list, ezbox, client_list, use_director=True)
 	

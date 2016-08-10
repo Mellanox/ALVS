@@ -45,6 +45,7 @@
 #include <EZagtCPMain.h>
 #include <EZosTask.h>
 #include <EZagtRPC.h>
+#include <EZapiTCAM.h>
 
 #include "log.h"
 #include "infrastructure.h"
@@ -949,6 +950,74 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 }
 
 /**************************************************************************//**
+ * \brief       Create TCAM data structure
+ *
+ * \param[in]   params          - parameters of the tcam
+ *
+ * \return      bool - success or failure
+ */
+bool infra_create_tcam(struct infra_tcam_params *params)
+{
+	EZstatus retVal = EZok;
+	EZapiTCAM_IntTCAMLookupTable sIntTCAMLookupTable;
+	EZapiTCAM_IntTCAMLookupProfile sIntTCAMLookupProfile;
+	int i;
+
+	/* Configure table */
+	memset(&sIntTCAMLookupTable, 0, sizeof(sIntTCAMLookupTable));
+	sIntTCAMLookupTable.uiSide = params->side;
+	sIntTCAMLookupTable.uiTable = params->table;
+	retVal = EZapiTCAM_Status(0, EZapiTCAM_StatCmd_GetIntTCAMLookupTable, &sIntTCAMLookupTable);
+	if (EZrc_IS_ERROR(retVal)) {
+		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_StatCmd_GetIntTCAMLookupTable failed, channel Id %u", 0);
+		return false;
+	}
+
+	/*
+	 * There is a CP bug in which we cannot configure an internal TCAM table with params->max_num_of_entries
+	 * the following is a workaround that configures 8K entries. (maximal table size for key size = 10Byte)
+	 * This workaround allows us to configure only one internal TCAM structure per side.
+	 */
+	sIntTCAMLookupTable.uiNumIndexes = 0xFFFFFFFF;
+	sIntTCAMLookupTable.uiStartBank = 0;
+	sIntTCAMLookupTable.uiNumBanks = 4;
+	sIntTCAMLookupTable.uiStartRow = 0;
+	sIntTCAMLookupTable.uiNumRows = 2048;
+	/* End of workaround */
+
+	sIntTCAMLookupTable.bAssociatedData = TRUE;
+	sIntTCAMLookupTable.uiAssociatedDataSize = params->result_size;
+	sIntTCAMLookupTable.uiKeySize = params->key_size;
+	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_SetIntTCAMLookupTable, &sIntTCAMLookupTable);
+	if (EZrc_IS_ERROR(retVal)) {
+		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_ConfigCmd_SetIntTCAMLookupTable failed, channel Id %u", 0);
+		return false;
+	}
+
+	/* Configure profile for table */
+	memset(&sIntTCAMLookupProfile, 0, sizeof(sIntTCAMLookupProfile));
+	sIntTCAMLookupProfile.uiSide = params->side;
+	sIntTCAMLookupProfile.uiProfile = params->profile;
+	retVal = EZapiTCAM_Status(0, EZapiTCAM_StatCmd_GetIntTCAMLookupProfile, &sIntTCAMLookupProfile);
+	if (EZrc_IS_ERROR(retVal)) {
+		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_StatCmd_GetIntTCAMLookupProfile failed, channel Id %u", 0);
+		return false;
+	}
+
+	for (i = 0; i < params->lookup_table_count; i++) {
+		sIntTCAMLookupProfile.auiLookupTable[i] = params->profile;
+	}
+	sIntTCAMLookupProfile.bSequentialLookup = TRUE;
+	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_SetIntTCAMLookupProfile, &sIntTCAMLookupProfile);
+	if (EZrc_IS_ERROR(retVal)) {
+		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_ConfigCmd_SetIntTCAMLookupProfile failed, channel Id %u", 0);
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
  * \brief       Create table data structure
  *
  * \param[in]   struct_id       - structure id of the table
@@ -1126,6 +1195,84 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 	ez_ret_val = EZapiStruct_DeleteEntry(struct_id, NULL, &entry, NULL);
 
 	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+/**************************************************************************//**
+ * \brief       Add an entry to a TCAM data structure
+ *
+ * \param[in]   side            - side of TCAM table (0/1)
+ * \param[in]   table           - table number
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   mask            - reference to mask
+ * \param[in]   index           - index in table
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_add_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
+			  void *mask, uint32_t index, void *result, uint32_t result_size)
+{
+	EZstatus retVal = EZok;
+	EZapiTCAM_IntTCAMDataParams sIntTCAMDataParams;
+
+	memset(&sIntTCAMDataParams, 0, sizeof(sIntTCAMDataParams));
+	sIntTCAMDataParams.uiSide = side;
+	sIntTCAMDataParams.uiTable = table;
+	sIntTCAMDataParams.uiIndex = index;
+	sIntTCAMDataParams.bValid = true;
+	sIntTCAMDataParams.uiKeySize = key_size;
+	sIntTCAMDataParams.pucKey = key;
+	sIntTCAMDataParams.pucMask = mask;
+	sIntTCAMDataParams.uiAssociatedDataSize = result_size;
+	sIntTCAMDataParams.pucAssociatedData = result;
+
+	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_WriteIntTCAMData, &sIntTCAMDataParams);
+
+	if (EZrc_IS_ERROR(retVal)) {
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Delete an entry from a TCAM data structure
+ *
+ * \param[in]   side            - side of TCAM table (0/1)
+ * \param[in]   table           - table number
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   mask            - reference to mask
+ * \param[in]   index           - index in table
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_delete_tcam_entry(uint32_t side, uint32_t table,  void *key, uint32_t key_size,
+				  void *mask, uint32_t index, void *result, uint32_t result_size)
+{
+	EZstatus retVal = EZok;
+	EZapiTCAM_IntTCAMDataParams sIntTCAMDataParams;
+
+	memset(&sIntTCAMDataParams, 0, sizeof(sIntTCAMDataParams));
+	sIntTCAMDataParams.uiSide = side;
+	sIntTCAMDataParams.uiTable = table;
+	sIntTCAMDataParams.uiIndex = index;
+	sIntTCAMDataParams.bValid = false;
+	sIntTCAMDataParams.uiKeySize = key_size;
+	sIntTCAMDataParams.pucKey = key;
+	sIntTCAMDataParams.pucMask = mask;
+	sIntTCAMDataParams.uiAssociatedDataSize = result_size;
+	sIntTCAMDataParams.pucAssociatedData = result;
+
+	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_WriteIntTCAMData, &sIntTCAMDataParams);
+	if (EZrc_IS_ERROR(retVal)) {
 		return false;
 	}
 

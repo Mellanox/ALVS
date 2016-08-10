@@ -118,6 +118,58 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 
 
 /******************************************************************************
+ * \brief         perform FIB lookup and get dest_ip for transmission
+ * \return        dest IP or 0 for host frame
+ */
+static __always_inline
+uint32_t nw_fib_processing(in_addr_t dest_ip)
+{
+	enum nw_fib_type     result_type;
+	uint32_t             res_dest_ip;
+	struct ezdp_lookup_int_tcam_retval tcam_retval;
+
+	/* read iTCAM */
+	cmem_nw.fib_key.rsv0    = 0;
+	cmem_nw.fib_key.rsv1    = 0;
+	cmem_nw.fib_key.dest_ip = dest_ip;
+	tcam_retval.raw_data = ezdp_lookup_int_tcam(NW_FIB_TCAM_SIDE,
+						   NW_FIB_TCAM_PROFILE,
+						   &cmem_nw.fib_key,
+						   sizeof(struct nw_fib_key),
+						   &cmem_nw.int_tcam_result);
+
+	/* check matching */
+	if (unlikely(tcam_retval.assoc_data.match == 0)) {
+		alvs_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", dest_ip);
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
+		return 0;
+	}
+	result_type = cmem_nw.fib_result.result_type;
+	res_dest_ip = cmem_nw.fib_result.dest_ip;
+
+	/* get dest_ip */
+	if (likely(result_type == NW_FIB_NEIGHBOR)) {
+		/* Destination IP is neighbor. use it for ARP */
+		alvs_write_log(LOG_DEBUG, "NW_FIB_NEIGHBOR: using origin dest IP 0x%08x", dest_ip);
+		return dest_ip;
+	} else if (result_type == NW_FIB_GW) {
+		/* Destination IP is GW. use result IP */
+		alvs_write_log(LOG_DEBUG, "NW_FIB_GW: using result IP 0x%08x", res_dest_ip);
+		return res_dest_ip;
+	} else if (result_type == NW_FIB_DROP) {
+		alvs_write_log(LOG_DEBUG, "NW_FIB_DROP: Drop frame.");
+		nw_interface_inc_counter(NW_IF_STATS_REJECT_BY_FIB);
+		return 0;
+	}
+
+	/* Unknown result type.*/
+	alvs_write_log(LOG_ERR, "Unsupported FIB result type. dropping packet");
+	nw_interface_inc_counter(NW_IF_STATS_UNKNOWN_FIB_RESULT);
+	return 0;
+}
+
+
+/******************************************************************************
  * \brief         perform nw route
  * \return        void
  */
@@ -127,7 +179,16 @@ void nw_do_route(ezframe_t __cmem * frame,
 		 in_addr_t dest_ip,
 		 uint32_t frame_buff_size)
 {
-	nw_arp_processing(frame, buffer_base, dest_ip, frame_buff_size);
+	uint32_t fib_dest_ip;
+
+	fib_dest_ip = nw_fib_processing(dest_ip);
+	if (fib_dest_ip == 0) {
+		/* Drop frame */
+		nw_discard_frame();
+		return;
+	}
+
+	nw_arp_processing(frame, buffer_base, fib_dest_ip, frame_buff_size);
 }
 
 #endif /* NW_ROUTING_H_ */

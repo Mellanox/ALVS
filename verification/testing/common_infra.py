@@ -21,6 +21,7 @@ from ftplib import FTP
 # pythons modules 
 from test_infra import *
 from unittest2 import result
+from cmd import Cmd
 
 
 #===============================================================================
@@ -45,8 +46,12 @@ ALVS_SERVERS_MAX_ENTRIES	 = ALVS_SERVICES_MAX_ENTRIES*1024
 ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
 NUM_OF_INTERFACES			 = 5
-NW_NUM_OF_IF_STATS			 = 10
+
+
 ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
+NW_NUM_OF_IF_STATS			 = 20
+
+
 ALVS_NUM_OF_ALVS_ERROR_STATS = 30
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
@@ -58,17 +63,6 @@ EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*N
 EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
 
 
-NW_IF_STATS_FRAME_VALIDATION_FAIL = 0,
-NW_IF_STATS_MAC_ERROR			  = 1,
-NW_IF_STATS_IPV4_ERROR			  = 2,
-NW_IF_STATS_NOT_MY_MAC			  = 3,
-NW_IF_STATS_NOT_IPV4			  = 4,
-NW_IF_STATS_NOT_UDP_OR_TCP		  = 5,
-NW_IF_STATS_NO_VALID_ROUTE		  = 6,
-NW_IF_STATS_FAIL_ARP_LOOKUP		  = 7,
-NW_IF_STATS_FAIL_INTERFACE_LOOKUP = 8,
-NW_NUM_OF_IF_STATS				  = 10
-
 CLOSE_WAIT_DELETE_TIME = 32#16 #todo need to change it back to 16 after a fix to aging time.. 
 FIN_FLAG_DELETE_TIME = 60
 
@@ -77,7 +71,9 @@ FIN_FLAG_DELETE_TIME = 60
 #===============================================================================
 # Classes
 #===============================================================================
+
 class ezbox_host:
+	
 	def __init__(self, setup_id):
 
 		self.setup = get_ezbox_names(setup_id)
@@ -268,7 +264,6 @@ class ezbox_host:
 			print rc
 			exit(1)
 
-
 	def copy_install_tar(self, install_tar):
 		func_name = sys._getframe().f_code.co_name
 		print "FUNCTION %s: copy %s to %s " %(func_name, install_tar, self.install_path)
@@ -325,7 +320,6 @@ class ezbox_host:
 			print '\nwait_for_cp_app: Error... (Unknown output)'
 			exit(1)
 		
-
 	def wait_for_dp_app(self):
 		sys.stdout.write("Waiting for DP application to load...")
 		sys.stdout.flush()
@@ -617,12 +611,9 @@ class ezbox_host:
 #		 output = self.ssh_object.before		# print everything before the prompt.
 #		 logging.log(logging.DEBUG, output)
 	
-
 	def clear_stats(self):
 		error_stats = self.cpe.cp.stat.set_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False, clear=True)
 		
-		
-
 	def get_error_stats(self):
 		error_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False).result['posted_counter_config']['counters']
 		
@@ -780,6 +771,47 @@ class ezbox_host:
 					logging.log(logging.INFO,"Interface %d stats (%s): %d"%(i,key,value))			
 		print
 		
+	def add_fib_entry(self, ip, mask, gateway=None, drop=None):
+		
+		mask = str(mask)
+		
+		if gateway != None and drop != None:
+			return False
+		
+		# add drop entry 
+		if gateway == None and drop == True:
+			cmd = 'ip route add blackhole '+ ip + '/' + mask
+
+		# add neighbour entry 
+		if gateway == None and drop != True:
+			cmd = 'ip route add unicast '+ ip + '/' + mask + ' dev ' + self.setup['interface']
+			
+		# add gateway entry 
+		if gateway != None and drop != True:
+			cmd = 'ip route add unicast '+ ip + '/' + mask + ' via ' + gateway
+			
+		result,output = self.execute_command_on_host(cmd)
+		
+		return [result,output]
+	
+	def delete_fib_entry(self, ip, mask):
+		
+		mask = str(mask)
+		
+		cmd = 'ip route del '+ ip + '/' + mask
+		result,output = self.execute_command_on_host(cmd)
+		
+		return [result,output]
+	
+	def flush_fib_entries(self):
+		# delete all fib entries (except the default entries)
+		result,output = self.execute_command_on_host("ip route flush root 192.168.0.0/16")
+		if result == False:
+			return [result,output]
+		
+		result,output = self.execute_command_on_host("ip route add 192.168.0.0/16 dev " + self.setup['interface'])
+		return [result,output] 
+		
 class SshConnect:
 	def __init__(self, hostname, username, password):
 
@@ -825,8 +857,10 @@ class SshConnect:
 					exit_code = int(exit_code)
 				except:
 					exit_code = None
-		
-				if exit_code != None:
+					return [False, output]
+				
+# 				if exit_code != None:
+				if exit_code == 0:
 					return [True, output]
 				else:
 					return [False, output]
@@ -916,7 +950,6 @@ class SshConnect:
 				return (index-2)
 		print "Error while waiting for message"
 		return -1
-
 
 class player(object):
 	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
@@ -1037,6 +1070,30 @@ def ip2int(addr):
 def int2ip(addr):															   
 	return socket.inet_ntoa(struct.pack("!I", addr)) 
 
+
 def bool_str_to_bool(str):
 	return True if str.lower() == 'true' else False
+
+def mask_ip(ip, mask):
+	mask = bin(0xFFFFFFFF<<32-mask)
+	int_ip = ip2int(ip)
+	new_ip = int_ip & int(mask,2)
+	return int2ip(new_ip)
+	
+def compile(clean=True, debug=False):
+	print
+	if clean:
+		os.system("make clean")
+	if debug:
+		output = os.system("make DEBUG=yes")
+	else:
+		output = os.system("make")
+		
+	if int(output) != 0:
+		print "ERROR while compiling"
+		exit(1)
+		
+	print
+	print "Compilation Passed"
+	print
 

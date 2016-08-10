@@ -360,11 +360,33 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 
 	return dir_name
 
-'''
+def default_general_checker_expected(expected):
+	default_expected = {'host_stat_clean'     : True,
+						'syslog_clean'        : True,
+						'no_debug'            : True,
+						'no_open_connections' : True,
+						'no_error_stats'      : True}
+
+	# Check user configuration
+	for key in expected:
+		if key not in default_expected:
+			print "WARNING: key %s supply by user is not supported" %key
+			
+	# Add missing configuration
+	for key in default_expected:
+		if key not in expected:
+			expected[key] = default_expected[key]
+	
+	return expected
+
+'''	
 	general_checker: This checker should run in all tests before clean_players
 '''
-def general_checker(server_list, ezbox, client_list, expected={'host_stat_clean':True, 'syslog_clean':True, 'no_debug':True, 'no_open_connections':True, 'no_error_stats':True}):
+def general_checker(server_list, ezbox, client_list, expected={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	expected = default_general_checker_expected(expected)
+	
 	host_rc = True
 	syslog_rc = True
 	stats_rc = True
@@ -436,25 +458,28 @@ def syslog_checker(ezbox, no_debug):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	syslog_dict = {}
 	rc=[True for i in range(8)]
-	rc[0], syslog_dict['daemon error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<err"')
-	rc[1], syslog_dict['daemon crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<crit>"')
-	rc[3], syslog_dict['daemon emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<emerg>"')
-	rc[4], syslog_dict['dp error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<err"')
-	rc[5], syslog_dict['dp crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<crit>"')
-	rc[7], syslog_dict['dp emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<emerg>"')
+	syslog_dict['daemon error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_daemon | grep "<err"')
+	syslog_dict['daemon crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_daemon | grep "<crit>"')
+	syslog_dict['daemon emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_daemon | grep "<emerg>"')
+	syslog_dict['dp error'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_dp | grep "<err"')
+	syslog_dict['dp crtic'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_dp | grep "<crit>"')
+	syslog_dict['dp emerg'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_dp | grep "<emerg>"')
 	if no_debug:
-		rc[2], syslog_dict['daemon debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DAEMON | grep "<debug>"')
-		rc[6], syslog_dict['dp debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep ALVS_DP | grep "<debug>"')
-	ret = False if False in rc else True
-	if ret:
-		for key, value in syslog_dict.items():
-			if len(value) > 0:
-				print '%s found in syslog:' %key
-				print value
-				ret = False
-	else:
-		print 'ERROR: problem reading syslog !'
+		syslog_dict['daemon debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_daemon | grep "<debug>"')
+		syslog_dict['dp debug'] = ezbox.execute_command_on_host('cat /var/log/syslog | grep alvs_dp | grep "<debug>"')
 	
+	
+	ret = True
+	
+	for key, value in syslog_dict.items():
+		if value[0] == True and value[1] != None:
+			print '%s found in syslog:' %key
+			print value[1]
+			ret = False
+		if value[0] == False and value[1] == None:
+			print 'commamd failed'
+			ret = False
+		 
 	return ret
 
 '''

@@ -49,12 +49,16 @@
 #include <netlink/route/neighbour.h>
 #include <netlink/route/route.h>
 
+#include <netlink/fib_lookup/request.h>
+#include <netlink/fib_lookup/lookup.h>
+
 /* Project includes */
 #include "log.h"
 #include "defs.h"
 #include "nw_search_defs.h"
 #include "nw_db_manager.h"
 #include "infrastructure.h"
+#include "nw_db.h"
 
 /* Function Definition */
 void nw_db_manager_init(void);
@@ -63,21 +67,28 @@ void nw_db_manager_table_init(void);
 void nw_db_manager_poll(void);
 void nw_db_manager_if_table_init(void);
 void nw_db_manager_arp_table_init(void);
+void nw_db_manager_fib_table_init(void);
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj,
 			  int action, void *data);
+void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj,
+			  int action, void *data);
+
 void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key,
 			   struct nw_arp_result *result);
 char *addr_to_str(struct nl_addr *addr);
 void add_entry_to_arp_table(struct rtnl_neigh *neighbor);
 void remove_entry_from_arp_table(struct rtnl_neigh *neighbor);
 bool valid_neighbor(struct rtnl_neigh *neighbor);
+bool valid_route_entry(struct rtnl_route *route_entry);
 
 /* Globals Definition */
 struct nl_cache_mngr *network_cache_mngr;
+
 bool *nw_db_manager_cancel_application_flag;
 
 #define NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE \
 	(NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP)
+
 
 
 /******************************************************************************
@@ -94,6 +105,7 @@ void nw_db_manager_main(bool *cancel_application_flag)
 	nw_db_manager_table_init();
 	write_log(LOG_DEBUG, "nw_db_manager_poll...");
 	nw_db_manager_poll();
+	write_log(LOG_DEBUG, "nw_db_manager_exit...");
 	nw_db_manager_delete();
 }
 
@@ -115,6 +127,11 @@ void nw_db_manager_init(void)
 
 	/* Allocate cache manager */
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
+
+	if (nw_db_init() != NW_DB_OK) {
+		write_log(LOG_CRIT, "Failed to create NW SQL DB.\n");
+		nw_db_manager_exit_with_error();
+	}
 }
 
 /******************************************************************************
@@ -128,6 +145,7 @@ void nw_db_manager_delete(void)
 	if (network_cache_mngr) {
 		nl_cache_mngr_free(network_cache_mngr);
 	}
+	nw_db_destroy();
 }
 
 /******************************************************************************
@@ -138,11 +156,12 @@ void nw_db_manager_delete(void)
 void nw_db_manager_table_init(void)
 {
 	nw_db_manager_if_table_init();
+	nw_db_manager_fib_table_init();
 	nw_db_manager_arp_table_init();
 }
 
 /******************************************************************************
- * \brief       Poll on all network DB changes
+ * \brief       Poll on all network BD changes
  *
  * \note        reads all received changes since table initialization and only
  *              after that, starts polling.
@@ -201,6 +220,53 @@ void nw_db_manager_if_table_init(void)
 }
 
 /******************************************************************************
+ * \brief       FIB table init.
+ *              Registers a callback function for table changes.
+ *              Reads current FIB table and writes all entries to NPS FIB table.
+ *
+ * \return      void
+ */
+void nw_db_manager_fib_table_init(void)
+{
+	int ret;
+	struct nl_cache *filtered_route_cache;
+	struct nl_cache *route_cache;
+	struct rtnl_route *route_entry = rtnl_route_alloc();
+
+	ret = nl_cache_mngr_add(network_cache_mngr, "route/route", &nw_db_manager_fib_cb, NULL, &route_cache);
+	if (ret < 0) {
+		write_log(LOG_CRIT, "Unable to add cache route/neigh: %s", nl_geterror(ret));
+		nw_db_manager_exit_with_error();
+	}
+
+	/* Take only IPv4 entries.
+	 * TODO: when adding IPv6 capabilities, this should be revisited.
+	 */
+	rtnl_route_set_family(route_entry, AF_INET);
+	filtered_route_cache = nl_cache_subset(route_cache, (struct nl_object *)route_entry);
+
+	/* Iterate on route cache */
+	route_entry = (struct rtnl_route *)nl_cache_get_first(filtered_route_cache);
+	while (route_entry != NULL) {
+		if (valid_route_entry(route_entry)) {
+			/* Add route to FIB table */
+			switch (nw_db_add_fib_entry(route_entry, true)) {
+			case NW_DB_OK:
+				break;
+			case NW_DB_INTERNAL_ERROR:
+			case NW_DB_NPS_ERROR:
+				write_log(LOG_CRIT, "Received fatal error from DBs when adding FIB entry: addr = %s .exiting.", addr_to_str(rtnl_route_get_dst(route_entry)));
+				nw_db_manager_exit_with_error();
+				break;
+			default:
+				write_log(LOG_NOTICE, "Problem adding FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+			}
+		}
+		/* Next route */
+		route_entry = (struct rtnl_route *)nl_cache_get_next((struct nl_object *)route_entry);
+	}
+}
+/******************************************************************************
  * \brief       ARP table init.
  *              Registers a callback function for table changes.
  *              Reads current ARP table and writes all entries to NPS ARP table.
@@ -238,6 +304,69 @@ void nw_db_manager_arp_table_init(void)
 	}
 }
 
+/******************************************************************************
+ * \brief       FIB table callback function.
+ *              Updates the NPS FIB table according to the received action.
+ *
+ * \return      void
+ */
+void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data)
+{
+	struct rtnl_route *route_entry = (struct rtnl_route *)obj;
+	enum nw_db_rc nw_ret = NW_DB_OK;
+	/* Take only IPv4 entries.
+	 * TODO: when adding IPv6 capabilities, this should be revisited.
+	 */
+	if (rtnl_route_get_family(route_entry) == AF_INET) {
+		switch (action) {
+		case NL_ACT_NEW:
+			write_log(LOG_DEBUG, "FIB ADD entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+			if (valid_route_entry(route_entry)) {
+				/* Add route to FIB table */
+				nw_ret = nw_db_add_fib_entry(route_entry, true);
+				if (nw_ret != NW_DB_OK) {
+					write_log(LOG_NOTICE, "Problem adding FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				}
+			}
+			break;
+		case NL_ACT_DEL:
+			write_log(LOG_DEBUG, "FIB DELETE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+			if (valid_route_entry(route_entry)) {
+				nw_ret = nw_db_delete_fib_entry(route_entry);
+				if (nw_ret != NW_DB_OK) {
+					write_log(LOG_NOTICE, "Problem deleting FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				}
+			}
+			break;
+		case NL_ACT_CHANGE:
+			write_log(LOG_DEBUG, "FIB CHANGE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+			if (valid_route_entry(route_entry)) {
+				nw_ret = nw_db_modify_fib_entry(route_entry);
+				if (nw_ret != NW_DB_OK) {
+					write_log(LOG_NOTICE, "Problem modifying FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				}
+			}
+			break;
+		}
+		if (nw_ret == NW_DB_INTERNAL_ERROR || nw_ret == NW_DB_NPS_ERROR) {
+			write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
+			nw_db_manager_exit_with_error();
+		}
+
+	} else {
+		switch (action) {
+		case NL_ACT_NEW:
+			write_log(LOG_NOTICE, "info: FIB entry from address family %d was not added. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+			break;
+		case NL_ACT_DEL:
+			write_log(LOG_NOTICE, "info: FIB entry from address family %d was not deleted. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+			break;
+		case NL_ACT_CHANGE:
+			write_log(LOG_NOTICE, "info: FIB entry from address family %d has not changed. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+			break;
+		}
+	}
+}
 /******************************************************************************
  * \brief       ARP table callback function.
  *              Updates the NPS ARP table according to the received action.
@@ -318,7 +447,6 @@ char *addr_to_str(struct nl_addr *addr)
 	memset(buf, 0, sizeof(bufs[0]));
 	return nl_addr2str(addr, buf, sizeof(bufs[0]));
 }
-
 /******************************************************************************
  * \brief    Receives a neighbor and adds it as an entry to ARP table
  *           If an error is received from CP, exits the application.
@@ -357,6 +485,11 @@ void remove_entry_from_arp_table(struct rtnl_neigh *neighbor)
 	}
 }
 
+bool valid_route_entry(struct rtnl_route *route_entry)
+{
+	return (rtnl_route_get_table(route_entry) == RT_TABLE_MAIN);
+}
+
 bool valid_neighbor(struct rtnl_neigh *neighbor)
 {
 	int state = rtnl_neigh_get_state(neighbor);
@@ -375,6 +508,7 @@ bool nw_db_constructor(void)
 {
 	struct infra_hash_params hash_params;
 	struct infra_table_params table_params;
+	struct infra_tcam_params tcam_params;
 
 	write_log(LOG_DEBUG, "Creating ARP table.");
 
@@ -389,6 +523,21 @@ bool nw_db_constructor(void)
 	if (infra_create_hash(STRUCT_ID_NW_ARP,
 			      &hash_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating ARP table.");
+		return false;
+	}
+
+	write_log(LOG_DEBUG, "Creating FIB table.\n");
+
+	tcam_params.key_size = sizeof(struct nw_fib_key);
+	tcam_params.max_num_of_entries = NW_FIB_TCAM_MAX_SIZE;
+	tcam_params.profile = NW_FIB_TCAM_PROFILE;
+	tcam_params.result_size = sizeof(struct nw_fib_result);
+	tcam_params.side = NW_FIB_TCAM_SIDE;
+	tcam_params.lookup_table_count = NW_FIB_TCAM_LOOKUP_TABLE_COUNT;
+	tcam_params.table = NW_FIB_TCAM_TABLE;
+
+	if (infra_create_tcam(&tcam_params) == false) {
+		write_log(LOG_CRIT, "Error - Failed creating FIB TCAM.");
 		return false;
 	}
 

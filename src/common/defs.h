@@ -84,7 +84,15 @@ enum nw_if_posted_stats_offsets {
 	NW_IF_STATS_NO_VALID_ROUTE          = 6,
 	NW_IF_STATS_FAIL_ARP_LOOKUP         = 7,
 	NW_IF_STATS_FAIL_INTERFACE_LOOKUP   = 8,
-	NW_NUM_OF_IF_STATS                  = 10
+	NW_IF_STATS_FAIL_FIB_LOOKUP         = 9,
+	NW_IF_STATS_REJECT_BY_FIB           = 10,
+	NW_IF_STATS_UNKNOWN_FIB_RESULT	    = 11,
+
+	/*
+	 * Note: 1. The following define must be at the end.
+	 *       2. The following define must be even
+	 */
+	NW_NUM_OF_IF_STATS                  = 20
 };
 
 enum alvs_error_stats_offsets {
@@ -111,7 +119,7 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
 	ALVS_ERROR_NO_ACTIVE_SERVERS            = 21,
 	ALVS_ERROR_CREATE_CONN_MEM_ERROR        = 22,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /* MUST BE EVEN! */
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /*MUST BE EVEN!*/
 };
 
 #define ALVS_CONN_LOCK_ELEMENTS_COUNT (256 * 1024)
@@ -152,5 +160,8 @@ enum struct_id {
 	STRUCT_ID_NW_ARP                       = 9,
 	NUM_OF_STRUCT_IDS
 };
+
+
+
 
 #endif /* DEFS_H_ */

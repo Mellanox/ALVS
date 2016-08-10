@@ -52,10 +52,26 @@ struct cmem_nw_info {
 		/**< Result of Decode IP */
 		struct  nw_if_result    host_interface_result;
 	};
-	struct nw_arp_key                    arp_key;
-	/**< arp key */
+
+	/* FIB & ARP are not used in the same time - saving CMEM */
+	union {
+		struct nw_arp_key                    arp_key;
+		/**< arp key */
+
+		struct nw_fib_key                    fib_key;
+		/**< FIB key */
+	};
+
 	struct  nw_if_result                 interface_result;
 	/**< interface result */
+
+	union{
+		struct nw_fib_result                 fib_result;
+		/**< FIB result */
+
+		struct ezdp_lookup_int_tcam_result   int_tcam_result;
+		/**< DP general result for iTCAM */
+	};
 };
 
 union nw_workarea {
