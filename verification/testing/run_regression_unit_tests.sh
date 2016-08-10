@@ -44,6 +44,8 @@ list_of_tests="
 			   schedule_algorithm_test.py
 			   tcp_flags_test.py
 			   server_fail_test.py
+                           1service_1server_overloaded_flag.py
+                           1sevice_1server_overloaded_flag_fallback.py
 			   "
 			
 failed_tests=""
