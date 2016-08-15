@@ -5,17 +5,17 @@ import sys
 import pexpect
 from pexpect import pxssh
 import random
-
-sys.path.append('EZdk/tools/EZcpPyLib/lib')
-from ezpy_cp import EZpyCP
- 
-from common_infra import *
-
 import time
 import struct
 import socket
- 
 import logging
+
+cp_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../EZdk/tools/EZcpPyLib/lib"
+print "CP path: " + cp_dir
+sys.path.append(cp_dir)
+from ezpy_cp import EZpyCP
+ 
+from common_infra import *
 
 class real_server:
 	def __init__(self, management_ip, data_ip, username='root', password='3tango', eth = 'ens6'):

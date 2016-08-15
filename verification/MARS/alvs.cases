@@ -1,0 +1,623 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CASEDEF>
+    <global>
+        <Test>
+            <info> Regression </info>
+            <name> Regression </name>
+            <owner> anat </owner>
+            <tags> basic </tags>
+		    <pre>
+		           <type> reg_exec_func </type>
+		           <name> run_test_wrapper </name>
+		           <tout> 36000 </tout>
+		           <params>
+		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
+	                   <wrapper_params> -c False -f [[conf:extra_info.file_name:None]] </wrapper_params>
+	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		           </params>
+		    </pre>
+        </Test>
+        <Case>
+            <tout>  36000 </tout>
+            <wrapper> ALVSWrapper.py </wrapper>
+            <on_failure>
+                 <cmd>
+                      <type> reg_exec_func </type>
+		              <name> run_test_wrapper </name> 
+		              <tout> 36000 </tout>
+		              <params>
+		                   <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_clean_wrapper.py </wrapper>
+	                       <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		              </params>
+		          </cmd>
+            </on_failure>
+        </Case>
+    </global>
+    
+    
+    <case>
+        <info> test1 </info>
+        <name> test_1 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test1_request_wo_ser.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test2 </info>
+        <name> test_2 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test2_request_wo_ser2.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test3 </info>
+        <name> test_3 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test3_request_from_port.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test4 </info>
+        <name> test_4 </name>
+        <tags> Functional </tags>
+        <tags> basic </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test4_sh_wo_port.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test5 </info>
+        <name> test_5 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test5_sh_w_port.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test6 </info>
+        <name> test_6 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test6_sh_w_port_2_services.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test7 </info>
+        <name> test_7 </name>
+        <tags> Functional </tags>
+        <tags> basic </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test7_change_sh_alg.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test8 </info>
+        <name> test_8 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test8_add_servers.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test9 </info>
+        <name> test_9 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test9_add_servers.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test10 </info>
+        <name> test_10 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test10_add_servers.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test11 </info>
+        <name> test_11 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test11_delete_reAdd_server.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test12 </info>
+        <name> test_12 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test12_delete_server_w_connection.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test13 </info>
+        <name> test_13 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test13_delete_server_wo_connection.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test14 </info>
+        <name> test_14 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test14_delete_reAdd_server.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test15 </info>
+        <name> test_15 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test15_disable_server.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test16 </info>
+        <name> test_16 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> SH </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test16_disable_multiple_servers.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test17 </info>
+        <name> test_17 </name>
+        <tags> Functional </tags>
+        <tags> basic </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test17_replace_servers.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+<!--
+    <case>
+        <info> test19 </info>
+        <name> test_19 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <tags> fail </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test19_client_fails.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test21 </info>
+        <name> test_21 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <tags> configuration </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test21_enable_server_using_server_lo.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+-->
+    
+    <case>
+        <info> test22 </info>
+        <name> test_22 </name>
+        <tags> Functional </tags>
+        <tags> basic </tags>
+        <tags> SH </tags>
+        <tags> configuration </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test22_add_del_add_service.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test23 </info>
+        <name> test_23 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> SH </tags>
+        <tags> configuration </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test23_add_del_add_services.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test24 </info>
+        <name> test_24 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test24_different_weight.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test26 </info>
+        <name> test_26 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test26_change_weight.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test28 </info>
+        <name> test_28 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test28_change_weight_down.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test29 </info>
+        <name> test_29 </name>
+        <tags> Functional </tags>
+        <tags> basic </tags>
+        <tags> SH </tags>
+        <tags> configuration </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test29_change_weight_to_zero.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+<!--    <case>
+        <info> test30 </info>
+        <name> test_30 </name>
+        <tags> Functional </tags>
+        <tags> advaced </tags>
+        <tags> unsupported </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test30_unsupported_alg.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    -->
+    <case>
+        <info> test33 </info>
+        <name> test_33 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> RR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test33_basic_RR.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test34 </info>
+        <name> test_34 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> WRR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test34_basic_WRR.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test35 </info>
+        <name> test_35 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> RR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test35_RR_multiple_services.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test36 </info>
+        <name> test_36 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> WRR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test36_WRR_multiple_services.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test37 </info>
+        <name> test_37 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> RR </tags>
+        <tags> WRR </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test37_change_supported_alg.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test38 </info>
+        <name> test_38 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> WRR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test38_WRR_change_weights.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test39 </info>
+        <name> test_39 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> RR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test39_RR_change_weights.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test40 </info>
+        <name> test_40 </name>
+        <tags> Functional </tags>
+        <tags> advanced </tags>
+        <tags> RR </tags>
+        <tags> WRR </tags>
+        <tags> SH </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test40_services_diff_sched_alg.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test41 </info>
+        <name> test_41 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> WRR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test41_WRR_delete_server.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> test42 </info>
+        <name> test_42 </name>
+        <tags> Functional </tags>
+        <tags> normal </tags>
+        <tags> WRR </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t test42_WRR_add_server.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+</CASEDEF>

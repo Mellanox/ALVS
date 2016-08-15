@@ -21,9 +21,10 @@ from ftplib import FTP
 
 # pythons modules 
 from test_infra import *
-from unittest2 import result
 from cmd import Cmd
 
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ALVSdir = os.path.dirname(parentdir)
 #===============================================================================
 # Struct IDs
 #===============================================================================
@@ -285,7 +286,7 @@ class ezbox_host:
 	def copy_package(self, alvs_package):
 		func_name = sys._getframe().f_code.co_name
 		print "FUNCTION %s: copy %s to %s " %(func_name, alvs_package, self.install_path)
-
+		
 		rc = self.execute_command_on_host("rm -rf %s" %self.install_path)
 		if rc is True:
 			print "ERROR: %s Failed to remove install folder (%s)" %(func_name, self.install_path)
@@ -305,9 +306,9 @@ class ezbox_host:
 		print "FUNCTION %s: called with %s" %(func_name, alvs_package)
 		
 		try:
-			cmd = "echo 'N' | dpkg -i %s" %(os.path.join(self.install_path, alvs_package))
+			cmd = "echo 'N' | dpkg -i %s/%s" %(self.install_path, alvs_package)
 			self.ssh_object.ssh_object.sendline(cmd)
-			time.sleep(5) #TODO what to do with "Reading database..." that messing with expect?
+			time.sleep(15) #TODO what to do with "Reading database..." that messing with expect?
 			self.ssh_object.ssh_object.prompt(60)
 			
 			# check exit code
@@ -327,7 +328,7 @@ class ezbox_host:
 			raise RuntimeError(err_msg)
 
 	def get_version(self):
-		cmd = "grep -e \"\\\"\\$Revision: .* $\\\"\" src/common/version.h"
+		cmd = "grep -e \"\\\"\\$Revision: .* $\\\"\" "+ALVSdir+"/src/common/version.h"
 		cmd += " | cut -d\":\" -f 2 | cut -d\" \" -f2 | cut -d\".\" -f1-2| uniq"
 		version = os.popen(cmd).read().strip()
 		version += ".0000" 
@@ -339,7 +340,6 @@ class ezbox_host:
 			# get package name
 			version = self.get_version()
 			alvs_package = "alvs_%s_amd64.deb" %(version)
-
 		self.copy_package(alvs_package)
 		self.install_package(alvs_package)
 
@@ -1285,7 +1285,8 @@ class player(object):
 #===============================================================================
 # Setup Functions
 #===============================================================================
-g_setups_dir  = "/mswg/release/nps/solutions/ALVS/setups"
+g_setups_dir  = "/.autodirect/sw_regression/nps_sw/MARS/MARS_conf/setups/ALVS_gen/setup_params"
+
 def get_setup_list(setup_num):
 	setup_list = []
 	
@@ -1320,7 +1321,8 @@ def get_ezbox_names(setup_id):
 							'password':            input_list[5],
 							'data_ip_hex_display': input_list[6],
 							'mac_address':         input_list[7],
-							'nps_port_type':       input_list[8]})
+							'nps_port_type':       input_list[8],
+							'mng_ip':              input_list[9]})
 	
 	return setup_dict[setup_id-1]
 
