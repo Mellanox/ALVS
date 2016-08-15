@@ -58,7 +58,7 @@ uint32_t alvs_sched_service_info_lookup(uint8_t service_index)
 static __always_inline
 void alvs_sched_handle_no_active_servers(void)
 {
-	alvs_write_log(LOG_ERR, "no servers for scheduling algorithm");
+	alvs_write_log(LOG_WARNING, "no servers for scheduling algorithm");
 	/*drop frame*/
 	alvs_discard_and_stats(ALVS_ERROR_NO_ACTIVE_SERVERS);
 }
