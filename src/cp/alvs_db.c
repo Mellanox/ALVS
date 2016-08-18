@@ -1671,8 +1671,8 @@ void build_nps_application_info_result(struct alvs_db_application_info *cp_daemo
 {
 	nps_application_info_result->alvs_app.master_bit = cp_daemon_info->is_master;
 	nps_application_info_result->alvs_app.backup_bit = cp_daemon_info->is_backup;
-	nps_application_info_result->alvs_app.m_sync_id = cp_daemon_info->m_sync_id;
-	nps_application_info_result->alvs_app.b_sync_id = cp_daemon_info->b_sync_id;
+	nps_application_info_result->alvs_app.m_sync_id = bswap_32(cp_daemon_info->m_sync_id);
+	nps_application_info_result->alvs_app.b_sync_id = bswap_32(cp_daemon_info->b_sync_id);
 }
 
 /**************************************************************************//**

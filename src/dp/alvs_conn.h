@@ -245,18 +245,14 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 
 /******************************************************************************
  * \brief       remove a connection entry from connection info DB and from
- *              connection classification table. this function is called from
- *              from aging mechanism only.
+ *              connection classification table. without using alvs_lock_connection
+ *              therefore thread must take conn_lock before using this function.
  *
  * \return        void
  */
 static __always_inline
-void alvs_conn_delete(uint32_t conn_index)
+void alvs_conn_delete_without_lock(uint32_t conn_index)
 {
-	ezdp_hashed_key_t hash_value;
-
-	/*lock connection*/
-	alvs_lock_connection(&hash_value);
 
 	if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) == 0) {
 		if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED) {
@@ -274,7 +270,6 @@ void alvs_conn_delete(uint32_t conn_index)
 			       0,
 			       cmem_wa.alvs_wa.conn_hash_wa,
 			       sizeof(cmem_wa.alvs_wa.conn_hash_wa)) != 0) {
-		alvs_unlock_connection(hash_value);
 		alvs_write_log(LOG_DEBUG, "unable to delete conn_class_key conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
@@ -285,12 +280,31 @@ void alvs_conn_delete(uint32_t conn_index)
 				0,
 				cmem_wa.alvs_wa.conn_info_table_wa,
 				sizeof(cmem_wa.alvs_wa.conn_info_table_wa)) != 0) {
-		alvs_unlock_connection(hash_value);
 		alvs_write_log(LOG_DEBUG, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
 
 	ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
+}
+
+/******************************************************************************
+ * \brief       remove a connection entry from connection info DB and from
+ *              connection classification table. this function is called from
+ *              from aging mechanism only.
+ *              before removing a connection the function will try to take conn_lock
+ *              and then to use alvs_conn_delete_without_lock function
+ *
+ * \return        void
+ */
+static __always_inline
+void alvs_conn_delete(uint32_t conn_index)
+{
+	ezdp_hashed_key_t hash_value;
+
+	/*lock connection*/
+	alvs_lock_connection(&hash_value);
+
+	alvs_conn_delete_without_lock(conn_index);
 
 	/*unlock*/
 	alvs_unlock_connection(hash_value);

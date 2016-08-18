@@ -400,8 +400,8 @@ class ezbox_host:
 			
 			app_info = {'master_bit' : (int(result[0], 16) >> 1) & 0x1,
 						 'backup_bit' : (int(result[0], 16) >> 0) & 0x1,
-						 'm_sync_id' : self.swap32(int(''.join(result[8:12]), 16)),
-						 'b_sync_id' : self.swap32(int(''.join(result[12:16]), 16))
+						 'm_sync_id' : int(''.join(result[8:12]), 16),
+						 'b_sync_id' : int(''.join(result[12:16]), 16)
 						 }
 			apps_info.append(app_info)
 			

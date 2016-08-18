@@ -121,9 +121,9 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 		/* perform lookup in conn info DB */
 		lookup_res = alvs_conn_info_lookup(conn_index);
 		if (lookup_res != 0) {
-			alvs_write_log(LOG_DEBUG, "conn_idx = %d info lookup alvs_conn_update_state FAIL", conn_index);
+			alvs_write_log(LOG_DEBUG, "conn_idx = %d info lookup alvs_conn_update_state FAIL, ignoring message", conn_index);
 			alvs_unlock_connection(hash_value);
-			return lookup_res;
+			return 1;
 		}
 
 		if (cmem_alvs.conn_info_result.bound == true) {
@@ -131,9 +131,9 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 			lookup_res = alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index);
 			if (lookup_res != 0) {
 				/*no server info - weird error scenario*/
-				alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+				alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED, ignoring message", conn_index, cmem_alvs.conn_info_result.server_index);
 				alvs_unlock_connection(hash_value);
-				return lookup_res;
+				return 1;
 			}
 			server_addr = cmem_alvs.server_info_result.server_ip;
 			server_port = cmem_alvs.server_info_result.server_port;
@@ -155,12 +155,15 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
-				alvs_conn_delete(conn_index);
+
+				/* using alvs_conn_delete_without_lock instead of alvs_conn_delete function since we have already locked connection */
+				alvs_conn_delete_without_lock(conn_index);
 				rc = 1;  /* need to fallback to new connection */
 			} else {
 				/* If inactive flag is set we should ignore the message */
 				alvs_write_log(LOG_DEBUG, "INACTIVE flag set, ignoring message");
-				final_res = 0;
+				alvs_unlock_connection(hash_value);
+				return 0;
 			}
 		}
 	}
@@ -274,6 +277,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	uint8_t tail[sizeof(struct alvs_state_sync_conn)];  /* assuming connection size os bigger than header size */
 	uint8_t tail_len = 0;
 	uint8_t conn_count;
+	uint32_t b_syncid;
 
 	rc = ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc,
 					ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
@@ -283,6 +287,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 		alvs_discard_and_stats(ALVS_ERROR_STATE_SYNC_LOOKUP_FAIL);
 		return;
 	}
+	b_syncid = cmem_wa.alvs_wa.alvs_app_info_result.b_sync_id;
 
 	if (!cmem_wa.alvs_wa.alvs_app_info_result.backup_bit) {
 		alvs_write_log(LOG_DEBUG, "Backup state sync daemon is not configured.");
@@ -316,7 +321,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	buffer += size;
 
 	/* SyncID sanity check */
-	if (cmem_wa.alvs_wa.alvs_app_info_result.b_sync_id != 0 && hdr->syncid != cmem_wa.alvs_wa.alvs_app_info_result.b_sync_id) {
+	if (b_syncid != 0 && hdr->syncid != b_syncid) {
 		alvs_write_log(LOG_DEBUG, "Ignoring message with syncid %d.", hdr->syncid);
 		alvs_discard_and_stats(ALVS_ERROR_STATE_SYNC_BACKUP_NOT_MY_SYNCID);
 		return;
