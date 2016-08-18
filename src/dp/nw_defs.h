@@ -39,6 +39,7 @@
 #define NW_DEFS_H_
 
 #include "nw_search_defs.h"
+#include "application_search_defs.h"
 
 /*prototypes*/
 void packet_processing(void) __fast_path_code;
@@ -77,6 +78,7 @@ struct cmem_nw_info {
 union nw_workarea {
 	char                    arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
 	char                    table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
+	char			app_info_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(union application_info_result))];
 };
 
 /***********************************************************************//**
@@ -86,11 +88,11 @@ union nw_workarea {
 
 struct shared_cmem_network {
 	ezdp_table_struct_desc_t    interface_struct_desc;
+	ezdp_table_struct_desc_t    app_info_struct_desc;
 	ezdp_hash_struct_desc_t	    arp_struct_desc;
 } __packed;
 
 extern struct cmem_nw_info           cmem_nw;
 extern struct shared_cmem_network    shared_cmem_nw;
-/*extern union  cmem_workarea          cmem_wa;*/
 
 #endif   /*NW_DEFS_H_*/

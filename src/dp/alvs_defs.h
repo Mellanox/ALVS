@@ -130,6 +130,8 @@ union alvs_workarea {
 	char conn_info_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct alvs_conn_info_result))];
 	char table_struct_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(ezdp_table_struct_desc_t))];
 	uint64_t counter_work_area;
+	struct alvs_app_info_result alvs_app_info_result;
+	/**< application info class result */
 };
 
 /***********************************************************************//**
