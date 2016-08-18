@@ -89,6 +89,28 @@ bool init_alvs_shared_cmem(void)
 		return false;
 	}
 
+	/*Init server classification DB*/
+	result = ezdp_init_hash_struct_desc(STRUCT_ID_ALVS_SERVER_CLASSIFICATION,
+					    &shared_cmem_alvs.server_class_struct_desc,
+					    cmem_wa.alvs_wa.server_hash_wa,
+					    sizeof(cmem_wa.alvs_wa.server_hash_wa));
+	if (result != 0) {
+		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
+				STRUCT_ID_ALVS_SERVER_CLASSIFICATION, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	result = ezdp_validate_hash_struct_desc(&shared_cmem_alvs.server_class_struct_desc,
+						true,
+						sizeof(struct alvs_server_classification_key),
+						sizeof(struct alvs_server_classification_result),
+						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_server_classification_result), sizeof(struct alvs_server_classification_key)));
+	if (result != 0) {
+		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
+				STRUCT_ID_ALVS_SERVER_CLASSIFICATION, result, ezdp_get_err_msg());
+		return false;
+	}
+
 	/*Init server info DB*/
 	result = ezdp_init_table_struct_desc(STRUCT_ID_ALVS_SERVER_INFO,
 					     &shared_cmem_alvs.server_info_struct_desc,

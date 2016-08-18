@@ -235,12 +235,26 @@ struct alvs_conn_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
-	/*byte1-3*/
-	unsigned             /*reserved*/  : 24;
+	/*byte1*/
+#ifdef ALVS_BIG_ENDIAN
+	unsigned             /*reserved*/  : 7;
+	uint8_t              bound         : 1;
+#else
+	uint8_t              bound         : 1;
+	unsigned             /*reserved*/  : 7;
+#endif
+	/*byte2-3*/
+	union {
+		unsigned             /*reserved*/  : 16;  /* bound */
+		uint16_t             server_port;         /* not bound */
+	};
 	/*byte4-7*/
-	uint32_t             server_index;
+	union {
+		uint32_t             server_index;        /* bound */
+		in_addr_t            server_addr;         /* not bound */
+	};
 	/*byte8-11*/
-	struct ezdp_sum_addr conn_stats_base;
+	unsigned             /*reserved*/  : 32;
 	/*byte12-25*/
 	struct alvs_conn_classification_key conn_class_key;
 	/*byte26*/
@@ -257,13 +271,6 @@ CASSERT(sizeof(struct alvs_conn_info_result) == 32);
  * Server info DB defs
  *********************************/
 
-enum alvs_routing_type {
-	ALVS_DIRECT_ROUTING     = 0,
-	ALVS_TUNNEL_ROUTING     = 1,
-	ALVS_NAT_ROUTING        = 2,
-	ALVS_ROUTING_LAST
-};
-
 /*key*/
 struct alvs_server_info_key {
 	uint32_t server_index;
@@ -278,9 +285,9 @@ struct alvs_server_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
-	enum alvs_routing_type routing_alg : 4;
+	unsigned             /*reserved*/  : 4;
 #else
-	enum alvs_routing_type routing_alg : 4;
+	unsigned             /*reserved*/  : 4;
 
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
@@ -308,5 +315,42 @@ struct alvs_server_info_result {
 };
 
 CASSERT(sizeof(struct alvs_server_info_result) == 32);
+
+
+
+/*********************************
+ * Server classification DB defs
+ *********************************/
+
+/*key*/
+struct alvs_server_classification_key {
+	in_addr_t server_ip;
+	in_addr_t virtual_ip;
+	uint16_t  server_port;
+	uint16_t  virtual_port;
+	uint16_t  protocol;
+} __packed;
+
+CASSERT(sizeof(struct alvs_server_classification_key) == 14);
+
+/*result*/
+struct alvs_server_classification_result {
+	/*byte0*/
+#ifdef ALVS_BIG_ENDIAN
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : 4;
+#else
+	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1-3*/
+	unsigned             /*reserved*/  : 24;
+	/*byte4-7*/
+	uint32_t             server_index;
+};
+
+CASSERT(sizeof(struct alvs_server_classification_result) == 8);
 
 #endif /* ALVS_SERACH_DEFS_H_ */

@@ -51,6 +51,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	uint8_t	*frame_base;
 	struct iphdr *ip_ptr;
 	bool my_mac;
+	uint32_t buflen;
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
 		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
@@ -61,7 +62,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	/* === Check validity of received frame === */
 	if (unlikely(ezframe_valid(frame) != 0)) {
-		alvs_write_log(LOG_DEBUG, "frame is not valid");
+		alvs_write_log(LOG_DEBUG, "frame is not valid (%s)", ezdp_get_err_msg());
 		nw_interface_inc_counter(NW_IF_STATS_FRAME_VALIDATION_FAIL);
 		nw_host_do_route(frame);
 		return;
@@ -71,7 +72,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,
-					      NULL, 0);
+					      &buflen, 0);
 
 		/* decode mac to ensure it is valid */
 		ezdp_decode_mac(frame_base, MAX_DECODE_SIZE,
@@ -103,6 +104,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		}
 
 		ip_ptr = (struct iphdr *)(frame_base + cmem_nw.mac_decode_result.layer2_size);
+		buflen -= cmem_nw.mac_decode_result.layer2_size;
 
 		/*skip L2 and validate IP is ok*/
 		ezdp_decode_ipv4((uint8_t *)ip_ptr, sizeof(struct iphdr),
@@ -118,7 +120,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		}
 
 		/*frame is OK, let's start alvs IF_STATS processing*/
-		alvs_packet_processing(frame, frame_base, ip_ptr, my_mac);
+		alvs_packet_processing(frame, frame_base, buflen, ip_ptr, my_mac);
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/

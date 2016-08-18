@@ -33,7 +33,7 @@
 #define USER_DEFS_H_
 
 #define USER_TIMER_LOGICAL_ID       96
-#define USER_POOL_ID                2
+#define USER_POOL_ID                4
 
 #define USER_EMEM_OUT_OF_BAND_MSID  2
 #define USER_POSTED_STATS_MSID      3

@@ -533,7 +533,7 @@ bool infra_create_index_pools(void)
 	EZstatus ret_val;
 	EZapiChannel_IndexPoolParams index_pool_params;
 
-	/* configure 2 pools for search */
+	/* configure 4 pools for search */
 	memset(&index_pool_params, 0, sizeof(index_pool_params));
 	index_pool_params.uiPool = 0;
 
@@ -570,6 +570,44 @@ bool infra_create_index_pools(void)
 		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
 		return false;
 	}
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = 2;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = 3;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
 
 	memset(&index_pool_params, 0, sizeof(index_pool_params));
 	index_pool_params.uiPool = USER_POOL_ID;

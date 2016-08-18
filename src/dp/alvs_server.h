@@ -214,7 +214,54 @@ void alvs_server_overload_on_delete_conn(uint16_t server_index)
 			ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
 		}
 	}
+}
 
+/******************************************************************************
+ * \brief       try to bind connection to a server, this will be done if
+ *		the lookup in the server classification table succeeded.
+ *		otherwise, connection will remain unbound.
+ *
+ * \return	none
+ */
+static __always_inline
+void alvs_server_try_bind(in_addr_t server_ip, in_addr_t virtual_ip,
+			  uint16_t server_port, uint16_t virtual_port,
+			  uint16_t protocol)
+{
+	uint32_t rc;
+	uint32_t found_result_size;
+	struct alvs_server_classification_result *server_class_res_ptr;
+
+	cmem_alvs.server_class_key.virtual_ip = virtual_ip;
+	cmem_alvs.server_class_key.virtual_port = virtual_port;
+	cmem_alvs.server_class_key.server_ip = server_ip;
+	cmem_alvs.server_class_key.server_port = server_port;
+	cmem_alvs.server_class_key.protocol = protocol;
+
+	alvs_write_log(LOG_DEBUG, "Trying to find server (0x%x:%d) in service (0x%x:%d, protocol=%d)...",
+		       cmem_alvs.server_class_key.server_ip,
+		       cmem_alvs.server_class_key.server_port,
+		       cmem_alvs.server_class_key.virtual_ip,
+		       cmem_alvs.server_class_key.virtual_port,
+		       cmem_alvs.server_class_key.protocol);
+
+	rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.server_class_struct_desc,
+				    (void *)&cmem_alvs.server_class_key,
+				    sizeof(struct alvs_server_classification_key),
+				    (void **)&server_class_res_ptr,
+				    &found_result_size, 0,
+				    cmem_wa.alvs_wa.server_hash_wa,
+				    sizeof(cmem_wa.alvs_wa.server_hash_wa));
+
+	if (rc == 0) {
+		/* Server found */
+		cmem_alvs.conn_info_result.bound = true;
+		cmem_alvs.conn_info_result.server_index = server_class_res_ptr->server_index;
+		alvs_write_log(LOG_DEBUG, "Server found and bound to connection");
+		/* TODO - update server statistics? */
+	} else {
+		alvs_write_log(LOG_DEBUG, "Server not found");
+	}
 }
 
 #endif  /*ALVS_SERVER_H_*/

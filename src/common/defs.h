@@ -119,7 +119,8 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_UNSUPPORTED_PROTOCOL         = 20,
 	ALVS_ERROR_NO_ACTIVE_SERVERS            = 21,
 	ALVS_ERROR_CREATE_CONN_MEM_ERROR        = 22,
-	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /*MUST BE EVEN!*/
+	ALVS_ERROR_STATE_SYNC                   = 23,
+	ALVS_NUM_OF_ALVS_ERROR_STATS            = 30 /* MUST BE EVEN! */
 };
 
 #define ALVS_CONN_LOCK_ELEMENTS_COUNT (256 * 1024)
@@ -158,6 +159,7 @@ enum struct_id {
 	STRUCT_ID_ALVS_SERVER_INFO             = 7,
 	STRUCT_ID_NW_FIB                       = 8,
 	STRUCT_ID_NW_ARP                       = 9,
+	STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10,
 	NUM_OF_STRUCT_IDS
 };
 

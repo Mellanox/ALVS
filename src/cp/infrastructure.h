@@ -52,6 +52,18 @@ enum infra_search_mem_heaps {
 	INFRA_NOT_VALID_HEAP
 };
 
+/*! Sig pool index possible values. */
+enum sig_pool_index {
+	CONNECTION_CLASSIFICATION_SIG_POOL_INDEX = 0,
+	SERVER_CLASSIFICATION_SIG_POOL_INDEX = 2
+};
+
+/*! Sig pool index possible values. */
+enum result_pool_index {
+	CONNECTION_CLASSIFICATION_RES_POOL_INDEX = 1,
+	SERVER_CLASSIFICATION_RES_POOL_INDEX = 3
+};
+
 /*! Required parameters for hash creation data structure  */
 struct infra_hash_params {
 	uint32_t key_size;
@@ -59,8 +71,8 @@ struct infra_hash_params {
 	uint32_t max_num_of_entries;
 	uint32_t hash_size;
 	bool updated_from_dp;
-	uint32_t sig_pool_id;
-	uint32_t result_pool_id;
+	enum sig_pool_index sig_pool_id;
+	enum result_pool_index result_pool_id;
 	enum infra_search_mem_heaps main_table_search_mem_heap;
 	enum infra_search_mem_heaps sig_table_search_mem_heap;
 	enum infra_search_mem_heaps res_table_search_mem_heap;

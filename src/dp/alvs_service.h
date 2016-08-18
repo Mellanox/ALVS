@@ -135,11 +135,12 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 		goto unlock;
 	}
 
-	/*create connection*/
-	result = alvs_conn_create_new_entry(cmem_alvs.sched_info_result.server_index,
-					  ((tcp_hdr->fin || tcp_hdr->rst) ? ALVS_TCP_CONNECTION_CLOSE_WAIT : ALVS_TCP_CONNECTION_ESTABLISHED),
-					  cmem_alvs.server_info_result.conn_flags,
-					  tcp_hdr->rst ? 1 : 0);
+	result = alvs_conn_create_new_entry(true,
+					    cmem_alvs.sched_info_result.server_index,
+					    0,
+					    ((tcp_hdr->fin || tcp_hdr->rst) ? ALVS_TCP_CONNECTION_CLOSE_WAIT : ALVS_TCP_CONNECTION_ESTABLISHED),
+					    cmem_alvs.server_info_result.conn_flags,
+					    tcp_hdr->rst ? 1 : 0);
 
 unlock:
 	alvs_unlock_connection(hash_value);

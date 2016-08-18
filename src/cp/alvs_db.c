@@ -79,10 +79,9 @@ struct alvs_db_server {
 	uint8_t                  active;
 	uint32_t                 nps_index;
 	uint32_t                 conn_flags;
-	uint8_t                 server_flags;
-	enum alvs_routing_type   routing_alg;
-	uint16_t                 u_thresh;
-	uint16_t                 l_thresh;
+	uint32_t                 server_flags;
+	uint32_t                 u_thresh;
+	uint32_t                 l_thresh;
 	struct ezdp_sum_addr     server_stats_base;
 	struct ezdp_sum_addr     service_stats_base;
 	struct ezdp_sum_addr     server_on_demand_stats_base;
@@ -175,7 +174,6 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    nps_index
 	 *    weight
 	 *    flags
-	 *    routing algorithm
 	 *    active (boolean)
 	 *    statistics base
 	 */
@@ -189,7 +187,6 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 		"weight INT NOT NULL,"
 		"conn_flags INT NOT NULL,"
 		"server_flags INT NOT NULL,"
-		"routing_alg INT NOT NULL,"
 		"u_thresh INT NOT NULL,"
 		"l_thresh INT NOT NULL,"
 		"active BOOLEAN NOT NULL,"
@@ -617,14 +614,14 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 		node->server.weight = sqlite3_column_int(statement, 6);
 		node->server.conn_flags = sqlite3_column_int(statement, 7);
 		node->server.server_flags = sqlite3_column_int(statement, 8);
-		node->server.routing_alg = (enum alvs_routing_type)sqlite3_column_int(statement, 9);
-		node->server.u_thresh = sqlite3_column_int(statement, 10);
-		node->server.l_thresh = sqlite3_column_int(statement, 11);
-		node->server.active = sqlite3_column_int(statement, 12);
-		node->server.server_stats_base.raw_data = sqlite3_column_int(statement, 13);
-		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 14);
-		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 15);
-		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, 16);
+		node->server.u_thresh = sqlite3_column_int(statement, 9);
+		node->server.l_thresh = sqlite3_column_int(statement, 10);
+		node->server.active = sqlite3_column_int(statement, 11);
+		node->server.server_stats_base.raw_data = sqlite3_column_int(statement, 12);
+		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 13);
+		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 14);
+		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, 15);
+
 		if (*server_list == NULL) {
 			node->next = node;
 			*server_list = node;
@@ -711,14 +708,14 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	server->weight = sqlite3_column_int(statement, 6);
 	server->conn_flags = sqlite3_column_int(statement, 7);
 	server->server_flags = sqlite3_column_int(statement, 8);
-	server->routing_alg = (enum alvs_routing_type)sqlite3_column_int(statement, 9);
-	server->u_thresh = sqlite3_column_int(statement, 10);
-	server->l_thresh = sqlite3_column_int(statement, 11);
-	server->active = sqlite3_column_int(statement, 12);
-	server->server_stats_base.raw_data = sqlite3_column_int(statement, 13);
-	server->service_stats_base.raw_data = sqlite3_column_int(statement, 14);
-	server->server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 15);
-	server->server_flags_dp_base.raw_data = sqlite3_column_int(statement, 16);
+	server->u_thresh = sqlite3_column_int(statement, 9);
+	server->l_thresh = sqlite3_column_int(statement, 10);
+	server->active = sqlite3_column_int(statement, 11);
+	server->server_stats_base.raw_data = sqlite3_column_int(statement, 12);
+	server->service_stats_base.raw_data = sqlite3_column_int(statement, 13);
+	server->server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 14);
+	server->server_flags_dp_base.raw_data = sqlite3_column_int(statement, 15);
+
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
 
@@ -743,12 +740,12 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO servers "
-		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, routing_alg, u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base,server_flags_dp_base) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
+		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base, server_flags_dp_base) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
 		server->ip, server->port, service->ip, service->port,
 		service->protocol, server->nps_index,
 		server->weight, server->conn_flags, server->server_flags,
-		server->routing_alg, server->u_thresh, server->l_thresh,
+		server->u_thresh, server->l_thresh,
 		server->active, server->server_stats_base.raw_data, server->service_stats_base.raw_data,
 		server->server_on_demand_stats_base.raw_data,
 		server->server_flags_dp_base.raw_data);
@@ -782,12 +779,12 @@ enum alvs_db_rc internal_db_modify_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET weight=%d, conn_flags=%d, server_flags=%d, routing_alg=%d, "
+		"SET weight=%d, conn_flags=%d, server_flags=%d, "
 		"u_thresh=%d, l_thresh=%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		server->weight, server->conn_flags, server->server_flags,
-		server->routing_alg, server->u_thresh, server->l_thresh,
+		server->u_thresh, server->l_thresh,
 		service->ip, service->port, service->protocol,
 		server->ip, server->port);
 
@@ -888,13 +885,13 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 
 	sprintf(sql, "UPDATE servers "
 		"SET weight=%d, active=1, server_flags=server_flags|%u, "
-		"u_thresh=%d, l_thresh=%d, routing_alg=%d, conn_flags=%d "
+		"u_thresh=%d, l_thresh=%d, conn_flags=%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		server->weight, IP_VS_DEST_F_AVAILABLE,
 		server->u_thresh, server->l_thresh,
-		server->routing_alg, server->conn_flags,
-		service->ip, service->port, service->protocol,
+		server->conn_flags, service->ip,
+		service->port, service->protocol,
 		server->ip, server->port);
 
 	/* Execute SQL statement */
@@ -1327,27 +1324,6 @@ enum alvs_scheduler_type get_sched_alg(char *sched_name)
 }
 
 /**************************************************************************//**
- * \brief       translate connection flags to routing type
- *
- * \param[in]   conn_flags   - connection flags
- *
- * \return      routing type
- */
-enum alvs_routing_type get_routing_alg(uint32_t conn_flags)
-{
-	switch (conn_flags & IP_VS_CONN_F_FWD_MASK) {
-	case IP_VS_CONN_F_MASQ:
-		return ALVS_NAT_ROUTING;
-	case IP_VS_CONN_F_TUNNEL:
-		return ALVS_TUNNEL_ROUTING;
-	case IP_VS_CONN_F_DROUTE:
-		return ALVS_DIRECT_ROUTING;
-	default:
-		return ALVS_ROUTING_LAST;
-	}
-}
-
-/**************************************************************************//**
  * \brief       Checks if a protocol is supported by application
  *
  * \param[in]   protocol   - received protocol
@@ -1386,13 +1362,13 @@ bool supported_sched_alg(enum alvs_scheduler_type sched_alg)
 /**************************************************************************//**
  * \brief       Checks if a routing algorithm is supported by application
  *
- * \param[in]   routing_alg   - received routing algorithm
+ * \param[in]   conn_flags   - received connection flags
  *
  * \return      true/false
  */
-bool supported_routing_alg(enum alvs_routing_type routing_alg)
+bool supported_routing_alg(uint32_t conn_flags)
 {
-	if (routing_alg == ALVS_DIRECT_ROUTING) {
+	if ((conn_flags & IP_VS_CONN_F_FWD_MASK) == IP_VS_CONN_F_DROUTE) {
 		return true;
 	}
 	return false;
@@ -1483,7 +1459,6 @@ void build_nps_server_info_key(struct alvs_db_server *cp_server,
 void build_nps_server_info_result(struct alvs_db_server *cp_server,
 				  struct alvs_server_info_result *nps_server_info_result)
 {
-	nps_server_info_result->routing_alg = cp_server->routing_alg;
 	nps_server_info_result->conn_flags = bswap_32(cp_server->conn_flags);
 	nps_server_info_result->server_flags = cp_server->server_flags;
 	nps_server_info_result->server_ip = bswap_32(cp_server->ip);
@@ -1494,6 +1469,40 @@ void build_nps_server_info_result(struct alvs_db_server *cp_server,
 	nps_server_info_result->server_flags_dp_base = bswap_32(cp_server->server_flags_dp_base.raw_data);
 	nps_server_info_result->u_thresh = bswap_16(cp_server->u_thresh);
 	nps_server_info_result->l_thresh = bswap_16(cp_server->l_thresh);
+}
+
+/**************************************************************************//**
+ * \brief       Build server classification key for NPS table
+ *
+ * \param[in]   cp_service  - service received from CP.
+ * \param[in]   cp_server   - server received from CP.
+ * \param[out]  nps_server_classification_key   - server classification key.
+ *
+ * \return
+ */
+void build_nps_server_classification_key(struct alvs_db_service *cp_service,
+					 struct alvs_db_server *cp_server,
+					 struct alvs_server_classification_key *nps_server_classification_key)
+{
+	nps_server_classification_key->virtual_ip = bswap_32(cp_service->ip);
+	nps_server_classification_key->virtual_port = bswap_16(cp_service->port);
+	nps_server_classification_key->server_ip = bswap_32(cp_server->ip);
+	nps_server_classification_key->server_port = bswap_16(cp_server->port);
+	nps_server_classification_key->protocol = bswap_16(cp_service->protocol);
+}
+
+/**************************************************************************//**
+ * \brief       Build server classification result for NPS table
+ *
+ * \param[in]   cp_server   - server received from CP.
+ * \param[out]  nps_server_classification_result   - server classification key.
+ *
+ * \return
+ */
+void build_nps_server_classification_result(struct alvs_db_server *cp_server,
+					    struct alvs_server_classification_result *nps_server_classification_result)
+{
+	nps_server_classification_result->server_index = bswap_32(cp_server->nps_index);
 }
 
 /**************************************************************************//**
@@ -1893,10 +1902,12 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 	struct alvs_server_info_result nps_server_info_result;
 	struct alvs_service_info_key nps_service_info_key;
 	struct alvs_service_info_result nps_service_info_result;
+	struct alvs_server_classification_key nps_server_classification_key;
+	struct alvs_server_classification_result nps_server_classification_result;
 
 	/* Check if request is supported */
-	if (supported_routing_alg(get_routing_alg(ip_vs_dest->conn_flags)) == false) {
-		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", get_routing_alg(ip_vs_dest->conn_flags));
+	if (supported_routing_alg(ip_vs_dest->conn_flags) == false) {
+		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", ip_vs_dest->conn_flags & IP_VS_CONN_F_FWD_MASK);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -1955,7 +1966,6 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.server_flags |= IP_VS_DEST_F_AVAILABLE;
 		cp_server.conn_flags = ip_vs_dest->conn_flags;
 		cp_server.weight = ip_vs_dest->weight;
-		cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
 		if (internal_db_activate_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
@@ -1998,7 +2008,6 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.server_flags = IP_VS_DEST_F_AVAILABLE;
 		cp_server.weight = ip_vs_dest->weight;
 		cp_server.active = true;
-		cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
 		cp_server.server_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | (EMEM_SERVER_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) | ((EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
@@ -2010,8 +2019,8 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 			(EMEM_SERVER_FLAGS_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
 			((EMEM_SERVER_FLAGS_OFFSET + cp_server.nps_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
 
-		write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
-			  cp_server.routing_alg, cp_server.conn_flags,
+		write_log(LOG_DEBUG, "Server info: conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
+			  cp_server.conn_flags,
 			  cp_server.server_flags, cp_server.weight,
 			  cp_server.u_thresh, cp_server.l_thresh);
 		write_log(LOG_DEBUG, "raw = 0x%x msid = %d, element_index = %d", cp_server.server_flags_dp_base.raw_data, cp_server.server_flags_dp_base.msid, cp_server.server_flags_dp_base.element_index);
@@ -2078,6 +2087,20 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		}
 	}
 
+	build_nps_server_classification_key(&cp_service,
+					    &cp_server,
+					    &nps_server_classification_key);
+	build_nps_server_classification_result(&cp_server,
+					       &nps_server_classification_result);
+	if (infra_add_entry(STRUCT_ID_ALVS_SERVER_CLASSIFICATION,
+			    &nps_server_classification_key,
+			    sizeof(struct alvs_server_classification_key),
+			    &nps_server_classification_result,
+			    sizeof(struct alvs_server_classification_result)) == false) {
+		write_log(LOG_CRIT, "Failed to add server classification entry.");
+		return ALVS_DB_NPS_ERROR;
+	}
+
 	write_log(LOG_INFO, "Server (%s:%d) added successfully.",
 		  my_inet_ntoa(cp_server.ip), cp_server.port);
 	return ALVS_DB_OK;
@@ -2108,8 +2131,8 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	uint8_t prev_weight;
 
 	/* Check is request is supported */
-	if (supported_routing_alg(get_routing_alg(ip_vs_dest->conn_flags)) == false) {
-		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", get_routing_alg(ip_vs_dest->conn_flags));
+	if (supported_routing_alg(ip_vs_dest->conn_flags) == false) {
+		write_log(LOG_NOTICE, "Routing algorithm (%d) is not supported.", ip_vs_dest->conn_flags & IP_VS_CONN_F_FWD_MASK);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
 
@@ -2173,7 +2196,6 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	prev_weight = cp_server.weight;
 	cp_server.conn_flags = ip_vs_dest->conn_flags;
 	cp_server.weight = ip_vs_dest->weight;
-	cp_server.routing_alg = get_routing_alg(ip_vs_dest->conn_flags);
 
 	if ((ip_vs_dest->u_threshold == 0) || (ip_vs_dest->u_threshold > cp_server.u_thresh)) {
 		if (alvs_clear_overloaded_flag_of_server(&cp_server) == ALVS_DB_INTERNAL_ERROR) {
@@ -2184,8 +2206,8 @@ enum alvs_db_rc alvs_db_modify_server(struct ip_vs_service_user *ip_vs_service,
 	cp_server.u_thresh = ip_vs_dest->u_threshold;
 	cp_server.l_thresh = ip_vs_dest->l_threshold;
 
-	write_log(LOG_DEBUG, "Server info: alg=%d, conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.\n",
-		  cp_server.routing_alg, cp_server.conn_flags,
+	write_log(LOG_DEBUG, "Server info: conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
+		  cp_server.conn_flags,
 		  cp_server.server_flags, cp_server.weight, cp_server.u_thresh,
 		  cp_server.l_thresh);
 
@@ -2253,6 +2275,8 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 	struct alvs_service_info_result nps_service_info_result;
 	struct alvs_server_info_key nps_server_info_key;
 	struct alvs_server_info_result nps_server_info_result;
+	struct alvs_server_classification_key nps_server_classification_key;
+	struct alvs_server_classification_result nps_server_classification_result;
 
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
@@ -2342,6 +2366,16 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 			    &nps_server_info_result,
 			    sizeof(struct alvs_server_info_result)) == false) {
 		write_log(LOG_CRIT, "Failed to modify server info entry.");
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	build_nps_server_classification_key(&cp_service,
+					    &cp_server,
+					    &nps_server_classification_key);
+	if (infra_delete_entry(STRUCT_ID_ALVS_SERVER_CLASSIFICATION,
+			       &nps_server_classification_key,
+			       sizeof(struct alvs_server_classification_key)) == false) {
+		write_log(LOG_CRIT, "Failed to delete server classification entry.");
 		return ALVS_DB_NPS_ERROR;
 	}
 

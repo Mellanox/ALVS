@@ -44,7 +44,8 @@
 #include "nw_routing.h"
 
 /*prototypes*/
-void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, struct iphdr *ip_hdr, bool my_mac) __fast_path_code;
+void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint32_t buflen,
+			    struct iphdr *ip_hdr, bool my_mac) __fast_path_code;
 
 /******************************************************************************
  * \brief       alvs unknown packet processing

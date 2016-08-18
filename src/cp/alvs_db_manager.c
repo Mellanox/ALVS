@@ -1080,8 +1080,8 @@ bool alvs_db_constructor(void)
 	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
 	hash_params.hash_size = 26;
 	hash_params.updated_from_dp = true;
-	hash_params.sig_pool_id = 0;
-	hash_params.result_pool_id = 1;
+	hash_params.sig_pool_id = CONNECTION_CLASSIFICATION_SIG_POOL_INDEX;
+	hash_params.result_pool_id = CONNECTION_CLASSIFICATION_RES_POOL_INDEX;
 	hash_params.main_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
 	hash_params.sig_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
 	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
@@ -1100,6 +1100,23 @@ bool alvs_db_constructor(void)
 	retcode = infra_create_table(STRUCT_ID_ALVS_CONN_INFO, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create alvs conn info table.");
+		return false;
+	}
+
+	write_log(LOG_DEBUG, "Creating server classification table.");
+	hash_params.key_size = sizeof(struct alvs_server_classification_key);
+	hash_params.result_size = sizeof(struct alvs_server_classification_result);
+	hash_params.max_num_of_entries = ALVS_SERVERS_MAX_ENTRIES;
+	hash_params.hash_size = 0;
+	hash_params.updated_from_dp = false;
+	hash_params.sig_pool_id = SERVER_CLASSIFICATION_SIG_POOL_INDEX;
+	hash_params.result_pool_id = SERVER_CLASSIFICATION_RES_POOL_INDEX;
+	hash_params.main_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
+	hash_params.sig_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
+	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
+	retcode = infra_create_hash(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, &hash_params);
+	if (retcode == false) {
+		write_log(LOG_CRIT, "Failed to create alvs server classification hash.");
 		return false;
 	}
 

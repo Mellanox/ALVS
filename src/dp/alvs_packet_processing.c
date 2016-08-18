@@ -34,7 +34,9 @@
 */
 
 #include "alvs_packet_processing.h"
+#include "alvs_state_sync.h"
 
+#define UDP_DEST 8848
 
 void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 {
@@ -82,29 +84,42 @@ void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
  *
  * \return        void
  */
-void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, struct iphdr *ip_hdr, bool my_mac)
+void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint32_t buflen,
+			    struct iphdr *ip_hdr, bool my_mac)
 {
+	struct udphdr *udp_hdr;
+
 	if (cmem_nw.ipv4_decode_result.next_protocol.tcp) {
 		if (my_mac) {
 			alvs_tcp_processing(frame_base, ip_hdr);
 		} else {
+			/* Send to host */
 			alvs_write_log(LOG_DEBUG, "TCP - NOT supported with multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame);
 		}
 	} else if (cmem_nw.ipv4_decode_result.next_protocol.udp) {
 		if (my_mac) {
-			/* TODO - handle UDP */
+			/* TODO - handle UDP, currently sending to host */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 			nw_host_do_route(frame);
 		} else {
-			/* TODO - handle State sync */
-			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
-			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
-			nw_host_do_route(frame);
+			/* TODO - should we check that DIP is multicast? */
+			/* TODO - should we check TTL? */
+			udp_hdr = (struct udphdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
+			if (udp_hdr->dest == UDP_DEST) {
+				buflen -= (ip_hdr->ihl << 2) + sizeof(struct udphdr);
+				alvs_state_sync_backup(frame, (uint8_t *)udp_hdr + sizeof(struct udphdr), buflen);
+			} else {
+				/* Send to host */
+				alvs_write_log(LOG_DEBUG, "UDP - NOT supported with multicast");
+				nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+				nw_host_do_route(frame);
+			}
 		}
 	} else {
+		/* Send to host */
 		alvs_write_log(LOG_DEBUG, "NOT supported protocol");
 		nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
 		nw_host_do_route(frame);

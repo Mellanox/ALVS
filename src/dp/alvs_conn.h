@@ -74,7 +74,8 @@ uint32_t alvs_conn_info_lookup(uint32_t conn_index)
  *
  */
 static __always_inline
-enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index, enum alvs_tcp_conn_state conn_state,
+enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t server, uint16_t port,
+							   enum alvs_tcp_conn_state conn_state,
 							   uint32_t flags, bool reset)
 {
 	uint32_t conn_index;
@@ -82,30 +83,37 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 	/*allocate new index*/
 	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
 	if (conn_index == EZDP_NULL_INDEX) {
-		alvs_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server_index, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
-		alvs_server_overload_on_delete_conn(server_index);
+		alvs_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
+		alvs_server_overload_on_delete_conn(server);
 
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_CONN_INDEX_ALLOC_FAIL);
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
+	alvs_write_log(LOG_DEBUG, "Index %d allocated for connection", conn_index);
 
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.sync_bit = 1;
+	cmem_alvs.conn_info_result.bound = bound;
 	cmem_alvs.conn_info_result.reset_bit = reset;
 	cmem_alvs.conn_info_result.delete_bit = reset;
 	cmem_alvs.conn_info_result.conn_flags = flags;
-	cmem_alvs.conn_info_result.server_index = server_index;
+	cmem_alvs.conn_info_result.server_index = server;
+	cmem_alvs.conn_info_result.server_port = port;
 	cmem_alvs.conn_info_result.conn_state = conn_state;
 	cmem_alvs.conn_info_result.age_iteration = 0;
 	ezdp_mem_copy(&cmem_alvs.conn_info_result.conn_class_key, &cmem_alvs.conn_class_key, sizeof(struct alvs_conn_classification_key));
 
 	if (conn_state == ALVS_TCP_CONNECTION_ESTABLISHED) {
-		flags &= ~IP_VS_CONN_F_INACTIVE;
-		alvs_update_connection_statistics(1, 1, 0);
+		cmem_alvs.conn_info_result.conn_flags &= ~IP_VS_CONN_F_INACTIVE;
+		if (bound) {
+			alvs_update_connection_statistics(1, 1, 0);
+		}
 	} else {
-		flags |= IP_VS_CONN_F_INACTIVE;
-		alvs_update_connection_statistics(1, 0, 1);
+		cmem_alvs.conn_info_result.conn_flags |= IP_VS_CONN_F_INACTIVE;
+		if (bound) {
+			alvs_update_connection_statistics(1, 0, 1);
+		}
 	}
 
 	/*first create connection info entry*/
@@ -129,10 +137,13 @@ enum alvs_service_output_result alvs_conn_create_new_entry(uint32_t server_index
 				 sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
 
-	alvs_write_log(LOG_DEBUG, "conn_idx = %d server_idx = %d added successfully ", conn_index, server_index);
+	if (bound) {
+		alvs_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully ", conn_index, server);
+	} else {
+		alvs_write_log(LOG_DEBUG, "Unbounded connection created (conn_idx = %d server_addr = 0x%08x:%d) successfully ", conn_index, server, port);
+	}
 
 	return ALVS_SERVICE_DATA_PATH_SUCCESS;
-
 }
 
 /******************************************************************************
@@ -377,13 +388,20 @@ static __always_inline
 void alvs_conn_do_route(uint8_t *frame_base)
 {
 	/*transmit packet according to routing method*/
-	if (likely(cmem_alvs.server_info_result.routing_alg == ALVS_DIRECT_ROUTING)) {
-		nw_do_route(&frame,
-			    frame_base,
-			    cmem_alvs.server_info_result.server_ip,
-			    ezframe_get_buf_len(&frame));
+	if (likely((cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK) == IP_VS_CONN_F_DROUTE)) {
+		if (cmem_alvs.conn_info_result.bound == true) {
+			nw_do_route(&frame,
+				    frame_base,
+				    cmem_alvs.server_info_result.server_ip,
+				    ezframe_get_buf_len(&frame));
+		} else {
+			nw_do_route(&frame,
+				    frame_base,
+				    cmem_alvs.conn_info_result.server_addr,
+				    ezframe_get_buf_len(&frame));
+		}
 	} else {
-		alvs_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.routing_alg);
+		alvs_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK);
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO);
 		return;
@@ -417,6 +435,12 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (likely(rc == 0)) {
+		if (cmem_alvs.conn_info_result.bound == false) {
+			alvs_server_try_bind(cmem_alvs.conn_info_result.server_addr, cmem_alvs.conn_class_key.virtual_ip,
+					     cmem_alvs.conn_info_result.server_port, cmem_alvs.conn_class_key.virtual_port,
+					     cmem_alvs.conn_class_key.protocol);
+		}
+
 		/*check if someone already indicated that this connection should be deleted...*/
 		if (cmem_alvs.conn_info_result.reset_bit == 1) {
 			/*server in not available - close connection*/
@@ -426,39 +450,41 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 			return;
 		}
 
-		/*get destination server info*/
-		if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) != 0) {
-			/*no server info - weird error scenario*/
-			alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
-			/*drop frame*/
-			alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
-			return;
-		}
-
-		alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d FOUND", conn_index, cmem_alvs.conn_info_result.server_index);
-
-		/*check destination server status*/
-		if (!(cmem_alvs.server_info_result.server_flags & IP_VS_DEST_F_AVAILABLE)) {
-			/*server in not available - close connection*/
-			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d is unavailable ", conn_index, cmem_alvs.conn_info_result.server_index);
-			if (alvs_conn_mark_to_delete(conn_index, 0) != 0) {
-				/*unable to update connection - weird error scenario*/
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+		if (cmem_alvs.conn_info_result.bound == true) {
+			/*get destination server info*/
+			if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) != 0) {
+				/*no server info - weird error scenario*/
+				alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
-				alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
+				alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 				return;
 			}
-			/*silent drop the packet and continue*/
-			alvs_discard_and_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL);
-			return;
+
+			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d FOUND", conn_index, cmem_alvs.conn_info_result.server_index);
+
+			/*check destination server status*/
+			if (!(cmem_alvs.server_info_result.server_flags & IP_VS_DEST_F_AVAILABLE)) {
+				/*server in not available - close connection*/
+				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d is unavailable ", conn_index, cmem_alvs.conn_info_result.server_index);
+				if (alvs_conn_mark_to_delete(conn_index, 0) != 0) {
+					/*unable to update connection - weird error scenario*/
+					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+					/*drop frame*/
+					alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
+					return;
+				}
+				/*silent drop the packet and continue*/
+				alvs_discard_and_stats(ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL);
+				return;
+			}
 		}
 
 		/*check if state changed*/
 		if (tcp_hdr->rst) {
-			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d got RST = 1 go conn_mark_to_delete", conn_index, cmem_alvs.conn_info_result.server_index);
+			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, got RST = 1 go conn_mark_to_delete", conn_index);
 			if (alvs_conn_mark_to_delete(conn_index, 1) != 0) {
 				/*unable to update connection - weird error scenario*/
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, conn_mark_to_delete FAILED ", conn_index);
 				/*drop frame*/
 				alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
 				return;

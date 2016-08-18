@@ -37,6 +37,7 @@ STRUCT_ID_ALVS_SCHED_INFO			   = 6
 STRUCT_ID_ALVS_SERVER_INFO			   = 7
 STRUCT_ID_NW_FIB					   = 8
 STRUCT_ID_NW_ARP					   = 9
+STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10
 
 #===============================================================================
 # STATS DEFINES
@@ -417,10 +418,11 @@ class ezbox_host:
 				'aging_bit' : (int(info_res[0], 16) >> 2) & 0x1,
 				'delete_bit' : (int(info_res[0], 16) >> 1) & 0x1,
 				'reset_bit' : int(info_res[0], 16) & 0x1,
-				'age_iteration' : int(info_res[1], 16),
-				'server_index' : int(''.join(info_res[2:4]), 16),
-				'state' : int(info_res[5], 16),
-				'stats_base' : int(''.join(info_res[8:12]), 16),
+				'bound' : int(info_res[1], 16) & 0x1,
+				'server_port' : int(''.join(info_res[2:4]), 16),
+				'server' : int(''.join(info_res[4:8]), 16),
+				'state' : int(info_res[26], 16),
+				'age_iteration' : int(info_res[27], 16),
 				'flags' : int(''.join(info_res[28:32]), 16)
 				}
 
@@ -530,6 +532,33 @@ class ezbox_host:
 		self.cpe.cp.struct.iterator_delete(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, iterator_params_dict)
 		return services
 
+	def get_all_servers(self):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		servers = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, iterator_params_dict).result['iterator_params']
+			 
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+			server_ip = int(''.join(key[0:4]), 16)
+			virt_ip = int(''.join(key[4:8]), 16)
+			server_port = int(''.join(key[8:10]), 16)
+			virt_port = int(''.join(key[10:12]), 16)
+			protocol = int(''.join(key[12:14]), 16)
+			 
+			res = str(iterator_params_dict['entry']['result']).split(' ')
+			index = int(''.join(res[4:8]), 16)
+			
+			server = {'index' : index,
+					  'key' : {'server_ip' : server_ip, 'virt_ip' : virt_ip, 'server_port' : server_port, 'virt_port' : virt_port, 'protocol' : protocol}
+					  }
+			
+			servers.append(server)
+			
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, iterator_params_dict)
+		return servers
+
 	def get_all_connections(self):
 		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_ALVS_CONN_CLASSIFICATION, { 'channel_id': 0 })).result['iterator_params']
 		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_CONN_CLASSIFICATION, channel_id = 0)).result['num_entries']['number_of_entries']
@@ -637,7 +666,10 @@ class ezbox_host:
 					  'ALVS_ERROR_SEND_FRAME_FAIL':error_stats[17]['byte_value'],
 					  'ALVS_ERROR_CONN_MARK_TO_DELETE':error_stats[18]['byte_value'],
 					  'ALVS_ERROR_SERVICE_CLASS_LOOKUP':error_stats[19]['byte_value'],
-					  'ALVS_ERROR_UNSUPPORTED_PROTOCOL':error_stats[20]['byte_value']}
+					  'ALVS_ERROR_UNSUPPORTED_PROTOCOL':error_stats[20]['byte_value'],
+					  'ALVS_ERROR_NO_ACTIVE_SERVERS':error_stats[21]['byte_value'],
+					  'ALVS_ERROR_CREATE_CONN_MEM_ERROR':error_stats[22]['byte_value'],
+					  'ALVS_ERROR_STATE_SYNC':error_stats[23]['byte_value']}
 		
 		return stats_dict # return only the lsb (small amount of packets on tests)
 

@@ -61,7 +61,6 @@ enum alvs_service_output_result {
 	ALVS_SERVICE_DATA_PATH_IGNORE           = 0, /* Frame is dropped or send to host */
 	ALVS_SERVICE_DATA_PATH_RETRY            = 1,
 	ALVS_SERVICE_DATA_PATH_SUCCESS          = 2,
-	ALVS_SERVICE_DATA_PATH_ID_LAST
 };
 
 /****************************************************************
@@ -79,12 +78,6 @@ enum alvs_sched_server_result {
 };
 
 #define ALVS_CONN_LOCK_ELEMENTS_MASK  (ALVS_CONN_LOCK_ELEMENTS_COUNT - 1)
-
-/*timer defs*/
-enum alvs_tcp_states_multipliers {
-	ALVS_TCP_EST_MULTIPLIER         = 16,
-	ALVS_TCP_CLOSE_WAIT_MULTIPLIER  = 1,
-};
 
 #define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128
 #define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
@@ -109,6 +102,8 @@ struct alvs_cmem {
 	/**< conn class key */
 	struct alvs_service_classification_key          service_class_key;
 	/**< service class key */
+	struct alvs_server_classification_key           server_class_key;
+	/**< server class key */
 	struct alvs_conn_info_result                    conn_info_result;
 	/**< connection info result */
 	struct alvs_server_info_result                  server_info_result;
@@ -120,7 +115,7 @@ struct alvs_cmem {
 	ezdp_spinlock_t                                 conn_spinlock;
 	/**< connection spinlock */
 	struct alvs_conn_classification_result          conn_result;
-	/**< connection result */
+	/**< connection class result */
 } __packed;
 
 /***********************************************************************//**
@@ -130,6 +125,7 @@ struct alvs_cmem {
  **************************************************************************/
 union alvs_workarea {
 	char conn_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_conn_classification_result), sizeof(struct alvs_conn_classification_key))];
+	char server_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_server_classification_result), sizeof(struct alvs_server_classification_key))];
 	char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_classification_result), sizeof(struct alvs_service_classification_key))];
 	char conn_info_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct alvs_conn_info_result))];
 	char table_struct_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(ezdp_table_struct_desc_t))];
@@ -146,6 +142,7 @@ struct alvs_shared_cmem {
 	ezdp_table_struct_desc_t    server_info_struct_desc;
 	ezdp_hash_struct_desc_t     conn_class_struct_desc;
 	ezdp_hash_struct_desc_t     service_class_struct_desc;
+	ezdp_hash_struct_desc_t     server_class_struct_desc;
 	ezdp_table_struct_desc_t    service_info_struct_desc;
 	ezdp_table_struct_desc_t    sched_info_struct_desc;
 } __packed;
@@ -158,5 +155,67 @@ extern struct alvs_shared_cmem  shared_cmem_alvs;
 extern union cmem_workarea      cmem_wa;
 extern ezframe_t                frame;
 extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];
+
+
+/*************************************************************
+ * State sync structures
+ *************************************************************/
+struct alvs_state_sync_header {
+	uint8_t    reserved;
+	/* must be zero for version 0 backward compatibility */
+
+	uint8_t    syncid;
+	/* Sync ID */
+
+	uint16_t   size;
+	/* size of header in bytes */
+
+	uint8_t    conn_count;
+	/* number of connections in the message */
+
+	uint8_t    version;
+	/* version of message - should be set to SYNC_PROTO_VER */
+
+	uint16_t   spare;
+	/* must be zero */
+};
+
+
+struct alvs_state_sync_conn {
+	uint8_t    type;
+	/* IPv4/IPv6 */
+
+	uint8_t    protocol;
+	/* protocol of connection (TCP/UDP) */
+
+	unsigned   version   : 4;
+	/* version, set to 0 for IPv4 */
+
+	unsigned   size      : 12;
+	/* size of the connection in bytes */
+
+	uint32_t   flags;
+	/* status flags */
+
+	uint16_t   state;
+	/*state info */
+
+	/* ports */
+	uint16_t   client_port;
+	uint16_t   virtual_port;
+	uint16_t   server_port;
+
+	uint32_t   fwmark;
+	/* Firewall mark from skb - not supported */
+
+	uint32_t   timeout;
+	/* Timeout of the connection */
+
+	/* addresses (IPv4 only) */
+	in_addr_t  client_addr;
+	in_addr_t  virtual_addr;
+	in_addr_t  server_addr;
+} __packed;
+
 
 #endif /* ALVS_DEFS_H_ */
