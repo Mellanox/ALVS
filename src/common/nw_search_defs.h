@@ -64,7 +64,7 @@ CASSERT(sizeof(struct nw_if_key) == 1);
 /*result*/
 struct nw_if_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
@@ -110,7 +110,7 @@ CASSERT(sizeof(struct nw_arp_key) == 4);
 /*result*/
 struct nw_arp_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;

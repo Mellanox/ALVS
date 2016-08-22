@@ -276,7 +276,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	uint8_t conn_count;
 
 	rc = ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc,
-					ALVS_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
+					ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
 					sizeof(struct alvs_app_info_result), 0);
 	if (unlikely(rc != 0)) {
 		alvs_write_log(LOG_DEBUG, "ERROR - failed in lookup for ALVS application info.");

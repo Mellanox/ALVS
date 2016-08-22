@@ -53,6 +53,7 @@
 #include "nw_db_manager.h"
 #include "defs.h"
 #include "user_defs.h"
+#include "application_infra.h"
 
 extern EZapiChannel_EthIFType port_type;
 
@@ -112,7 +113,7 @@ enum infra_emem_spaces_params {
 #define INFRA_X1_CLUSTER_CODE_SIZE          128
 #define INFRA_ALL_CLUSTER_CODE_SIZE         512
 #define INFRA_ALL_CLUSTER_DATA_SIZE         1
-#define INFRA_X1_CLUSTER_SEARCH_SIZE        4
+#define INFRA_X1_CLUSTER_SEARCH_SIZE        5
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
 #define INFRA_EMEM_SEARCH_HASH_SIZE         (3584)
@@ -783,6 +784,12 @@ bool infra_initialize_statistics(void)
 bool infra_initialized(void)
 {
 	EZstatus ez_ret_val;
+
+	/* Launch application info DB constructor */
+	if (application_info_db_constructor() == false) {
+		write_log(LOG_CRIT, "infra_initialized: application_info_db_constructor failed.");
+		return false;
+	}
 
 	/* Launch NW DB constructor */
 	if (nw_db_constructor() == false) {

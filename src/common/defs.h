@@ -160,10 +160,9 @@ enum struct_id {
 	STRUCT_ID_NW_FIB                       = 8,
 	STRUCT_ID_NW_ARP                       = 9,
 	STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10,
+	STRUCT_ID_APPLICATION_INFO             = 11,
 	NUM_OF_STRUCT_IDS
 };
-
-
 
 
 #endif /* DEFS_H_ */

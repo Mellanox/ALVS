@@ -82,7 +82,10 @@ void alvs_nl_init(void);
 static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd, struct genl_info *info, void *arg);
 static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user *ret_svc, bool need_full_svc);
 static int alvs_genl_parse_dest(struct nlattr *nla, struct ip_vs_dest_user *ret_dest, bool need_full_dest);
+static int alvs_genl_parse_daemon(struct nl_msg *msg, void *arg);
+static int alvs_genl_parse_daemon_from_msghdr(struct nlmsghdr *nlh, void *arg);
 struct ip_vs_get_services *alvs_get_services(void);
+static struct ip_vs_daemon_user *alvs_get_state_sync_info(void);
 struct ip_vs_get_dests *alvs_get_dests(struct ip_vs_service_entry *svc);
 
 /* Max NL message size = 32K. used for buffer definition */
@@ -98,7 +101,7 @@ static struct nla_policy alvs_cmd_policy[IPVS_CMD_ATTR_MAX + 1] = {
 	[IPVS_CMD_ATTR_TIMEOUT_UDP]	= { .type = NLA_U32 },
 };
 
-#define ALVS_CMD_COUNT            7
+#define ALVS_CMD_COUNT            10
 
 static struct genl_cmd alvs_cmds[ALVS_CMD_COUNT] = {
 	{
@@ -150,6 +153,27 @@ static struct genl_cmd alvs_cmds[ALVS_CMD_COUNT] = {
 		.c_attr_policy  = alvs_cmd_policy,
 		.c_msg_parser   = &alvs_msg_parser,
 	},
+	{
+		.c_id           = IPVS_CMD_NEW_DAEMON,
+		.c_name	        = "IPVS CMD NEW DAEMON",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_DEL_DAEMON,
+		.c_name	        = "IPVS CMD DEL DAEMON",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_GET_DAEMON,
+		.c_name	        = "IPVS CMD GET DAEMON",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
 };
 static struct genl_ops alvs_genl_ops = {
 	.o_name  = IPVS_GENL_NAME,
@@ -190,6 +214,14 @@ static struct nla_policy alvs_dest_policy[IPVS_DEST_ATTR_MAX + 1] = {
 	[IPVS_DEST_ATTR_INACT_CONNS]	= { .type = NLA_U32 },
 	[IPVS_DEST_ATTR_PERSIST_CONNS]	= { .type = NLA_U32 },
 	[IPVS_DEST_ATTR_STATS]		= { .type = NLA_NESTED },
+};
+
+/* Policy used for attributes in nested attribute IPVS_CMD_ATTR_DAEMON */
+struct nla_policy alvs_daemon_policy[IPVS_DAEMON_ATTR_MAX + 1] = {
+	[IPVS_DAEMON_ATTR_STATE]	= { .type = NLA_U32 },
+	[IPVS_DAEMON_ATTR_MCAST_IFN]	= { .type = NLA_STRING,
+					    .maxlen = IP_VS_IFNAME_MAXLEN },
+	[IPVS_DAEMON_ATTR_SYNC_ID]	= { .type = NLA_U32 },
 };
 
 
@@ -262,9 +294,10 @@ void alvs_db_manager_init(void)
 
 /******************************************************************************
  * \brief         Initialization of all tables handled by the DB manager
- *                Sends get services request. For each service received,
- *                Adds it to DB & sends get dests request. For each server
- *                received, adds it to DB.
+ *                - Sends get state sync status request and initialize application_info DBs accordingly.
+ *                - Sends get services request. For each service received,
+ *                  Adds it to DB & sends get dests request. For each server
+ *                  received, adds it to DB.
  *
  * \return        void
  */
@@ -272,7 +305,25 @@ void alvs_db_manager_table_init(void)
 {
 	struct ip_vs_get_services *get_svcs;
 	struct ip_vs_get_dests *dests;
+	struct ip_vs_daemon_user *ip_vs_daemon_info;
 	int i, j;
+
+	/* Get state sync daemon info and start sync daemon with the current configuration */
+	write_log(LOG_DEBUG, "Getting state sync daemon info and start initializing sync daemon with the current configuration");
+	ip_vs_daemon_info = alvs_get_state_sync_info();
+	if (ip_vs_daemon_info == NULL) {
+		write_log(LOG_CRIT, "Failed to receive IPVS state sync daemon info from kernel.");
+		alvs_db_manager_exit_with_error();
+	}
+
+	if (alvs_db_init_daemon(ip_vs_daemon_info) !=  ALVS_DB_OK) {
+		write_log(LOG_CRIT, "Failed to start sync daemon during table init.");
+		free(ip_vs_daemon_info);
+		alvs_db_manager_exit_with_error();
+	}
+	/* free memory allocated in alvs_get_state_sync_info function */
+	free(ip_vs_daemon_info);
+	write_log(LOG_DEBUG, "Finished initializing state sync daemon info.");
 
 	/* Get all services */
 	get_svcs = alvs_get_services();
@@ -560,8 +611,49 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	bool need_full_svc = false;
 	struct ip_vs_service_user svc;
 	struct ip_vs_dest_user dest;
+	struct ip_vs_daemon_user *ip_vs_daemon_info;
 
 	write_log(LOG_DEBUG, "Received command %s", cmd->c_name);
+
+	if (cmd->c_id == IPVS_CMD_GET_DAEMON) {
+		alvs_ret = alvs_db_log_daemon();
+		if (alvs_ret == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Received fatal error from DBs. exiting.");
+			alvs_db_manager_exit_with_error();
+		}
+		return NL_OK;
+	}
+
+	if (cmd->c_id == IPVS_CMD_NEW_DAEMON || cmd->c_id == IPVS_CMD_DEL_DAEMON) {
+		/* create struct with 2 entries to hold parsed state sync info for backup & master */
+		ip_vs_daemon_info = malloc(sizeof(struct ip_vs_daemon_user) * 2);
+		if (ip_vs_daemon_info == NULL) {
+			write_log(LOG_CRIT, "Failed to allocate memory for the IPVS state sync daemon info.");
+			alvs_db_manager_exit_with_error();
+		}
+		memset(ip_vs_daemon_info, 0, sizeof(struct ip_vs_daemon_user) * 2);
+
+		ret = alvs_genl_parse_daemon_from_msghdr(info->nlh, ip_vs_daemon_info);
+		if (ret < 0) {
+			free(ip_vs_daemon_info);
+			return NL_SKIP;
+		}
+
+		if (cmd->c_id == IPVS_CMD_NEW_DAEMON) {
+			alvs_ret = alvs_db_start_daemon(ip_vs_daemon_info);
+		} else {
+			/* cmd->c_id == IPVS_CMD_DEL_DAEMON */
+			alvs_ret = alvs_db_stop_daemon(ip_vs_daemon_info);
+		}
+		free(ip_vs_daemon_info);
+
+		if (alvs_ret == ALVS_DB_INTERNAL_ERROR || alvs_ret == ALVS_DB_NPS_ERROR) {
+			write_log(LOG_CRIT, "Received fatal error from DBs. exiting.");
+			alvs_db_manager_exit_with_error();
+		}
+		return NL_OK;
+	}
+
 	/* Flush request */
 	if (cmd->c_id == IPVS_CMD_FLUSH) {
 		alvs_ret = alvs_db_clear();
@@ -573,7 +665,7 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 	if (cmd->c_id == IPVS_CMD_NEW_SERVICE || cmd->c_id == IPVS_CMD_SET_SERVICE) {
 		need_full_svc = true;
 	}
-	/* For all requests need to parse service (except for flush) */
+	/* For all requests need to parse service (except for flush or sync daemon commands) */
 	ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
 
 	if (ret < 0)
@@ -822,6 +914,82 @@ struct ip_vs_get_services *alvs_get_services(void)
 	write_log(LOG_ERR, "Failed to send NL IPVS_CMD_GET_SERVICE message");
 	free(get);
 	return NULL;
+}
+
+/******************************************************************************
+ * \brief         Send get state sync daemon info request to kernel using NL message.
+ *                returns the state sync daemon info which was received and parsed by
+ *                the callback function: alvs_genl_parse_daemon.
+ *
+ * \return        struct ip_vs_daemon_user
+ */
+static struct ip_vs_daemon_user *alvs_get_state_sync_info(void)
+{
+	struct ip_vs_daemon_user *ss_info;
+	struct nl_msg *msg;
+
+	write_log(LOG_DEBUG, "Start getting current configuration of state sync daemons.");
+	/* note that we need to get the info about two possible daemons, master and backup. */
+	ss_info = malloc(sizeof(struct ip_vs_daemon_user) * 2);
+	if (ss_info == NULL) {
+		write_log(LOG_ERR, "Failed to allocate memory for state sync daemon info in alvs_get_state_sync_info function.");
+		return NULL;
+	}
+	memset(ss_info, 0, sizeof(struct ip_vs_daemon_user) * 2);
+	msg = alvs_nl_message(IPVS_CMD_GET_DAEMON, NLM_F_DUMP);
+	if (msg == NULL) {
+		write_log(LOG_ERR, "Failed to allocate NL message in alvs_get_state_sync_info function.");
+		free(ss_info);
+		return NULL;
+	}
+	if (alvs_nl_send_message(msg, alvs_genl_parse_daemon, ss_info) == 0) {
+		return ss_info;
+	}
+
+	write_log(LOG_ERR, "Failed to send NL IPVS_CMD_GET_DAEMON message in alvs_get_state_sync_info function.");
+	free(ss_info);
+	return NULL;
+}
+
+/******************************************************************************
+ * \brief         Following two functions: Parses daemon command (start/stop/status) received in NL message
+ *		  alvs_genl_parse_daemon function has been split into two functions because the need of another
+ *		  function which parses daemon commands and get a NL message header (called in alvs_msg_parser).
+ *
+ * \return        int - return code for pass/fail
+ */
+static int alvs_genl_parse_daemon(struct nl_msg *msg, void *arg)
+{
+	struct nlmsghdr *nlh = nlmsg_hdr(msg);
+
+	return alvs_genl_parse_daemon_from_msghdr(nlh, arg);
+}
+static int alvs_genl_parse_daemon_from_msghdr(struct nlmsghdr *nlh, void *arg)
+{
+	struct nlattr *attrs[IPVS_CMD_ATTR_MAX + 1];
+	struct nlattr *daemon_attrs[IPVS_DAEMON_ATTR_MAX + 1];
+	struct ip_vs_daemon_user *ret_daemon = (struct ip_vs_daemon_user *)arg;
+	int i = 0;
+
+	/* We may get two daemons.  If we've already got one, then this is the second */
+	if ((ret_daemon[0]).state == IP_VS_STATE_MASTER || (ret_daemon[0]).state == IP_VS_STATE_BACKUP)
+		i = 1;
+	if (genlmsg_parse(nlh, 0, attrs, IPVS_CMD_ATTR_MAX, alvs_cmd_policy) != 0)
+		return -1;
+	if (nla_parse_nested(daemon_attrs, IPVS_DAEMON_ATTR_MAX,
+			     attrs[IPVS_CMD_ATTR_DAEMON], alvs_daemon_policy))
+		return -1;
+	if (!(daemon_attrs[IPVS_DAEMON_ATTR_STATE] &&
+	      daemon_attrs[IPVS_DAEMON_ATTR_MCAST_IFN] &&
+	      daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID]))
+		return -1;
+	(ret_daemon[i]).state = nla_get_u32(daemon_attrs[IPVS_DAEMON_ATTR_STATE]);
+	strncpy((ret_daemon[i]).mcast_ifn, nla_get_string(daemon_attrs[IPVS_DAEMON_ATTR_MCAST_IFN]), IP_VS_IFNAME_MAXLEN);
+	(ret_daemon[i]).syncid = nla_get_u32(daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID]);
+
+	write_log(LOG_DEBUG, "parse daemon callback function will return with: i = %d, state = %d, mcast_ifn = %s, syncid = %d",
+		  i, (ret_daemon[i]).state, (ret_daemon[i]).mcast_ifn, (ret_daemon[i]).syncid);
+	return 0;
 }
 
 /******************************************************************************

@@ -13,6 +13,7 @@ import time
 import struct
 import socket
 import pprint
+import struct
 
 from pexpect import pxssh
 import pexpect
@@ -38,6 +39,7 @@ STRUCT_ID_ALVS_SERVER_INFO			   = 7
 STRUCT_ID_NW_FIB					   = 8
 STRUCT_ID_NW_ARP					   = 9
 STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10
+STRUCT_ID_APPLICATION_INFO			   = 11
 
 #===============================================================================
 # STATS DEFINES
@@ -365,7 +367,47 @@ class ezbox_host:
 			exit(1)
 
 		return num_of_packets
-		
+	
+	def start_state_sync_daemon(self, state, syncid = 0, mcast_if = "eth0"):
+		cmd = "ipvsadm --start-daemon %s --syncid %d --mcast-interface %s" %(state, syncid, mcast_if)
+		result, output = self.ssh_object.execute_command(cmd)
+		if result == False:
+			print 'ERROR, starting state sync %s daemon was failed' %state
+			return False
+		return True
+	
+	def stop_state_sync_daemon(self, state):
+		cmd = "ipvsadm --stop-daemon %s" %(state)
+		result, output = self.ssh_object.execute_command(cmd)
+		if result == False:
+			print 'ERROR, stopping state sync %s daemon was failed' %state
+			return False
+		return True
+	
+	def swap32(self,i):
+		return struct.unpack("<I", struct.pack(">I", i))[0]
+	
+	def get_applications_info(self):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_APPLICATION_INFO, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_APPLICATION_INFO, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		apps_info = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_APPLICATION_INFO, iterator_params_dict).result['iterator_params']
+			key = str(iterator_params_dict['entry']['key'])
+			lid = int(key, 16)
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			app_info = {'master_bit' : (int(result[0], 16) >> 1) & 0x1,
+						 'backup_bit' : (int(result[0], 16) >> 0) & 0x1,
+						 'm_sync_id' : self.swap32(int(''.join(result[8:12]), 16)),
+						 'b_sync_id' : self.swap32(int(''.join(result[12:16]), 16))
+						 }
+			apps_info.append(app_info)
+			
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_APPLICATION_INFO, iterator_params_dict)
+		return apps_info
+	
 	def get_num_of_services(self):
 		return self.cpe.cp.struct.get_num_entries(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, channel_id = 0).result['num_entries']['number_of_entries']
 

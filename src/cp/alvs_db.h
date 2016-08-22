@@ -142,6 +142,40 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 				      struct ip_vs_dest_user *ip_vs_dest);
 
 /**************************************************************************//**
+ * \brief       init state sync daemon
+ *
+ * \param[in]   ip_vs_daemon_info   - reference to state sync daemon info
+ *
+ * \return      success, failure or fatal error.
+ */
+enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info);
+
+/**************************************************************************//**
+ * \brief       start state sync daemon
+ *
+ * \param[in]   ip_vs_daemon_info   - reference to state sync daemon info
+ *
+ * \return      success, failure or fatal error.
+ */
+enum alvs_db_rc alvs_db_start_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info);
+
+/**************************************************************************//**
+ * \brief       stop state sync daemon
+ *
+ * \param[in]   ip_vs_daemon_info   - reference to state sync daemon info
+ *
+ * \return      success, failure or fatal error.
+ */
+enum alvs_db_rc alvs_db_stop_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info);
+
+/**************************************************************************//**
+ * \brief       log state sync daemon
+ *
+ * \return      success, failure or fatal error.
+ */
+enum alvs_db_rc alvs_db_log_daemon(void);
+
+/**************************************************************************//**
  * \brief       Delete all services and servers
  *
  * \return      success, failure or fatal error.

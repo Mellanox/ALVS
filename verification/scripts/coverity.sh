@@ -54,7 +54,7 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
-	ALVS_ACCEPTED_FP_CP=1
+	ALVS_ACCEPTED_FP_CP=2
 
 	echo "Creating $ALVS_COVERITY_RES_DIR_CP for CP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_CP &>> $LOG_FILE

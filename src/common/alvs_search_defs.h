@@ -57,7 +57,7 @@ CASSERT(sizeof(struct alvs_service_classification_key) == 8);
 /*result*/
 struct alvs_service_classification_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -102,7 +102,7 @@ CASSERT(sizeof(struct alvs_service_info_key) == 1);
 /*result*/
 struct alvs_service_info_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
@@ -141,7 +141,7 @@ CASSERT(sizeof(struct alvs_sched_info_key) == 2);
 /*result*/
 struct alvs_sched_info_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -180,7 +180,7 @@ CASSERT(sizeof(struct alvs_conn_classification_key) == 14);
 /*result*/
 struct alvs_conn_classification_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -218,7 +218,7 @@ CASSERT(sizeof(struct alvs_conn_info_key) == 4);
 /*result*/
 struct alvs_conn_info_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
@@ -236,7 +236,7 @@ struct alvs_conn_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : 7;
 	uint8_t              bound         : 1;
 #else
@@ -281,7 +281,7 @@ CASSERT(sizeof(struct alvs_server_info_key) == 4);
 /*result*/
 struct alvs_server_info_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
@@ -336,7 +336,7 @@ CASSERT(sizeof(struct alvs_server_classification_key) == 14);
 /*result*/
 struct alvs_server_classification_result {
 	/*byte0*/
-#ifdef ALVS_BIG_ENDIAN
+#ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : 4;
@@ -353,4 +353,37 @@ struct alvs_server_classification_result {
 
 CASSERT(sizeof(struct alvs_server_classification_result) == 8);
 
+/*********************************
+ * ALVS application info DB defs
+ *********************************/
+
+/*result*/
+struct alvs_app_info_result {
+	/*byte0*/
+#ifdef NPS_BIG_ENDIAN
+	unsigned	/*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned	/*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+
+	unsigned	/*reserved*/ : 2;
+	unsigned	master_bit : 1;
+	unsigned	backup_bit : 1;
+#else
+	unsigned	backup_bit : 1;
+	unsigned	master_bit : 1;
+	unsigned	/*reserved*/ : 2;
+
+	unsigned	/*reserved*/ : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned	/*reserved*/ : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1-3*/
+	unsigned	/*reserved*/ : 24;
+	/*byte4-7*/
+	unsigned	/*reserved*/ : 32;
+	/*byte8-11*/
+	uint32_t	m_sync_id;
+	/*byte12-15*/
+	uint32_t	b_sync_id;
+};
+
+CASSERT(sizeof(struct alvs_app_info_result) == 16);
 #endif /* ALVS_SERACH_DEFS_H_ */
