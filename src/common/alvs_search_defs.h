@@ -378,7 +378,7 @@ struct alvs_app_info_result {
 	/*byte1-3*/
 	unsigned	/*reserved*/ : 24;
 	/*byte4-7*/
-	unsigned	/*reserved*/ : 32;
+	in_addr_t	source_ip;
 	/*byte8-11*/
 	uint32_t	m_sync_id;
 	/*byte12-15*/

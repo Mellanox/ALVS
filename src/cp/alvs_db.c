@@ -97,6 +97,7 @@ struct alvs_db_application_info {
 	uint32_t		is_backup;
 	uint32_t		m_sync_id;
 	uint32_t		b_sync_id;
+	in_addr_t		source_ip;
 };
 
 struct alvs_server_node {
@@ -233,6 +234,7 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 		"is_backup INT NOT NULL,"
 		"m_sync_id INT NOT NULL,"
 		"b_sync_id INT NOT NULL,"
+		"source_ip INT NOT NULL,"
 		"PRIMARY KEY (application_index));";
 
 	/* Execute SQL statement */
@@ -956,9 +958,10 @@ enum alvs_db_rc internal_db_add_application_info(struct alvs_db_application_info
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO application_info "
-		"(application_index, is_master, is_backup, m_sync_id, b_sync_id) "
-		"VALUES (%d, %d, %d, %d, %d);",
-		alvs_app_info->application_index, alvs_app_info->is_master, alvs_app_info->is_backup, alvs_app_info->m_sync_id, alvs_app_info->b_sync_id);
+		"(application_index, is_master, is_backup, m_sync_id, b_sync_id, source_ip) "
+		"VALUES (%d, %d, %d, %d, %d, %d);",
+		alvs_app_info->application_index, alvs_app_info->is_master, alvs_app_info->is_backup,
+		alvs_app_info->m_sync_id, alvs_app_info->b_sync_id, alvs_app_info->source_ip);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -1015,11 +1018,12 @@ enum alvs_db_rc internal_db_get_application_info(struct alvs_db_application_info
 		return ALVS_DB_FAILURE;
 	}
 
-	/* retrieve ss alvs info from result */
+	/* retrieve state sync alvs info from result */
 	alvs_app_info->is_master = sqlite3_column_int(statement, 1);
 	alvs_app_info->is_backup = sqlite3_column_int(statement, 2);
 	alvs_app_info->m_sync_id = sqlite3_column_int(statement, 3);
 	alvs_app_info->b_sync_id = sqlite3_column_int(statement, 4);
+	alvs_app_info->source_ip = sqlite3_column_int(statement, 5);
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
@@ -1043,10 +1047,10 @@ enum alvs_db_rc internal_db_modify_application_info(struct alvs_db_application_i
 
 	sprintf(sql, "UPDATE application_info "
 		"SET is_master=%d, is_backup=%d, m_sync_id=%d, "
-		"b_sync_id=%d "
+		"b_sync_id=%d, source_ip=%d "
 		"WHERE application_index=%d;",
 		alvs_app_info->is_master, alvs_app_info->is_backup, alvs_app_info->m_sync_id,
-		alvs_app_info->b_sync_id, alvs_app_info->application_index);
+		alvs_app_info->b_sync_id, alvs_app_info->source_ip, alvs_app_info->application_index);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -1673,6 +1677,7 @@ void build_nps_application_info_result(struct alvs_db_application_info *cp_daemo
 	nps_application_info_result->alvs_app.backup_bit = cp_daemon_info->is_backup;
 	nps_application_info_result->alvs_app.m_sync_id = bswap_32(cp_daemon_info->m_sync_id);
 	nps_application_info_result->alvs_app.b_sync_id = bswap_32(cp_daemon_info->b_sync_id);
+	nps_application_info_result->alvs_app.source_ip = bswap_32(cp_daemon_info->source_ip);
 }
 
 /**************************************************************************//**
@@ -1689,6 +1694,37 @@ void build_nps_application_info_key(struct application_info_key *nps_application
 }
 
 /**************************************************************************//**
+ * \brief       build alvs state sync info for internal application info DB according to one daemon
+ *
+ * \param[in]   cp_daemon_info      - reference to an object in the internal application info DB
+ * \param[in]   ip_vs_daemon_info   - reference to state sync daemon info
+ * \param[in]   start_ss            - true, build cp state sync daemon after start-daemon
+ *                                    false, build cp state sync daemon after stop-daemon
+ */
+void build_cp_state_sync_daemon(struct alvs_db_application_info *cp_daemon_info, struct ip_vs_daemon_user *ip_vs_daemon_info, bool start_ss)
+{
+	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
+		if (start_ss == true) {
+			cp_daemon_info->is_master = 1;
+			cp_daemon_info->m_sync_id = ip_vs_daemon_info->syncid;
+		} else {
+			cp_daemon_info->is_master = 0;
+			cp_daemon_info->m_sync_id = 0;
+			cp_daemon_info->source_ip = 0;
+		}
+	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
+		if (start_ss == true) {
+			cp_daemon_info->is_backup = 1;
+			cp_daemon_info->b_sync_id = ip_vs_daemon_info->syncid;
+		} else {
+			cp_daemon_info->is_backup = 0;
+			cp_daemon_info->b_sync_id = 0;
+
+		}
+	}
+}
+
+/**************************************************************************//**
  * \brief       Build an object for the internal application info DB
  *		we might get two sync daemons to update one for master and the other for backup.
  *
@@ -1696,34 +1732,22 @@ void build_nps_application_info_key(struct application_info_key *nps_application
  *				 - given cp_daemon_info should be initialized.
  * \param[in]   ip_vs_daemon_info   - pointer to array with size 2 (master & backup) for state sync daemon info
  */
-void build_cp_state_sync_daemon(struct alvs_db_application_info *cp_daemon_info, struct ip_vs_daemon_user *ip_vs_daemon_info)
+void build_cp_state_sync_daemons(struct alvs_db_application_info *cp_daemon_info, struct ip_vs_daemon_user *ip_vs_daemon_info)
 {
 	cp_daemon_info->application_index = ALVS_APPLICATION_INFO_INDEX;
-
-	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
-		cp_daemon_info->is_master = 1;
-		cp_daemon_info->m_sync_id = ip_vs_daemon_info->syncid;
-	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
-		cp_daemon_info->is_backup = 1;
-		cp_daemon_info->b_sync_id = ip_vs_daemon_info->syncid;
-	} else {
-		/* no sync daemon was configured */
+	/* no sync daemon was configured */
+	if (ip_vs_daemon_info->state != IP_VS_STATE_MASTER && ip_vs_daemon_info->state != IP_VS_STATE_BACKUP) {
 		cp_daemon_info->is_master = 0;
 		cp_daemon_info->m_sync_id = 0;
 		cp_daemon_info->is_backup = 0;
 		cp_daemon_info->b_sync_id = 0;
+		cp_daemon_info->source_ip = 0;
 		return;
 	}
-
+	build_cp_state_sync_daemon(cp_daemon_info, ip_vs_daemon_info, true);
 	/* continue to the second sync daemon - if exists */
 	ip_vs_daemon_info++;
-	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
-		cp_daemon_info->is_master = 1;
-		cp_daemon_info->m_sync_id = ip_vs_daemon_info->syncid;
-	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
-		cp_daemon_info->is_backup = 1;
-		cp_daemon_info->b_sync_id = ip_vs_daemon_info->syncid;
-	}
+	build_cp_state_sync_daemon(cp_daemon_info, ip_vs_daemon_info, true);
 }
 
 /**************************************************************************//**
@@ -2605,6 +2629,66 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
 }
 
 /**************************************************************************//**
+ * \brief       check multi-cast interface argument in the ipvsadm --start-daemon command
+ *		the function will log an error in case given interface is not configured
+ *		, and will warn if it's configured with WLAN.
+ *		currently it should be only eth0.
+ *		in case of master sync daemon, this function will set the source ip, in the cp_daemon_info,
+ *		of the given interface.
+ *
+ * \param[in]   ip_vs_daemon_info   - state sync daemon info reference
+ * \param[in]   cp_daemon_info   -    reference to an object in the internal application info DB
+ *
+ * \return      true/false - mcast interface is configured or not.
+ */
+bool alvs_db_handle_mcast_if(struct ip_vs_daemon_user *ip_vs_daemon_info, struct alvs_db_application_info *cp_daemon_info)
+{
+	struct ifaddrs *ifaddr, *iter;
+	struct sockaddr_in *sa;
+	char host[NI_MAXHOST];
+	bool res = false;
+	int rc;
+
+	/* check if there is any configured state sync daemon */
+	if (ip_vs_daemon_info->state != IP_VS_STATE_MASTER && ip_vs_daemon_info->state != IP_VS_STATE_BACKUP) {
+		return true;
+	}
+	write_log(LOG_DEBUG, "Start verifying mcast interface for start sync daemon.");
+	if (getifaddrs(&ifaddr) == -1) {
+		write_log(LOG_ERR, "getifaddrs() failed.");
+		return false;
+	}
+	for (iter = ifaddr; iter != NULL; iter = iter->ifa_next) {
+		if (iter->ifa_addr == NULL)
+			continue;
+		/* IP protocol family */
+		if (iter->ifa_addr->sa_family == AF_INET) {
+			rc = getnameinfo(iter->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+			if (rc != 0) {
+				write_log(LOG_ERR, "getnameinfo() failed: %s.", gai_strerror(rc));
+				freeifaddrs(ifaddr);
+				return false;
+			}
+			if (strcmp(iter->ifa_name, ip_vs_daemon_info->mcast_ifn) == 0) {
+				/* in case of master sync daemon, we need to update the source ip of the given interface */
+				if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
+					sa = (struct sockaddr_in *) iter->ifa_addr;
+					cp_daemon_info->source_ip = bswap_32(sa->sin_addr.s_addr);
+				}
+				res = true;
+			}
+		}
+	}
+
+	freeifaddrs(ifaddr);
+
+	if (res == false) {
+		write_log(LOG_ERR, "Interface : <%s> is not configured.", ip_vs_daemon_info->mcast_ifn);
+	}
+	return res;
+}
+
+/**************************************************************************//**
  * \brief       API to init state sync daemon info in application info DBs
  *
  * \param[in]   ip_vs_daemon_info   - state sync daemon info reference
@@ -2612,6 +2696,7 @@ enum alvs_db_rc alvs_db_delete_server(struct ip_vs_service_user *ip_vs_service,
  * \return      ALVS_DB_OK - operation succeeded
  *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
  *              ALVS_DB_NPS_ERROR - failed to update NPS DB
+ *              ALVS_DB_FAILURE   - mcast interface is not valid
  */
 enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 {
@@ -2627,7 +2712,15 @@ enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 	case ALVS_DB_OK:
 		/* state sync daemon info exists */
 		write_log(LOG_DEBUG, "State sync daemon info exists. start initializing");
-		build_cp_state_sync_daemon(&cp_daemon_info, ip_vs_daemon_info);
+		build_cp_state_sync_daemons(&cp_daemon_info, ip_vs_daemon_info);
+
+		/* Check given mcast-if if configured or not and set master's mcast-if source ip (if exists) */
+		if (alvs_db_handle_mcast_if(ip_vs_daemon_info, &cp_daemon_info) == false) {
+			/* given mcast_ifn is not valid*/
+			write_log(LOG_NOTICE, "multi-cast interface is not configured. Can't init state sync daemon.");
+			return ALVS_DB_FAILURE;
+		}
+
 		/* modify internal DB */
 		if (internal_db_modify_application_info(&cp_daemon_info) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to update state sync daemon info in internal DB(internal error).");
@@ -2638,7 +2731,15 @@ enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 	case ALVS_DB_FAILURE:
 		/* state sync daemon info does not exist */
 		write_log(LOG_DEBUG, "State sync daemon info does not exist. start initializing");
-		build_cp_state_sync_daemon(&cp_daemon_info, ip_vs_daemon_info);
+		build_cp_state_sync_daemons(&cp_daemon_info, ip_vs_daemon_info);
+
+		/* Check given mcast-if if configured or not and set master's mcast-if source ip (if exists) */
+		if (alvs_db_handle_mcast_if(ip_vs_daemon_info, &cp_daemon_info) == false) {
+			/* given mcast_ifn is not valid*/
+			write_log(LOG_NOTICE, "multi-cast interface is not configured. Can't init state sync daemon.");
+			return ALVS_DB_FAILURE;
+		}
+
 		/* add to internal DB */
 		if (internal_db_add_application_info(&cp_daemon_info) == ALVS_DB_INTERNAL_ERROR) {
 			write_log(LOG_CRIT, "Failed to add state sync daemon info to the internal DB(internal error).");
@@ -2651,8 +2752,8 @@ enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "Initialized State sync daemon info with: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d",
-		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id);
+	write_log(LOG_DEBUG, "Initialized State sync daemon info with: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d, source_ip = %s",
+		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 
 	/* add to NPS DB */
 	build_nps_application_info_key(&nps_ss_daemon_info_key, ALVS_APPLICATION_INFO_INDEX);
@@ -2668,58 +2769,6 @@ enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 	write_log(LOG_DEBUG, "State sync daemon info was added successfully to NPS DB.");
 
 	return ALVS_DB_OK;
-}
-
-/**************************************************************************//**
- * \brief       check multi-cast interface argument in the ipvsadm --start-daemon command
- *		the function will log an error in case given interface is not configured
- *		, and will warn if it's configured with WLAN.
- *		currently it should be only eth0.
- *
- * \param[in]   ip_vs_daemon_info   - state sync daemon info reference
- *
- * \return      true/false - mcast interface is configured or not.
- */
-bool alvs_db_check_mcast_if(struct ip_vs_daemon_user *ip_vs_daemon_info)
-{
-	struct ifaddrs *ifaddr, *iter;
-	int rc;
-	char host[NI_MAXHOST];
-	bool res = false;
-
-	write_log(LOG_DEBUG, "Start verifying mcast interface for start sync daemon.");
-	if (getifaddrs(&ifaddr) == -1) {
-		write_log(LOG_ERR, "getifaddrs() failed.");
-		return false;
-	}
-
-	for (iter = ifaddr; iter != NULL; iter = iter->ifa_next) {
-		if (iter->ifa_addr == NULL)
-			continue;
-		rc = getnameinfo(iter->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-		/* IP protocol family */
-		if (iter->ifa_addr->sa_family == AF_INET) {
-			if (rc != 0) {
-				write_log(LOG_ERR, "getnameinfo() failed: %s.", gai_strerror(rc));
-				freeifaddrs(ifaddr);
-				return false;
-			}
-			if (strcmp(iter->ifa_name, ip_vs_daemon_info->mcast_ifn) == 0) {
-				write_log(LOG_DEBUG, "State sync daemon will be configured on default interface eth0.");
-				if (strchr(ip_vs_daemon_info->mcast_ifn, '.') != NULL) {
-					write_log(LOG_NOTICE, "Interface : <%s> is configured with VLAN. State sync daemon will be configured on default interface.", ip_vs_daemon_info->mcast_ifn);
-				}
-				res = true;
-			}
-		}
-	}
-
-	freeifaddrs(ifaddr);
-
-	if (res == false) {
-		write_log(LOG_ERR, "Interface : <%s> is not configured.", ip_vs_daemon_info->mcast_ifn);
-	}
-	return res;
 }
 
 /**************************************************************************//**
@@ -2752,8 +2801,8 @@ enum alvs_db_rc alvs_db_start_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* state sync daemon info exists */
-		write_log(LOG_DEBUG, "State sync daemon info exists. is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d",
-			  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id);
+		write_log(LOG_DEBUG, "State sync daemon info exists. is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d, source_ip = %s",
+			  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 		break;
 	default:
 		/* Can't reach here */
@@ -2771,23 +2820,17 @@ enum alvs_db_rc alvs_db_start_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info
 	}
 
 	/* Check in given mcast interface is configured or not */
-	if (!alvs_db_check_mcast_if(ip_vs_daemon_info)) {
+	if (alvs_db_handle_mcast_if(ip_vs_daemon_info, &cp_daemon_info) == false) {
 		/* given mcast_ifn is not valid*/
 		write_log(LOG_NOTICE, "multi-cast interface is not configured. Can't start state sync daemon.");
 		return ALVS_DB_FAILURE;
 	}
 
 	/* update cp_daemon_info */
-	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
-		cp_daemon_info.is_master = 1;
-		cp_daemon_info.m_sync_id = ip_vs_daemon_info->syncid;
-	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
-		cp_daemon_info.is_backup = 1;
-		cp_daemon_info.b_sync_id = ip_vs_daemon_info->syncid;
-	}
+	build_cp_state_sync_daemon(&cp_daemon_info, ip_vs_daemon_info, true);
 
-	write_log(LOG_DEBUG, "New state sync daemon info: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d",
-		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id);
+	write_log(LOG_DEBUG, "New state sync daemon info: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d, source_ip = %s",
+		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 
 	/* modify internal DB */
 	if (internal_db_modify_application_info(&cp_daemon_info) == ALVS_DB_INTERNAL_ERROR) {
@@ -2843,8 +2886,8 @@ enum alvs_db_rc alvs_db_stop_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 		return ALVS_DB_INTERNAL_ERROR;
 	case ALVS_DB_OK:
 		/* state sync daemon info exists */
-		write_log(LOG_DEBUG, "State sync daemon info exists. is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d",
-			  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id);
+		write_log(LOG_DEBUG, "State sync daemon info exists. is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d, source_ip = %s",
+			  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 		break;
 	default:
 		/* Can't reach here */
@@ -2862,16 +2905,10 @@ enum alvs_db_rc alvs_db_stop_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 	}
 
 	/* update cp_daemon_info */
-	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
-		cp_daemon_info.is_master = 0;
-		cp_daemon_info.m_sync_id = 0;
-	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
-		cp_daemon_info.is_backup = 0;
-		cp_daemon_info.b_sync_id = 0;
-	}
+	build_cp_state_sync_daemon(&cp_daemon_info, ip_vs_daemon_info, false);
 
-	write_log(LOG_DEBUG, "New state sync daemon info: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d",
-		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id);
+	write_log(LOG_DEBUG, "New state sync daemon info: is_master = %d, is_backup = %d, m_sync_id = %d, b_sync_id = %d, source_ip = %s",
+		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 
 	/* modify internal DB */
 	if (internal_db_modify_application_info(&cp_daemon_info) == ALVS_DB_INTERNAL_ERROR) {

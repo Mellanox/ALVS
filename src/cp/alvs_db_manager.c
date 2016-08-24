@@ -307,6 +307,7 @@ void alvs_db_manager_table_init(void)
 	struct ip_vs_get_dests *dests;
 	struct ip_vs_daemon_user *ip_vs_daemon_info;
 	int i, j;
+	enum alvs_db_rc alvs_ret;
 
 	/* Get state sync daemon info and start sync daemon with the current configuration */
 	write_log(LOG_DEBUG, "Getting state sync daemon info and start initializing sync daemon with the current configuration");
@@ -316,7 +317,8 @@ void alvs_db_manager_table_init(void)
 		alvs_db_manager_exit_with_error();
 	}
 
-	if (alvs_db_init_daemon(ip_vs_daemon_info) !=  ALVS_DB_OK) {
+	alvs_ret = alvs_db_init_daemon(ip_vs_daemon_info);
+	if (alvs_ret == ALVS_DB_INTERNAL_ERROR || alvs_ret == ALVS_DB_NPS_ERROR) {
 		write_log(LOG_CRIT, "Failed to start sync daemon during table init.");
 		free(ip_vs_daemon_info);
 		alvs_db_manager_exit_with_error();
