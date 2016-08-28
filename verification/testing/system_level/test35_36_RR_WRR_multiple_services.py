@@ -28,7 +28,7 @@ from e2e_infra import *
 #===============================================================================
 request_count = 1000
 server_count = 12
-client_count = 3
+client_count = 6
 service_count = 3
 
 
@@ -118,7 +118,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list, sched_algorithm):
 	time.sleep(6)
 	
 	for index, client in enumerate(client_list):
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip_list[index%service_count],)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -139,7 +139,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list, sched_al
 	
 	expected_servers = {}
 	for index, client in enumerate(client_list):
-		client_expected_servers=[s.ip for s in server_list if s.vip == vip_list[index]]
+		client_expected_servers=[s.ip for s in server_list if s.vip == vip_list[index%service_count]]
 		expected_servers[client.ip] = client_expected_servers
 
 	expected_dict['expected_servers_per_client'] = expected_servers

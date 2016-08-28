@@ -26,7 +26,7 @@ from e2e_infra import *
 
 repeat = 100 
 server_count = 5
-client_count = 20
+client_count = 5
 service_count = 1
 
 #===============================================================================

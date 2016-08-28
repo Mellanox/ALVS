@@ -489,13 +489,14 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	connection_rc = True
 	error_rc = True
-	if no_connections:
-		time.sleep(60)
-		for i in range(ALVS_SERVICES_MAX_ENTRIES):
-			stats_dict = ezbox.get_services_stats(i)
-			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
-				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
-				connection_rc = False
+	# TODO: at the moment this checker is invalid. need to re-implement
+# 	if no_connections:
+# 		time.sleep(60)
+# 		for i in range(ALVS_SERVICES_MAX_ENTRIES):
+# 			stats_dict = ezbox.get_services_stats(i)
+# 			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
+# 				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
+# 				connection_rc = False
 	
 	if no_errors:
 		error_stats = ezbox.get_error_stats()
@@ -538,7 +539,6 @@ def client_checker(log_dir, expected={}, step_count = 1):
 			step = 0
 		client_ip = filename[filename.find('client_')+7 : filename.find('.log')]
 		client_responses = {}
-		vip_responses = {}
 		logfile=open(filename, 'r')
 		for line in logfile:
 			if len(line) > 2 and line[0] != '#':
@@ -546,11 +546,10 @@ def client_checker(log_dir, expected={}, step_count = 1):
 				server = split_line[1].strip()
 				vip = split_line[0].strip()
 				client_responses[server] = client_responses.get(server, 0) + 1
-				if vip not in vip_responses.keys():
-					vip_responses[vip] = {}
-				vip_responses[vip][server] = vip_responses[vip].get(server, 0) + 1
+				if vip not in all_vip_responses[step].keys():
+					all_vip_responses[step][vip] = {}
+				all_vip_responses[step][vip][server] = all_vip_responses[step][vip].get(server, 0) + 1
 		all_responses[step][client_ip] = client_responses
-		all_vip_responses[step][client_ip] = vip_responses
 	
 	for step, responses in all_responses.items():
 		if step_count > 1:
@@ -621,15 +620,13 @@ def client_checker(log_dir, expected={}, step_count = 1):
 				services = expected_dict['check_distribution'][1]
 				sd_percent = expected_dict['check_distribution'][2]
 				
-				vips_responses = all_vip_responses[step][client_ip]
-				
-				for vip,servers_responses_dict in vips_responses.items():
+				for vip in all_vip_responses[step].keys():
 					print "check distribution for service: %s" %vip
 					servers_per_service = [s for s in servers if s.vip == vip]
 					total_per_service = 0
-					for rip, count in servers_responses_dict.items():
-						total_per_service += count
-					
+					for server in all_vip_responses[step][vip].keys():
+						total_per_service += all_vip_responses[step][vip][server]
+						
 					sd = total_per_service*sd_percent
 					print 'standard deviation is currently %.02f percent' %(sd_percent)
 					
@@ -639,8 +636,6 @@ def client_checker(log_dir, expected={}, step_count = 1):
 							totalWeights += 1
 						else:
 							totalWeights += s.weight
-					#print 'total weights of all servers for current service = %d' %(totalWeights)
-					#print 'total per service = %d' %total_per_service
 					
 					for s in servers_per_service:
 						if "rr" in expected_dict['check_distribution']:
@@ -648,12 +643,11 @@ def client_checker(log_dir, expected={}, step_count = 1):
 						else:
 							w = s.weight
 						responses_num_without_sd = (total_per_service*w)/totalWeights
-						if s.ip not in servers_responses_dict.keys():
+						if s.ip not in all_vip_responses[step][vip].keys():
 							actual_responses = 0
 						else:
-							actual_responses = servers_responses_dict[s.ip]
+							actual_responses = all_vip_responses[step][vip][s.ip]
 						diff = abs(actual_responses - responses_num_without_sd)
-						#print "diff = %s, sd = %s" %(diff,sd)
 						if diff > sd:
 							print 'ERROR: client should received: %d responses from server: %s with standard deviation: %d. Actual number of responses was: %d' %(responses_num_without_sd,s.ip,sd,actual_responses)
 							rc =  False

@@ -55,7 +55,7 @@ ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
 NW_NUM_OF_IF_STATS			 = 20
 
 
-ALVS_NUM_OF_ALVS_ERROR_STATS = 30
+ALVS_NUM_OF_ALVS_ERROR_STATS = 40
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
 EMEM_SERVICE_STATS_POSTED_OFFSET = EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS
@@ -709,7 +709,7 @@ class ezbox_host:
 					  'ALVS_ERROR_CONN_MARK_TO_DELETE':error_stats[18]['byte_value'],
 					  'ALVS_ERROR_SERVICE_CLASS_LOOKUP':error_stats[19]['byte_value'],
 					  'ALVS_ERROR_UNSUPPORTED_PROTOCOL':error_stats[20]['byte_value'],
-					  'ALVS_ERROR_NO_ACTIVE_SERVERS':error_stats[21]['byte_value'],
+#					  'ALVS_ERROR_NO_ACTIVE_SERVERS':error_stats[21]['byte_value'],
 					  'ALVS_ERROR_CREATE_CONN_MEM_ERROR':error_stats[22]['byte_value'],
 					  'ALVS_ERROR_STATE_SYNC':error_stats[23]['byte_value']}
 		

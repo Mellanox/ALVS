@@ -28,7 +28,7 @@ from e2e_infra import *
 #===============================================================================
 request_count = 1000
 server_count = 5
-client_count = 1
+client_count = 5
 service_count = 1
 
 
