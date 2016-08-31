@@ -489,15 +489,16 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	connection_rc = True
 	error_rc = True
-	# TODO: at the moment this checker is invalid. need to re-implement
-# 	if no_connections:
-# 		time.sleep(60)
-# 		for i in range(ALVS_SERVICES_MAX_ENTRIES):
-# 			stats_dict = ezbox.get_services_stats(i)
-# 			if stats_dict['SERVICE_STATS_CONN_SCHED'] != 0:
-# 				print 'ERROR: The are open connections for service %d. Connection count = %d' %(i, stats_dict['SERVICE_STATS_CONN_SCHED'])
-# 				connection_rc = False
-	
+	if no_connections:
+		server_index_list = ezbox.get_all_active_servers()
+		for server_index in server_index_list:
+			stats_dict = ezbox.get_servers_stats(server_index)
+			#active servers + not active servers = total servers
+			if(stats_dict['SERVER_STATS_CONN_SCHED'] != stats_dict['SERVER_STATS_ACTIVE_CONN'] + stats_dict['SERVER_STATS_INACTIVE_CONN']):
+				print 'ERROR: Bad connection fo server %d\n. Active connection count = %d. Inactive connection count = %d. Sched connection count = %d'\
+				%(server_index, stats_dict['SERVER_STATS_ACTIVE_CONN'], stats_dict['SERVER_STATS_INACTIVE_CONN'], stats_dict['SERVER_STATS_CONN_SCHED'])
+				connection_rc = False
+				
 	if no_errors:
 		error_stats = ezbox.get_error_stats()
 		for error_name, count in error_stats.items():

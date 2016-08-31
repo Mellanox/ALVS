@@ -736,6 +736,13 @@ class ezbox_host:
 					  'SERVICE_STATS_CONN_SCHED':service_stats[4]['byte_value'],
 					  'SERVICE_STATS_REF_CNT':service_stats[5]['byte_value']}
 		return stats_dict
+	
+	def get_all_active_servers(self):
+		self.ssh_object.ssh_object.sendline("echo -e \"select nps_index from servers where active = 1;\" | sqlite3 /" + "alvs.db")
+		self.ssh_object.ssh_object.prompt()
+		server_index_list = map(lambda str: str.split('|'), self.ssh_object.ssh_object.before.split('\n')[1:-1])
+		server_index_list = [int(s[0].strip()) for s in server_index_list]
+		return server_index_list
 
 	def get_servers_stats(self, server_id):
 		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
@@ -1170,4 +1177,5 @@ def compile(clean=True, debug=False):
 	print
 	print "Compilation Passed"
 	print
+	
 
