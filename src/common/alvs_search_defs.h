@@ -375,14 +375,18 @@ struct alvs_app_info_result {
 	unsigned	/*reserved*/ : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned	/*reserved*/ : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
-	/*byte1-3*/
-	unsigned	/*reserved*/ : 24;
+	/*byte1*/
+	unsigned	/*reserved*/ : 8;
+	/*byte2*/
+	uint8_t		m_sync_id;
+	/*byte3*/
+	uint8_t		b_sync_id;
 	/*byte4-7*/
 	in_addr_t	source_ip;
 	/*byte8-11*/
-	uint32_t	m_sync_id;
+	unsigned	/*reserved*/ : 32;
 	/*byte12-15*/
-	uint32_t	b_sync_id;
+	unsigned	/*reserved*/ : 32;
 };
 
 CASSERT(sizeof(struct alvs_app_info_result) == 16);

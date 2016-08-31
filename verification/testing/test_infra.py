@@ -570,7 +570,7 @@ def read_test_arg(args):
 		if ezbox == 'ezbox65':
 			ezbox_interface = 'eth0.9'
 			data_ip = '192.168.0.6'
-			setup_num = 5									
+			setup_num = 6
 		
 		print "ezbox setup: " + str(ezbox)
 		print "host_ip: " + host_ip

@@ -191,8 +191,6 @@ static struct nla_policy alvs_svc_policy[IPVS_SVC_ATTR_MAX + 1] = {
 	[IPVS_SVC_ATTR_FWMARK]		= { .type = NLA_U32 },
 	[IPVS_SVC_ATTR_SCHED_NAME]	= { .type = NLA_STRING,
 					    .maxlen = IP_VS_SCHEDNAME_MAXLEN },
-	[IPVS_SVC_ATTR_PE_NAME]		= { .type = NLA_STRING,
-					    .maxlen = IP_VS_PENAME_MAXLEN },
 	[IPVS_SVC_ATTR_FLAGS]		= { .type = NLA_UNSPEC,
 					    .maxlen = sizeof(struct ip_vs_flags),
 					    .minlen = sizeof(struct ip_vs_flags) },
@@ -403,6 +401,11 @@ void alvs_db_manager_exit_with_error(void)
 void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr)
 {
 	struct nlmsghdr *hdr = (struct nlmsghdr *)buffer;
+
+	if (saddr == NULL) {
+		write_log(LOG_NOTICE, "ALVS NL packet processing received packet with NULL saddr.");
+		return;
+	}
 	struct sockaddr_nl *nla = (struct sockaddr_nl *)saddr;
 	struct nl_msg *msg = NULL;
 
@@ -1006,8 +1009,12 @@ static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user
 	struct nlattr *nla_sched, *nla_flags, *nla_timeout, *nla_netmask;
 	struct ip_vs_flags flags;
 
+	if (nla == NULL) {
+		write_log(LOG_NOTICE, "Parsing service attributes - no attributes received in message");
+		return -1;
+	}
 	/* Parse mandatory identifying service fields first */
-	if (nla == NULL || nla_parse_nested(attrs, IPVS_SVC_ATTR_MAX, nla, alvs_svc_policy)) {
+	if (nla_parse_nested(attrs, IPVS_SVC_ATTR_MAX, nla, alvs_svc_policy)) {
 		write_log(LOG_ERR, "Error parsing service attributed");
 		return -1;
 	}

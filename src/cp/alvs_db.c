@@ -92,12 +92,12 @@ struct alvs_db_server {
 };
 
 struct alvs_db_application_info {
-	uint32_t		application_index;
-	uint32_t		is_master;
-	uint32_t		is_backup;
-	uint32_t		m_sync_id;
-	uint32_t		b_sync_id;
-	in_addr_t		source_ip;
+	uint8_t		application_index;
+	bool		is_master;
+	bool		is_backup;
+	uint8_t		m_sync_id;
+	uint8_t		b_sync_id;
+	in_addr_t	source_ip;
 };
 
 struct alvs_server_node {
@@ -1675,8 +1675,8 @@ void build_nps_application_info_result(struct alvs_db_application_info *cp_daemo
 {
 	nps_application_info_result->alvs_app.master_bit = cp_daemon_info->is_master;
 	nps_application_info_result->alvs_app.backup_bit = cp_daemon_info->is_backup;
-	nps_application_info_result->alvs_app.m_sync_id = bswap_32(cp_daemon_info->m_sync_id);
-	nps_application_info_result->alvs_app.b_sync_id = bswap_32(cp_daemon_info->b_sync_id);
+	nps_application_info_result->alvs_app.m_sync_id = cp_daemon_info->m_sync_id;
+	nps_application_info_result->alvs_app.b_sync_id = cp_daemon_info->b_sync_id;
 	nps_application_info_result->alvs_app.source_ip = bswap_32(cp_daemon_info->source_ip);
 }
 
@@ -1688,9 +1688,9 @@ void build_nps_application_info_result(struct alvs_db_application_info *cp_daemo
  *
  * \return
  */
-void build_nps_application_info_key(struct application_info_key *nps_application_info_key, uint32_t app_index)
+void build_nps_application_info_key(struct application_info_key *nps_application_info_key, uint8_t app_index)
 {
-	nps_application_info_key->application_index = bswap_32(app_index);
+	nps_application_info_key->application_index = app_index;
 }
 
 /**************************************************************************//**
@@ -1705,19 +1705,19 @@ void build_cp_state_sync_daemon(struct alvs_db_application_info *cp_daemon_info,
 {
 	if (ip_vs_daemon_info->state == IP_VS_STATE_MASTER) {
 		if (start_ss == true) {
-			cp_daemon_info->is_master = 1;
+			cp_daemon_info->is_master = true;
 			cp_daemon_info->m_sync_id = ip_vs_daemon_info->syncid;
 		} else {
-			cp_daemon_info->is_master = 0;
+			cp_daemon_info->is_master = false;
 			cp_daemon_info->m_sync_id = 0;
 			cp_daemon_info->source_ip = 0;
 		}
 	} else if (ip_vs_daemon_info->state == IP_VS_STATE_BACKUP) {
 		if (start_ss == true) {
-			cp_daemon_info->is_backup = 1;
+			cp_daemon_info->is_backup = true;
 			cp_daemon_info->b_sync_id = ip_vs_daemon_info->syncid;
 		} else {
-			cp_daemon_info->is_backup = 0;
+			cp_daemon_info->is_backup = false;
 			cp_daemon_info->b_sync_id = 0;
 
 		}
@@ -1737,9 +1737,9 @@ void build_cp_state_sync_daemons(struct alvs_db_application_info *cp_daemon_info
 	cp_daemon_info->application_index = ALVS_APPLICATION_INFO_INDEX;
 	/* no sync daemon was configured */
 	if (ip_vs_daemon_info->state != IP_VS_STATE_MASTER && ip_vs_daemon_info->state != IP_VS_STATE_BACKUP) {
-		cp_daemon_info->is_master = 0;
+		cp_daemon_info->is_master = false;
 		cp_daemon_info->m_sync_id = 0;
-		cp_daemon_info->is_backup = 0;
+		cp_daemon_info->is_backup = false;
 		cp_daemon_info->b_sync_id = 0;
 		cp_daemon_info->source_ip = 0;
 		return;
@@ -2959,11 +2959,11 @@ enum alvs_db_rc alvs_db_log_daemon(void)
 		return ALVS_DB_OK;
 	case ALVS_DB_OK:
 		/* state sync daemon info exists */
-		if (cp_daemon_info.is_master == 1)
+		if (cp_daemon_info.is_master == true)
 			write_log(LOG_INFO, "Master sync daemon (syncid=%d).", cp_daemon_info.m_sync_id);
-		if (cp_daemon_info.is_backup == 1)
+		if (cp_daemon_info.is_backup == true)
 			write_log(LOG_INFO, "Backup sync daemon (syncid=%d).", cp_daemon_info.b_sync_id);
-		if (cp_daemon_info.is_master == 0 && cp_daemon_info.is_backup == 0)
+		if (cp_daemon_info.is_master == false && cp_daemon_info.is_backup == false)
 			write_log(LOG_INFO, "No sync daemon.");
 		return ALVS_DB_OK;
 	default:
