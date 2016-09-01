@@ -86,6 +86,10 @@ def main():
 				print "Test passed"
 				cmd = 'rm -f '+logfilename
 				retval = os.system(cmd)
+			
+			# new line for seperating tests results
+			print ""
+			print ""
 
 
 	# exit with gen_retval

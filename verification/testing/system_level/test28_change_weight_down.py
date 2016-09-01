@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 2000
+request_count = 200
 server_count = 5
 client_count = 1
 service_count = 1
@@ -40,34 +40,15 @@ service_count = 1
 
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-
-	index = 0
-	setup_list = get_setup_list(setup_num)
-
-	server_list=[]
-	for i in range(server_count):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6',
-						  weight=2))
-		index+=1
 	
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname']))
-		index+=1
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		s.weight = 2
+		
+	return convert_generic_init_to_user_format(dict)
 
-	# EZbox
-	ezbox = ezbox_host(setup_num)
-	
-	return (server_list, ezbox, client_list, vip_list)
 
 def client_execution(client, vip):
 	client.exec_params += " -i %s -r %d" %(vip, request_count)

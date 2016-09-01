@@ -38,64 +38,32 @@ service_count = 3
 
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
+	
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	service_num_servers = 4
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-
+	
+	w1 = 1
+	w2 = 7
+	w3 = 4
 	index = 0
-	setup_list = get_setup_list(setup_num)
-
-	server_list=[]
-	w=1
-	for i in range(service_num_servers):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(index,w)
-		index+=1
-		w+=1
-	
-	w=7
-	for i in range(service_num_servers):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[1],
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(index,w)
-		index+=1
-		w+=4
-	
-	w=4
-	for i in range(service_num_servers):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[2],
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(index,w)
-		index+=1
-		w+=2
-	
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname']))
-		index+=1
-	
-
-	# EZbox
-	ezbox = ezbox_host(setup_num)
-	
-	return (server_list, ezbox, client_list, vip_list)
+	for s in dict['server_list']:
+		if index < service_num_servers:
+			print "init server %d weight = %d" %(index,w1)
+			s.vip = dict['vip_list'][0]
+			s.weight = w1
+			w1 += 1
+		elif index < 2 * service_num_servers:
+			print "init server %d weight = %d" %(index,w2)
+			s.vip = dict['vip_list'][1]
+			s.weight = w2
+			w2 += 4
+		else:
+			print "init server %d weight = %d" %(index,w3)
+			s.vip = dict['vip_list'][2]
+			s.weight = w3
+			w2 += 2
+		index += 1	
+	return convert_generic_init_to_user_format(dict)
 
 def client_execution(client, vip):
 	client.exec_params += " -i %s -r %d" %(vip, request_count)

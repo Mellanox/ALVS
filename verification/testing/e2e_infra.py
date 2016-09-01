@@ -170,8 +170,6 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	ezbox.update_cp_params("--agt_enabled --port_type=10GE")
 	
 	ezbox.alvs_service_stop()
-	ezbox.config_vips(vip_list)
-	ezbox.flush_ipvs()
 	
 	
 	if test_config['use_install']:
@@ -179,6 +177,8 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	else:
 		if test_config['copy_binaries']:
 			ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+	ezbox.config_vips(vip_list)
+	ezbox.flush_ipvs()
 	ezbox.alvs_service_start()
 
 	# wait for CP before initialize director

@@ -29,13 +29,9 @@ from e2e_infra import *
 #===============================================================================
 #general porpuse
 g_request_count  = 500
-g_next_vm_index = 0
-
-# got from user
-g_setup_num      = None
 
 # Configured acording to test number
-g_server_count   = None
+g_server_count   = None   # includes g_servers_to_add
 g_client_count   = None
 g_service_count  = None
 g_servers_to_add = None
@@ -54,38 +50,15 @@ g_sched_alg_opt  = None
 #===============================================================================
 def user_init(setup_num):
 	# modified global variables
-	global g_next_vm_index
 	
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	vip_list = [get_setup_vip(setup_num,i) for i in range(g_service_count)]
-
-	setup_list = get_setup_list(setup_num)
-
-	# get serevers list
-	server_list=[]
-	for i in range(g_server_count):
-		server_list.append(HttpServer(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6'))
-		g_next_vm_index+=1
+	dict = generic_init(setup_num, g_service_count, g_server_count, g_client_count)
 	
- 	# get clients list
-	client_list=[]
-	for i in range(g_client_count):
-		client_list.append(HttpClient(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname']))
-		g_next_vm_index+=1
-	
-
-	# get EZbox
-	ezbox = ezbox_host(setup_num)
-
-	return (server_list, ezbox, client_list, vip_list)
-
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		
+	return convert_generic_init_to_user_format(dict)
 #===============================================================================
 # Function: set_user_params
 #
@@ -101,9 +74,6 @@ def client_execution(client, vip):
 # Brief:
 #===============================================================================
 def run_user_test_step(server_list, ezbox, client_list, vip_list):
-	# modified global variables
-	global g_next_vm_index
-
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
 	#===========================================================================
@@ -117,8 +87,11 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	# Set service & Add servers to service 
 	#===========================================================================
 	ezbox.add_service(vip, port, g_sched_alg, g_sched_alg_opt)
-	for s in server_list:
-		ezbox.add_server(vip, port, s.ip, port)
+	for idx, s in enumerate(server_list):
+		if idx >= (g_server_count - g_servers_to_add):
+			break
+		
+ 		ezbox.add_server(vip, port, s.ip, port)
 
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
@@ -139,23 +112,13 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	#===========================================================================
 	# Add new servers
 	#===========================================================================
-	setup_list = get_setup_list(g_setup_num)
-	
-	for i in range(g_servers_to_add):
-		# create new server object & add to list
-		new_server = HttpServer(ip   = setup_list[g_next_vm_index]['ip'],
-							hostname = setup_list[g_next_vm_index]['hostname'],
-							username = "root",
-							password = "3tango",
-							vip      = vip,
-							eth      ='ens6')
-		server_list.append(new_server)
-		g_next_vm_index+=1
-	
+	for idx, s in enumerate(server_list):
+		if idx < (g_server_count - g_servers_to_add):
+			continue
+		
 		# init new server & add to service 
-		new_server.init_server(new_server.ip)
-		ezbox.add_server(new_server.vip, port, new_server.ip, port)
-
+ 		ezbox.add_server(vip, port, s.ip, port)
+	
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
 
@@ -181,7 +144,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 	expected_dict = {}
 	expected_dict[0] = {'client_response_count':g_request_count,
 					'client_count'            : len(client_list), 
-					'server_count_per_client' : len(server_list) - g_servers_to_add,
+					'server_count_per_client' : g_server_count - g_servers_to_add,
 					'no_connection_closed'    : True,
 					'no_404'                  : True}
 	expected_dict[1] = {'client_response_count':g_request_count,
@@ -201,7 +164,6 @@ def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
 #===============================================================================
 def set_user_params(setup_num, test):
 	# modified global variables
-	global g_setup_num
 	global g_server_count
 	global g_client_count
 	global g_service_count
@@ -212,25 +174,23 @@ def set_user_params(setup_num, test):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	# general
-	g_setup_num = setup_num
-	
 	# config test parms
 	if test == 8:
-		g_server_count   = 2
+		g_server_count   = 3  # includes g_servers_to_add
 		g_client_count   = 1
 		g_service_count  = 1
 		g_servers_to_add = 1
 		g_sched_alg        = "sh"
 		g_sched_alg_opt    = "-b sh-port"
 	elif test == 9:
-		g_server_count   = 5
+		g_server_count   = 10  # includes g_servers_to_add
 		g_client_count   = 1
 		g_service_count  = 1
 		g_servers_to_add = 5
 		g_sched_alg        = "sh"
 		g_sched_alg_opt    = "-b sh-port"
 	elif test == 10:
-		g_server_count   = 5
+		g_server_count   = 15  # includes g_servers_to_add
 		g_client_count   = 10
 		g_service_count  = 1
 		g_servers_to_add = 10
@@ -241,7 +201,6 @@ def set_user_params(setup_num, test):
 		exit()
 	
 	# print configuration
-	print "setup_num:      " + str(g_setup_num)
 	print "service_count:  " + str(g_service_count)
 	print "server_count:   " + str(g_server_count)
 	print "client_count:   " + str(g_client_count)

@@ -39,62 +39,34 @@ service_count = 3
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-	sh_service = vip_list[0]
-	rr_service = vip_list[1]
-	wrr_service = vip_list[2]
+	dict = generic_init(setup_num, service_count, server_count, client_count)
+	
+	sh_service = dict['vip_list'][0]
+	rr_service = dict['vip_list'][1]
+	wrr_service = dict['vip_list'][2]
+	
+	w1 = 1
+	w2 = 1
+	w3 = 97
 	index = 0
-	setup_list = get_setup_list(setup_num)
-
-	server_list=[]
-	w=1
-	for i in range(server_count-6):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = sh_service,
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(i,w)
-		index+=1
-		w=5*index
-
-	w=1
-	for i in range(3,server_count-3):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = rr_service,
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(i,w)
-		index+=1
-	
-	w=97
-	for i in range(6,server_count):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = wrr_service,
-						  eth='ens6',
-						  weight=w))
-		print "init server %d weight = %d" %(i,w)
-		index+=1
-		w+=1
+	for s in dict['server_list']:
+		if index < (server_count-6):
+			print "init server %d weight = %d" %(index,w1)
+			s.vip = sh_service
+			s.weight = w1
+			w1 = 5 * (index + 1)
+		elif index < (server_count-3):
+			print "init server %d weight = %d" %(index,w2)
+			s.vip = rr_service
+			s.weight = w2
+		else:
+			print "init server %d weight = %d" %(index,w3)
+			s.vip = wrr_service
+			s.weight = w3
+			w3 += 1
+		index += 1	
 		
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname']))
-		index+=1
-	
-	# EZbox
-	ezbox = ezbox_host(setup_num)
-	
-	return (server_list, ezbox, client_list, vip_list)
+	return convert_generic_init_to_user_format(dict)
 
 def client_execution(client, vip):
 	client.exec_params += " -i %s -r %d" %(vip, request_count)

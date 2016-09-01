@@ -53,39 +53,15 @@ g_sched_alg_opt      = None
 # Brief:
 #===============================================================================
 def user_init(setup_num):
-	# modified global variables
-	global g_next_vm_index
-	
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	vip_list = [get_setup_vip(setup_num,i) for i in range(g_service_count)]
-
-	setup_list = get_setup_list(setup_num)
-
-	# get serevers list
-	server_list=[]
-	for i in range(g_server_count):
-		server_list.append(HttpServer(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6'))
-		g_next_vm_index+=1
+	dict = generic_init(setup_num, g_service_count, g_server_count, g_client_count)
 	
- 	# get clients list
-	client_list=[]
-	for i in range(g_client_count):
-		client_list.append(HttpClient(ip = setup_list[g_next_vm_index]['ip'],
-						  hostname = setup_list[g_next_vm_index]['hostname']))
-		g_next_vm_index+=1
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		
+	return convert_generic_init_to_user_format(dict)
 	
-
-	# get EZbox
-	ezbox = ezbox_host(setup_num)
-
-	return (server_list, ezbox, client_list, vip_list)
-
 #===============================================================================
 # Function: set_user_params
 #
