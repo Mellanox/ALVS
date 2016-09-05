@@ -3203,6 +3203,7 @@ void server_db_aging(void)
 	char sql[256];
 	struct alvs_db_service cp_service;
 	struct alvs_db_server cp_server;
+	struct alvs_server_info_key nps_server_info_key;
 	sigset_t sigs_to_block;
 	uint64_t value;
 
@@ -3247,11 +3248,22 @@ void server_db_aging(void)
 					  cp_server.nps_index, my_inet_ntoa(cp_service.ip),
 					  cp_service.port, cp_service.protocol);
 
+				/* Delete server from internal DB */
 				if (internal_db_delete_server(&cp_service, &cp_server) == ALVS_DB_INTERNAL_ERROR) {
-					write_log(LOG_CRIT, "Delete server failed in aging thread");
+					write_log(LOG_CRIT, "Delete server from internal DB failed in aging thread");
 					server_db_exit_with_error();
 				}
 
+				/* Delete server from NPS DB */
+				build_nps_server_info_key(&cp_server, &nps_server_info_key);
+				if (infra_delete_entry(STRUCT_ID_ALVS_SERVER_INFO,
+						       &nps_server_info_key,
+						       sizeof(struct alvs_server_info_key)) == false) {
+					write_log(LOG_CRIT, "Delete server from NPS DB failed in aging thread");
+					server_db_exit_with_error();
+				}
+
+				/* Release server index from index pool */
 				write_log(LOG_DEBUG, "Releasing server index %d", cp_server.nps_index);
 				index_pool_release(&server_index_pool, cp_server.nps_index);
 			}
