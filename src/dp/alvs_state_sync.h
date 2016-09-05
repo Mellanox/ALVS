@@ -370,13 +370,17 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 			if (rc < 0) {
 				alvs_write_log(LOG_DEBUG, "Decoding connection ERROR (%d) - Dropping buffer", rc);
 				alvs_discard_and_stats(ALVS_ERROR_STATE_SYNC_DECODE_CONN);
-				break;
+				return;
 			} else if (rc > 0) {
 				alvs_write_log(LOG_DEBUG, "Decoding connection ERROR (%d) - skipping connection", rc);
 			}
 
 			/* TODO - Make sure we have 32 bit alignment? */
 		}
+
+		/* Discard frame without updating statistics */
+		alvs_discard_frame();
+
 	} else {
 		alvs_write_log(LOG_DEBUG, "ERROR - Currently dropping sync messages of version 0");
 		alvs_discard_and_stats(ALVS_ERROR_STATE_SYNC_BAD_MESSAGE_VERSION);
