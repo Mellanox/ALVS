@@ -202,10 +202,20 @@ CASSERT(sizeof(struct alvs_conn_classification_result) == 8);
  * Connection info DB defs
  *********************************/
 
-/*must be >0 and <256 due to use of ezdp_mod*/
+/*tcp connection state*/
 enum alvs_tcp_conn_state {
-	ALVS_TCP_CONNECTION_ESTABLISHED = 60,
-	ALVS_TCP_CONNECTION_CLOSE_WAIT	= 1
+	IP_VS_TCP_S_NONE	= 0,
+	IP_VS_TCP_S_ESTABLISHED	= 1,
+	IP_VS_TCP_S_CLOSE_WAIT	= 7
+};
+
+/*amount of aging iterations before timeout
+ * for tcp connection state.
+ * must be >0 and <256 due to use of ezdp_mod
+ */
+enum alvs_conn_aging_iterations {
+	ALVS_TCP_CONN_ITER_ESTABLISHED	= 60,
+	ALVS_TCP_CONN_ITER_CLOSE_WAIT	= 1
 };
 
 /*key*/
@@ -222,7 +232,7 @@ struct alvs_conn_info_result {
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
-	uint8_t              sync_bit      : 1;
+	uint8_t              /*reserved*/  : 1;
 	uint8_t              aging_bit     : 1;
 	uint8_t              delete_bit    : 1;
 	uint8_t              reset_bit     : 1;
@@ -230,7 +240,7 @@ struct alvs_conn_info_result {
 	uint8_t              reset_bit     : 1;
 	uint8_t              delete_bit    : 1;
 	uint8_t              aging_bit     : 1;
-	uint8_t              sync_bit      : 1;
+	uint8_t              /*reserved*/  : 1;
 
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;

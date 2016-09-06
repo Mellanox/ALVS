@@ -472,7 +472,7 @@ void packet_processing(void)
 
 		if (port_id == ALVS_AGING_TIMER_LOGICAL_ID) {
 			alvs_handle_aging_event(frame.job_desc.rx_info.timer_info.event_id);
-			alvs_discard_frame();
+			/*frame is discarded by aging event handler*/
 		} else {
 			nw_recieve_and_parse_frame(&frame,
 						   frame_data,

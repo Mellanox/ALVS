@@ -39,6 +39,7 @@
 #include "defs.h"
 #include "alvs_server.h"
 #include "alvs_utils.h"
+#include "alvs_state_sync_master.h"
 #include "nw_routing.h"
 
 /******************************************************************************
@@ -93,7 +94,6 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 	alvs_write_log(LOG_DEBUG, "Index %d allocated for connection", conn_index);
 
 	cmem_alvs.conn_info_result.aging_bit = 1;
-	cmem_alvs.conn_info_result.sync_bit = 1;
 	cmem_alvs.conn_info_result.bound = bound;
 	cmem_alvs.conn_info_result.reset_bit = reset;
 	cmem_alvs.conn_info_result.delete_bit = reset;
@@ -104,7 +104,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 	cmem_alvs.conn_info_result.age_iteration = 0;
 	ezdp_mem_copy(&cmem_alvs.conn_info_result.conn_class_key, &cmem_alvs.conn_class_key, sizeof(struct alvs_conn_classification_key));
 
-	if (conn_state == ALVS_TCP_CONNECTION_ESTABLISHED) {
+	if (conn_state == IP_VS_TCP_S_ESTABLISHED) {
 		cmem_alvs.conn_info_result.conn_flags &= ~IP_VS_CONN_F_INACTIVE;
 		if (bound) {
 			alvs_update_connection_statistics(1, 1, 0);
@@ -136,11 +136,10 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 				 cmem_wa.alvs_wa.conn_hash_wa,
 				 sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
-
 	if (bound) {
-		alvs_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully ", conn_index, server);
+		alvs_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully", conn_index, server);
 	} else {
-		alvs_write_log(LOG_DEBUG, "Unbounded connection created (conn_idx = %d server_addr = 0x%08x:%d) successfully ", conn_index, server, port);
+		alvs_write_log(LOG_DEBUG, "Unbounded connection created (conn_idx = %d server_addr = 0x%08x:%d) successfully", conn_index, server, port);
 	}
 
 	return ALVS_SERVICE_DATA_PATH_SUCCESS;
@@ -177,7 +176,6 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 	cmem_alvs.conn_info_result.delete_bit = 0;
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.conn_state = new_state;
-	cmem_alvs.conn_info_result.sync_bit = 1;
 	cmem_alvs.conn_info_result.conn_flags |= IP_VS_CONN_F_INACTIVE;
 
 	rc = ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
@@ -187,6 +185,10 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.conn_info_table_wa,
 			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
+
+	/*mark connection for state sync*/
+	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NEED;
+	alvs_write_log(LOG_DEBUG, "Connection state updated (conn_idx = %d state = %d) successfully and marked for state sync", conn_index, new_state);
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -224,8 +226,8 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 	cmem_alvs.conn_info_result.aging_bit = 0;
 	cmem_alvs.conn_info_result.delete_bit = 1;
 	cmem_alvs.conn_info_result.reset_bit = reset;
-	if (reset && cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED) {
-		cmem_alvs.conn_info_result.conn_state = ALVS_TCP_CONNECTION_CLOSE_WAIT;
+	if (reset && cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED) {
+		cmem_alvs.conn_info_result.conn_state = IP_VS_TCP_S_CLOSE_WAIT;
 		alvs_update_connection_statistics(0, -1, 1);
 		cmem_alvs.conn_info_result.conn_flags |= IP_VS_CONN_F_INACTIVE;
 	}
@@ -255,7 +257,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 {
 
 	if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) == 0) {
-		if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED) {
+		if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED) {
 			alvs_update_connection_statistics(-1, -1, 0);
 		} else {
 			alvs_update_connection_statistics(-1, 0, -1);
@@ -423,6 +425,15 @@ void alvs_conn_do_route(uint8_t *frame_base)
 
 	/*update statistics*/
 	alvs_update_incoming_traffic_stats();
+
+	/*send connection state sync*/
+	if (unlikely(cmem_alvs.conn_sync_state.conn_sync_status == ALVS_CONN_SYNC_NEED)) {
+		/*check application info if state sync is active*/
+		if (unlikely(alvs_util_app_info_lookup() == 0 && cmem_wa.alvs_wa.alvs_app_info_result.master_bit)) {
+			alvs_state_sync_send_single(cmem_wa.alvs_wa.alvs_app_info_result.source_ip,
+						    cmem_wa.alvs_wa.alvs_app_info_result.m_sync_id);
+		}
+	}
 }
 
 /******************************************************************************
@@ -504,9 +515,9 @@ void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphd
 				return;
 			}
 		} else {
-			if (cmem_alvs.conn_info_result.conn_state == ALVS_TCP_CONNECTION_ESTABLISHED && tcp_hdr->fin) {
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  ALVS_TCP_CONNECTION_ESTABLISHED got FIN = 1 ", conn_index);
-				if (alvs_conn_update_state(conn_index, ALVS_TCP_CONNECTION_CLOSE_WAIT) != 0) {
+			if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED && tcp_hdr->fin) {
+				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  IP_VS_TCP_S_ESTABLISHED got FIN = 1 ", conn_index);
+				if (alvs_conn_update_state(conn_index, IP_VS_TCP_S_CLOSE_WAIT) != 0) {
 					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, update connection state to close FAIL", conn_index);
 					/*drop frame*/
 					alvs_discard_and_stats(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);

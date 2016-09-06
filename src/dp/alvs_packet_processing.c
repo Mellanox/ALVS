@@ -34,7 +34,8 @@
 */
 
 #include "alvs_packet_processing.h"
-#include "alvs_state_sync.h"
+
+#include "alvs_state_sync_backup.h"
 
 #define UDP_DEST 8848
 
@@ -88,6 +89,9 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint3
 			    struct iphdr *ip_hdr, bool my_mac)
 {
 	struct udphdr *udp_hdr;
+
+	/*reset sync status for current packet*/
+	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 
 	if (cmem_nw.ipv4_decode_result.next_protocol.tcp) {
 		if (my_mac) {

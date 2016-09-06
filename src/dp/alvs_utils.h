@@ -39,6 +39,39 @@
 #include "defs.h"
 #include "global_defs.h"
 #include "nw_utils.h"
+#include "alvs_search_defs.h"
+
+/******************************************************************************
+ * \brief         get the amount of aging iterations for alvs connection state.
+ *
+ * \return        amount of aging iterations
+ */
+static __always_inline
+int alvs_util_get_conn_iterations(enum alvs_tcp_conn_state alvs_state)
+{
+	switch (alvs_state) {
+	case IP_VS_TCP_S_ESTABLISHED:
+		return ALVS_TCP_CONN_ITER_ESTABLISHED;
+	case IP_VS_TCP_S_CLOSE_WAIT:
+		return ALVS_TCP_CONN_ITER_CLOSE_WAIT;
+	default:
+		/*should not happen*/
+		return 1;
+	}
+}
+
+/******************************************************************************
+ * \brief       perform alvs application info lookup.
+ *
+ * \return      lookup result
+ *
+ */
+static __always_inline
+int alvs_util_app_info_lookup(void)
+{
+	return nw_app_info_lookup(ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
+					sizeof(struct alvs_app_info_result));
+}
 
 /******************************************************************************
  * \brief         update in pkts/in bytes statistics for: server, service

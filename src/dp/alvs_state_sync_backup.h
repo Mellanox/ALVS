@@ -29,18 +29,17 @@
 * POSSIBILITY OF SUCH DAMAGE.
 *
 *  Project:             NPS400 ALVS application
-*  File:                alvs_state_sync.h
-*  Desc:                state sync of alvs
+*  File:                alvs_state_sync_backup.h
+*  Desc:                state sync of alvs - backup functionality
 */
 
-#ifndef ALVS_STATE_SYNC_H_
-#define ALVS_STATE_SYNC_H_
+#ifndef ALVS_STATE_SYNC_BACKUP_H_
+#define ALVS_STATE_SYNC_BACKUP_H_
 
 #include "alvs_defs.h"
 #include "alvs_server.h"
 #include "application_search_defs.h"
 
-#define SYNC_PROTO_VER 1
 
 /******************************************************************************
  * \brief       process one state sync connection message.
@@ -191,13 +190,10 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 		cmem_alvs.conn_info_result.conn_flags = flags;
 
 		cmem_alvs.conn_info_result.conn_state = (enum alvs_tcp_conn_state)conn->state;
-		/* TODO - verify this calculation is correct */
-		if (conn->timeout != 0) {
-			cmem_alvs.conn_info_result.aging_bit = 0;
-			cmem_alvs.conn_info_result.age_iteration = conn->state - (conn->timeout / 16);
-		} else {
-			cmem_alvs.conn_info_result.aging_bit = 1;
-		}
+
+		/*mark connection as active, aging will handle it*/
+		cmem_alvs.conn_info_result.aging_bit = 1;
+		cmem_alvs.conn_info_result.age_iteration = 0;
 
 		ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 					conn_index,
@@ -287,7 +283,6 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 		alvs_discard_and_stats(ALVS_ERROR_STATE_SYNC_LOOKUP_FAIL);
 		return;
 	}
-	b_syncid = cmem_wa.alvs_wa.alvs_app_info_result.b_sync_id;
 
 	if (!cmem_wa.alvs_wa.alvs_app_info_result.backup_bit) {
 		alvs_write_log(LOG_DEBUG, "Backup state sync daemon is not configured.");
@@ -295,6 +290,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 		return;
 	}
 
+	b_syncid = cmem_wa.alvs_wa.alvs_app_info_result.b_sync_id;
 	while (buflen + tail_len < sizeof(struct alvs_state_sync_header)) {
 		if (ezframe_next_buf(frame, 0) != 0) {
 			alvs_write_log(LOG_DEBUG, "ERROR - message header too short");
@@ -328,7 +324,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	}
 
 	/* Check version */
-	if ((hdr->version == SYNC_PROTO_VER) && (hdr->reserved == 0)
+	if ((hdr->version == ALVS_STATE_SYNC_PROTO_VER) && (hdr->reserved == 0)
 	    && (hdr->spare == 0)) {
 
 		/* Handle version 1 message */
@@ -388,4 +384,4 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 }
 
 
-#endif /* ALVS_STATE_SYNC_H_ */
+#endif /* ALVS_STATE_SYNC_BACKUP_H_ */

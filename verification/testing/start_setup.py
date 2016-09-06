@@ -72,15 +72,8 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	ezbox.add_service(vip, port, sched_alg='rr', sched_alg_opt='')
 	for server in server_list:
 		ezbox.add_server(vip, port, server.ip, port)
-		
-# 	time.sleep(5)
-# 	for client in client_list:
-# 		process_list.append(Process(target=client_execution, args=(client,vip,)))
-# 	for p in process_list:
-# 		p.start()
-# 	for p in process_list:
-# 		p.join()
-# 		
+
+
 #===============================================================================
 # main function
 #===============================================================================

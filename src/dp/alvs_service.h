@@ -138,9 +138,15 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_
 	result = alvs_conn_create_new_entry(true,
 					    cmem_alvs.sched_info_result.server_index,
 					    0,
-					    ((tcp_hdr->fin || tcp_hdr->rst) ? ALVS_TCP_CONNECTION_CLOSE_WAIT : ALVS_TCP_CONNECTION_ESTABLISHED),
+					    ((tcp_hdr->fin || tcp_hdr->rst) ? IP_VS_TCP_S_CLOSE_WAIT : IP_VS_TCP_S_ESTABLISHED),
 					    cmem_alvs.server_info_result.conn_flags,
 					    tcp_hdr->rst ? 1 : 0);
+
+	/*mark connection for state sync*/
+	if (likely(result == ALVS_SERVICE_DATA_PATH_SUCCESS)) {
+		alvs_write_log(LOG_DEBUG, "New connection created and marked for state sync (conn_index = %d)", cmem_alvs.conn_result.conn_index);
+		cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NEED;
+	}
 
 unlock:
 	alvs_unlock_connection(hash_value);

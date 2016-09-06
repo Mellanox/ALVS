@@ -67,7 +67,30 @@ enum alvs_service_output_result {
  * ALVS definitions
  ***************************************************************/
 
+#define ALVS_TIMER_INTERVAL_SEC 16
+
 #define ALVS_SCHED_RR_RETRIES 10
+
+#define ALVS_STATE_SYNC_PROTO_VER        1
+#define ALVS_STATE_SYNC_HEADROOM         64
+#define ALVS_STATE_SYNC_BUFFERS_LIMIT    5 /*value should fit 4 bits*/
+#define ALVS_STATE_SYNC_DST_IP           "224.0.0.81"
+#define ALVS_STATE_SYNC_DST_PORT         8848
+#define ALVS_STATE_SYNC_DST_MAC          {0x01, 0x00, 0x5e, 0x00, 0x00, 0x51}
+
+enum alvs_conn_sync_status {
+	ALVS_CONN_SYNC_NEED              = 0,
+	ALVS_CONN_SYNC_NO_NEED           = 1,
+	ALVS_CONN_SYNC_LAST
+};
+
+struct alvs_conn_sync_state {
+	enum alvs_conn_sync_status        conn_sync_status:4;
+	unsigned                          amount_buffers:4;
+	uint8_t                           *current_base;
+	uint8_t                           current_len;
+	uint8_t                           conn_count;
+};
 
 enum alvs_sched_server_result {
 	ALVS_SCHED_SERVER_SUCCESS       = 0,
@@ -116,6 +139,8 @@ struct alvs_cmem {
 	/**< connection spinlock */
 	struct alvs_conn_classification_result          conn_result;
 	/**< connection class result */
+	struct alvs_conn_sync_state                     conn_sync_state;
+	/**< connection state synchronization */
 } __packed;
 
 /***********************************************************************//**

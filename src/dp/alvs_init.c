@@ -207,10 +207,17 @@ bool init_alvs_private_cmem(void)
 	addr.mem_type = EZDP_EXTERNAL_MS;
 	addr.msid     = EMEM_SPINLOCK_MSID;
 
-	for (id = 0; id < ALVS_CONN_LOCK_ELEMENTS_COUNT; id++) {
+	for (id = 0; id < ALVS_CONN_LOCK_ELEMENTS_COUNT; id++) { /*TODO is this code redundant?*/
 		ezdp_init_spinlock_ext_addr(&cmem_alvs.conn_spinlock, &addr);
 		addr.address++;
 	}
+
+	/*init state sync*/
+	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
+	cmem_alvs.conn_sync_state.amount_buffers = 0;
+	cmem_alvs.conn_sync_state.current_base = NULL;
+	cmem_alvs.conn_sync_state.current_len = 0;
+	cmem_alvs.conn_sync_state.conn_count = 0;
 
 	return true;
 }

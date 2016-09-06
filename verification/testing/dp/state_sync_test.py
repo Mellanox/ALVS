@@ -184,7 +184,7 @@ def test_2():
 	time.sleep(1)
 	
 	# create packet
-	conn = get_ss_conn(6, 0x100, 1, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	# syncid = 2
 	ss_hdr = get_ss_hdr(36+8, 2, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
@@ -218,7 +218,7 @@ def test_3():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	# create packet
-	conn = get_ss_conn(6, 0x100, 1, 12303, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12303, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 2, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -250,7 +250,7 @@ def test_4():
 	time.sleep(1)
 	
 	# create packet
-	conn = get_ss_conn(6, 0x100, 1, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 1, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -276,7 +276,7 @@ def test_4():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -293,7 +293,7 @@ def test_5():
 	time.sleep(1)
 
 	# create packet
-	conn = get_ss_conn(6, 0x100, 1, 12305, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12305, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 1, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -318,7 +318,7 @@ def test_5():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 0 or conn['server'] != ip2int(server_list[0].data_ip) or conn['state'] != 1 or conn['flags'] != 0x120:
+	if conn['bound'] != 0 or conn['server'] != ip2int(server_list[0].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -334,8 +334,8 @@ def test_6_9():
 		return False
 	time.sleep(1)
 	# create packet
-	conn0 = get_ss_conn(6, 0x100, 1, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x0, 60, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x100, 7, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn1 = get_ss_conn(6, 0x0, 1, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 4, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -360,7 +360,7 @@ def test_6_9():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 60 or conn['flags'] != 0x20:
+	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x20:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -377,7 +377,7 @@ def test_7():
 		return False
 	time.sleep(1)
 	# create packet
-	conn = get_ss_conn(6, 0x0, 60, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, syncid, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -394,7 +394,7 @@ def test_7():
 	# server not exists
 	service1.add_server(server_list[0])
 	
-	conn = get_ss_conn(6, 0x100, 1, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, syncid, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -420,7 +420,7 @@ def test_7():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 3 or conn['state'] != 1 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != 3 or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -437,8 +437,8 @@ def test_8():
 	time.sleep(1)
 	
 	# create packet
-	conn0 = get_ss_conn(6, 0x0, 60, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x100, 1, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x0, 1, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn1 = get_ss_conn(6, 0x100, 7, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 8, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -463,7 +463,7 @@ def test_8():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 1 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -480,8 +480,8 @@ def test_10():
 	time.sleep(1)
 
 	# create packet
-	conn0 = get_ss_conn(6, 0x0, 60, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x0, 60, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn1 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 1, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -506,7 +506,7 @@ def test_10():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 60 or conn['flags'] != 0x20:
+	if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 1 or conn['flags'] != 0x20:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -523,8 +523,8 @@ def test_11():
 	time.sleep(1)
 	
 	# create packet
-	conn0 = get_ss_conn(6, 0x100, 1, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x100, 1, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn1 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 11, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -549,7 +549,7 @@ def test_11():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
@@ -575,16 +575,16 @@ def test_12():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr
 	
 	for port in [10,20,30]:
-		conn = get_ss_conn(6, 0x100, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 		packet += conn
 	for port in [11,21,31]:
-		conn = get_ss_conn(6, 0x0, 60, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 		packet += conn
 	for port in [12,22,32]:
-		conn = get_ss_conn(6, 0x100, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
 		packet += conn
 	for port in [13]:
-		conn = get_ss_conn(6, 0x0, 60, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 		packet += conn
 		
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
@@ -604,7 +604,7 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
@@ -616,7 +616,7 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 60 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
@@ -628,7 +628,7 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 1 or conn['flags'] != 0x120:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
@@ -640,7 +640,7 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 60 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
@@ -664,31 +664,31 @@ def test_13():
 	
 	packet = (eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr)
 	
-	conn = get_ss_conn(6, 0x0, 60, 10, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 10, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	packet += conn
 	
-	conn = get_ss_conn(6, 0x100, 1, 20, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 20, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 1, 30, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 30, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 1, 11, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 11, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x0, 60, 21, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 21, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x0, 60, 31, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 31, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
 	packet += conn	
 
-	conn = get_ss_conn(6, 0x0, 60, 12, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 12, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 1, 22, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 22, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 1, 32, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 32, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
 	packet += conn
 		
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
@@ -708,7 +708,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 60 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -720,7 +720,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 	
-		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 1 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -732,7 +732,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 1 or conn['flags'] != 0x120:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -744,7 +744,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 60 or conn['flags'] != 0x20:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -756,7 +756,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -768,7 +768,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 60 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False

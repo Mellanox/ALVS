@@ -933,7 +933,7 @@ void set_syslog_template(struct net_hdr  *net_hdr_info, int total_frame_length)
 				     + sizeof(struct udphdr)
 				     + total_frame_length;
 	net_hdr_info->ipv4.id = 0x6dad;
-	net_hdr_info->ipv4.frag_off = 0x4000; /* TODO IP_DF */
+	net_hdr_info->ipv4.frag_off = IP_DF;
 	net_hdr_info->ipv4.ttl = MAXTTL;
 	net_hdr_info->ipv4.protocol = IPPROTO_UDP;
 	net_hdr_info->ipv4.check = 0;

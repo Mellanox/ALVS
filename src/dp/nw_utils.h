@@ -43,6 +43,16 @@
 
 
 /******************************************************************************
+ * \brief         perform application info lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t nw_app_info_lookup(uint32_t key, void __cmem * entry_ptr, uint32_t entry_ptr_size)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc, key, entry_ptr, entry_ptr_size, 0);
+}
+
+/******************************************************************************
  * \brief         update interface stat counter - special couters for nw
  * \return        void
  */
@@ -54,7 +64,7 @@ void nw_interface_inc_counter(uint32_t counter_id)
 
 /******************************************************************************
  * \brief         interface lookup
- * \return        void
+ * \return        lookup result
  */
 static __always_inline
 uint32_t nw_interface_lookup(int32_t	logical_id)
@@ -66,7 +76,7 @@ uint32_t nw_interface_lookup(int32_t	logical_id)
 
 /******************************************************************************
  * \brief         interface lookup
- * \return        void
+ * \return        lookup result
  */
 static __always_inline
 uint32_t nw_interface_lookup_host(void)
@@ -79,7 +89,7 @@ uint32_t nw_interface_lookup_host(void)
 
 /******************************************************************************
  * \brief         interface lookup
- * \return        void
+ * \return        host mac address
  */
 static __always_inline
 uint8_t *nw_interface_get_host_mac_address(void)

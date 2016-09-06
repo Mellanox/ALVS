@@ -34,14 +34,19 @@
 
 #include "user_defs.h"
 #include <ezdp_defs.h>
+#include <linux/ip.h>
+#include <linux/udp.h>
 
 #define __fast_path_code __imem_1_cluster_func
 #define __slow_path_code __imem_all_cluster_func
 
-union temp {
-	int x;
-	int y;
-};
+#define IP_DF           0x4000 /* TODO take from netinet/ip.h after fixing includes */
+#define IP_V4           0
+
+struct net_hdr {
+	struct iphdr ipv4;
+	struct udphdr udp;
+} __packed;
 
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}

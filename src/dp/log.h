@@ -37,8 +37,6 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/ethernet.h>
-#include <linux/ip.h>
-#include <linux/udp.h>
 #include "syslog.h"
 #include <ezdp.h>
 #include <ezframe.h>
@@ -72,11 +70,6 @@ char syslog_str[EZFRAME_BUF_DATA_SIZE];
 	} \
 }
 #endif
-
-struct net_hdr {
-	struct iphdr ipv4;
-	struct udphdr udp;
-} __packed;
 
 struct syslog_wa_info {
 	ezframe_t   frame;

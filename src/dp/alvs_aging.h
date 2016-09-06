@@ -49,6 +49,26 @@ void alvs_handle_aging_event(uint32_t event_id)
 	uint32_t conn_index;
 	uint32_t last_conn_index;
 	uint32_t iteration_num = event_id / ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
+	in_addr_t source_ip = 0;
+	uint8_t sync_id = 0;
+
+
+	/*discard timer job now, to be able to send sync state frame during this part*/
+	alvs_discard_frame();
+
+	/*check application info if state sync is active*/
+	if (unlikely(alvs_util_app_info_lookup() == 0 && cmem_wa.alvs_wa.alvs_app_info_result.master_bit)) {
+		/*reset connection state sync state*/
+		cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NEED;
+		cmem_alvs.conn_sync_state.conn_count = 0;
+		cmem_alvs.conn_sync_state.amount_buffers = 0;
+		cmem_alvs.conn_sync_state.current_len = 0;
+		cmem_alvs.conn_sync_state.current_base = frame_data;
+		source_ip = cmem_wa.alvs_wa.alvs_app_info_result.source_ip;
+		sync_id = cmem_wa.alvs_wa.alvs_app_info_result.m_sync_id;
+	} else {
+		cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
+	}
 
 	event_id %= ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
 	last_conn_index = (event_id + 1) * ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB;
@@ -80,11 +100,15 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
-				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0));
+				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state), 0, 0));
+				/*aggregate active connection into current state sync frame*/
+				if (unlikely(cmem_alvs.conn_sync_state.conn_sync_status == ALVS_CONN_SYNC_NEED)) {
+					alvs_state_sync_aggr(source_ip, sync_id);
+				}
 				continue;
 			}
 
-			if (cmem_alvs.conn_info_result.age_iteration == ezdp_mod(iteration_num, cmem_alvs.conn_info_result.conn_state, 0, 0) &&
+			if (cmem_alvs.conn_info_result.age_iteration == ezdp_mod(iteration_num, alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state), 0, 0) &&
 				cmem_alvs.conn_info_result.aging_bit == 0) {
 				alvs_write_log(LOG_DEBUG, "(Aging aging_bit=0) deleting connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
 					       conn_index,
@@ -99,6 +123,12 @@ void alvs_handle_aging_event(uint32_t event_id)
 			}
 		}
 	}
+	/*send last state sync frame*/
+	if (unlikely(cmem_alvs.conn_sync_state.amount_buffers > 0)) {
+		alvs_state_sync_send_aggr();
+	}
+	/*finish aging, reset sync status*/
+	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 }
 
 
