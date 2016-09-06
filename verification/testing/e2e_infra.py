@@ -54,7 +54,7 @@ def generic_main():
 	if not options.setup_num:
 		print 'ERROR: setup_num is not given'
 		exit(1)
-	if (options.setup_num == 0) or (options.setup_num > 6):
+	if (options.setup_num == 0) or (options.setup_num > 7):
 		print 'ERROR: setup_num is not in range'
 		exit(1)
 
