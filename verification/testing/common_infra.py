@@ -132,6 +132,72 @@ class ezbox_host:
 		self.clean_vips()
 		self.logout()
 		
+	def init_keepalived(self, services):
+		conf_filename = 'keepalived.conf'
+		conf_folder = '/etc/keepalived/'
+		outfile = open(conf_filename, 'w')
+		outfile.write('########################################################################\n')
+		outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
+		outfile.write('########################################################################\n')
+		outfile.write('global_defs {\n')
+		outfile.write('	lvs_id LVS_MAIN\n')
+		outfile.write('}\n')
+		for vip in services.keys():
+			outfile.write('virtual_server %s 80 {\n'%vip)
+ 			outfile.write('	delay_loop 5\n')
+			outfile.write('	lb_algo sh\n') #todo
+			outfile.write('	lb_kind DR\n')
+			outfile.write('	protocol TCP\n')
+			for server, weight in services[vip]:
+				outfile.write('	real_server %s 80 {\n'%server)
+				outfile.write('		weight %d\n'%weight)
+				outfile.write('		HTTP_GET {\n')
+				outfile.write('			url {\n')
+				outfile.write('				path /test.html\n')
+				i=0
+				while True:
+					try:
+						result, output = self.execute_command_on_host("genhash -s %s -p 80 -u /test.html"%server)
+						if result == False:
+							print "ERROR while executing command on host: genhash -s %s -p 80 -u /test.html"%server
+						
+						digest = output.split()[2]
+						break
+					except:
+						print "error while figure out genhash value, server %s"%server
+						if i==10:
+							print "ERROR"
+							exit(1)
+						i+=1
+						
+				outfile.write('				digest %s\n'%digest)
+				outfile.write('			}\n')
+				outfile.write('			connect_timeout 3\n')
+				outfile.write('			nb_get_retry 3\n')
+				outfile.write('			delay_before_retry 2\n')
+				outfile.write('		}\n')
+				outfile.write('	}\n')
+			outfile.write('}\n')
+		outfile.close()
+		self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
+		cmd = 'rm -f '+conf_filename
+		os.system(cmd)
+		self.execute_command_on_host('/etc/init.d/keepalived start')
+	
+	def clean_keepalived(self):
+		conf_filename = 'keepalived.conf'
+		conf_folder = '/etc/keepalived/'
+		outfile = open(conf_filename, 'w')
+		outfile.write('########################################################################\n')
+		outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
+		outfile.write('########################################################################\n')
+		outfile.write('# Empty configuration\n')
+		outfile.close()
+		self.execute_command_on_host('/etc/init.d/keepalived stop')
+		self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
+		cmd = 'rm -f '+conf_filename
+		os.system(cmd)
+		
 	def init_director(self, services):
 		conf_filename = 'ldirectord.cf'
 		conf_folder = '/etc/ha.d/'
@@ -641,11 +707,11 @@ class ezbox_host:
 
 	def add_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -A -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(0.5)
+		time.sleep(1)
 
 	def modify_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -E -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(0.5)
+		time.sleep(1)
 
 	def delete_service(self, vip, port):
 		self.execute_command_on_host("ipvsadm -D -t %s:%s"%(vip,port))
@@ -653,11 +719,11 @@ class ezbox_host:
 
 	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
 		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
-		time.sleep(0.5)
+		time.sleep(1)
 
 	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
 		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
-		time.sleep(0.5)
+		time.sleep(1)
 
 	def delete_server(self, vip, service_port, server_ip, server_port):
 		self.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s"%(vip, service_port, server_ip, server_port))
@@ -667,6 +733,26 @@ class ezbox_host:
 		self.execute_command_on_host("ipvsadm -C")
 		time.sleep(0.5)
 
+	def zero_all_ipvs_stats(self):
+		logging.log(logging.INFO, "zero all ipvs stats")
+		result, output = self.execute_command_on_host('ipvsadm --zero')
+		if result == False:
+			print "ERROR, failed to execute zero command"
+			print output
+			return False
+		
+		return True
+		
+	def get_ipvs_stats(self):
+		logging.log(logging.INFO, "get all ipvs stats")
+		result, output = self.execute_command_on_host('ipvsadm --list --stats')
+		if result == False:
+			print "ERROR, failed to execute zero command"
+			print output
+			return False
+		
+		return True
+	
 	def clean_arp_table(self):
 		logging.log(logging.INFO, "clean arp table")
 		cmd = 'ip -s -s neigh flush all'
@@ -729,6 +815,7 @@ class ezbox_host:
 															 num_counters=ALVS_NUM_OF_SERVICE_STATS, 
 															 double_operation=False).result['posted_counter_config']['counters']
 	
+		
 		stats_dict = {'SERVICE_STATS_IN_PKT':service_stats[0]['byte_value'],
 					  'SERVICE_STATS_IN_BYTES':service_stats[1]['byte_value'],
 					  'SERVICE_STATS_OUT_PKT':service_stats[2]['byte_value'],
@@ -759,6 +846,8 @@ class ezbox_host:
 															num_counters=ALVS_NUM_OF_SERVER_STATS, 
 															double_operation=False).result['posted_counter_config']['counters']
 		
+		connection_total = self.get_server_connections_total_stats(server_id)
+		
 		stats_dict = {'SERVER_STATS_IN_PKT':server_stats[0]['byte_value'],
 					  'SERVER_STATS_IN_BYTES':server_stats[1]['byte_value'],
 					  'SERVER_STATS_OUT_PKT':server_stats[2]['byte_value'],
@@ -766,10 +855,12 @@ class ezbox_host:
 					  'SERVER_STATS_CONN_SCHED':server_stats[4]['byte_value'],
 					  'SERVER_STATS_REFCNT':server_stats[5]['byte_value'],
 					  'SERVER_STATS_INACTIVE_CONN':server_stats[6]['byte_value'],
-					  'SERVER_STATS_ACTIVE_CONN':server_stats[7]['byte_value']}
+					  'SERVER_STATS_ACTIVE_CONN':server_stats[7]['byte_value'],
+					  'SERVER_STATS_CONNECTION_TOTAL':connection_total}
+		
 		return stats_dict
 
-	def get_server_sched_connections_stats(self, server_id):
+	def get_server_connections_total_stats(self, server_id):
 		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
 			return -1
 		
@@ -785,7 +876,6 @@ class ezbox_host:
 		
 		print sched_connections_on_server
 		return sched_connections_on_server[0]['value']
-
 
 	def get_interface_stats(self, interface_id):
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:
@@ -893,7 +983,96 @@ class ezbox_host:
 		
 		result,output = self.execute_command_on_host("ip route add 192.168.0.0/16 dev " + self.setup['interface'])
 		return [result,output] 
-		
+	
+	def read_stats_on_syslog(self):
+# 		os.system("sshpass -p ezchip scp root@%s:/var/log/syslog temp_syslog"%(self.setup['host']))
+		syslog_lines = [line.rstrip('\n') for line in open('temp_syslog')]
+		interface_stats = {}
+		global_syslog_stats = {}
+		all_servers_stats = {}
+		service_stats = {}
+				
+		for index,line in enumerate(syslog_lines):
+			if 'Statistics of global errors' in line:
+				print "found global, index = " + str(index)
+				global_syslog_stats = {}
+				for i in range(index+1,index+100):
+					temp = syslog_lines[i].find('<info>      ')
+					if temp>0:
+						try:
+							global_syslog_stats[syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[9])
+						except:
+							print "error parsing global stats syslog message"
+							pass
+					else:
+						break
+			if 'Statistics of Network Interface' in line or 'Statistics of Host Interface' in line:
+				interface_stats = {}
+				if 'Statistics of Host Interface' in line:
+					interface_num = 'host'
+				else:
+					interface_num = int(line.split()[line.split().index('Interface')+1])
+				print interface_num
+				interface_stats[interface_num] = {}
+				for i in range(index+1,index+100):
+					temp = syslog_lines[i].find('<info>      ')
+					if temp>0:
+						try:
+							interface_stats[interface_num][syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[9])
+						except:
+							print "error parsing interface stats syslog message"
+							pass
+					else:
+						break
+			if 'Print Statistics for Services:' in line:
+				service_stats = {}
+				for i in range(index+2,index+258):
+					try:
+						line_split = syslog_lines[i].split()
+						if ':80' in line_split[6]:
+							service = line_split[6][:-3]
+							service_stats[service] = {}
+							service_stats[service]['IN_PACKETS'] = int(line_split[8])
+							service_stats[service]['IN_BYTES'] = int(line_split[10])
+							service_stats[service]['OUT_PACKETS'] = int(line_split[12])
+							service_stats[service]['OUT_BYTES'] = int(line_split[14])
+							service_stats[service]['CONN_SCHED'] = int(line_split[16])
+						else:
+							break
+					except:
+						print "Error parsing service stats"
+
+			if 'Print Statistics for Servers:' in line:
+				all_servers_stats = {}
+				server_index = 0
+				service = line.split()[11]
+				all_servers_stats[service] = {}
+				for i in range(index+2,index+258):
+					try:
+						line_split = syslog_lines[i].split()
+						if 'Server' in line_split[6] and ':80' in line_split[7]:
+							server_stats = {}
+							server_stats['IN_PACKETS'] = int(line_split[8])
+							server_stats['IN_BYTES'] = int(line_split[10])
+							server_stats['OUT_PACKETS'] = int(line_split[12])
+							server_stats['OUT_BYTES'] = int(line_split[14])
+							server_stats['CONN_SCHED'] = int(line_split[16])
+							server_stats['CONN_TOTAL'] = int(line_split[18])
+							server_stats['ACTIVE_CONN'] = int(line_split[20])
+							server_stats['INACTIVE_CONN'] = int(line_split[22])
+							all_servers_stats[service][line_split[7]] = server_stats
+							
+						else:
+							break
+					except:
+						print "Error parsing servers stats"
+						pass	
+
+		return {'interface_stats':interface_stats,
+				'global_stats':global_syslog_stats,
+				'server_stats':all_servers_stats,
+				'service_stats':service_stats}		
+			
 class SshConnect:
 	def __init__(self, hostname, username, password):
 
@@ -1068,6 +1247,7 @@ class player(object):
 		self.ssh.execute_command(cmd)
 		
 	def copy_file_to_player(self, filename, dest):
+
 		rc =  os.system("sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest)
 		if rc:
 			print "ERROR: failed to copy %s to %s" %(filename, dest)

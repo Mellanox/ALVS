@@ -9,6 +9,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
+import signal
 
 
 
@@ -20,7 +21,21 @@ sys.path.insert(0,parentdir)
 sys.path.insert(0,currentdir)
 from e2e_infra import *
 
- 
+gen_retval = True
+failed_tests = ""
+def exit_signal_handler(signal = None, frame = None):
+	global gen_retval
+	global failed_tests
+	print("Ctrl-C was pressed, Didn't finished run all tests")
+	if gen_retval:
+		print 'The tests that ran were passed'
+		exit(1)
+	else:
+		print 'Some tests failed !!!'
+		print "Failed Tests:"
+		print failed_tests
+		exit(1)
+		
 #===============================================================================
 def clean_setup(setup_num):
 	cmd = currentdir + '/clean_setup_servers.py ' + setup_num + " > /dev/null 2>&1"
@@ -29,6 +44,10 @@ def clean_setup(setup_num):
 		print "WARNNING: CMD: %s - Failed" %cmd
 
 def main():
+	global gen_retval
+	global failed_tests
+	signal.signal(signal.SIGINT, exit_signal_handler)
+	
 	if len(sys.argv) < 4:
 		print "script expects exactly 3 input arguments"
 		print "Usage: regression_run.py <setup_num> <list_name> <True/False (use 4 k CPUs)> <True/False (exit on error)>"
@@ -54,6 +73,12 @@ def main():
 	# Execute all tests in list
 	first_test = True
 	gen_retval = True
+	
+	if not os.path.exists("logs"):
+		os.makedirs("logs")
+		
+	failed_tests = ""
+	os.system("cat /dev/null > verification/testing/system_level/lists/failed_tests")
 	for line in list_file:
 		if line[0] != '#':
 			clean_setup(setup_num)
@@ -62,7 +87,7 @@ def main():
 			print 'running test %s ...' % test
 			
 			# prepare test command
-			logfilename = '%s_log' %test
+			logfilename = 'logs/%s_log' %test
 			cmd = currentdir + '/' + test + ' -s ' + setup_num + ' -c ' + use_4_k_cpus
 			if not first_test:
 				print "**** not first test"
@@ -75,11 +100,16 @@ def main():
 			print "*** CMD: " + cmd
 			retval = os.system(cmd)
 			
+			if os.WIFSIGNALED(retval):
+				exit_signal_handler()
+				
 			# check test retval
 			if retval != 0:
 				gen_retval = False
 				print "Test failed"
 				print 'see logfile ' + logfilename
+				failed_tests += (test + '\n')
+				os.system("echo %s >> verification/testing/system_level/lists/failed_tests"%test)
 				if exit_on_error:
 					break
 			else: 
@@ -102,6 +132,9 @@ def main():
 		print '===================='
 		print 'Some test failed !!!'
 		print '===================='
+		print "Failed Tests:"
+		print failed_tests
+		print "to run all failed tests use: verification/testing/system_level/regression_run.py " + setup_num + " failed_tests false"
 		exit(1)
 
 

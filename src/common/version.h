@@ -36,16 +36,16 @@
  * P.GGMC.ZZZZ	- Version format
  * P		- Major 16 bits, fixed product number, allocated value is 22
  * GG		- Minor bits 15:8, 2 digits, GA release number 1, 2, 3..
- * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3…9
+ * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3...9
  * C		- Minor bits 3:0, 1 digit, branch maintenance number (customer), reset on each GA release
  * ZZZZ		- Currently zero
  *
  */
 
 #ifdef NDEBUG
-const char *version = "$Revision: 22.0200.0000 $";
+static const char * const version = "$Revision: 22.0200.0000 $";
 #else
-const char *version = "$Revision: 22.0200.0000-debug $";
+static const char * const version = "$Revision: 22.0200.0000-debug $";
 #endif
 
 #endif /* SRC_COMMON_VERSION_H_ */

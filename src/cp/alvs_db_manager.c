@@ -67,6 +67,7 @@
 #include "alvs_db.h"
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
+#include "version.h"
 
 bool *alvs_db_manager_cancel_application_flag;
 int raw_sock;
@@ -101,7 +102,7 @@ static struct nla_policy alvs_cmd_policy[IPVS_CMD_ATTR_MAX + 1] = {
 	[IPVS_CMD_ATTR_TIMEOUT_UDP]	= { .type = NLA_U32 },
 };
 
-#define ALVS_CMD_COUNT            10
+#define ALVS_CMD_COUNT            14
 
 static struct genl_cmd alvs_cmds[ALVS_CMD_COUNT] = {
 	{
@@ -170,6 +171,34 @@ static struct genl_cmd alvs_cmds[ALVS_CMD_COUNT] = {
 	{
 		.c_id           = IPVS_CMD_GET_DAEMON,
 		.c_name	        = "IPVS CMD GET DAEMON",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_GET_INFO,
+		.c_name	        = "IPVS CMD GET INFO",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_ZERO,
+		.c_name	        = "IPVS CMD ZERO",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_GET_SERVICE,
+		.c_name	        = "IPVS CMD GET SERVICE",
+		.c_maxattr      = IPVS_CMD_ATTR_MAX,
+		.c_attr_policy  = alvs_cmd_policy,
+		.c_msg_parser   = &alvs_msg_parser,
+	},
+	{
+		.c_id           = IPVS_CMD_GET_DEST,
+		.c_name	        = "IPVS CMD GET DEST",
 		.c_maxattr      = IPVS_CMD_ATTR_MAX,
 		.c_attr_policy  = alvs_cmd_policy,
 		.c_msg_parser   = &alvs_msg_parser,
@@ -611,7 +640,7 @@ struct nl_msg *alvs_nl_message(int cmd, int flags)
 static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd, struct genl_info *info, void *arg)
 {
 	int ret = 0;
-	enum alvs_db_rc alvs_ret;
+	enum alvs_db_rc alvs_ret = ALVS_DB_OK;
 	bool need_full_dest = false;
 	bool need_full_svc = false;
 	struct ip_vs_service_user svc;
@@ -658,75 +687,150 @@ static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd,
 		}
 		return NL_OK;
 	}
-
-	/* Flush request */
-	if (cmd->c_id == IPVS_CMD_FLUSH) {
-		alvs_ret = alvs_db_clear();
-		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Problem flushing all data.");
-		}
-		return NL_OK;
-	}
-	if (cmd->c_id == IPVS_CMD_NEW_SERVICE || cmd->c_id == IPVS_CMD_SET_SERVICE) {
-		need_full_svc = true;
-	}
-	/* For all requests need to parse service (except for flush or sync daemon commands) */
-	ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
-
-	if (ret < 0)
-		return NL_SKIP;
-
-
-	write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
-
-	if (cmd->c_id == IPVS_CMD_NEW_DEST || cmd->c_id == IPVS_CMD_SET_DEST || cmd->c_id == IPVS_CMD_DEL_DEST) {
-		/* For all destination related requests need to parse dest (server) */
-		if (cmd->c_id != IPVS_CMD_DEL_DEST) {
-			need_full_dest = true;
-		}
-		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
-		if (ret < 0)
-			return NL_SKIP;
-		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags);
-	}
-
 	switch (cmd->c_id) {
 	case IPVS_CMD_NEW_SERVICE:
+
+		need_full_svc = true;
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
 		alvs_ret = alvs_db_add_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem adding service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_SERVICE:
+
+		need_full_svc = true;
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
 		alvs_ret = alvs_db_modify_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem updating service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_SERVICE:
+
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
 		alvs_ret = alvs_db_delete_service(&svc);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem deleting service: %s:%d, protocol = %d, sched_name = %s, retcode = %d", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.sched_name, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_NEW_DEST:
+
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
+		need_full_dest = true;
+		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags);
+
 		alvs_ret = alvs_db_add_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem adding server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_SET_DEST:
+
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
+		need_full_dest = true;
+		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags);
+
+
 		alvs_ret = alvs_db_modify_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem updating server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
 	case IPVS_CMD_DEL_DEST:
+
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received service: addr = %s:%d, protocol = %d, fwmark = %d, sched_name = %s", my_inet_ntoa(bswap_32(svc.addr)), svc.port, svc.protocol, svc.fwmark, svc.sched_name);
+
+		ret = alvs_genl_parse_dest(info->attrs[IPVS_CMD_ATTR_DEST], &dest, need_full_dest);
+		if (ret < 0)
+			return NL_SKIP;
+		write_log(LOG_DEBUG, "received dest: %s:%d, weight = %d, flags = 0x%08x", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags);
+
+
 		alvs_ret = alvs_db_delete_server(&svc, &dest);
 		if (alvs_ret != ALVS_DB_OK) {
 			write_log(LOG_NOTICE, "Problem deleting server: %s:%d, weight = %d, flags = 0x%08x, retcode = %d", my_inet_ntoa(bswap_32(dest.addr)), dest.port, dest.weight, dest.conn_flags, alvs_ret);
 		}
 		break;
+	case IPVS_CMD_ZERO:
+		alvs_ret = alvs_db_clear_stats();
+		if (alvs_ret != ALVS_DB_OK) {
+			write_log(LOG_ERR, "Problem zero all counters");
+		}
+		break;
+
+	case IPVS_CMD_GET_DEST:
+
+		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+		if (ret < 0)
+			return NL_SKIP;
+
+		alvs_ret = alvs_db_print_servers_stats(&svc);
+		if (alvs_ret != ALVS_DB_OK) {
+			write_log(LOG_ERR, "Problem printing servers statistics");
+		}
+
+		break;
+	case IPVS_CMD_GET_SERVICE:
+
+		write_log(LOG_INFO, "Application version: %s", version);
+		alvs_ret = alvs_db_print_error_stats();
+		if (alvs_ret != ALVS_DB_OK) {
+			write_log(LOG_ERR, "Problem printing error statistics");
+		}
+
+		if (info->nlh->nlmsg_flags & NLM_F_DUMP) {
+			alvs_ret = alvs_db_print_services_stats();
+			if (alvs_ret != ALVS_DB_OK) {
+				write_log(LOG_ERR, "Problem printing services statistics");
+			}
+		} else {
+			/* todo add code to print stats of a specific service */
+			write_log(LOG_NOTICE, "GET_SERIVECE command is not supported for a specific service (only on dump mode)");
+		}
+
+		break;
+
+	case IPVS_CMD_GET_INFO:
+
+		break;
+
+	case IPVS_CMD_FLUSH:
+		alvs_ret = alvs_db_clear();
+		if (alvs_ret != ALVS_DB_OK) {
+			write_log(LOG_ERR, "Problem flushing all data.");
+		}
+		break;
+
 	default:
 		alvs_ret = ALVS_DB_NOT_SUPPORTED;
 		write_log(LOG_ERR, "Bad command received. command ID = %d", cmd->c_id);

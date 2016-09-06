@@ -102,7 +102,7 @@ print "Server 1  - received %d packets"%packets_received_1
 #                                                     start_counter=EMEM_SERVER_STATS_ON_DEMAND_OFFSET + 0 * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS, 
 #                                                     num_counters=ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS, 
 #                                                     counters=long_counters, read=0, use_shadow_group=0)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -180,7 +180,7 @@ packets_received_1 = server1.stop_capture()
 
 print "Server 1  - received %d packets"%packets_received_1
 
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -269,7 +269,7 @@ packets_received_1 = server1.stop_capture()
 
 print "Server 1  - received %d packets"%packets_received_1
 
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -360,7 +360,7 @@ time.sleep(20)
 
 print "Server 1  - received %d packets"%packets_received_1
 
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -433,7 +433,7 @@ print "capture from server"
 packets_received_1 = server1.stop_capture()
 
 print "Server 1  - received %d packets"%packets_received_1
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -528,7 +528,7 @@ packets_received_1 = server1.stop_capture()
 time.sleep(20)
 
 print "Server 1  - received %d packets"%packets_received_1
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 
 error_stats = ezbox.get_error_stats()     
@@ -580,7 +580,7 @@ packets_received_1 = server1.stop_capture()
 print "Server 1  - received %d packets"%packets_received_1
 
 time.sleep(20)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -638,7 +638,7 @@ packets_received_1 = server1.stop_capture()
 print "Server 1  - received %d packets"%packets_received_1
 
 time.sleep(20)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -696,7 +696,7 @@ packets_received_1 = server1.stop_capture()
 print "Server 1  - received %d packets"%packets_received_1
 time.sleep(20)
 
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -754,7 +754,7 @@ for src_port in src_port_list:
         server_is_unavailable_error +=1
 
 time.sleep(20)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -797,7 +797,7 @@ packets_received_1 = server1.stop_capture()
 print "Server 1  - received %d packets"%packets_received_1
 time.sleep(20)
 
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -854,7 +854,7 @@ for src_port in src_port_list:
         server_is_unavailable_error +=1
 
 time.sleep(20)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
@@ -897,7 +897,7 @@ for src_port in src_port_list:
         server_is_unavailable_error +=1
         
 time.sleep(20)
-sched_connections_on_server = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
 error_stats = ezbox.get_error_stats()     
 print "ALVS_ERROR_SERVER_IS_UNAVAILABLE %s"%error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']

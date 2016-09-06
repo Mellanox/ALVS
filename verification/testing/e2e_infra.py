@@ -349,7 +349,11 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
 	
-	dir_name = 'test_logs_'
+	if not os.path.exists("log"):
+		os.makedirs("log")
+		
+	dir_name = 'log/test_logs_'
+	
 	if (setup_num != None):
 		dir_name += 'setup%s_' %setup_num
 	dir_name += current_time
@@ -494,9 +498,9 @@ def statistics_checker(ezbox, no_errors=True, no_connections=True):
 		for server_index in server_index_list:
 			stats_dict = ezbox.get_servers_stats(server_index)
 			#active servers + not active servers = total servers
-			if(stats_dict['SERVER_STATS_CONN_SCHED'] != stats_dict['SERVER_STATS_ACTIVE_CONN'] + stats_dict['SERVER_STATS_INACTIVE_CONN']):
+			if(stats_dict['SERVER_STATS_CONNECTION_TOTAL'] != stats_dict['SERVER_STATS_ACTIVE_CONN'] + stats_dict['SERVER_STATS_INACTIVE_CONN']):
 				print 'ERROR: Bad connection fo server %d\n. Active connection count = %d. Inactive connection count = %d. Sched connection count = %d'\
-				%(server_index, stats_dict['SERVER_STATS_ACTIVE_CONN'], stats_dict['SERVER_STATS_INACTIVE_CONN'], stats_dict['SERVER_STATS_CONN_SCHED'])
+				%(server_index, stats_dict['SERVER_STATS_ACTIVE_CONN'], stats_dict['SERVER_STATS_INACTIVE_CONN'], stats_dict['SERVER_STATS_CONNECTION_TOTAL'])
 				connection_rc = False
 				
 	if no_errors:

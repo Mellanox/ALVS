@@ -282,4 +282,48 @@ bool infra_delete_all_entries(uint32_t struct_id);
  */
 uint32_t infra_from_msid_to_index(bool external_memory, uint32_t emem_msid);
 
+/**************************************************************************//**
+ * \brief       Read Long Counters Values, read several counters (num_of_counters)
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ *
+ */
+bool infra_get_long_counters(uint32_t counter_index,
+			     uint32_t num_of_counters,
+			     uint64_t *counters_value);
+
+/**************************************************************************//**
+ * \brief       Get posted counters value, read several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ */
+bool infra_get_posted_counters(uint32_t counter_index,
+			       uint32_t num_of_counters,
+			       uint64_t *counters_value);
+
+/**************************************************************************//**
+ * \brief       Set posted counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_posted_counters(uint32_t counter_index,
+				 uint32_t num_of_counters);
+
+/**************************************************************************//**
+ * \brief       Set long counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_long_counters(uint32_t counter_index,
+			       uint32_t num_of_counters);
+
 #endif /* _INFRASTRUCTURE_H_ */

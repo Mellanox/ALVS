@@ -65,6 +65,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		ezbox.add_service(vip_list[i], port, sched_alg_opt='')
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
+	time.sleep(1)
 	for index, client in enumerate(client_list):
 		process_list.append(Process(target=client_execution, args=(client,vip_list[index%service_count],)))
 	for p in process_list:
@@ -76,7 +77,11 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	process_list = []
 	#service scheduling algorithm is SH with port
 	for i in range(service_count):
+		print "modify service to sh-port"
+		time.sleep(5)
 		ezbox.modify_service(vip_list[i], port, sched_alg_opt='-b sh-port')
+		print "finished modify service to sh-port"
+		time.sleep(5)
 	for index, client in enumerate(client_list):
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
@@ -133,13 +138,13 @@ def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	config = generic_main()
-	
+
 	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
-	
+
 	init_players(server_list, ezbox, client_list, vip_list, config)
 
 	run_user_test(server_list, ezbox, client_list, vip_list)
-	
+
 	log_dir = collect_logs(server_list, ezbox, client_list)
 	
 	gen_rc = general_checker(server_list, ezbox, client_list)

@@ -1,4 +1,6 @@
 ifdef DEBUG
+    export CP_DEBUG=yes
+    export DP_DEBUG=yes
     SUFFIX := _debug
 else
     SUFFIX :=
@@ -36,3 +38,4 @@ clean: dp-clean cp-clean
 	rm -rf bin	
 	rm -rf build
 	
+

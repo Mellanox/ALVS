@@ -12,7 +12,7 @@ DP_C_DEPS = $(patsubst %.c,build/%.d,$(DP_C_SRCS))
 
 DP_C_FLAGS := -DNPS_BIG_ENDIAN
 
-ifdef DEBUG
+ifdef DP_DEBUG
 DP_C_FLAGS += -O1 -g3 -ftree-ter  -gdwarf-2
 else
 DP_C_FLAGS += -DNDEBUG -O2
@@ -27,13 +27,13 @@ endif
 
 # set bin path/name
 ifdef SIM
-    ifdef DEBUG
+    ifdef DP_DEBUG
         DP_BIN := bin/alvs_dp_sim_debug
     else
         DP_BIN := bin/alvs_dp_sim
     endif
 else
-    ifdef DEBUG
+    ifdef DP_DEBUG
         DP_BIN := bin/alvs_dp_debug
     else
         DP_BIN := bin/alvs_dp

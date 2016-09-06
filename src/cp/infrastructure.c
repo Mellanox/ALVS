@@ -54,6 +54,8 @@
 #include "defs.h"
 #include "user_defs.h"
 #include "application_infra.h"
+#include "alvs_search_defs.h"
+
 
 extern EZapiChannel_EthIFType port_type;
 
@@ -652,7 +654,7 @@ bool infra_create_timers(void)
 	pmu_timer_params.bEnable = true;
 	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
 	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
-	pmu_timer_params.uiNumJobs = 30*1024*1024;
+	pmu_timer_params.uiNumJobs = ALVS_AGING_TIMER_EVENTS_PER_ITERATION*IP_VS_TCP_S_ESTABLISHED; /* 30*1024*1024; */
 	pmu_timer_params.uiNanoSecPeriod = 0;
 	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
 
@@ -1430,3 +1432,176 @@ void infra_disable_agt(void)
 	EZagtRPC_ServerDestroy(host_server);
 }
 
+/**************************************************************************//**
+ * \brief       Read Long Counters Values
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ *
+ */
+bool infra_get_long_counters(uint32_t counter_index,
+			     uint32_t num_of_counters,
+			     uint64_t *counters_value)
+{
+	union {
+		uint64_t raw_data;
+		struct {
+			uint32_t value_lsb;
+			uint32_t value_msb;
+		};
+	} value;
+
+	uint32_t i;
+	EZstatus ret_val;
+	EZapiStat_LongCounter *long_counter;
+	EZapiStat_LongCounterConfig long_counter_config;
+
+	long_counter = (EZapiStat_LongCounter *)malloc(sizeof(EZapiStat_LongCounter) * num_of_counters);
+	if (long_counter == NULL) {
+		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
+		return false;
+	}
+	memset(long_counter, 0, sizeof(EZapiStat_LongCounter) * num_of_counters);
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+
+	long_counter_config.pasCounters = long_counter;
+	long_counter_config.uiStartCounter = counter_index;
+	long_counter_config.uiNumCounters = num_of_counters;
+	long_counter_config.bRange = TRUE;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetLongCounters, &long_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetLongCounters failed.");
+		free(long_counter);
+		return false;
+	}
+
+	for (i = 0; i < num_of_counters; i++) {
+		value.value_lsb = long_counter[i].uiValue;
+		value.value_msb = long_counter[i].uiValueMSB;
+		counters_value[i] = value.raw_data;
+	}
+
+	free(long_counter);
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Get posted counters value (read several counters num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ */
+bool infra_get_posted_counters(uint32_t counter_index,
+			       uint32_t num_of_counters,
+			       uint64_t *counters_value)
+{
+	union {
+		uint64_t raw_data;
+		struct {
+			uint32_t value_lsb;
+			uint32_t value_msb;
+		};
+	} value;
+
+	uint32_t i;
+	EZstatus ret_val;
+	EZapiStat_PostedCounter *posted_counter;
+	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	posted_counter = (EZapiStat_PostedCounter *)malloc(sizeof(EZapiStat_PostedCounter) * num_of_counters);
+	if (posted_counter == NULL) {
+		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
+		return false;
+	}
+	memset(posted_counter, 0, sizeof(EZapiStat_PostedCounter) * num_of_counters);
+	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
+
+	posted_counter_config.uiPartition = 0;
+	posted_counter_config.pasCounters = posted_counter;
+	posted_counter_config.bRange = true;
+	posted_counter_config.uiStartCounter = counter_index;
+	posted_counter_config.uiNumCounters = num_of_counters;
+	posted_counter_config.bDoubleOperation = false;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedCounters,
+					&posted_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.");
+		free(posted_counter);
+		return false;
+	}
+
+	for (i = 0; i < num_of_counters; i++) {
+		value.value_lsb = posted_counter[i].uiByteValue;
+		value.value_msb = posted_counter[i].uiByteValueMSB;
+		counters_value[i] = value.raw_data;
+	}
+
+	free(posted_counter);
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Set posted counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_posted_counters(uint32_t counter_index,
+				 uint32_t num_of_counters)
+{
+	EZstatus ret_val;
+	EZapiStat_PostedCounter posted_counter;
+	EZapiStat_PostedCounterConfig posted_counter_config;
+
+	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
+	memset(&posted_counter, 0, sizeof(posted_counter));
+
+	posted_counter_config.uiPartition = 0;
+	posted_counter_config.pasCounters = &posted_counter;
+	posted_counter_config.bRange = true;
+	posted_counter_config.uiStartCounter = counter_index;
+	posted_counter_config.uiNumCounters = num_of_counters;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Set long counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_long_counters(uint32_t counter_index,
+			       uint32_t num_of_counters)
+{
+	EZstatus ret_val;
+	EZapiStat_LongCounterConfig long_counter_config;
+	EZapiStat_LongCounter long_counter;
+
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+	memset(&long_counter, 0, sizeof(long_counter));
+
+	long_counter_config.uiPartition = 0;
+	long_counter_config.bRange = true;
+	long_counter_config.uiStartCounter = counter_index;
+	long_counter_config.uiNumCounters = num_of_counters;
+	long_counter_config.pasCounters = &long_counter;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounterValues, &long_counter_config);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		return false;
+	}
+
+	return true;
+}

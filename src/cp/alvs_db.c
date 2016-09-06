@@ -54,6 +54,8 @@
 #include "defs.h"
 #include "infrastructure.h"
 #include "application_search_defs.h"
+#include "error_names.h"
+
 
 /* Global pointer to the DB */
 sqlite3 *alvs_db;
@@ -64,31 +66,58 @@ bool *alvs_db_cancel_application_flag_ptr;
 
 void server_db_aging(void);
 
+#define ALVS_DB_FILE_NAME "alvs.db"
+
+void server_db_exit_with_error(void);
+
+struct alvs_db_service_stats {
+	uint64_t connection_scheduled;
+	uint64_t in_packet;
+	uint64_t in_byte;
+	uint64_t out_packet;
+	uint64_t out_byte;
+};
+
 struct alvs_db_service {
-	in_addr_t                  ip;
-	uint16_t                   port;
-	uint16_t                   protocol;
-	uint32_t                   nps_index;
-	uint8_t                    flags;
-	enum alvs_scheduler_type   sched_alg;
-	struct ezdp_sum_addr       stats_base;
-	uint16_t                   sched_entries_count;
+	in_addr_t ip;
+	uint16_t port;
+	uint16_t protocol;
+	uint32_t nps_index;
+	uint8_t flags;
+	enum alvs_scheduler_type sched_alg;
+	struct ezdp_sum_addr stats_base;
+	uint16_t sched_entries_count;
+	/* used this statistics when we want to display stats, on reset we save those stats from original counters */
+	struct alvs_db_service_stats service_stats;
+};
+
+struct alvs_db_server_stats {
+	uint64_t connection_scheduled;
+	uint64_t in_packet;
+	uint64_t in_byte;
+	uint64_t out_packet;
+	uint64_t out_byte;
+	uint64_t active_connection;
+	uint64_t inactive_connection;
+	uint64_t connection_total;
 };
 
 struct alvs_db_server {
-	in_addr_t                ip;
-	uint16_t                 port;
-	uint16_t                 weight;
-	uint8_t                  active;
-	uint32_t                 nps_index;
-	uint32_t                 conn_flags;
-	uint32_t                 server_flags;
-	uint32_t                 u_thresh;
-	uint32_t                 l_thresh;
-	struct ezdp_sum_addr     server_stats_base;
-	struct ezdp_sum_addr     service_stats_base;
-	struct ezdp_sum_addr     server_on_demand_stats_base;
-	struct ezdp_sum_addr     server_flags_dp_base;
+	in_addr_t ip;
+	uint16_t port;
+	uint16_t weight;
+	uint8_t active;
+	uint32_t nps_index;
+	uint32_t conn_flags;
+	uint32_t server_flags;
+	uint32_t u_thresh;
+	uint32_t l_thresh;
+	struct ezdp_sum_addr server_stats_base;
+	struct ezdp_sum_addr service_stats_base;
+	struct ezdp_sum_addr server_on_demand_stats_base;
+	struct ezdp_sum_addr server_flags_dp_base;
+	/* used this statistics when we want to display stats, on reset we save those stats from original counters */
+	struct alvs_db_server_stats server_stats;
 };
 
 struct alvs_db_application_info {
@@ -107,12 +136,11 @@ struct alvs_server_node {
 
 char *my_inet_ntoa(in_addr_t ip)
 {
+
 	struct in_addr ip_addr = {.s_addr = bswap_32(ip)};
 
 	return inet_ntoa(ip_addr);
 }
-
-#define ALVS_DB_FILE_NAME "alvs.db"
 
 enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 {
@@ -134,7 +162,6 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	(void)remove(ALVS_DB_FILE_NAME);
 
 	/* Open the DB file */
-
 	rc = sqlite3_open(ALVS_DB_FILE_NAME, &alvs_db);
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "Can't open database: %s",
@@ -157,13 +184,18 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    statistics base
 	 */
 	sql = "CREATE TABLE services("
-		"ip INT NOT NULL,"
-		"port INT NOT NULL,"
-		"protocol INT NOT NULL,"
-		"nps_index INT NOT NULL,"
-		"flags INT NOT NULL,"
-		"sched_alg INT NOT NULL,"
-		"stats_base INT NOT NULL,"
+		"ip INT NOT NULL,"			/* 0 */
+		"port INT NOT NULL,"			/* 1 */
+		"protocol INT NOT NULL,"		/* 2 */
+		"nps_index INT NOT NULL,"		/* 3 */
+		"flags INT NOT NULL,"			/* 4 */
+		"sched_alg INT NOT NULL,"		/* 5 */
+		"stats_base INT NOT NULL,"		/* 6 */
+		"in_packet BIGINT NOT NULL,"		/* 7 */
+		"in_byte BIGINT NOT NULL,"		/* 8 */
+		"out_packet BIGINT NOT NULL,"		/* 9 */
+		"out_byte BIGINT NOT NULL,"		/* 10 */
+		"connection_scheduled BIGINT NOT NULL,"	/* 11 */
 		"PRIMARY KEY (ip,port,protocol));";
 
 	/* Execute SQL statement */
@@ -190,22 +222,30 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    statistics base
 	 */
 	sql = "CREATE TABLE servers("
-		"ip INT NOT NULL,"
-		"port INT NOT NULL,"
-		"srv_ip INT NOT NULL,"
-		"srv_port INT NOT NULL,"
-		"srv_protocol INT NOT NULL,"
-		"nps_index INT NOT NULL,"
-		"weight INT NOT NULL,"
-		"conn_flags INT NOT NULL,"
-		"server_flags INT NOT NULL,"
-		"u_thresh INT NOT NULL,"
-		"l_thresh INT NOT NULL,"
-		"active BOOLEAN NOT NULL,"
-		"server_stats_base INT NOT NULL,"
-		"service_stats_base INT NOT NULL,"
-		"server_on_demand_stats_base INT NOT NULL,"
-		"server_flags_dp_base INT NOT NULL,"
+		"ip INT NOT NULL,"				/* 0 */
+		"port INT NOT NULL,"				/* 1 */
+		"srv_ip INT NOT NULL,"				/* 2 */
+		"srv_port INT NOT NULL,"			/* 3 */
+		"srv_protocol INT NOT NULL,"			/* 4 */
+		"nps_index INT NOT NULL,"			/* 5 */
+		"weight INT NOT NULL,"				/* 6 */
+		"conn_flags INT NOT NULL,"			/* 7 */
+		"server_flags INT NOT NULL,"			/* 8 */
+		"u_thresh INT NOT NULL,"			/* 9 */
+		"l_thresh INT NOT NULL,"			/* 10 */
+		"active BOOLEAN NOT NULL,"			/* 11 */
+		"server_stats_base INT NOT NULL,"		/* 12 */
+		"service_stats_base INT NOT NULL,"		/* 13 */
+		"server_on_demand_stats_base INT NOT NULL,"	/* 14 */
+		"server_flags_dp_base INT NOT NULL,"		/* 15 */
+		"connection_scheduled BIGINT NOT NULL,"		/* 16 */
+		"in_packet BIGINT NOT NULL,"			/* 17 */
+		"in_byte BIGINT NOT NULL,"			/* 18 */
+		"out_packet BIGINT NOT NULL,"			/* 19 */
+		"out_byte BIGINT NOT NULL,"			/* 20 */
+		"active_connection BIGINT NOT NULL,"		/* 21 */
+		"inactive_connection BIGINT NOT NULL,"		/* 22 */
+		"connection_total BIGINT NOT NULL,"		/* 23 */
 		"PRIMARY KEY (ip,port,srv_ip,srv_port,srv_protocol),"
 		"FOREIGN KEY (srv_ip,srv_port,srv_protocol) "
 		"REFERENCES services(ip,port,protocol));";
@@ -334,7 +374,6 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 	return ALVS_DB_OK;
 }
 
-
 /**************************************************************************//**
  * \brief       Update server_flags (OVERLOADED bit) according to the predefined algorithm
  *
@@ -342,8 +381,6 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
  *
  * \return      true if operation succeeded
  */
-
-
 enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_server)
 {
 
@@ -382,7 +419,6 @@ enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_s
 	return ALVS_DB_OK;
 
 }
-
 
 /**************************************************************************//**
  * \brief       Delete all services, set all servers to inactive.
@@ -466,6 +502,11 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 		service->flags = sqlite3_column_int(statement, 4);
 		service->sched_alg = (enum alvs_scheduler_type)sqlite3_column_int(statement, 5);
 		service->stats_base.raw_data = sqlite3_column_int(statement, 6);
+		service->service_stats.connection_scheduled = sqlite3_column_int64(statement, 8);
+		service->service_stats.in_packet = sqlite3_column_int64(statement, 9);
+		service->service_stats.in_byte = sqlite3_column_int64(statement, 10);
+		service->service_stats.out_packet = sqlite3_column_int64(statement, 11);
+		service->service_stats.out_byte = sqlite3_column_int64(statement, 12);
 	}
 
 	/* finalize SQL statement */
@@ -491,10 +532,14 @@ enum alvs_db_rc internal_db_add_service(struct alvs_db_service *service)
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO services "
-		"(ip, port, protocol, nps_index, flags, sched_alg, stats_base) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d);",
-		service->ip, service->port, service->protocol, service->nps_index,
-		service->flags, service->sched_alg, service->stats_base.raw_data);
+		"(ip, port, protocol, nps_index, flags, sched_alg, stats_base, connection_scheduled, "
+		"in_packet, in_byte, out_packet, out_byte) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %d, %ld, %ld, %ld, %ld, %ld);",
+		service->ip, service->port, service->protocol,
+		service->nps_index, service->flags, service->sched_alg,
+		service->stats_base.raw_data, service->service_stats.connection_scheduled,
+		service->service_stats.in_packet, service->service_stats.in_byte, service->service_stats.out_packet,
+		service->service_stats.out_byte);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -528,6 +573,75 @@ enum alvs_db_rc internal_db_modify_service(struct alvs_db_service *service)
 		"WHERE ip=%d AND port=%d AND protocol=%d;",
 		service->flags, service->sched_alg,
 		service->ip, service->port, service->protocol);
+
+	/* Execute SQL statement */
+	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Get Service Counters (Posted Counters)
+ *
+ * \param[in]   server_index   - index of server
+ *              [out] struct alvs_db_service_stats *service_stats
+ *
+ * \return      alvs_db_rc
+ */
+enum alvs_db_rc alvs_db_get_service_counters(uint32_t service_index, struct alvs_db_service_stats *service_stats)
+{
+
+	uint64_t service_counters[ALVS_NUM_OF_SERVICE_STATS] = {0};
+
+	if (infra_get_posted_counters(EMEM_SERVICE_STATS_POSTED_OFFSET + (service_index * ALVS_NUM_OF_SERVICE_STATS),
+				      ALVS_NUM_OF_SERVICE_STATS,
+				      service_counters) == false) {
+		write_log(LOG_CRIT, "Failed to read error statistics counters");
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	service_stats->in_packet = service_counters[ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET];
+	service_stats->in_byte = service_counters[ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET + 1];
+	service_stats->out_packet = service_counters[ALVS_SERVICE_STATS_OUT_PKTS_BYTES_OFFSET];
+	service_stats->out_byte = service_counters[ALVS_SERVICE_STATS_OUT_PKTS_BYTES_OFFSET + 1];
+	service_stats->connection_scheduled = service_counters[ALVS_SERVICE_STATS_CONN_SCHED_OFFSET];
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       read service posted counters and save counters on internal DB
+ *
+ * \param[in]   service   - reference to service
+ *
+ * \return      ALVS_DB_OK - succeed to save counters on internal DB).
+ *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
+ */
+enum alvs_db_rc internal_db_save_service_stats(struct alvs_db_service service)
+{
+	int rc;
+	char sql[256];
+	char *zErrMsg = NULL;
+	enum alvs_db_rc get_counters_rc;
+
+	/* read posted counter */
+	get_counters_rc = alvs_db_get_service_counters(service.nps_index, &service.service_stats);
+	if (get_counters_rc != ALVS_DB_OK) {
+		write_log(LOG_CRIT, "Error reading service posted counters");
+		return get_counters_rc;
+	}
+
+	sprintf(sql, "UPDATE services "
+		"SET in_packet=%ld, in_byte=%ld, out_packet=%ld, out_byte=%ld, connection_scheduled=%ld "
+		"WHERE ip=%d AND port=%d AND protocol=%d;",
+		service.service_stats.in_packet, service.service_stats.in_byte, service.service_stats.out_packet,
+		service.service_stats.out_byte, service.service_stats.connection_scheduled, service.ip,
+		service.port, service.protocol);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -631,7 +745,6 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 		strcat(sql, " AND active=1");
 	}
 	strcat(sql, ";");
-
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
@@ -639,7 +752,6 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 			  sqlite3_errmsg(alvs_db));
 		return ALVS_DB_INTERNAL_ERROR;
 	}
-
 	/* Execute SQL statement */
 	rc = sqlite3_step(statement);
 
@@ -648,17 +760,27 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
 		node = (struct alvs_server_node *)malloc(sizeof(struct alvs_server_node));
-		node->server.nps_index = sqlite3_column_int(statement, 5);
-		node->server.weight = sqlite3_column_int(statement, 6);
-		node->server.conn_flags = sqlite3_column_int(statement, 7);
-		node->server.server_flags = sqlite3_column_int(statement, 8);
-		node->server.u_thresh = sqlite3_column_int(statement, 9);
-		node->server.l_thresh = sqlite3_column_int(statement, 10);
-		node->server.active = sqlite3_column_int(statement, 11);
-		node->server.server_stats_base.raw_data = sqlite3_column_int(statement, 12);
+		node->server.ip = sqlite3_column_int (statement, 0);
+		node->server.port = sqlite3_column_int (statement, 1);
+		node->server.nps_index = sqlite3_column_int (statement, 5);
+		node->server.weight = sqlite3_column_int (statement, 6);
+		node->server.conn_flags = sqlite3_column_int (statement, 7);
+		node->server.server_flags = sqlite3_column_int (statement, 8);
+		node->server.u_thresh = sqlite3_column_int (statement, 9);
+		node->server.l_thresh = sqlite3_column_int (statement, 10);
+		node->server.active = sqlite3_column_int (statement, 11);
+		node->server.server_stats_base.raw_data = sqlite3_column_int (statement, 12);
 		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 13);
 		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 14);
 		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, 15);
+		node->server.server_stats.connection_scheduled = sqlite3_column_int64(statement, 16);
+		node->server.server_stats.in_packet = sqlite3_column_int64(statement, 17);
+		node->server.server_stats.in_byte = sqlite3_column_int64(statement, 18);
+		node->server.server_stats.out_packet = sqlite3_column_int64(statement, 19);
+		node->server.server_stats.out_byte = sqlite3_column_int64(statement, 20);
+		node->server.server_stats.active_connection = sqlite3_column_int64(statement, 21);
+		node->server.server_stats.inactive_connection = sqlite3_column_int64(statement, 22);
+		node->server.server_stats.connection_total = sqlite3_column_int64(statement, 23);
 
 		if (*server_list == NULL) {
 			node->next = node;
@@ -671,7 +793,6 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 
 		rc = sqlite3_step(statement);
 	}
-
 	/* Error */
 	if (rc < SQLITE_ROW) {
 		write_log(LOG_CRIT, "SQL error: %s",
@@ -686,6 +807,87 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 
 	if (*server_list != NULL) {
 		(*server_list) = (*server_list)->next;
+	}
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Get number of active connections from a statistics counter
+ *
+ * \param       [in]server_index   - index of server
+ *		[out] server_stats - reference to server statistics
+ *
+ * \return	ALVS_DB_OK - function succeed
+ *		ALVS_DB_NPS_ERROR - fail to read statistics
+ */
+enum alvs_db_rc alvs_db_get_server_counters(uint32_t server_index,
+					    struct alvs_db_server_stats *server_stats)
+{
+	uint64_t server_counter[ALVS_NUM_OF_SERVER_STATS] = {0};
+
+	if (infra_get_posted_counters(EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS),
+				      ALVS_NUM_OF_SERVER_STATS,
+				      server_counter) == false) {
+		write_log(LOG_CRIT, "Failed to read error statistics counters");
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	server_stats->in_packet = server_counter[ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET];
+	server_stats->in_byte = server_counter[ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET + 1];
+	server_stats->out_packet = server_counter[ALVS_SERVER_STATS_OUT_PKTS_BYTES_OFFSET];
+	server_stats->out_byte = server_counter[ALVS_SERVER_STATS_OUT_PKTS_BYTES_OFFSET + 1];
+	server_stats->connection_scheduled = server_counter[ALVS_SERVER_STATS_CONN_SCHED_OFFSET];
+	server_stats->active_connection = server_counter[ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET];
+	server_stats->inactive_connection = server_counter[ALVS_SERVER_STATS_INACTIVE_CONN_OFFSET];
+
+	if (infra_get_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS,
+				    1,
+				    &server_stats->connection_total) == false) {
+		write_log(LOG_ERR, "Fail to read server total connections statistics");
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       read server posted counters and save counters on internal DB
+ *
+ * \param[in]   server   - reference to server
+ *
+ * \return      ALVS_DB_OK - succeed to save counters on internal DB).
+ *              ALVS_DB_INTERNAL_ERROR - failed to communicate with DB
+ *              ALVS_DB_NPS_ERROR - failed to read counters
+ */
+enum alvs_db_rc internal_db_save_server_stats(struct alvs_db_server *server)
+{
+	int rc;
+	char sql[256];
+	char *zErrMsg = NULL;
+	enum alvs_db_rc get_counters_rc;
+
+	/* read posted counter */
+	get_counters_rc = alvs_db_get_server_counters(server->nps_index, &server->server_stats);
+	if (get_counters_rc != ALVS_DB_OK) {
+		write_log(LOG_CRIT, "Error reading service posted counters");
+		return get_counters_rc;
+	}
+
+	sprintf(sql, "UPDATE servers "
+		"SET connection_scheduled=%ld, in_packet=%ld, in_byte=%ld, out_packet=%ld, out_byte=%ld, connection_total=%ld, active_connection=%ld, inactive_connection=%ld "
+		"WHERE ip=%d AND port=%d AND nps_index=%d;",
+		server->server_stats.connection_scheduled, server->server_stats.in_packet, server->server_stats.in_byte,
+		server->server_stats.out_packet, server->server_stats.out_byte, server->server_stats.connection_total,
+		server->server_stats.active_connection, server->server_stats.inactive_connection, server->ip,
+		server->port, server->nps_index);
+
+	/* Execute SQL statement */
+	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	return ALVS_DB_OK;
@@ -778,15 +980,23 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO servers "
-		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base, server_flags_dp_base) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
+		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, "
+		"u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base,"
+		"server_flags_dp_base, connection_scheduled, in_packet, in_byte, out_packet, out_byte, "
+		"active_connection, inactive_connection, connection_total) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld);",
 		server->ip, server->port, service->ip, service->port,
-		service->protocol, server->nps_index,
-		server->weight, server->conn_flags, server->server_flags,
-		server->u_thresh, server->l_thresh,
-		server->active, server->server_stats_base.raw_data, server->service_stats_base.raw_data,
+		service->protocol, server->nps_index, server->weight,
+		server->conn_flags, server->server_flags, server->u_thresh,
+		server->l_thresh, server->active,
+		server->server_stats_base.raw_data,
+		server->service_stats_base.raw_data,
 		server->server_on_demand_stats_base.raw_data,
-		server->server_flags_dp_base.raw_data);
+		server->server_flags_dp_base.raw_data,
+		server->server_stats.connection_scheduled, server->server_stats.in_packet,
+		server->server_stats.in_byte, server->server_stats.out_packet, server->server_stats.out_byte,
+		server->server_stats.active_connection, server->server_stats.inactive_connection,
+		server->server_stats.connection_total);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -817,14 +1027,14 @@ enum alvs_db_rc internal_db_modify_server(struct alvs_db_service *service,
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE servers "
-		"SET weight=%d, conn_flags=%d, server_flags=%d, "
-		"u_thresh=%d, l_thresh=%d "
-		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
-		"AND ip=%d AND port=%d;",
-		server->weight, server->conn_flags, server->server_flags,
-		server->u_thresh, server->l_thresh,
-		service->ip, service->port, service->protocol,
-		server->ip, server->port);
+			"SET weight=%d, conn_flags=%d, server_flags=%d, "
+			"u_thresh=%d, l_thresh=%d "
+			"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
+			"AND ip=%d AND port=%d;",
+			server->weight, server->conn_flags,
+			server->server_flags, server->u_thresh,
+			server->l_thresh, service->ip, service->port,
+			service->protocol, server->ip, server->port);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -1316,123 +1526,100 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 }
 
 /**************************************************************************//**
- * \brief       Get number of active connections from a statistics counter
+ * \brief       Get number of total connections from a statistics counter
  *
  * \param[in]   server_index   - index of server
+ *       [out]  number of total connections
  *
- * \return      number of active connections
+ * \return      ALVS_DB_OK - succeed.
+ *              ALVS_DB_NPS_ERROR - failed to read counters
  */
-enum alvs_db_rc alvs_db_get_num_active_conn(uint32_t server_index,
-					    uint64_t *active_conn)
+enum alvs_db_rc alvs_db_get_num_conn_total(uint32_t server_index, uint64_t *conn_total)
 {
-	union {
-		uint64_t raw_data;
-		struct {
-			uint32_t value_msb;
-			uint32_t value_lsb;
-		};
-	} value;
-
-	EZstatus ret_val;
-	EZapiStat_PostedCounter posted_counter;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-	memset(&posted_counter, 0, sizeof(posted_counter));
-
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.pasCounters = &posted_counter;
-	posted_counter_config.bRange = false;
-	posted_counter_config.uiStartCounter = EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS) + ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET;
-	posted_counter_config.uiNumCounters = 1;
-	posted_counter_config.bDoubleOperation = false;
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedCounters, &posted_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.");
-		return ALVS_DB_INTERNAL_ERROR;
+	if (infra_get_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
+				    1,
+				    conn_total) == false) {
+		return ALVS_DB_NPS_ERROR;
 	}
-
-	value.value_lsb = posted_counter.uiByteValue;
-	value.value_msb = posted_counter.uiByteValueMSB;
-	*active_conn = value.raw_data;
 
 	return ALVS_DB_OK;
 }
-
 
 /**************************************************************************//**
  * \brief       Clear all statistic counter of a server
  *
  * \param[in]   server_index   - index of server
  *
- * \return      true if operation succeeded
+ * \return      ALVS_DB_OK - succeed.
+ *              ALVS_DB_NPS_ERROR - failed to clean counters
  */
 enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
 {
-	EZstatus ret_val;
-	EZapiStat_PostedCounter posted_counter;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-	EZapiStat_LongCounterConfig long_counter_config;
-	EZapiStat_LongCounter long_counter;
 
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-	memset(&long_counter, 0, sizeof(long_counter));
-
-	long_counter_config.uiPartition = 0;
-	long_counter_config.bRange = true;
-	long_counter_config.uiStartCounter = EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
-	long_counter_config.uiNumCounters = ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
-	long_counter_config.pasCounters = &long_counter;
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounterValues, &long_counter_config);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
-		return ALVS_DB_INTERNAL_ERROR;
+	if (infra_clear_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS,
+				      ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS) == false) {
+		return ALVS_DB_NPS_ERROR;
 	}
 
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-	memset(&posted_counter, 0, sizeof(posted_counter));
-
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.pasCounters = &posted_counter;
-	posted_counter_config.bRange = true;
-	posted_counter_config.uiStartCounter = EMEM_SERVER_STATS_POSTED_OFFSET + server_index * ALVS_NUM_OF_SERVER_STATS;
-	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVER_STATS;
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
-		return ALVS_DB_INTERNAL_ERROR;
+	if (infra_clear_posted_counters(EMEM_SERVER_STATS_POSTED_OFFSET + server_index * ALVS_NUM_OF_SERVER_STATS,
+					ALVS_NUM_OF_SERVER_STATS) == false) {
+		return ALVS_DB_NPS_ERROR;
 	}
 
 	return ALVS_DB_OK;
 }
 
+/**************************************************************************//**
+ * \brief       Clear error stats
+ *
+ * \param[in]
+ *
+ * \return      ALVS_DB_OK - succeed.
+ *              ALVS_DB_NPS_ERROR - failed to clean NPS DB
+ */
+enum alvs_db_rc alvs_db_clean_error_stats(void)
+{
+
+	if (infra_clear_posted_counters(EMEM_ALVS_ERROR_STATS_POSTED_OFFSET,
+					ALVS_NUM_OF_ALVS_ERROR_STATS) == false) {
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	return ALVS_DB_OK;
+
+}
+
+/**************************************************************************//**
+ * \brief       Clear interface stats
+ *
+ * \param[in]
+ *
+ * \return      ALVS_DB_OK - succeed.
+ *              ALVS_DB_NPS_ERROR - failed to clean counters
+ */
+enum alvs_db_rc alvs_db_clean_interface_stats(void)
+{
+	if (infra_clear_posted_counters(EMEM_IF_STATS_POSTED_OFFSET,
+					NW_NUM_OF_IF_STATS * (USER_NW_IF_NUM + 1)) == false) {/* 4 nw interface and 1 host interface */
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
 
 /**************************************************************************//**
  * \brief       Clear all statistic counter of a service
  *
  * \param[in]   service_index   - index of service
  *
- * \return      true if operation succeeded
+ * \return      ALVS_DB_OK - succeed.
+ *              ALVS_DB_NPS_ERROR - failed to clean counters
  */
 enum alvs_db_rc alvs_db_clean_service_stats(uint32_t service_index)
 {
-	EZstatus ret_val;
-	EZapiStat_PostedCounter posted_counter;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-	memset(&posted_counter, 0, sizeof(posted_counter));
-
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.pasCounters = &posted_counter;
-	posted_counter_config.bRange = true;
-	posted_counter_config.uiStartCounter = EMEM_SERVICE_STATS_POSTED_OFFSET + service_index * ALVS_NUM_OF_SERVICE_STATS;
-	posted_counter_config.uiNumCounters = ALVS_NUM_OF_SERVICE_STATS;
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
-		return ALVS_DB_INTERNAL_ERROR;
+	if (infra_clear_posted_counters(EMEM_SERVICE_STATS_POSTED_OFFSET + service_index * ALVS_NUM_OF_SERVICE_STATS,
+						     ALVS_NUM_OF_SERVICE_STATS) == false) {
+		return ALVS_DB_NPS_ERROR;
 	}
 
 	return ALVS_DB_OK;
@@ -1779,6 +1966,9 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 		write_log(LOG_NOTICE, "Scheduling algorithm (%s) is not supported.", ip_vs_service->sched_name);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
+
+	/* init the cp_service internal entry */
+	memset(&cp_service, 0, sizeof(cp_service));
 
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
@@ -2137,10 +2327,10 @@ enum alvs_db_rc alvs_db_get_service_flags(struct ip_vs_service_user *ip_vs_servi
  *              ALVS_DB_NPS_ERROR - failed to update NPS DB
  */
 enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
-			   struct ip_vs_dest_user *ip_vs_dest)
+				   struct ip_vs_dest_user *ip_vs_dest)
 {
 	enum alvs_db_rc rc;
-	uint32_t server_count;
+	uint32_t server_count = 0;
 	struct alvs_db_service cp_service;
 	struct alvs_db_server cp_server;
 	struct alvs_server_info_key nps_server_info_key;
@@ -2160,6 +2350,10 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		write_log(LOG_ERR, "l_threshold %d > u_threshold %d", ip_vs_dest->l_threshold, ip_vs_dest->u_threshold);
 		return ALVS_DB_NOT_SUPPORTED;
 	}
+
+	/* init the cp_server internal server entry */
+	memset(&cp_server, 0, sizeof(cp_server));
+
 	/* Check if service already exists in internal DB */
 	cp_service.ip = bswap_32(ip_vs_service->addr);
 	cp_service.port = bswap_16(ip_vs_service->port);
@@ -3068,6 +3262,11 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 	/* Collect service ids */
 	while (rc == SQLITE_ROW) {
 		node = (struct alvs_service_node *)malloc(sizeof(struct alvs_service_node));
+		if (node == NULL) {
+			write_log(LOG_ERR, "Failed to allocate memory");
+			alvs_free_service_list(*service_list);
+			return ALVS_DB_FAILURE;
+		}
 		node->service.ip = sqlite3_column_int(statement, 0);
 		node->service.port = sqlite3_column_int(statement, 1);
 		node->service.protocol = sqlite3_column_int(statement, 2);
@@ -3104,6 +3303,232 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 	return ALVS_DB_OK;
 }
 
+/**************************************************************************//**
+ * \brief       API to print servers statistics from the last zero command
+ *	prints the diff between the internal db statistics (were updated on the zero command)
+ *	and the posted counters
+ *
+ * \param[in]   ip_vs_service    - struct ip_vs_service_user, ipvs service
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
+ */
+enum alvs_db_rc alvs_db_print_servers_stats(struct ip_vs_service_user *ip_vs_service)
+{
+	uint32_t server_count, i;
+	struct alvs_server_node *server_list; /* used for the counters on internal db (were updated on the last zero command )*/
+	struct alvs_db_server server_counters;	  /* used for the poseted counters */
+	enum alvs_db_rc get_counters_rc;
+	struct alvs_db_service service;
+
+	/* init the cp_service internal entry */
+	memset(&service, 0, sizeof(service));
+
+	service.ip = bswap_32(ip_vs_service->addr);
+	service.port = bswap_16(ip_vs_service->port);
+	service.protocol = ip_vs_service->protocol;
+
+	/* check if service exist */
+	if (internal_db_get_service(&service, false) == ALVS_DB_FAILURE) {
+		write_log(LOG_NOTICE, "Server %s:%d (prot=%d) is not exist", my_inet_ntoa(service.ip), service.port, service.protocol);
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Get list of servers to delete */
+	internal_db_get_server_count(&service, &server_count, 0);
+	if (internal_db_get_server_list(&service, &server_list, 0) != ALVS_DB_OK) {
+		/* Can't retrieve server list */
+		write_log(LOG_CRIT, "Can't retrieve server list - internal error");
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	if (server_count > 0) {
+		write_log(LOG_INFO, "Statistics for Servers of Service %s:%d (protocol=%d):", my_inet_ntoa(service.ip), service.port, service.protocol);
+		write_log(LOG_INFO, "                            In Pkt    In Byte   Out Pkt   Out Byte  ConSched ConTotal ActiveCon InactiveCon");
+	}
+
+	/* save all the counter of the servers that relate to this service */
+	for (i = 0; i < server_count; i++) {
+		get_counters_rc = alvs_db_get_server_counters(server_list->server.nps_index,
+							      &server_counters.server_stats);
+
+		if (get_counters_rc != ALVS_DB_OK) {
+			write_log(LOG_CRIT, "Error reading service posted counters");
+			alvs_free_server_list(server_list);
+			return get_counters_rc;
+		}
+
+		/* print statistics to syslog (print the difference between real posted counters to internal db counters values) */
+		write_log(LOG_INFO,
+			"Server %16s:%-3d  %-7lu | %-7lu | %-7lu | %-7lu | %-6lu | %-6lu | %-7lu | %-6lu",
+			my_inet_ntoa(server_list->server.ip),
+			server_list->server.port,
+			server_counters.server_stats.in_packet - server_list->server.server_stats.in_packet,
+			server_counters.server_stats.in_byte - server_list->server.server_stats.in_byte,
+			server_counters.server_stats.out_packet - server_list->server.server_stats.out_packet,
+			server_counters.server_stats.out_byte - server_list->server.server_stats.out_byte,
+			server_counters.server_stats.connection_scheduled - server_list->server.server_stats.connection_scheduled,
+			server_counters.server_stats.connection_total - server_list->server.server_stats.connection_total,
+			server_counters.server_stats.active_connection - server_list->server.server_stats.active_connection,
+			server_counters.server_stats.inactive_connection - server_list->server.server_stats.inactive_connection);
+
+		/* move to the next server on this service */
+		server_list = server_list->next;
+	}
+
+	alvs_free_server_list(server_list);
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       API to print service statistics
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_NPS_ERROR - fail to read nps counters
+ */
+enum alvs_db_rc alvs_db_print_services_stats(void)
+{
+	int rc;
+	char sql[256];
+	sqlite3_stmt *statement;
+	struct alvs_db_service service_internal_db_stats;
+	struct alvs_db_service service_counters;
+
+	memset(&service_counters, 0, sizeof(service_counters));
+
+	/* Prepare SQL statement */
+	sprintf(sql, "SELECT * FROM services");
+	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(alvs_db));
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	if (rc == SQLITE_ROW) {
+		write_log(LOG_INFO, "Statistics for Services:");
+		write_log(LOG_INFO,
+			"                        In Pkt       In Byte      Out Pkt      Out Byte     Con Sched");
+	}
+	/* Collect server ids */
+	while (rc == SQLITE_ROW) {
+		service_internal_db_stats.ip = sqlite3_column_int(statement, 0);
+		service_internal_db_stats.port = sqlite3_column_int(statement, 1);
+		service_internal_db_stats.protocol = sqlite3_column_int(statement, 2);
+		service_internal_db_stats.nps_index = sqlite3_column_int(statement, 3);
+		service_internal_db_stats.service_stats.in_packet = sqlite3_column_int64(statement, 7);
+		service_internal_db_stats.service_stats.in_byte = sqlite3_column_int64(statement, 8);
+		service_internal_db_stats.service_stats.out_packet = sqlite3_column_int64(statement, 9);
+		service_internal_db_stats.service_stats.out_byte = sqlite3_column_int64(statement, 10);
+		service_internal_db_stats.service_stats.connection_scheduled = sqlite3_column_int64(statement, 11);
+
+		/* read counter */
+		if (alvs_db_get_service_counters(service_internal_db_stats.nps_index,
+						 &service_counters.service_stats) != ALVS_DB_OK) {
+			return ALVS_DB_NPS_ERROR;
+		}
+
+		write_log(LOG_INFO, "%s:%d (prot=%d) %-10lu | %-10lu | %-10lu | %-10lu | %-10lu ",
+			my_inet_ntoa(service_internal_db_stats.ip),
+			service_internal_db_stats.port,
+			service_internal_db_stats.protocol,
+			service_counters.service_stats.in_packet - service_internal_db_stats.service_stats.in_packet,
+			service_counters.service_stats.in_byte - service_internal_db_stats.service_stats.in_byte,
+			service_counters.service_stats.out_packet - service_internal_db_stats.service_stats.out_packet,
+			service_counters.service_stats.out_byte - service_internal_db_stats.service_stats.out_byte,
+			service_counters.service_stats.connection_scheduled - service_internal_db_stats.service_stats.connection_scheduled);
+
+		/* move to the next service on internal db */
+		rc = sqlite3_step(statement);
+
+	}
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       API to clear all servers and services statistics
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
+ *              ALVS_DB_NPS_ERROR - failed to update NPS DB
+ */
+enum alvs_db_rc alvs_db_clear_stats(void)
+{
+	int rc;
+	char sql[256];
+	uint32_t server_count, i;
+	sqlite3_stmt *statement;
+	struct alvs_db_service service;
+	struct alvs_server_node *server_list;
+	enum alvs_db_rc ret_rc;
+
+	/* get all services from internal database */
+	/* Prepare SQL statement */
+	sprintf(sql, "SELECT * FROM services");
+	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s",
+			  sqlite3_errmsg(alvs_db));
+		return ALVS_DB_INTERNAL_ERROR;
+	}
+
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	/* Collect server ids */
+	while (rc == SQLITE_ROW) {
+		service.ip = sqlite3_column_int(statement, 0);
+		service.port = sqlite3_column_int(statement, 1);
+		service.protocol = sqlite3_column_int(statement, 2);
+		service.nps_index = sqlite3_column_int(statement, 3);
+
+		/*save statistics to internal database */
+		if (internal_db_save_service_stats(service) != ALVS_DB_OK) {
+			write_log(LOG_CRIT, "Failed to save service posted counters on internal db");
+			return ALVS_DB_INTERNAL_ERROR;
+		}
+
+		/* Get list of servers to save */
+		internal_db_get_server_count(&service, &server_count, 0);
+		if (internal_db_get_server_list(&service, &server_list, 0) != ALVS_DB_OK) {
+			/* Can't retrieve server list */
+			write_log(LOG_CRIT, "Can't retrieve server list - internal error.");
+			return ALVS_DB_INTERNAL_ERROR;
+		}
+
+		/* save all the counter of the servers that relate to this service */
+		for (i = 0; i < server_count; i++) {
+
+			ret_rc = internal_db_save_server_stats(&server_list->server);
+			if (ret_rc != ALVS_DB_OK) {
+				write_log(LOG_CRIT, "Failed to save server posted counters on internal db");
+				alvs_free_server_list(server_list);
+				return ret_rc;
+			}
+			/* move to the next server on this service */
+			server_list = server_list->next;
+		}
+
+		alvs_free_server_list(server_list);
+
+		/* move to the next service on internal db */
+		rc = sqlite3_step(statement);
+	}
+
+	/* clear error stats */
+	if (alvs_db_clean_error_stats() != ALVS_DB_OK) {
+		return ALVS_DB_NPS_ERROR;
+	}
+	if (alvs_db_clean_interface_stats() != ALVS_DB_OK) {
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
 
 /**************************************************************************//**
  * \brief       API to clear all servers and services from ALVS DBs
@@ -3150,8 +3575,8 @@ enum alvs_db_rc alvs_db_clear(void)
 		build_nps_service_classification_key(&service_list->service,
 						     &nps_service_classification_key);
 		if (infra_delete_entry(STRUCT_ID_ALVS_SERVICE_CLASSIFICATION,
-				       &nps_service_classification_key,
-				       sizeof(struct alvs_service_classification_key)) == false) {
+				&nps_service_classification_key,
+				sizeof(struct alvs_service_classification_key)) == false) {
 			write_log(LOG_CRIT, "Failed to delete service classification entry.");
 			return ALVS_DB_NPS_ERROR;
 		}
@@ -3231,7 +3656,7 @@ void server_db_aging(void)
 
 		/* Collect server ids */
 		while (rc == SQLITE_ROW) {
-			if (alvs_db_get_num_active_conn(sqlite3_column_int(statement, 5), &value) == ALVS_DB_INTERNAL_ERROR) {
+			if (alvs_db_get_num_conn_total(sqlite3_column_int(statement, 5), &value) == ALVS_DB_INTERNAL_ERROR) {
 				write_log(LOG_CRIT, "Delete server failed in aging thread");
 				server_db_exit_with_error();
 			}
@@ -3243,7 +3668,7 @@ void server_db_aging(void)
 				cp_service.protocol = sqlite3_column_int(statement, 4);
 				cp_server.nps_index = sqlite3_column_int(statement, 5);
 
-				write_log(LOG_DEBUG, "Aging server %s:%d (index=%d) in service %s:%d (protocol=%d)",
+				write_log(LOG_DEBUG, "Aging server %s:%d (index=%d) in service %s:%d (prot=%d)",
 					  my_inet_ntoa(cp_server.ip), cp_server.port,
 					  cp_server.nps_index, my_inet_ntoa(cp_service.ip),
 					  cp_service.port, cp_service.protocol);
@@ -3283,3 +3708,97 @@ void server_db_aging(void)
 		sqlite3_finalize(statement);
 	}
 }
+
+/**************************************************************************//**
+ * \brief       print interface statistics
+ *
+ * \return	ALVS_DB_OK - - operation succeeded
+ *		ALVS_DB_NPS_ERROR - fail to read statistics
+ */
+enum alvs_db_rc alvs_db_print_interface_stats(void)
+{
+	uint32_t error_index;
+	uint64_t temp_sum;
+	uint64_t interface_counters[NW_NUM_OF_IF_STATS] = {0};
+
+	temp_sum = 0;
+	if (infra_get_posted_counters(EMEM_IF_STATS_POSTED_OFFSET, NW_NUM_OF_IF_STATS, interface_counters) == false) {
+		write_log(LOG_CRIT, "Failed to read error statistics counters");
+		return ALVS_DB_NPS_ERROR;
+	}
+	temp_sum = 0;
+	for (error_index = 0; error_index < NW_NUM_OF_IF_STATS; error_index++) {
+		if (interface_counters[error_index] > 0) {
+			if (nw_if_posted_stats_offsets_names[error_index] != NULL) {
+				write_log(LOG_INFO, "    %s Counter - %-20lu",
+					  nw_if_posted_stats_offsets_names[error_index],
+					  interface_counters[error_index]);
+			} else {
+				write_log(LOG_ERR, "    Problem printing statistics for error type %d", error_index);
+			}
+		}
+		temp_sum += interface_counters[error_index];
+	}
+	if (temp_sum == 0) {
+		write_log(LOG_INFO, "    No Errors On Counters");
+	}
+
+	return ALVS_DB_OK;
+}
+
+/**************************************************************************//**
+ * \brief       print all error stats to syslog (interface and global counter)
+ *
+ * \return	ALVS_DB_OK - - operation succeeded
+ *		ALVS_DB_NPS_ERROR - fail to read statistics
+ */
+enum alvs_db_rc alvs_db_print_error_stats(void)
+{
+	uint64_t global_error_counters[ALVS_NUM_OF_ALVS_ERROR_STATS] = {0};
+	uint64_t temp_sum;
+	uint32_t error_index, i;
+
+	/* printing general error stats */
+	write_log(LOG_INFO, "Statistics of global errors");
+	if (infra_get_posted_counters(EMEM_ALVS_ERROR_STATS_POSTED_OFFSET,
+					ALVS_NUM_OF_ALVS_ERROR_STATS,
+					global_error_counters) == false) {
+		write_log(LOG_CRIT, "Failed to read error statistics counters");
+		return ALVS_DB_NPS_ERROR;
+	}
+	temp_sum = 0;
+	for (error_index = 0; error_index < ALVS_NUM_OF_ALVS_ERROR_STATS; error_index++) {
+		if (global_error_counters[error_index] > 0) {
+			if (alvs_error_stats_offsets_names[error_index] != NULL) {
+				write_log(LOG_INFO, "    %s Counter - %-20lu",
+					  alvs_error_stats_offsets_names[error_index],
+					  global_error_counters[error_index]);
+			} else {
+				write_log(LOG_ERR, "    Problem printing statistics for error type %d",
+					  error_index);
+			}
+		}
+		temp_sum += global_error_counters[error_index];
+	}
+	if (temp_sum == 0) {
+		write_log(LOG_INFO, "    No Errors On Global Counters");
+	}
+
+
+	/* printing interface error stats */
+	for (i = 0; i < USER_NW_IF_NUM; i++) {
+		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
+		if (alvs_db_print_interface_stats() != ALVS_DB_OK) {
+			return ALVS_DB_NPS_ERROR;
+		}
+	}
+
+	/* printing host error stats */
+	write_log(LOG_INFO, "Statistics of Host Interface");
+	if (alvs_db_print_interface_stats() != ALVS_DB_OK) {
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	return ALVS_DB_OK;
+}
+

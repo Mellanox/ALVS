@@ -171,6 +171,11 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 		return rc;
 	}
 
+	if (cmem_alvs.conn_info_result.conn_state == new_state || cmem_alvs.conn_info_result.delete_bit) {
+		alvs_unlock_connection(hash_value);
+		return rc;
+	}
+
 	alvs_update_connection_statistics(0, -1, 1);
 
 	cmem_alvs.conn_info_result.delete_bit = 0;
@@ -222,6 +227,11 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 		return rc;
 	}
 
+	if (cmem_alvs.conn_info_result.delete_bit || cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_CLOSE_WAIT) {
+		alvs_unlock_connection(hash_value);
+		return rc;
+	}
+
 	/* need to modify connection entry - change state for close and set aging bit on. */
 	cmem_alvs.conn_info_result.aging_bit = 0;
 	cmem_alvs.conn_info_result.delete_bit = 1;
@@ -258,9 +268,9 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 
 	if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) == 0) {
 		if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED) {
-			alvs_update_connection_statistics(-1, -1, 0);
+			alvs_update_connection_statistics(0, -1, 0);
 		} else {
-			alvs_update_connection_statistics(-1, 0, -1);
+			alvs_update_connection_statistics(0, 0, -1);
 		}
 		alvs_server_overload_on_delete_conn(cmem_alvs.conn_info_result.server_index);
 	}

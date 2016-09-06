@@ -88,7 +88,7 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 	 * We need to check if overloaded bit should be set as
 	 * number of connections per this server is increased.
 	 */
-	ezdp_read_and_inc_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+	ezdp_read_and_inc_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
 	if (cmem_alvs.server_info_result.u_thresh != 0) {
 		counter = cmem_wa.alvs_wa.counter_work_area + 1;
@@ -106,7 +106,7 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 			server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
 			if (server_flags & IP_VS_DEST_F_OVERLOAD) {
 				/* if OVERLOAD flag is set - connection can not be created */
-				ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+				ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 						    1);
 				return server_flags;
 			}
@@ -119,7 +119,7 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 			/* set OVERLOADED - as due race this bit can be still unset*/
 			ezdp_atomic_or32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, IP_VS_DEST_F_OVERLOAD);
 			/* its not allowed to open new connections if the counter of current connections (including preset connection) is above thresholds*/
-			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 					    1);
 			alvs_write_log(LOG_DEBUG, "counter %d > u_thresh %d ", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh);
 			/* return OVERLOADED - in summary number connections above upper threshold */
@@ -143,7 +143,7 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 		server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
 		if (server_flags & IP_VS_DEST_F_OVERLOAD) {
 			/* if OVERLOAD flag is set - connection can not be created */
-			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 					    1);
 		}
 		alvs_write_log(LOG_DEBUG, " counter %d < u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
@@ -177,7 +177,7 @@ void alvs_server_overload_on_delete_conn(uint16_t server_index)
 	uint64_t counter = 0;
 
 	/* this function is called from delete_connection, so OVERLOAD bit can be clear */
-	ezdp_read_and_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_SCHED_CONNECTIONS_OFFSET,
+	ezdp_read_and_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
 
 	if (cmem_alvs.server_info_result.u_thresh == 0) {

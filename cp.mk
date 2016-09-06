@@ -14,7 +14,7 @@ CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_
 
 CP_C_FLAGS := -DALVS_LITTLE_ENDIAN
 
-ifdef DEBUG
+ifdef CP_DEBUG
 CP_C_FLAGS += -O0 -g3
 else
 CP_C_FLAGS += -O3 -DNDEBUG
@@ -23,13 +23,13 @@ endif
 # set bin path/name
 ifdef SIM
     CP_C_FLAGS += -DEZ_SIM
-    ifdef DEBUG
+    ifdef CP_DEBUG
         CP_BIN := bin/alvs_daemon_sim_debug
     else
         CP_BIN := bin/alvs_daemon_sim
     endif
 else
-    ifdef DEBUG
+    ifdef CP_DEBUG
         CP_BIN := bin/alvs_daemon_debug
     else
         CP_BIN := bin/alvs_daemon

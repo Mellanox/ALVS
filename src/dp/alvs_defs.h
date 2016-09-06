@@ -102,8 +102,10 @@ enum alvs_sched_server_result {
 
 #define ALVS_CONN_LOCK_ELEMENTS_MASK  (ALVS_CONN_LOCK_ELEMENTS_COUNT - 1)
 
+
 #define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128
 #define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
+
 
 /* Number of lag members is hard coded and depended on compilation flag. */
 /* in case user wants to disable LAG functionality need to set this flag. */

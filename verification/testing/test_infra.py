@@ -418,16 +418,20 @@ class client:
 		
 		self.ssh_object.sendline("echo $?")
 		self.ssh_object.prompt()			   
-		exit_code = self.ssh_object.before 
-		exit_code = exit_code.split('\n')
-		exit_code = exit_code[1]
- 
-		if int(exit_code) != 0:
-			print "Exit Code " + exit_code
-			print "Error message: " + output
-			return [False,output]
+		exit_code = self.ssh_object.before
+		exit_code = exit_code.split('\n')[1]
 		
-		return [True,output]
+		try:
+			exit_code = int(exit_code)
+		except:
+			return [False, output]
+		
+		if exit_code == 0:
+			return [True, output]
+		else:
+			return [False, output]
+		
+
 		
 	def send_packet_to_nps(self, pcap_file):
 		logging.log(logging.DEBUG,"Send packet to NPS") 
@@ -635,11 +639,17 @@ def string_to_pcap_file(packet_string, output_pcap_file):
 	cmd = "text2pcap " + "tmp.txt " + output_pcap_file + ' &> /dev/null'
 	os.system(cmd)
 	os.system("rm -f tmp.txt")
-  
-def create_pcap_file(packets_list, output_pcap_file_name):
+
+pcap_counter = 0
+def create_pcap_file(packets_list, output_pcap_file_name=None):
 	# create a temp pcap directory for pcap files
 	if not os.path.exists("verification/testing/dp/pcap_files"):
 		os.makedirs("verification/testing/dp/pcap_files")
+
+	if output_pcap_file_name == None:
+		global pcap_counter
+		output_pcap_file_name = 'verification/testing/dp/pcap_files/temp_pcap_%d.pcap'%pcap_counter
+		pcap_counter += 1
 		
 	# create temp text file
 	os.system("rm -f verification/testing/dp/temp.txt")

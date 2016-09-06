@@ -182,4 +182,42 @@ enum alvs_db_rc alvs_db_log_daemon(void);
  */
 enum alvs_db_rc alvs_db_clear(void);
 
+/**************************************************************************//**
+ * \brief       API to clear all servers and services statistics
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
+ *              ALVS_DB_NPS_ERROR - failed to update NPS DB
+ */
+enum alvs_db_rc alvs_db_clear_stats(void);
+
+/**************************************************************************//**
+ * \brief       API to print servers statistics from the last zero command
+ *	prints the diff between the internal db statistics (were updated on the zero command)
+ *	and the posted counters
+ *
+ * \param[in]   ip_vs_service    - struct ip_vs_service_user, ipvs service
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
+ *              ALVS_DB_NOT_SUPPORTED - not supported protocol, will not print
+ */
+enum alvs_db_rc alvs_db_print_servers_stats(struct ip_vs_service_user *ip_vs_service);
+
+/**************************************************************************//**
+ * \brief       API to print service statistics
+ *
+ * \return      ALVS_DB_OK - operation succeeded
+ *              ALVS_DB_INTERNAL_ERROR - received an error from internal DB
+ */
+enum alvs_db_rc alvs_db_print_services_stats(void);
+
+/**************************************************************************//**
+ * \brief       print all error stats to syslog (interface and global counter)
+ *
+ * \return	ALVS_DB_OK - - operation succeeded
+ *		ALVS_DB_FAILURE - fail to read statistics
+ */
+enum alvs_db_rc alvs_db_print_error_stats(void);
+
 #endif /* _ALVS_DB_H_ */
