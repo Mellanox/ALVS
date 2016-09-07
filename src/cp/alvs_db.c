@@ -83,7 +83,7 @@ struct alvs_db_service {
 	uint16_t port;
 	uint16_t protocol;
 	uint32_t nps_index;
-	uint8_t flags;
+	uint32_t flags;
 	enum alvs_scheduler_type sched_alg;
 	struct ezdp_sum_addr stats_base;
 	uint16_t sched_entries_count;
