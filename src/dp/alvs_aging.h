@@ -100,10 +100,14 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
-				alvs_conn_age_out(conn_index, ezdp_mod(iteration_num, alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state), 0, 0));
-				/*aggregate active connection into current state sync frame*/
-				if (unlikely(cmem_alvs.conn_sync_state.conn_sync_status == ALVS_CONN_SYNC_NEED)) {
-					alvs_state_sync_aggr(source_ip, sync_id);
+				if (alvs_conn_age_out(conn_index,
+						      ezdp_mod(iteration_num,
+							       alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state),
+							       0, 0)) == 0) {
+					/*aggregate active connection into current state sync frame*/
+					if (unlikely(cmem_alvs.conn_sync_state.conn_sync_status == ALVS_CONN_SYNC_NEED)) {
+						alvs_state_sync_aggr(source_ip, sync_id);
+					}
 				}
 				continue;
 			}
