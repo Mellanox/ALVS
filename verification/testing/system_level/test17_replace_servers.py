@@ -226,7 +226,7 @@ def main():
 
 	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
 
-	clean_players(server_list, ezbox, client_list, True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 
 	if client_rc and gen_rc:
 		print 'Test passed !!!'

@@ -30,7 +30,7 @@ from multiprocessing import Process
 def generic_main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d]"
+	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, --start, --stop]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	bool_choices = ['true', 'false', 'True', 'False']
@@ -48,6 +48,10 @@ def generic_main():
 					  help="Copy binaries instead using alvs.tar.gz (defailt=True). in case use_install is true, copy_binaries ignored")
 	parser.add_option("-d", "--use_director", dest="use_director", choices=bool_choices,
 					  help="Use director at host")
+	parser.add_option("--start", "--start_ezbox", dest="start_ezbox", choices=bool_choices,
+					  help="Start the ezbox a the beginning of the test, defualt = False")
+	parser.add_option("--stop", "--stop_ezbox", dest="stop_ezbox", choices=bool_choices,
+					  help="Stop the ezbox at the end of the test, defualt = False")
 	(options, args) = parser.parse_args()
 
 	# validate options
@@ -72,7 +76,11 @@ def generic_main():
 		config['copy_binaries']   = bool_str_to_bool(options.copy_binaries)
 	if options.use_director:
 		config['use_director']    = bool_str_to_bool(options.use_director)
-	
+	if options.start_ezbox:
+		config['start_ezbox']    = bool_str_to_bool(options.start_ezbox)
+	if options.stop_ezbox:
+		config['stop_ezbox']    = bool_str_to_bool(options.stop_ezbox)
+
 	config['setup_num'] = options.setup_num
 	
 	print config
@@ -162,30 +170,35 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	# start ALVS daemon and DP
 	ezbox.connect()
 	
-	# set CP, DP params
-	if test_config['modify_run_cpus']:
+	if test_config['modify_run_cpus'] and test_config['start_ezbox']:
 		# validate chip is up
+		ezbox.alvs_service_stop()
 		ezbox.alvs_service_start()
 		ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
-	ezbox.update_cp_params("--agt_enabled --port_type=10GE")
-	
-	ezbox.alvs_service_stop()
 	
 	
-	if test_config['use_install']:
-		ezbox.copy_and_install_alvs(test_config['install_file'])
+	if (test_config['start_ezbox']):
+		ezbox.alvs_service_stop()
+		ezbox.update_cp_params("--agt_enabled --port_type=10GE")
+		
+		if test_config['use_install']:
+			ezbox.copy_and_install_alvs(test_config['install_file'])
+		else:
+			if test_config['copy_binaries']:
+				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+		
+		ezbox.config_vips(vip_list)
+		ezbox.flush_ipvs()
+		ezbox.alvs_service_start()
+		
+		# wait for CP before initialize director
+		ezbox.wait_for_cp_app()
+		# wait for DP app
+		ezbox.wait_for_dp_app()	
 	else:
-		if test_config['copy_binaries']:
-			ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-	ezbox.config_vips(vip_list)
-	ezbox.flush_ipvs()
-	ezbox.alvs_service_start()
-
-	# wait for CP before initialize director
-	ezbox.wait_for_cp_app()
-	
-	# wait for DP app
-	ezbox.wait_for_dp_app()
+		ezbox.config_vips(vip_list)
+		ezbox.flush_ipvs()
+		
 	# init director
 	if test_config['use_director']:
 		print 'Start Director'
@@ -210,7 +223,9 @@ def fill_default_config(test_config):
 					  'use_install'     : True,  # in case use_install is true, copy_binaries ignored
 					  'install_file'    : 'alvs.tar.gz',
 					  'copy_binaries'   : True,
-					  'use_director'    : True}
+					  'use_director'    : True,
+					  'start_ezbox'		: False,
+					  'stop_ezbox'		: False}
 	
 	# Check user configuration
 	for key in test_config:
@@ -283,16 +298,16 @@ def clean_client(client):
 
 
 #------------------------------------------------------------------------------ 
-def clean_ezbox(ezbox, use_director):
+def clean_ezbox(ezbox, use_director, stop_ezbox):
 	print "Clean EZbox: " + ezbox.setup['name']
 	
 	# reconnect with new object
 	ezbox.connect()
-	ezbox.clean(use_director, True)
+	ezbox.clean(use_director, stop_ezbox)
 
 
 #------------------------------------------------------------------------------ 
-def clean_players(server_list, ezbox, client_list, use_director = False):
+def clean_players(server_list, ezbox, client_list, use_director = False, stop_ezbox = False):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	# Add servers, client & EZbox to proccess list
@@ -309,7 +324,7 @@ def clean_players(server_list, ezbox, client_list, use_director = False):
 	ezbox.run_app_ssh.recreate_ssh_object()
 	ezbox.syslog_ssh.recreate_ssh_object()
 
-	process_list.append(Process(target=clean_ezbox, args=(ezbox, use_director,)))
+	process_list.append(Process(target=clean_ezbox, args=(ezbox, use_director, stop_ezbox,)))
 	
 	
 	# run clean for all player parallely

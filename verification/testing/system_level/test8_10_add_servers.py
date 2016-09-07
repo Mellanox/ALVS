@@ -243,7 +243,7 @@ def tests8_10_main(test_num):
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-	clean_players(server_list, ezbox, client_list, True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 	
 	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
 	

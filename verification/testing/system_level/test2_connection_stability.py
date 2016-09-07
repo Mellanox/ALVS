@@ -218,7 +218,7 @@ def main():
 		for c in client_list:
 			c.remove_last_log()
 	
-	clean_players(server_list, ezbox, client_list, use_director=True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 	
 	print datetime.datetime.now()
 	if test_res:

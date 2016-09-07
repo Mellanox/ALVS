@@ -95,7 +95,7 @@ def main():
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 
-	clean_players(server_list, ezbox, client_list, True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 
 	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
 

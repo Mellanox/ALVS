@@ -122,11 +122,11 @@ class ezbox_host:
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
-	def clean(self, use_director=False, stop_service=False):
+	def clean(self, use_director=False, stop_ezbox=False):
 		if use_director:
 			self.clean_director()
 			
-		if stop_service:
+		if stop_ezbox:
 			self.alvs_service_stop()
 		
 		self.clean_vips()
@@ -828,7 +828,6 @@ class ezbox_host:
 		self.ssh_object.ssh_object.sendline("echo -e \"select nps_index from servers where active = 1;\" | sqlite3 /" + "alvs.db")
 		self.ssh_object.ssh_object.prompt()
 		server_index_list = map(lambda str: str.split('|'), self.ssh_object.ssh_object.before.split('\n')[1:-1])
-		print server_index_list
 		server_index_list = [int(s[0].strip()) for s in server_index_list if isinstance(s[0].strip(), int)]
 		return server_index_list
 

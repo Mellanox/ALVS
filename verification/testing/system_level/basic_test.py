@@ -40,34 +40,13 @@ def user_init(setup_num):
 	server_count = 2
 	client_count = 1
 	service_count = 1
-
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-
-	index = 0
-	setup_list = get_setup_list(setup_num)
-
-	server_list=[]
-	for i in range(server_count):
-		server_list.append(HttpServer(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname'], 
-						  username = "root", 
-						  password = "3tango", 
-						  vip = vip_list[0],
-						  eth='ens6'))
-		index+=1
 	
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(HttpClient(ip = setup_list[index]['ip'],
-						  hostname = setup_list[index]['hostname']))
-		index+=1
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
-
-	# EZbox
-	host_name, chip_name, interface =  get_ezbox_names(setup_num)
-	ezbox = ezbox_host(management_ip=host_name, nps_ip=chip_name, username='root', password='ezchip', interface=interface)
-
-	return (server_list, ezbox, client_list, vip_list)
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		
+	return convert_generic_init_to_user_format(dict)
 
 def client_execution(client, vip):
 	repeat = 10 
@@ -111,7 +90,7 @@ def main():
 	
 	collect_logs(server_list, ezbox, client_list)
 	
-	clean_players(server_list, ezbox, client_list)
+	clean_players(server_list, ezbox, client_list, config['stop_ezbox'])
 	
 
 

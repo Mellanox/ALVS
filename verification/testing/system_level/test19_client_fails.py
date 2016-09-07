@@ -133,7 +133,7 @@ def main():
 	
 	user_rc = run_user_checker(ezbox)
 	
-	clean_players(server_list, ezbox, client_list, use_director=True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 	
 	if user_rc:
 		print 'Test passed !!!'

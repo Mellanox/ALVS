@@ -10,6 +10,7 @@ import sys
 import inspect
 from multiprocessing import Process
 import signal
+from timeit import default_timer as timer
 
 
 
@@ -38,10 +39,10 @@ def exit_signal_handler(signal = None, frame = None):
 		
 #===============================================================================
 def clean_setup(setup_num):
+	print 'Clean setup'
 	cmd = currentdir + '/clean_setup_servers.py ' + setup_num + " > /dev/null 2>&1"
 	retval = os.system(cmd)
-	if retval != 0 :
-		print "WARNNING: CMD: %s - Failed" %cmd
+	
 
 def main():
 	global gen_retval
@@ -81,6 +82,7 @@ def main():
 	os.system("cat /dev/null > verification/testing/system_level/lists/failed_tests")
 	for line in list_file:
 		if line[0] != '#':
+			start = timer()
 			clean_setup(setup_num)
 			
 			test = line[:-1]
@@ -91,8 +93,9 @@ def main():
 			cmd = currentdir + '/' + test + ' -s ' + setup_num + ' -c ' + use_4_k_cpus
 			if not first_test:
 				print "**** not first test"
-				cmd = cmd + " -m False -i False -f False -b False"
+				cmd = cmd + " -m False -i False -f False -b False --start false --stop false"
 			else:
+				cmd = cmd + " --start true"
 				first_test = False
 			cmd = cmd + ' > ' +logfilename
 			
@@ -103,6 +106,8 @@ def main():
 			if os.WIFSIGNALED(retval):
 				exit_signal_handler()
 				
+			end = timer()
+			print "Total test time is: %s" %(end-start)
 			# check test retval
 			if retval != 0:
 				gen_retval = False

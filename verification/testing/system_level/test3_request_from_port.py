@@ -89,7 +89,7 @@ def main():
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 	
-	clean_players(server_list, ezbox, client_list, use_director=True)
+	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 	
 	if test_rc == 0 and gen_rc:
 		print 'Test passed !!!'
