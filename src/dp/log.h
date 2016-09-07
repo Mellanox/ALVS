@@ -50,9 +50,11 @@
 #define SYSLOG_APPLIC_NAME_STRING_SIZE  10
 #define SYSLOG_BUF_DATA_SIZE            64
 #define SYSLOG_FIRST_BUFFER_SIZE        32
-#define SYSLOG_MAX_NUM_OF_BUF		3
-#define SYSLOG_BUF_HEADROOM		64
-#define SYSLOG_CPU_STRING_SIZE		6
+#define SYSLOG_MAX_NUM_OF_BUF           3
+#define SYSLOG_BUF_HEADROOM             64
+#define SYSLOG_CPU_STRING_SIZE          6
+#define LOG_MSG_SIZE_FOR_TB             100
+
 int syslog_str_size;
 char syslog_str[EZFRAME_BUF_DATA_SIZE];
 
@@ -71,9 +73,18 @@ char syslog_str[EZFRAME_BUF_DATA_SIZE];
 }
 #endif
 
-struct syslog_wa_info {
+
+struct syslog_frame_info {
 	ezframe_t   frame;
 	char        frame_data[SYSLOG_BUF_DATA_SIZE];
+};
+
+struct syslog_wa_info {
+	union {
+		struct syslog_frame_info frame_info;
+		uint64_t tb_color_flag_counter;
+		struct ezdp_tb_ctr_result tb_ctr_result;
+	};
 };
 
 typedef int (*send_cb)(ezframe_t *);

@@ -194,6 +194,8 @@ class service:
 			self.schedule_algorithm = 'sh -b sh-port'
 		elif schedule_algorithm == 'source_hash_with_source_port_fallback':
 			self.schedule_algorithm = 'sh -b sh-port,sh-fallback'
+		elif schedule_algorithm == 'source_hash_fallback':
+			self.schedule_algorithm = 'sh -b sh-fallback'
 		elif schedule_algorithm == 'rr':
 			self.schedule_algorithm = 'rr'
 		elif schedule_algorithm == 'wrr':

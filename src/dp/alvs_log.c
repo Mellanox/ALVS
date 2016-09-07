@@ -88,7 +88,7 @@ int alvs_send(ezframe_t  __cmem * frame)
 
 	/*load the buffer and get the start of the data*/
 	frame_base = ezframe_load_buf(frame,
-				      cmem_wa.syslog_work_area.frame_data + SYSLOG_FIRST_BUFFER_SIZE,
+				      cmem_wa.syslog_work_area.frame_info.frame_data + SYSLOG_FIRST_BUFFER_SIZE,
 				      &orig_length,
 				      EZFRAME_LOAD_DATA_WITHOUT_OFFSET);
 

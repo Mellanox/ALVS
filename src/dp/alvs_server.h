@@ -78,7 +78,7 @@ uint32_t alvs_server_info_lookup(uint32_t server_index)
  */
 
 static __always_inline
-int alvs_server_overload_on_create_conn(uint16_t server_index)
+uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 {
 
 	uint64_t counter = 0;
@@ -88,6 +88,7 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 	 * We need to check if overloaded bit should be set as
 	 * number of connections per this server is increased.
 	 */
+	server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
 	ezdp_read_and_inc_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
 	if (cmem_alvs.server_info_result.u_thresh != 0) {
@@ -103,7 +104,6 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 			/* read if OVERLOADED was set before - if yes - new connection can not created */
 			/* it's required if number of connections was reduced by function of delete_connection */
 			/* but OVERLOADED flag wasn't cleared */
-			server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
 			if (server_flags & IP_VS_DEST_F_OVERLOAD) {
 				/* if OVERLOAD flag is set - connection can not be created */
 				ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
@@ -140,7 +140,6 @@ int alvs_server_overload_on_create_conn(uint16_t server_index)
 			}
 		}
 		/* if number of connections between low threshold and high threshold return current server_flag */
-		server_flags = ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base);
 		if (server_flags & IP_VS_DEST_F_OVERLOAD) {
 			/* if OVERLOAD flag is set - connection can not be created */
 			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,

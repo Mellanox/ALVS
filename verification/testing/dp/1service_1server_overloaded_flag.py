@@ -57,7 +57,6 @@ print "PART 1 - U_THRESH is upper bound for new created connections"
  # create packets
 packet_list_to_send = []
 error_stats = []
-long_counters = []
 num_of_packets = 7
 src_port_list = []
 for i in range(num_of_packets):
@@ -795,7 +794,7 @@ print "capture from server"
 packets_received_1 = server1.stop_capture()
  
 print "Server 1  - received %d packets"%packets_received_1
-time.sleep(20)
+time.sleep(120)
 
 sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server

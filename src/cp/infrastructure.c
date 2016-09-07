@@ -462,12 +462,12 @@ bool infra_create_statistics(void)
 		return false;
 	}
 
-	/* Get posted statistics defaults for partition 0 */
+	/* On_demand statistics defaults for partition 0 - for long counters and TB*/
 	memset(&on_demand_group_params, 0, sizeof(on_demand_group_params));
 
 	on_demand_group_params.uiPartition = 0;
 	on_demand_group_params.eGroupType = EZapiStat_GroupType_STANDARD;
-
+	on_demand_group_params.uiGroup = 0;
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetGroupParams, &on_demand_group_params);
 
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -475,7 +475,8 @@ bool infra_create_statistics(void)
 		return false;
 	}
 
-	on_demand_group_params.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+	on_demand_group_params.uiStartCounter = 0;
+	on_demand_group_params.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + 4096; /*TODO - maybe define*/
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &on_demand_group_params);
 
@@ -483,6 +484,9 @@ bool infra_create_statistics(void)
 		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_ConfigCmd_SetGroupParams failed.");
 		return false;
 	}
+
+
+
 	/* Get posted statistics defaults for partition 0 */
 	memset(&posted_partition_params, 0, sizeof(posted_partition_params));
 	posted_partition_params.uiPartition = 0;
@@ -492,7 +496,7 @@ bool infra_create_statistics(void)
 		return false;
 	}
 
-	/* Set MSID */
+	/* POSTED counters */
 	posted_partition_params.bEnable = true;
 	posted_partition_params.uiMSID = USER_POSTED_STATS_MSID;
 	posted_partition_params.uiUnitMask = 0xf;
@@ -724,6 +728,56 @@ bool infra_initialize_statistics(void)
 	EZstatus ret_val;
 	EZapiStat_PostedCounterConfig posted_counter_config;
 	EZapiStat_LongCounterConfig long_counter_config;
+	EZapiStat_TBProfile token_bucket_profile;
+	EZapiStat_TBCounterConfig token_bucket_counter_config;
+
+	memset(&token_bucket_profile, 0, sizeof(token_bucket_profile));
+
+	token_bucket_profile.uiPartition = 0;
+	token_bucket_profile.uiProfile = 0;
+
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetTokenBucketProfile, &token_bucket_profile);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetTokenBucketProfile failed.");
+		return false;
+	}
+
+	token_bucket_profile.uiPartition = 0;
+	token_bucket_profile.uiProfile = 0;
+	token_bucket_profile.uiCIR = ALVS_TB_PROFILE_0_CIR;
+	token_bucket_profile.eCIRResolution = ALVS_TB_PROFILE_0_CIR_RESOLUTION;
+	token_bucket_profile.uiCBS = ALVS_TB_PROFILE_0_CBS;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetTokenBucketProfile, &token_bucket_profile);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetTokenBucketProfile failed.");
+		return false;
+	}
+
+	memset(&token_bucket_counter_config, 0, sizeof(token_bucket_counter_config));
+
+	token_bucket_counter_config.pasCounters = malloc(sizeof(EZapiStat_TBCounter) * 1);
+	if (token_bucket_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: token_bucket_counter_config malloc failed.");
+		return false;
+	}
+	memset(token_bucket_counter_config.pasCounters, 0, sizeof(EZapiStat_TBCounter) * 1);
+	token_bucket_counter_config.uiPartition = 0;
+	token_bucket_counter_config.bRange = TRUE;
+	token_bucket_counter_config.uiStartCounter = EMEM_STATS_ON_DEMAND_TB_OFFSET;
+	token_bucket_counter_config.uiNumCounters = 1;
+	token_bucket_counter_config.pasCounters[0].uiCommitProfile = 0;
+	token_bucket_counter_config.pasCounters[0].eAlgorithm = EZapiStat_TBAlgorithm_SINGLE_BUCKET;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetTokenBucketCounters, &token_bucket_counter_config);
+	free(token_bucket_counter_config.pasCounters);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetTokenBucketProfile failed.");
+		return false;
+	}
 
 	/* Set posted statistics values to be 0 */
 	memset(&long_counter_config, 0, sizeof(long_counter_config));
@@ -737,7 +791,7 @@ bool infra_initialize_statistics(void)
 	long_counter_config.uiPartition = 0;
 	long_counter_config.bRange = TRUE;
 	long_counter_config.uiStartCounter = 0;
-	long_counter_config.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS;
+	long_counter_config.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + EMEM_STATS_ON_DEMAND_COLOR_FLAG_NUM;
 	long_counter_config.uiRangeStep = 1;
 	long_counter_config.pasCounters[0].uiValue = 0;
 	long_counter_config.pasCounters[0].uiValueMSB = 0;

@@ -48,6 +48,8 @@ struct net_hdr {
 	struct udphdr udp;
 } __packed;
 
+#define BUILD_SUM_ADDR(mem_space_type, msid, offset) (((mem_space_type) << 31) | ((msid) << 27) | ((offset) << 0))
+
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}
 
@@ -158,8 +160,26 @@ enum alvs_error_stats_offsets {
 #define EMEM_SERVER_FLAGS_OFFSET	(EMEM_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT)
 #define EMEM_SERVER_FLAGS_OFFSET_CP	(EMEM_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT * 4) /*TODO - change to sizeof()*/
 
+/*definition of long counters for server needs*/
 #define EMEM_SERVER_STATS_ON_DEMAND_MSID USER_ON_DEMAND_STATS_MSID
 #define EMEM_SERVER_STATS_ON_DEMAND_OFFSET 0x0
+
+/*definition of long counters for TB flag - to know if red was set*/
+#define EMEM_TB_FLAG_STATS_ON_DEMAND_OFFSET (ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS)
+#define EMEM_TB_FLAG_STATS_NUM              1
+
+
+/*definition of TB counters - to know the color of message*/
+#define EMEM_STATS_ON_DEMAND_COLOR_FLAG_OFFSET (ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS)
+#define EMEM_STATS_ON_DEMAND_COLOR_FLAG_NUM    1
+#define EMEM_STATS_ON_DEMAND_TB_OFFSET         (EMEM_STATS_ON_DEMAND_COLOR_FLAG_OFFSET + EMEM_STATS_ON_DEMAND_COLOR_FLAG_NUM)
+#define EMEM_STATS_ON_DEMAND_TB_STATS_NUM      1
+
+
+#define ALVS_TB_PROFILE_0_CIR_RESOLUTION EZapiStat_TBProfileResolution_1_BYTE
+#define ALVS_TB_PROFILE_0_CIR            0x40000000
+#define ALVS_TB_PROFILE_0_CBS            0x40000000
+
 #define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
 #define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
 #define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID

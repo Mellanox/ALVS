@@ -48,6 +48,8 @@ void open_log(char *s)
 
 	EZlog_SetFileName("/var/log/alvs_ezcp_log");
 	EZlog_OpenLogFile();
+	EZlog_SetMaximalLogSize(LOG_MAX_SIZE);
+
 	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP,
 		     EZlog_SUB_COMP, EZlog_LEVEL);
 }

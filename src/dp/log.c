@@ -952,12 +952,132 @@ void set_syslog_template(struct net_hdr  *net_hdr_info, int total_frame_length)
 
 }
 
+static uint32_t send_special_message(char *str, int length, void  __cmem * syslog_wa)
+{
+
+	uint32_t rc;
+	uint8_t *ptr;
+	int buf_len;
+	/*create new frame*/
+
+	rc = ezframe_new(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
+			 (struct net_hdr *)(((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data),
+			 sizeof(struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
+	if (rc != 0) {
+		return 1;
+	}
+	/*copy priority_facility to the buffer*/
+	ezdp_mem_copy(((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data,
+		      &ptr_pri_facility[LOG_NOTICE][0],
+		      SYSLOG_PRI_FACILITY_STRING_SIZE);
+
+	/*copy application name after priotiy_facility*/
+	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE],
+		      syslog_info.applic_name,
+		      (uint32_t)syslog_info.applic_name_size);
+
+	/*copy cpu_id string after priotiy_facility
+	 * and application name
+	 */
+	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
+										   (uint32_t)syslog_info.applic_name_size],
+				&ptr_cpus[ezdp_get_cpu_id()][0],
+				SYSLOG_CPU_STRING_SIZE);
+
+	/*calculation of the  start of the user string after
+	 * adding syslog private message
+	 */
+	ptr = (uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
+									   syslog_info.applic_name_size +
+									   SYSLOG_CPU_STRING_SIZE];
+
+	assert(syslog_info.remained_length_for_user_string >= length);
+	/*calculation of buf_len to add user string*/
+	buf_len = MIN(length, syslog_info.remained_length_for_user_string);
+
+	/*copy user string to the correct offset of the buffer*/
+	ezdp_mem_copy(ptr, str, buf_len);
+
+	/*append buffer to the frame*/
+	rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
+			    ((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data,
+			    SYSLOG_BUF_DATA_SIZE -
+			    syslog_info.remained_length_for_user_string +
+			    buf_len,
+			    0);
+	if (rc != 0) {
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		return rc;
+	}
+	rc = ezframe_first_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+	if (rc != 0) {
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		return rc;
+	}
+	rc = syslog_info.send_cb(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame);
+	if (rc != 0) {
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		return rc;
+	}
+
+	return 0;
+
+}
+
+static uint32_t token_bucket(void  __cmem * syslog_wa)
+{
+	ezdp_sum_addr_t addr;
+	enum ezdp_tb_color tb_color;
+	char back_to_normal_str[] = "LOG_MSG: Back to normal logging"; /*size - 30*/
+	char notice_str[] = "LOG_MSG: Logging overloaded-logs are dropped"; /*size - 46*/
+	uint32_t rc;
+	int total_frame_length = SYSLOG_PRI_FACILITY_STRING_SIZE +
+				syslog_info.applic_name_size +
+				SYSLOG_CPU_STRING_SIZE;
+
+	/*here the main purpose to send number of syslog messages in seconds.*/
+	/*not network control, only syslog messages - as every message comes via DDR and bug can cause */
+	/* chip stuck */
+	/*TODO - define*/
+	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, EMEM_SERVER_STATS_ON_DEMAND_MSID, EMEM_STATS_ON_DEMAND_TB_OFFSET);
+	ezdp_read_tb_ctr(addr, LOG_MSG_SIZE_FOR_TB, EZDP_GREEN_TRAFFIC,
+			 &((struct syslog_wa_info *)syslog_wa)->tb_ctr_result);
+	tb_color = ((struct syslog_wa_info *)syslog_wa)->tb_ctr_result.color;
+	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, EMEM_SERVER_STATS_ON_DEMAND_MSID, EMEM_STATS_ON_DEMAND_COLOR_FLAG_OFFSET);
+	if (tb_color == EZDP_GREEN_TRAFFIC) {
+		ezdp_read_and_reset_single_ctr(addr,
+					       &((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter);
+		if (((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter != 0) {
+			/*fill syslog ipv4/udp template*/
+			set_syslog_template((struct net_hdr *)((struct syslog_wa_info *)syslog_wa)->
+						frame_info.frame_data, total_frame_length + sizeof(back_to_normal_str));
+			rc = send_special_message(back_to_normal_str, sizeof(back_to_normal_str), syslog_wa);
+			if (rc != 0)
+				return 1;
+		}
+	} else {
+		ezdp_read_and_inc_single_ctr(addr,
+					     1,
+					     &((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter,
+					     0);
+
+		if (((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter == 0) {
+			set_syslog_template((struct net_hdr *)((struct syslog_wa_info *)syslog_wa)->
+						frame_info.frame_data, total_frame_length + sizeof(notice_str));
+			rc = send_special_message(notice_str, sizeof(notice_str), syslog_wa);
+		}
+		return 1;
+	}
+
+	return 0;
+}
+
 void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	       unsigned int __attribute__((__unused__))syslog_wa_size)
 {
 	struct net_hdr *net_hdr_info =
 		(struct net_hdr *)((struct syslog_wa_info *)syslog_wa)->
-								frame_data;
+								frame_info.frame_data;
 	int user_string_length;
 	int total_frame_length = SYSLOG_PRI_FACILITY_STRING_SIZE +
 				syslog_info.applic_name_size +
@@ -972,6 +1092,11 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	 */
 	assert(syslog_wa_size >= sizeof(struct syslog_wa_info));
 
+	/*token_bucket implementation for sending the number of packets in seconds*/
+	rc = token_bucket(syslog_wa);
+	if (rc != 0) {
+		return;
+	}
 	/*calculation of the user string length
 	 * which entered to the buffer with restrictions:
 	 * num_of_buffers <= 3 and the first buffer consists
@@ -984,35 +1109,35 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 		user_string_length += MIN((length - user_string_length), SYSLOG_BUF_DATA_SIZE);
 		num_of_bufs++;
 	}
+
+
 	total_frame_length += user_string_length;
 	/*fill syslog ipv4/udp template*/
 	set_syslog_template(net_hdr_info, total_frame_length);
 
 	/*create new frame*/
-	rc = ezframe_new(&((struct syslog_wa_info *)syslog_wa)->frame,
+	rc = ezframe_new(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
 			 net_hdr_info,
 			 sizeof(struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
 	if (rc != 0) {
 		return;
 	}
 
-	/*required for append*/
-	ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 
 	/*copy priority_facility to the buffer*/
-	ezdp_mem_copy(((struct syslog_wa_info *)syslog_wa)->frame_data,
+	ezdp_mem_copy(((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data,
 		      &ptr_pri_facility[priority][0],
 		      SYSLOG_PRI_FACILITY_STRING_SIZE);
 
 	/*copy application name after priotiy_facility*/
-	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE],
+	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE],
 		      syslog_info.applic_name,
 		      (uint32_t)syslog_info.applic_name_size);
 
 	/*copy cpu_id string after priotiy_facility
 	 * and application name
 	 */
-	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
+	ezdp_mem_copy((uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
 										   (uint32_t)syslog_info.applic_name_size],
 				&ptr_cpus[ezdp_get_cpu_id()][0],
 				SYSLOG_CPU_STRING_SIZE);
@@ -1020,7 +1145,7 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	/*calculation of the  start of the user string after
 	 * adding syslog private message
 	 */
-	ptr = (uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
+	ptr = (uint8_t *)&((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data[SYSLOG_PRI_FACILITY_STRING_SIZE +
 									   syslog_info.applic_name_size +
 									   SYSLOG_CPU_STRING_SIZE];
 
@@ -1031,14 +1156,14 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	ezdp_mem_copy(ptr, str, buf_len);
 
 	/*append buffer to the frame*/
-	rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame,
-			    ((struct syslog_wa_info *)syslog_wa)->frame_data,
+	rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
+			    ((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data,
 			    SYSLOG_BUF_DATA_SIZE -
 			    syslog_info.remained_length_for_user_string +
 			    buf_len,
 			    0);
 	if (rc != 0) {
-		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 		return;
 	}
 
@@ -1047,26 +1172,22 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	/*update length remained to copy from the user data*/
 	length -= buf_len;
 
-	/*required for append*/
-	ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 	num_of_bufs = 2;
 	/*restrictions - the buffer contains in summary not more than 3 buffers*/
 	while ((length > 0) && (num_of_bufs < SYSLOG_MAX_NUM_OF_BUF)) {
 		/*calculation of buf_len to add user string*/
 		buf_len = MIN(length, SYSLOG_BUF_DATA_SIZE);
 		/*copy user string to the correct offset of the buffer*/
-		ezdp_mem_copy((uint8_t *)((struct syslog_wa_info *)syslog_wa)->frame_data, str, buf_len);
+		ezdp_mem_copy((uint8_t *)((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data, str, buf_len);
 		/*append buffer to the frame*/
-		rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame,
-				    ((struct syslog_wa_info *)syslog_wa)->frame_data,
+		rc = ezframe_append_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
+				    ((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data,
 				    buf_len, 0);
 		if (rc != 0) {
-			ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+			ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 			return;
 		}
 
-		/*update frame to point to the last buffer*/
-		 ezframe_next_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
 		/*update pointer of the user data*/
 		str += buf_len;
 		/*update length remained to copy from the user data*/
@@ -1075,14 +1196,14 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 		num_of_bufs += 1;
 
 	 }
-	rc = ezframe_first_buf(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+	rc = ezframe_first_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 	if (rc != 0) {
-		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 		return;
 	}
-	rc = syslog_info.send_cb(&((struct syslog_wa_info *)syslog_wa)->frame);
+	rc = syslog_info.send_cb(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame);
 	if (rc != 0) {
-		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame, 0);
+		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 		return;
 	}
 
