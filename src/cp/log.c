@@ -31,7 +31,7 @@
 *
 *  Project:             NPS400 ALVS application
 *  File:                log.c
-*  Desc:                performs logging functionality for CP via syslog
+*  Desc:                performs logging functionality for CP via SYSlog.
 *
 */
 
