@@ -460,7 +460,7 @@ void alvs_conn_do_route(uint8_t *frame_base)
  * \return        void
  */
 static __always_inline
-void alvs_conn_data_path(uint8_t *frame_base, struct iphdr *ip_hdr, struct tcphdr *tcp_hdr, uint32_t conn_index)
+void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t conn_index)
 {
 	uint32_t rc;
 

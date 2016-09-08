@@ -310,7 +310,7 @@ void nw_db_manager_arp_table_init(void)
  *
  * \return      void
  */
-void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data)
+void nw_db_manager_fib_cb(struct nl_cache __attribute__((__unused__))*cache, struct nl_object *obj, int action, void __attribute__((__unused__))*data)
 {
 	struct rtnl_route *route_entry = (struct rtnl_route *)obj;
 	enum nw_db_rc nw_ret = NW_DB_OK;
@@ -373,7 +373,7 @@ void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj, int act
  *
  * \return      void
  */
-void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj, int action, void *data)
+void nw_db_manager_arp_cb(struct nl_cache __attribute__((__unused__))*cache, struct nl_object *obj, int action, void __attribute__((__unused__))*data)
 {
 	struct rtnl_neigh *neighbor = (struct rtnl_neigh *)obj;
 	/* Take only IPv4 entries.

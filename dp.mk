@@ -10,7 +10,7 @@ DP_C_SRCS = $(shell ls src/dp/*.c)
 DP_OBJS = $(patsubst %.c,build/%.o,$(DP_C_SRCS)) 
 DP_C_DEPS = $(patsubst %.c,build/%.d,$(DP_C_SRCS))
 
-DP_C_FLAGS := -DNPS_BIG_ENDIAN
+DP_C_FLAGS := -DNPS_BIG_ENDIAN -Werror -Wall -Wextra
 
 ifdef DP_DEBUG
 DP_C_FLAGS += -O1 -g3 -ftree-ter  -gdwarf-2

@@ -1008,7 +1008,7 @@ bool infra_create_tcam(struct infra_tcam_params *params)
 	EZstatus retVal = EZok;
 	EZapiTCAM_IntTCAMLookupTable sIntTCAMLookupTable;
 	EZapiTCAM_IntTCAMLookupProfile sIntTCAMLookupProfile;
-	int i;
+	unsigned int i;
 
 	/* Configure table */
 	memset(&sIntTCAMLookupTable, 0, sizeof(sIntTCAMLookupTable));

@@ -83,7 +83,6 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 
 	if (likely(rc == 0)) {
 		enum alvs_service_output_result	service_data_path_res = alvs_service_data_path(service_class_res_ptr->service_index,
-											       frame_base,
 											       ip_hdr,
 											       tcp_hdr);
 		if (service_data_path_res == ALVS_SERVICE_DATA_PATH_SUCCESS) {
@@ -91,7 +90,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 			alvs_conn_do_route(frame_base);
 		} else if (service_data_path_res == ALVS_SERVICE_DATA_PATH_RETRY) {
 			/*all other packets tried to open new connection go through regular fast path*/
-			alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, cmem_alvs.conn_result.conn_index);
+			alvs_conn_data_path(frame_base, tcp_hdr, cmem_alvs.conn_result.conn_index);
 		} /* all other cases - drop or sent to host - packet was already processed. */
 	} else {
 		alvs_write_log(LOG_DEBUG, "fail service classification lookup");

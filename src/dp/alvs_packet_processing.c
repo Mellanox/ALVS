@@ -71,7 +71,7 @@ void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 
 	if (rc == 0) {
 		/*handle fast path - connection exists*/
-		alvs_conn_data_path(frame_base, ip_hdr, tcp_hdr, conn_class_res_ptr->conn_index);
+		alvs_conn_data_path(frame_base, tcp_hdr, conn_class_res_ptr->conn_index);
 	} else {
 		/*handle slow path  - opening new connection*/
 		alvs_unknown_packet_processing(frame_base, ip_hdr, tcp_hdr);

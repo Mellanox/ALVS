@@ -1406,10 +1406,9 @@ void alvs_db_wrr_fill_buckets(struct alvs_db_server *bucket[], struct alvs_serve
  *
  * \param[in]   server_list   - list of servers with weight > 0,
  *                              server_list != NULL
- * \param[in]   server_count  - number of servers in list
  *
  */
-void alvs_db_sh_fill_buckets(struct alvs_db_server *bucket[], struct alvs_server_node *server_list, uint32_t server_count)
+void alvs_db_sh_fill_buckets(struct alvs_db_server *bucket[], struct alvs_server_node *server_list)
 {
 	uint32_t ind;
 	uint16_t weight = 0;
@@ -1464,7 +1463,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
 		case ALVS_SOURCE_HASH_SCHEDULER:
 			write_log(LOG_DEBUG, "filling bucket array according to SH scheduling algorithm.");
 			alvs_db_reduce_weights(server_list, server_count);
-			alvs_db_sh_fill_buckets(servers_buckets, server_list, server_count);
+			alvs_db_sh_fill_buckets(servers_buckets, server_list);
 			break;
 		case ALVS_ROUND_ROBIN_SCHEDULER:
 			write_log(LOG_DEBUG, "filling bucket array according to RR scheduling algorithm.");
@@ -2894,9 +2893,11 @@ bool alvs_db_handle_mcast_if(struct ip_vs_daemon_user *ip_vs_daemon_info, struct
  */
 enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 {
-	struct alvs_db_application_info cp_daemon_info = {0};
+	struct alvs_db_application_info cp_daemon_info;
 	struct application_info_key nps_ss_daemon_info_key;
 	union application_info_result nps_ss_daemon_info_result;
+
+	memset(&cp_daemon_info, 0, sizeof(cp_daemon_info));
 
 	switch (internal_db_get_application_info(&cp_daemon_info)) {
 	case ALVS_DB_INTERNAL_ERROR:

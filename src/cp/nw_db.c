@@ -347,9 +347,13 @@ void build_nps_fib_result(struct nw_db_fib_entry *cp_fib_entry,
  */
 bool add_fib_entry_to_nps(struct nw_db_fib_entry *cp_fib_entry)
 {
-	struct nw_fib_key nps_fib_key = {0};
-	struct nw_fib_key nps_fib_mask = {0};
-	struct nw_fib_result nps_fib_result = {0};
+	struct nw_fib_key nps_fib_key;
+	struct nw_fib_key nps_fib_mask;
+	struct nw_fib_result nps_fib_result;
+
+	memset(&nps_fib_key, 0, sizeof(nps_fib_key));
+	memset(&nps_fib_mask, 0, sizeof(nps_fib_mask));
+	memset(&nps_fib_result, 0, sizeof(nps_fib_result));
 
 	/* Add entry to FIB TCAM table based on CP FIB entry */
 	build_nps_fib_key_and_mask(cp_fib_entry, &nps_fib_key, &nps_fib_mask);
@@ -374,9 +378,13 @@ bool add_fib_entry_to_nps(struct nw_db_fib_entry *cp_fib_entry)
  */
 bool delete_fib_entry_from_nps(struct nw_db_fib_entry *cp_fib_entry)
 {
-	struct nw_fib_key nps_fib_key = {0};
-	struct nw_fib_key nps_fib_mask = {0};
-	struct nw_fib_result nps_fib_result = {0};
+	struct nw_fib_key nps_fib_key;
+	struct nw_fib_key nps_fib_mask;
+	struct nw_fib_result nps_fib_result;
+
+	memset(&nps_fib_key, 0, sizeof(nps_fib_key));
+	memset(&nps_fib_mask, 0, sizeof(nps_fib_mask));
+	memset(&nps_fib_result, 0, sizeof(nps_fib_result));
 
 	/* Add entry to FIB TCAM table based on CP FIB entry */
 	build_nps_fib_key_and_mask(cp_fib_entry, &nps_fib_key, &nps_fib_mask);
@@ -407,7 +415,9 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 	int rc;
 	char sql[256];
 	sqlite3_stmt *statement;
-	struct nw_db_fib_entry tmp_fib_entry = {0};
+	struct nw_db_fib_entry tmp_fib_entry;
+
+	memset(&tmp_fib_entry, 0, sizeof(tmp_fib_entry));
 
 	write_log(LOG_DEBUG, "Reorder FIB table - push entries up.");
 
@@ -495,8 +505,9 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 	int rc;
 	char sql[256];
 	sqlite3_stmt *statement;
-	struct nw_db_fib_entry tmp_fib_entry = {0};
+	struct nw_db_fib_entry tmp_fib_entry;
 
+	memset(&tmp_fib_entry, 0, sizeof(tmp_fib_entry));
 	write_log(LOG_DEBUG, "Reorder FIB table - push entries down.");
 
 	sprintf(sql, "SELECT * FROM fib_entries "
@@ -611,8 +622,10 @@ void set_fib_params(struct rtnl_route *route_entry, struct nw_db_fib_entry *fib_
  */
 enum nw_db_rc nw_db_add_fib_entry(struct rtnl_route *route_entry, bool reorder)
 {
-	struct nw_db_fib_entry cp_fib_entry = {0};
+	struct nw_db_fib_entry cp_fib_entry;
 	struct nl_addr *dst;
+
+	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
 
 	dst = rtnl_route_get_dst(route_entry);
 	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
@@ -693,9 +706,10 @@ enum nw_db_rc nw_db_add_fib_entry(struct rtnl_route *route_entry, bool reorder)
  */
 enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry)
 {
-	struct nw_db_fib_entry cp_fib_entry = {0};
+	struct nw_db_fib_entry cp_fib_entry;
 	struct nl_addr *dst;
 
+	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
 	dst = rtnl_route_get_dst(route_entry);
 	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
 	cp_fib_entry.dest_ip = *(uint32_t *)nl_addr_get_binary_addr(dst);
@@ -767,9 +781,10 @@ enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry)
  */
 enum nw_db_rc nw_db_modify_fib_entry(struct rtnl_route *route_entry)
 {
-	struct nw_db_fib_entry cp_fib_entry = {0};
+	struct nw_db_fib_entry cp_fib_entry;
 	struct nl_addr *dst;
 
+	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
 	dst = rtnl_route_get_dst(route_entry);
 	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
 	cp_fib_entry.dest_ip = *(uint32_t *)nl_addr_get_binary_addr(dst);

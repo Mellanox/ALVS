@@ -78,7 +78,7 @@ void alvs_db_manager_init(void);
 void alvs_db_manager_table_init(void);
 void alvs_db_manager_poll(void);
 
-void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr);
+void process_packet(uint8_t *buffer, struct sockaddr *saddr);
 void alvs_nl_init(void);
 static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd, struct genl_info *info, void *arg);
 static int alvs_genl_parse_service(struct nlattr *nla, struct ip_vs_service_user *ret_svc, bool need_full_svc);
@@ -289,7 +289,7 @@ void alvs_db_manager_poll(void)
 	while (*alvs_db_manager_cancel_application_flag == false) {
 		data_size = recvfrom(raw_sock, buffer, MAX_MSG_SIZE, 0, &saddr, (socklen_t *)&saddr_size);
 		if (data_size > 0) {
-			process_packet(buffer, data_size, &saddr);
+			process_packet(buffer, &saddr);
 		}
 	}
 	free(buffer);
@@ -333,7 +333,7 @@ void alvs_db_manager_table_init(void)
 	struct ip_vs_get_services *get_svcs;
 	struct ip_vs_get_dests *dests;
 	struct ip_vs_daemon_user *ip_vs_daemon_info;
-	int i, j;
+	unsigned int i, j;
 	enum alvs_db_rc alvs_ret;
 
 	/* Get state sync daemon info and start sync daemon with the current configuration */
@@ -427,7 +427,7 @@ void alvs_db_manager_exit_with_error(void)
  *
  * \return        void
  */
-void process_packet(uint8_t *buffer, int size, struct sockaddr *saddr)
+void process_packet(uint8_t *buffer, struct sockaddr *saddr)
 {
 	struct nlmsghdr *hdr = (struct nlmsghdr *)buffer;
 
@@ -637,7 +637,7 @@ struct nl_msg *alvs_nl_message(int cmd, int flags)
  *
  * \return        int - ret code
  */
-static int alvs_msg_parser(struct nl_cache_ops *cache_ops, struct genl_cmd *cmd, struct genl_info *info, void *arg)
+static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache_ops, struct genl_cmd *cmd, struct genl_info *info, void __attribute__((__unused__))*arg)
 {
 	int ret = 0;
 	enum alvs_db_rc alvs_ret = ALVS_DB_OK;

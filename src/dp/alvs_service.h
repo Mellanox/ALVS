@@ -70,8 +70,7 @@ uint32_t alvs_service_info_lookup(uint8_t service_index)
  *                      ALVS_SERVICE_DATA_PATH_SUCCESS - a new connection entry was created.
  */
 static __always_inline
-enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t *frame_base,
-								 uint8_t service_index,
+enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t service_index,
 								 struct iphdr *ip_hdr,
 								 struct tcphdr *tcp_hdr)
 {
@@ -167,7 +166,6 @@ out:
  */
 static __always_inline
 enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
-						       uint8_t *frame_base,
 						       struct iphdr *ip_hdr,
 						       struct tcphdr *tcp_hdr)
 {
@@ -183,7 +181,7 @@ enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 			service_index);
 	if (likely(rc == 0)) {
 		if (ip_hdr->protocol == IPPROTO_TCP) {
-			return alvs_tcp_schedule_new_connection(frame_base, service_index, ip_hdr, tcp_hdr);
+			return alvs_tcp_schedule_new_connection(service_index, ip_hdr, tcp_hdr);
 		}
 		/*drop frame - UDP is not supported*/
 		alvs_discard_and_stats(ALVS_ERROR_UNSUPPORTED_PROTOCOL);
