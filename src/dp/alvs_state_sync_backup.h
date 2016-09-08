@@ -273,7 +273,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	uint8_t tail[sizeof(struct alvs_state_sync_conn)];  /* assuming connection size os bigger than header size */
 	uint8_t tail_len = 0;
 	uint8_t conn_count;
-	uint32_t b_syncid;
+	uint8_t b_syncid;
 
 	rc = ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc,
 					ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,

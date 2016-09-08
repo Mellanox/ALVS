@@ -4,5 +4,4 @@ ezbox35,ezbox35-host,ezbox35-chip,eth0.7,root,ezchip,C0 A8 00 03,00 19 0f 27 23 
 ezbox55,ezbox55-host,ezbox55-chip,eth0.8,root,ezchip,C0 A8 00 04,00 19 0f 27 23 16
 ezbox81,ezbox81-host,ezbox81-chip,eth0.4,root,ezchip,C0 A8 00 05,00 19 0f 28 a3 f1
 ezbox65,ezbox65-host,ezbox65-chip,eth0.9,root,ezchip,C0 A8 00 06,00 19 0f 26 26 9d
-ezbox50,ezbox50-host,ezbox50-chip,eth0.5,root,ezchip,C0 A8 00 32,00 19 0f 26 26 d3
-ezbox74,10.1.20.253,ezbox74-chip,eth0.10,root,ezchip,C0 A8 00 05,00 19 0f 26 26 d2
+
