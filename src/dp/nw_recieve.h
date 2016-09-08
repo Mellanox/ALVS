@@ -55,7 +55,6 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
 		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 		nw_host_do_route(frame);
 		return;
 	}
