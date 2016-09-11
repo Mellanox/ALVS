@@ -50,7 +50,7 @@ def user_init(setup_num):
 
 
 def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, request_count)
+	client.exec_params += " -i %s -r %d -e True" %(vip, request_count)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):

@@ -48,8 +48,8 @@ def user_init(setup_num):
 		
 	return convert_generic_init_to_user_format(dict)
 
-def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, request_count)
+def client_execution(client, vip, expects404):
+	client.exec_params += " -i %s -r %d -e %s" %(vip, request_count, expects404)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
@@ -66,7 +66,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	time.sleep(6)
 
 	for client in client_list:
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -82,7 +82,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,True,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -91,7 +91,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	process_list = []
 	#add service with second server
 	ezbox.add_service(vip, port)
-	ezbox.add_server(server_list[1].vip, port, server_list[1].ip, port)
+	ezbox.add_server(server_list[1].vip, port, server_list[1].ip, port,)
   
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
@@ -99,7 +99,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for client in client_list:
 		new_log_name = client.logfile_name+'_2'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip, False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:

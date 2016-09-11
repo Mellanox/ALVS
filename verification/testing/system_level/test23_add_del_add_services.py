@@ -50,8 +50,8 @@ def user_init(setup_num):
 		
 	return convert_generic_init_to_user_format(dict)
 
-def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, request_count)
+def client_execution(client, vip, expects404):
+	client.exec_params += " -i %s -r %d -e %s" %(vip, request_count, expects404)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):
@@ -68,7 +68,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "wait 6 second for EZbox to update"
 	time.sleep(6)
 	for index, client in enumerate(client_list):
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip_list[index],False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -83,7 +83,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for index, client in enumerate(client_list):
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip_list[index],True,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -104,7 +104,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for index, client in enumerate(client_list):
 		new_log_name = client.logfile_name+'_2'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip_list[index],)))
+		process_list.append(Process(target=client_execution, args=(client,vip_list[index],False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:

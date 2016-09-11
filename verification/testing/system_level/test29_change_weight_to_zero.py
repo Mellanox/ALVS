@@ -72,8 +72,8 @@ def user_init(setup_num):
 #
 # Brief:
 #===============================================================================
-def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, g_request_count)
+def client_execution(client, vip , expects404):
+	client.exec_params += " -i %s -r %d -e %s" %(vip, g_request_count, expects404)
 	client.execute()
 
 
@@ -112,7 +112,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	#===========================================================================
 	process_list = []
 	for client in client_list:
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -131,7 +131,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,False,)))
 	for p in process_list:
 		p.start()
 	
@@ -163,7 +163,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_2'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,True,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:
@@ -189,7 +189,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_3'
 		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
+		process_list.append(Process(target=client_execution, args=(client,vip,False,)))
 	for p in process_list:
 		p.start()
 	for p in process_list:

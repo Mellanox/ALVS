@@ -50,7 +50,7 @@ def user_init(setup_num):
 
 def client_execution(client, vip):
 	connTimeout = 30
-	client.exec_params += " -i %s -r %d -t %d" %(vip, request_count,connTimeout)
+	client.exec_params += " -i %s -r %d -t %d " %(vip, request_count,connTimeout)
 	client.execute()
 
 def run_user_test(server_list, ezbox, client_list, vip_list):

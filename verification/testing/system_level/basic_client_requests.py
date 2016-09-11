@@ -36,26 +36,24 @@ def readHtml(ip,connTimeout):
 		response = urllib2.urlopen('http://'+ip, timeout=connTimeout)
 	except HTTPError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
-		rc = "The server couldn\'t fulfill the request. Error code: %s " %str(e.code)
+		log("#The server couldn\'t fulfill the request. Error code: %s " %str(e.code))
 		log("# " + rc)
-		return ( rc )
+		return -1
 	except URLError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
-		rc ="Failed to reach a server. Reason: %s" %str(e.reason)
-		log("# " + rc)
-		return ( rc )
+		log("# Failed to reach a server. Reason: %s" %str(e.reason))
+		return -1
 	except:
 		log('%s : %s' %(ip, '404 ERROR'))
-		rc = "Unexpected error: %s" %sys.exc_info()[0]
-		log("# " + rc)
-		return ( rc )
+		log("# Unexpected error: %s" %sys.exc_info()[0])
+		return -1
 		
 	   
 	try:
 		html_lines = response.readlines()
 	except :
 		log('%s : %s' %(ip, 'Connection closed ERROR'))
-		return 'Connection closed ERROR'
+		log('#Connection closed ERROR')
 
 	html = html_lines[0]
 	if isinstance(html, str):
@@ -65,13 +63,13 @@ def readHtml(ip,connTimeout):
 		log('%s : %s' %(ip, html))
 		
 	# end sucessfuly without errors
-	return None
+	return 0
 
 ################################################################################
 # Function: Main
 ################################################################################
 if __name__ == "__main__":
-	usage = "usage: %prog [-i, -l, -r -t]"
+	usage = "usage: %prog [-i, -l, -r -t -e]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	parser.add_option("-i", "--http_ip", dest="http_ip",
@@ -82,17 +80,23 @@ if __name__ == "__main__":
 					  help="Number of HTTP requests", default=1, type="int")
 	parser.add_option("-t", "--timeout", dest="timeout",
 					  help="Http Connection timeout", default=8, type="int")
+	parser.add_option("-e", "--expects404", dest="expects404",
+					  help="Test expects error 404", default= 'False')
 
 	(options, args) = parser.parse_args()
 	init_log(options.log_file_name)
+	#convert to string
+	options.expects404 = options.expects404.lower() == 'true'
 
 	if not options.http_ip:
-		log('HTTP IP is not given')
+		log('#HTTP IP is not given')
 		exit(1)
 	
 	# read from HTML server x times (x = options.num_of_requests)
 	for i in range(options.num_of_requests):
-		readHtml(options.http_ip,options.timeout)
-
+		rc = readHtml(options.http_ip,options.timeout)
+		if rc == -1 and options.expects404 == False:
+			break
+		
 	end_log()
 
