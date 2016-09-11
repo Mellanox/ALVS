@@ -128,7 +128,9 @@ class ezbox_host:
 			
 		if stop_ezbox:
 			self.alvs_service_stop()
-		
+		else:
+			self.zero_all_ipvs_stats()
+			self.flush_ipvs()
 		self.clean_vips()
 		self.logout()
 		

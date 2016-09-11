@@ -40,8 +40,8 @@ def exit_signal_handler(signal = None, frame = None):
 #===============================================================================
 def clean_setup(setup_num):
 	print 'Clean setup'
-	cmd = currentdir + '/clean_setup_servers.py ' + setup_num + " > /dev/null 2>&1"
-	retval = os.system(cmd)
+	clean_cmd = currentdir + '/clean_setup_servers.py ' + setup_num + " > /dev/null 2>&1"
+	retval = os.system(clean_cmd)
 	
 
 def main():
@@ -83,7 +83,6 @@ def main():
 	for line in list_file:
 		if line[0] != '#':
 			start = timer()
-			clean_setup(setup_num)
 			
 			test = line[:-1]
 			print 'running test %s ...' % test
@@ -95,6 +94,7 @@ def main():
 				print "**** not first test"
 				cmd = cmd + " -m False -i False -f False -b False --start false --stop false"
 			else:
+				clean_setup(setup_num)
 				cmd = cmd + " --start true"
 				first_test = False
 			cmd = cmd + ' > ' +logfilename
@@ -115,6 +115,7 @@ def main():
 				print 'see logfile ' + logfilename
 				failed_tests += (test + '\n')
 				os.system("echo %s >> verification/testing/system_level/lists/failed_tests"%test)
+				clean_setup(setup_num)
 				if exit_on_error:
 					break
 			else: 
