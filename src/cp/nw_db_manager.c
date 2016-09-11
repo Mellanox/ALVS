@@ -129,7 +129,7 @@ void nw_db_manager_init(void)
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
 
 	if (nw_db_init() != NW_DB_OK) {
-		write_log(LOG_CRIT, "Failed to create NW SQL DB.\n");
+		write_log(LOG_CRIT, "Failed to create NW SQL DB.");
 		nw_db_manager_exit_with_error();
 	}
 }
@@ -526,7 +526,7 @@ bool nw_db_constructor(void)
 		return false;
 	}
 
-	write_log(LOG_DEBUG, "Creating FIB table.\n");
+	write_log(LOG_DEBUG, "Creating FIB table.");
 
 	tcam_params.key_size = sizeof(struct nw_fib_key);
 	tcam_params.max_num_of_entries = NW_FIB_TCAM_MAX_SIZE;

@@ -100,12 +100,12 @@ enum nw_db_rc nw_db_init(void)
 	/* Open the DB file */
 	rc = sqlite3_open(NW_DB_FILE_NAME, &nw_db);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "Can't open database: %s\n",
+		write_log(LOG_CRIT, "Can't open database: %s",
 			  sqlite3_errmsg(nw_db));
 		return NW_DB_INTERNAL_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "NW_DB: Opened database successfully\n");
+	write_log(LOG_DEBUG, "NW_DB: Opened database successfully");
 
 	/* Create the fib_entries table:
 	 *
@@ -131,7 +131,7 @@ enum nw_db_rc nw_db_init(void)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -177,7 +177,7 @@ enum nw_db_rc internal_db_add_fib_entry(struct nw_db_fib_entry *fib_entry)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -207,7 +207,7 @@ enum nw_db_rc internal_db_modify_fib_entry(struct nw_db_fib_entry *fib_entry)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -236,7 +236,7 @@ enum nw_db_rc internal_db_remove_fib_entry(struct nw_db_fib_entry *fib_entry)
 	/* Execute SQL statement */
 	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n", zErrMsg);
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -266,7 +266,7 @@ enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -275,7 +275,7 @@ enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 	rc = sqlite3_step(statement);
 
 	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		sqlite3_finalize(statement);
 		return NW_DB_INTERNAL_ERROR;
@@ -429,7 +429,7 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		return NW_DB_INTERNAL_ERROR;
 	}
@@ -518,7 +518,7 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s\n",
+		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		return NW_DB_INTERNAL_ERROR;
 	}
