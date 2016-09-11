@@ -54,6 +54,7 @@ def readHtml(ip,connTimeout):
 	except :
 		log('%s : %s' %(ip, 'Connection closed ERROR'))
 		log('#Connection closed ERROR')
+		return 0
 
 	html = html_lines[0]
 	if isinstance(html, str):
