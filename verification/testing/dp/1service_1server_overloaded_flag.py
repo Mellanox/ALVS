@@ -81,7 +81,7 @@ for i in range(num_of_packets):
      
 pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet1.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -157,7 +157,7 @@ u_thresh = 0
 l_thresh = 0
 first_service.modify_server(server1, weight=1, u_thresh=u_thresh, l_thresh=l_thresh)
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -252,7 +252,7 @@ data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          packet_length=packet_size)
 data_packet.generate_packet()
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
 
 pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet3_a.pcap')
@@ -343,7 +343,7 @@ fin_packet.generate_packet()
     
 pcap_to_send = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet3_b.pcap')
   
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
     
     # send packet
@@ -351,7 +351,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
 
@@ -417,7 +417,7 @@ data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          packet_length=packet_size)
 data_packet.generate_packet()
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
 
 pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet3_c.pcap')
@@ -427,7 +427,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send_part3)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
 
@@ -512,7 +512,7 @@ fin_packet_d_2.generate_packet()
     
 pcap_to_send = create_pcap_file(packets_list=[reset_packet_d.packet,fin_packet_d_1.packet,fin_packet_d_2.packet], output_pcap_file_name='verification/testing/dp/temp_packet3_d.pcap')
   
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
     
     # send packet
@@ -520,7 +520,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
 
@@ -565,7 +565,7 @@ print "New connections should be created up to  u_thresh = %d "%u_thresh
 
 pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet3_e.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -573,7 +573,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
 print "Server 1  - received %d packets"%packets_received_1
@@ -622,7 +622,7 @@ first_service.modify_server(server1, weight=1, u_thresh=u_thresh, l_thresh=l_thr
 
 pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet4.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -630,7 +630,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
  
@@ -680,7 +680,7 @@ first_service.modify_server(server1, weight=1, u_thresh=u_thresh, l_thresh=l_thr
 
 pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_2.packet], output_pcap_file_name='verification/testing/dp/temp_packet5_a.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -688,7 +688,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
  
@@ -729,7 +729,7 @@ print "PART 5 B - try to create new connections - should fail - as OVERLOADED fl
 num_of_packets_5_b = 1
 pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet5_b.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -737,7 +737,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
  
@@ -781,7 +781,7 @@ num_of_packets_5_c = 1
 
 pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_1.packet], output_pcap_file_name='verification/testing/dp/temp_packet5_c.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -789,12 +789,12 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
  
 print "Server 1  - received %d packets"%packets_received_1
-time.sleep(120)
+time.sleep(20)
 
 sched_connections_on_server = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server
@@ -829,7 +829,7 @@ else:
 print "PART 5 D - try to create new connections - should PASS - as OVERLOADED flag is off"
 pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet5_d.pcap')
 
-time.sleep(2) 
+time.sleep(5) 
 server1.capture_packets_from_service(service=first_service)
    
     # send packet
@@ -837,7 +837,7 @@ time.sleep(5)
 print "Send packets"
 client_object.send_packet_to_nps(pcap_to_send)
   
-time.sleep(5)
+time.sleep(120)
 print "capture from server"
 packets_received_1 = server1.stop_capture()
  
