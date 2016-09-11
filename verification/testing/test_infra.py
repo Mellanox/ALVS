@@ -573,6 +573,10 @@ def read_test_arg(args):
 			ezbox_interface = 'eth0.8'
 			data_ip = '192.168.0.4'
 			setup_num = 4
+		if ezbox == 'ezbox81':
+			ezbox_interface = 'eth0.4'
+			data_ip = '192.168.0.5'
+			setup_num = 5
 		if ezbox == 'ezbox65':
 			ezbox_interface = 'eth0.9'
 			data_ip = '192.168.0.6'
