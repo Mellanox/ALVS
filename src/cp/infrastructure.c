@@ -112,8 +112,8 @@ enum infra_emem_spaces_params {
 };
 
 /* Memory spaces */
-#define INFRA_X1_CLUSTER_CODE_SIZE          128
-#define INFRA_ALL_CLUSTER_CODE_SIZE         512
+#define INFRA_X1_CLUSTER_CODE_SIZE          144
+#define INFRA_ALL_CLUSTER_CODE_SIZE         128
 #define INFRA_ALL_CLUSTER_DATA_SIZE         1
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        5
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
@@ -446,7 +446,7 @@ bool infra_create_statistics(void)
 	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPartitionParams, &on_demand_partition_params);
 
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetPartitionParams failed.");
 		return false;
 	}
 
@@ -458,7 +458,7 @@ bool infra_create_statistics(void)
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPartitionParams, &on_demand_partition_params);
 
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_ConfigCmd_SetPartitionParams failed.\n");
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_ConfigCmd_SetPartitionParams failed.");
 		return false;
 	}
 
