@@ -62,8 +62,7 @@ bool init_alvs_shared_cmem(void)
 	result = ezdp_validate_hash_struct_desc(&shared_cmem_alvs.conn_class_struct_desc,
 						true,
 						sizeof(struct alvs_conn_classification_key),
-						sizeof(struct alvs_conn_classification_result),
-						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_conn_classification_result), sizeof(struct alvs_conn_classification_key)));
+						sizeof(struct alvs_conn_classification_result));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_CONN_CLASSIFICATION, result, ezdp_get_err_msg());
@@ -103,8 +102,7 @@ bool init_alvs_shared_cmem(void)
 	result = ezdp_validate_hash_struct_desc(&shared_cmem_alvs.server_class_struct_desc,
 						true,
 						sizeof(struct alvs_server_classification_key),
-						sizeof(struct alvs_server_classification_result),
-						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_server_classification_result), sizeof(struct alvs_server_classification_key)));
+						sizeof(struct alvs_server_classification_result));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_SERVER_CLASSIFICATION, result, ezdp_get_err_msg());
@@ -163,8 +161,7 @@ bool init_alvs_shared_cmem(void)
 	result = ezdp_validate_hash_struct_desc(&shared_cmem_alvs.service_class_struct_desc,
 						true,
 						sizeof(struct alvs_service_classification_key),
-						sizeof(struct alvs_service_classification_result),
-						_EZDP_LOOKUP_HASH_CALC_ENTRY_SIZE(sizeof(struct alvs_service_classification_result), sizeof(struct alvs_service_classification_key)));
+						sizeof(struct alvs_service_classification_result));
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 				STRUCT_ID_ALVS_SERVICE_CLASSIFICATION, result, ezdp_get_err_msg());
