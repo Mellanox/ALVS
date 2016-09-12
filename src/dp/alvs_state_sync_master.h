@@ -74,8 +74,6 @@ void alvs_state_sync_update_net_hdr_len(struct net_hdr *net_hdr_info, int conn_c
 static __always_inline
 void alvs_state_sync_set_net_hdr(struct net_hdr *net_hdr_info, int conn_count, in_addr_t source_ip)
 {
-	struct in_addr dest_ip;
-
 	/*fill fields of UDP header*/
 	net_hdr_info->udp.source = ALVS_STATE_SYNC_DST_PORT;
 	net_hdr_info->udp.dest = ALVS_STATE_SYNC_DST_PORT;
@@ -90,12 +88,8 @@ void alvs_state_sync_set_net_hdr(struct net_hdr *net_hdr_info, int conn_count, i
 	net_hdr_info->ipv4.ttl = 1;
 	net_hdr_info->ipv4.protocol = IPPROTO_UDP;
 	net_hdr_info->ipv4.check = 0;
-
-	/*get IP from string*/
-	inet_aton(ALVS_STATE_SYNC_DST_IP, &dest_ip);
-
 	net_hdr_info->ipv4.saddr = source_ip;
-	net_hdr_info->ipv4.daddr = dest_ip.s_addr;
+	net_hdr_info->ipv4.daddr = ALVS_STATE_SYNC_DST_IP;
 
 	/*update length fields and checksum*/
 	alvs_state_sync_update_net_hdr_len(net_hdr_info, conn_count);
