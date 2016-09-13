@@ -213,11 +213,11 @@ enum alvs_db_rc alvs_db_print_servers_stats(struct ip_vs_service_user *ip_vs_ser
 enum alvs_db_rc alvs_db_print_services_stats(void);
 
 /**************************************************************************//**
- * \brief       print all error stats to syslog (interface and global counter)
+ * \brief       print global error stats to syslog (global counter)
  *
  * \return	ALVS_DB_OK - - operation succeeded
  *		ALVS_DB_FAILURE - fail to read statistics
  */
-enum alvs_db_rc alvs_db_print_error_stats(void);
+enum alvs_db_rc alvs_db_print_global_error_stats(void);
 
 #endif /* _ALVS_DB_H_ */

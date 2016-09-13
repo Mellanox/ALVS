@@ -29,11 +29,7 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-#ifndef SRC_COMMON_ERROR_NAMES_H_
-#define SRC_COMMON_ERROR_NAMES_H_
-
-static const char * const nw_if_posted_stats_offsets_names[] = {
+const char *nw_if_posted_stats_offsets_names[] = {
 	"FRAME_VALIDATION_FAIL",		/* 0 */
 	"MAC_ERROR",				/* 1 */
 	"IPV4_ERROR",				/* 2 */
@@ -57,7 +53,7 @@ static const char * const nw_if_posted_stats_offsets_names[] = {
 	"",					/* 20 */
 };
 
-static const char * const alvs_error_stats_offsets_names[] = {
+const char *alvs_error_stats_offsets_names[] = {
 	"UNSUPPORTED_ROUTING_ALGO",		/* 0 */
 	"CANT_EXPIRE_CONNECTION",		/* 1 */
 	"CANT_UPDATE_CONNECTION_STATE",		/* 2 */
@@ -101,4 +97,3 @@ static const char * const alvs_error_stats_offsets_names[] = {
 	"",					/* 40 */
 };
 
-#endif /* SRC_COMMON_ERROR_NAMES_H_ */

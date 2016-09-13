@@ -54,7 +54,7 @@
 #include "defs.h"
 #include "infrastructure.h"
 #include "application_search_defs.h"
-#include "error_names.h"
+
 
 
 /* Global pointer to the DB */
@@ -63,6 +63,8 @@ struct index_pool server_index_pool;
 struct index_pool service_index_pool;
 pthread_t server_db_aging_thread;
 bool *alvs_db_cancel_application_flag_ptr;
+
+extern const char *alvs_error_stats_offsets_names[];
 
 void server_db_aging(void);
 
@@ -3711,53 +3713,16 @@ void server_db_aging(void)
 }
 
 /**************************************************************************//**
- * \brief       print interface statistics
+ * \brief       print global error stats to syslog (global counters)
  *
  * \return	ALVS_DB_OK - - operation succeeded
  *		ALVS_DB_NPS_ERROR - fail to read statistics
  */
-enum alvs_db_rc alvs_db_print_interface_stats(void)
-{
-	uint32_t error_index;
-	uint64_t temp_sum;
-	uint64_t interface_counters[NW_NUM_OF_IF_STATS] = {0};
-
-	temp_sum = 0;
-	if (infra_get_posted_counters(EMEM_IF_STATS_POSTED_OFFSET, NW_NUM_OF_IF_STATS, interface_counters) == false) {
-		write_log(LOG_CRIT, "Failed to read error statistics counters");
-		return ALVS_DB_NPS_ERROR;
-	}
-	temp_sum = 0;
-	for (error_index = 0; error_index < NW_NUM_OF_IF_STATS; error_index++) {
-		if (interface_counters[error_index] > 0) {
-			if (nw_if_posted_stats_offsets_names[error_index] != NULL) {
-				write_log(LOG_INFO, "    %s Counter: %-20lu",
-					  nw_if_posted_stats_offsets_names[error_index],
-					  interface_counters[error_index]);
-			} else {
-				write_log(LOG_ERR, "    Problem printing statistics for error type %d", error_index);
-			}
-		}
-		temp_sum += interface_counters[error_index];
-	}
-	if (temp_sum == 0) {
-		write_log(LOG_INFO, "    No Errors On Counters");
-	}
-
-	return ALVS_DB_OK;
-}
-
-/**************************************************************************//**
- * \brief       print all error stats to syslog (interface and global counter)
- *
- * \return	ALVS_DB_OK - - operation succeeded
- *		ALVS_DB_NPS_ERROR - fail to read statistics
- */
-enum alvs_db_rc alvs_db_print_error_stats(void)
+enum alvs_db_rc alvs_db_print_global_error_stats(void)
 {
 	uint64_t global_error_counters[ALVS_NUM_OF_ALVS_ERROR_STATS] = {0};
 	uint64_t temp_sum;
-	uint32_t error_index, i;
+	uint32_t error_index;
 
 	/* printing general error stats */
 	write_log(LOG_INFO, "Statistics of global errors");
@@ -3783,21 +3748,6 @@ enum alvs_db_rc alvs_db_print_error_stats(void)
 	}
 	if (temp_sum == 0) {
 		write_log(LOG_INFO, "    No Errors On Global Counters");
-	}
-
-
-	/* printing interface error stats */
-	for (i = 0; i < USER_NW_IF_NUM; i++) {
-		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
-		if (alvs_db_print_interface_stats() != ALVS_DB_OK) {
-			return ALVS_DB_NPS_ERROR;
-		}
-	}
-
-	/* printing host error stats */
-	write_log(LOG_INFO, "Statistics of Host Interface");
-	if (alvs_db_print_interface_stats() != ALVS_DB_OK) {
-		return ALVS_DB_NPS_ERROR;
 	}
 
 	return ALVS_DB_OK;

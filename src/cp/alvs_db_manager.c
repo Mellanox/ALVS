@@ -65,6 +65,7 @@
 #include "log.h"
 #include "defs.h"
 #include "alvs_db.h"
+#include "nw_db.h"
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 #include "version.h"
@@ -803,9 +804,13 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 	case IPVS_CMD_GET_SERVICE:
 
 		write_log(LOG_INFO, "Application version: %s", version);
-		alvs_ret = alvs_db_print_error_stats();
+		alvs_ret = alvs_db_print_global_error_stats();
 		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Problem printing error statistics");
+			write_log(LOG_ERR, "Problem printing global error statistics");
+		}
+
+		if (nw_db_print_all_interfaces_stats() != NW_DB_OK) {
+			write_log(LOG_ERR, "Problem printing interface statistics");
 		}
 
 		if (info->nlh->nlmsg_flags & NLM_F_DUMP) {

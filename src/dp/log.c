@@ -1064,7 +1064,7 @@ static uint32_t token_bucket(void  __cmem * syslog_wa)
 		if (((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter == 0) {
 			set_syslog_template((struct net_hdr *)((struct syslog_wa_info *)syslog_wa)->
 						frame_info.frame_data, total_frame_length + sizeof(notice_str));
-			rc = send_special_message(notice_str, sizeof(notice_str), syslog_wa);
+			send_special_message(notice_str, sizeof(notice_str), syslog_wa);
 		}
 		return 1;
 	}

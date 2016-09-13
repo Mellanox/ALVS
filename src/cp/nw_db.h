@@ -90,6 +90,24 @@ enum nw_db_rc nw_db_add_fib_entry(struct rtnl_route *route_entry, bool reorder);
 enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry);
 
 /**************************************************************************//**
+ * \brief       print interface statistics
+ *
+ * \param[in]   interface - the interface number that need to print
+ *
+ * \return	NW_DB_OK - - operation succeeded
+ *		NW_DB_NPS_ERROR - fail to read statistics
+ */
+enum nw_db_rc nw_db_print_interface_stats(unsigned int interface);
+
+/**************************************************************************//**
+ * \brief       print all interfaces statistics
+ *
+ * \return	NW_DB_OK - - operation succeeded
+ *		NW_DB_NPS_ERROR - fail to read statistics
+ */
+enum nw_db_rc nw_db_print_all_interfaces_stats(void);
+
+/**************************************************************************//**
  * \brief       Modify a fib entry in NW DB
  *
  * \param[in]   route_entry   - reference to route entry
@@ -100,5 +118,7 @@ enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry);
  *              NW_DB_FAILURE - fib entry do not exist
  */
 enum nw_db_rc nw_db_modify_fib_entry(struct rtnl_route *route_entry);
+
+
 
 #endif /* _NW_DB_H_ */

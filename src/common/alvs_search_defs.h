@@ -124,8 +124,9 @@ struct alvs_service_info_result {
 	/*byte12-15*/
 	uint32_t             service_flags;
 };
-
 CASSERT(sizeof(struct alvs_service_info_result) == 16);
+
+
 
 /*********************************
  * Scheduling info DB defs
