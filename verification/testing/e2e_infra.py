@@ -35,23 +35,23 @@ def generic_main():
 	
 	bool_choices = ['true', 'false', 'True', 'False']
 	parser.add_option("-s", "--setup_num", dest="setup_num",
-					  help="Setup number. range (1..4)", type="int")
+					  help="Setup number. range (1..7)					(Mandatory parameter)", type="int")
 	parser.add_option("-m", "--modify_run_cpus", dest="modify_run_cpus", choices=bool_choices,
-					  help="modify run CPUs while running test. (default=True)")
+					  help="modify run CPUs configuration before running the test. 		(default=True)")
 	parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus", choices=bool_choices,
-					  help="true = use 4k cpu. false = use 512 cpus (defailt=True).  in case modify_run_cpus is false, use_4k_cpus ignored")
+					  help="true = use 4k cpu. false = use 512 cpus 		in case modify_run_cpus is false, use_4k_cpus ignored. (default=False)")
 	parser.add_option("-i", "--use_install", dest="use_install", choices=bool_choices,
-					  help="Use instalation tar.gz file")
+					  help="Use instalation tar.gz file 				(default=True)")
 	parser.add_option("-f", "--install_file", dest="install_file",
-					  help="instalation tar.gz file name")
+					  help="instalation tar.gz file name 				(default=alvs.tar.gz)")
 	parser.add_option("-b", "--copy_binaries", dest="copy_binaries", choices=bool_choices,
-					  help="Copy binaries instead using alvs.tar.gz (defailt=True). in case use_install is true, copy_binaries ignored")
+					  help="Copy binaries instead using alvs.tar.gz 		in case use_install is true, copy_binaries ignored.	(default=True)")
 	parser.add_option("-d", "--use_director", dest="use_director", choices=bool_choices,
-					  help="Use director at host")
+					  help="Use director at host 								(default=True)")
 	parser.add_option("--start", "--start_ezbox", dest="start_ezbox", choices=bool_choices,
-					  help="Start the ezbox a the beginning of the test, defualt = False")
+					  help="Start the alvs service at the beginning of the test (defualt=False)")
 	parser.add_option("--stop", "--stop_ezbox", dest="stop_ezbox", choices=bool_choices,
-					  help="Stop the ezbox at the end of the test, defualt = False")
+					  help="Stop the alvs service at the end of the test 		(defualt=False)")
 	(options, args) = parser.parse_args()
 
 	# validate options
@@ -169,15 +169,13 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	
 	# start ALVS daemon and DP
 	ezbox.connect()
+	if test_config['start_ezbox']:
+		if test_config['modify_run_cpus']:
+			# validate chip is up
+			ezbox.alvs_service_stop()
+			ezbox.alvs_service_start()
+			ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
 	
-	if test_config['modify_run_cpus'] and test_config['start_ezbox']:
-		# validate chip is up
-		ezbox.alvs_service_stop()
-		ezbox.alvs_service_start()
-		ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
-	
-	
-	if (test_config['start_ezbox']):
 		ezbox.alvs_service_stop()
 		ezbox.update_cp_params("--agt_enabled --port_type=10GE")
 		
@@ -190,11 +188,11 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
 		ezbox.alvs_service_start()
-		
 		# wait for CP before initialize director
 		ezbox.wait_for_cp_app()
 		# wait for DP app
 		ezbox.wait_for_dp_app()	
+		time.sleep(6)
 	else:
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
@@ -202,7 +200,6 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	# init director
 	if test_config['use_director']:
 		print 'Start Director'
-		time.sleep(6)
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
@@ -219,7 +216,7 @@ def fill_default_config(test_config):
 	# define default configuration 
 	default_config = {'setup_num'       : None,  # supply by user
 					  'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored
-					  'use_4k_cpus'     : True,
+					  'use_4k_cpus'     : False,
 					  'use_install'     : True,  # in case use_install is true, copy_binaries ignored
 					  'install_file'    : 'alvs.tar.gz',
 					  'copy_binaries'   : True,

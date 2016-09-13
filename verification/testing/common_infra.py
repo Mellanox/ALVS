@@ -24,7 +24,6 @@ from test_infra import *
 from unittest2 import result
 from cmd import Cmd
 
-
 #===============================================================================
 # Struct IDs
 #===============================================================================
@@ -50,11 +49,8 @@ ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
 NUM_OF_INTERFACES			 = 5
 
-
 ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
 NW_NUM_OF_IF_STATS			 = 20
-
-
 ALVS_NUM_OF_ALVS_ERROR_STATS = 40
 
 EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
@@ -65,24 +61,17 @@ EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*N
 
 EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
 
-
 CLOSE_WAIT_DELETE_TIME = 32#16 #todo need to change it back to 16 after a fix to aging time.. 
 FIN_FLAG_DELETE_TIME = 60
-
-
 	
 #===============================================================================
 # Classes
 #===============================================================================
-
 class ezbox_host:
-	
 	def __init__(self, setup_id):
-
 		self.setup = get_ezbox_names(setup_id)
 		self.ssh_object = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.run_app_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
-		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
 		self.install_path = "alvs_install"
@@ -236,7 +225,6 @@ class ezbox_host:
 		outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
 		outfile.write('########################################################################\n')
 		outfile.write('# Empty configuration\n')
-
 		outfile.close()
 		self.execute_command_on_host('/etc/init.d/ldirectord stop')
 		self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
@@ -264,13 +252,12 @@ class ezbox_host:
 		self.ssh_object.connect()
 		self.run_app_ssh.connect()
 		self.syslog_ssh.connect()
-		self.syslog_ssh.execute_command("echo \"\" > /var/log/syslog")
 		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep alvs', False)
 		 
 	def logout(self):
 		self.ssh_object.logout()
 		self.run_app_ssh.logout()
-		#self.syslog_ssh.logout()
+		self.syslog_ssh.logout()
 
 	def execute_command_on_host(self, cmd):
 		return self.ssh_object.execute_command(cmd)
@@ -300,34 +287,26 @@ class ezbox_host:
 		try:
 			cmd = "./alvs_install.py"
 			self.ssh_object.ssh_object.sendline(cmd)
-			
 			# wait for: "Do you want to continue [Y/n]?"
 			self.ssh_object.ssh_object.expect("[Y/n]?", 20)
-			
 			# continue instalation
 			self.ssh_object.ssh_object.sendline('Y')
-			
 			# clean before / expect
 			try:
 				self.ssh_object.ssh_object.prompt(1)
 			except:
-				#print self.ssh_object.ssh_object.before
 				pass
-			
 			# wait for: "Do you want to overwrite configuration [Y/n]?"
 			self.ssh_object.ssh_object.expect("[Y/n]?", 30)
-			
 			# dont overide configuration & continue
 			self.ssh_object.ssh_object.sendline('n')
-			
 			self.ssh_object.ssh_object.prompt(300)
-			#print self.ssh_object.ssh_object.before
-
 			# look for success string ("ALVS installation completed successfully")
 			if "installation completed successfully" in self.ssh_object.ssh_object.before:
 				print "installation completed successfully"
 			else:
 				print "ERROR: instalation failed"
+				print self.ssh_object.ssh_object.before
 				exit(1)
 			
 		except:
@@ -366,6 +345,7 @@ class ezbox_host:
 
 	def alvs_service_start(self):
 		self.alvs_service("start")
+		self.syslog_ssh.execute_command("echo \"\" > /var/log/syslog")
 
 	def alvs_service_stop(self):
 		self.alvs_service("stop")
@@ -377,7 +357,6 @@ class ezbox_host:
 		self.run_app_ssh.execute_command("bsp_nps_power -r por")
 
 	def wait_for_cp_app(self):
-# 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...','Shut down ALVS daemon'])
 		sys.stdout.write("Waiting for CP Application to load...")
 		sys.stdout.flush() 
 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...'])
@@ -1083,13 +1062,13 @@ class SshConnect:
 		self.password   = password
 		self.ssh_object = pxssh.pxssh()
 
-
 	def connect(self):
 		print "Connecting to : " + self.ip_address + ", username: " + self.username + " password: " + self.password
 		self.ssh_object.login(self.ip_address, self.username, self.password, login_timeout=120)
 		print self.ip_address + " Connected"
 		
 	def logout(self):
+		self.ssh_object.send('\003')	#send ctrl+c
 		self.ssh_object.logout()
 
 	def recreate_ssh_object(self):
@@ -1260,7 +1239,6 @@ class player(object):
 # Setup Functions
 #===============================================================================
 g_setups_dir  = "/mswg/release/nps/solutions/ALVS/setups"
-
 def get_setup_list(setup_num):
 	setup_list = []
 	

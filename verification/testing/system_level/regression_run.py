@@ -89,13 +89,12 @@ def main():
 			
 			# prepare test command
 			logfilename = 'logs/%s_log' %test
-			cmd = currentdir + '/' + test + ' -s ' + setup_num + ' -c ' + use_4_k_cpus
+			cmd = currentdir + '/' + test + ' -s ' + setup_num
 			if not first_test:
 				print "**** not first test"
-				cmd = cmd + " -m False -i False -f False -b False --start false --stop false"
 			else:
 				clean_setup(setup_num)
-				cmd = cmd + " --start true"
+				cmd = cmd + " --start true" + ' -c ' + use_4_k_cpus
 				first_test = False
 			cmd = cmd + ' > ' +logfilename
 			

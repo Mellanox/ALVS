@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # Test Globals
 #===============================================================================
-request_count = 200
+request_count = 100
 server_count = 2
 client_count = 10
 service_count = 1
@@ -70,13 +70,13 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	
 	time.sleep(5)
 	
-	for i in range(10):		
-		time.sleep(2) 
+	for i in range(20):		
 		print '%d: remove server[0]' % i
 		ezbox.delete_server(server_list[0].vip, port, server_list[0].ip, port)
 		time.sleep(4) 
 		print 're-add server[0]'
 		ezbox.add_server(server_list[0].vip, port, server_list[0].ip, port)
+		time.sleep(2) 
  
 	for p in process_list:
 		p.join()
