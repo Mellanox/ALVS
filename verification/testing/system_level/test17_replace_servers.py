@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-
-
 #===============================================================================
 # imports
 #===============================================================================
-
 # system  
 import cmd
 from collections import namedtuple
@@ -14,21 +11,17 @@ import sys
 import inspect
 from multiprocessing import Process
 
-
-
-# pythons modules 
 # local
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 from e2e_infra import *
 
-
 #===============================================================================
 # Test Globals
 #===============================================================================
 #general porpuse
-g_request_count  = 500
+g_request_count  = 1000
 g_next_vm_index = 0
 
 # got from user
@@ -79,15 +72,12 @@ def client_execution(client, vip):
 def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	# modified global variables
 	global g_next_vm_index
-
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-		
 	#===========================================================================
 	# init local variab;es 
 	#===========================================================================
 	vip       = vip_list[0]
 	port      = 80
-
 	
 	#===========================================================================
 	# Set services/servers & prepare server_list to add in the next step 
@@ -101,7 +91,6 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		else:
 			ezbox.add_server(vip, port, s.ip, port)
 
-
 	#===========================================================================
 	# send requests & replace server while sending requests 
 	#===========================================================================
@@ -111,24 +100,26 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
 		p.start()
-
-	# remove servers from service (& form list)
-	# and add new server to service
+	
+	# wait for requests to start 
+	time.sleep(0.5) 
+	# remove servers from service (& from list) and add new server to service
+	print 'Start user test step 0'
 	for idx,new_server in enumerate(new_server_list):
 		removed_server = server_list[idx]
-		
 		ezbox.delete_server(vip, port, removed_server.ip, port)			
+		print "Server %s removed" %removed_server.ip 
 		ezbox.add_server(vip, port, new_server.ip, port)
-		
-		# print removed & added servers
-		print removed_server.ip + " removed" 
-		print new_server.ip + " added"
-		
+		print "Server %s added" %new_server.ip
+
+	for p in process_list:
+		p.join()
 
 	#===========================================================================
 	# send requests after modifing servers list
 	# - removed servers should not answer
 	#===========================================================================
+	print 'Start user test step 1'
 	process_list = []
 	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
@@ -139,14 +130,12 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 	for p in process_list:
 		p.join()
 		
-	print 'End user test step 1'
-
 #===============================================================================
 # Function: set_user_params
 #
 # Brief:
 #===============================================================================
-def run_user_checker(server_list, ezbox, client_list, log_dir):
+def run_user_checker(server_list, ezbox, client_list, vip_list, log_dir):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	server_list_step_2 = []
@@ -161,6 +150,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 	expected_dict[1] = {'client_response_count':g_request_count,
 					'client_count'     : len(client_list), 
 					'no_404'           : True,
+						'check_distribution':(server_list_step_2,vip_list,0.035),
 					'expected_servers' : server_list_step_2}
 	
 	return client_checker(log_dir, expected_dict, 2)
@@ -171,6 +161,7 @@ def run_user_checker(server_list, ezbox, client_list, log_dir):
 # Brief:
 #===============================================================================
 def set_user_params(setup_num):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	# modified global variables
 	global g_setup_num
 	global g_server_count
@@ -180,8 +171,6 @@ def set_user_params(setup_num):
 	global g_sched_alg
 	global g_sched_alg_opt
 	
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
 	# user configuration
 	g_setup_num = setup_num
 	
@@ -200,7 +189,6 @@ def set_user_params(setup_num):
 	print "client_count:   " + str(g_client_count)
 	print "request_count:  " + str(g_request_count)
 	print "servers_to_add: " + str(g_servers_to_replace)
-
 
 #===============================================================================
 # Function: main function
@@ -224,7 +212,7 @@ def main():
 
 	gen_rc = general_checker(server_list, ezbox, client_list)
 
-	client_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
+	client_rc = run_user_checker(server_list, ezbox, client_list, vip_list, log_dir)
 
 	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
 
@@ -234,6 +222,5 @@ def main():
 	else:
 		print 'Test failed !!!'
 		exit(1)
-
 
 main()
