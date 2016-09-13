@@ -59,6 +59,8 @@
 ezframe_t  frame __cmem_var;
 uint8_t    frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
 union      cmem_workarea cmem_wa __cmem_var;
+uint16_t dummy __emem_var;
+
 
 #define MAX_NUM_OF_CPUS 4096
 
@@ -322,9 +324,10 @@ bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __un
 	case EZDP_CMEM_DATA:
 		return init_alvs_private_cmem();
 	case EZDP_SHARED_CMEM_DATA:
-		printf("init_shared_cmem cpu_id=%d\n", ezdp_get_cpu_id());
 		alvs_open_log();
 		return init_nw_shared_cmem() & init_alvs_shared_cmem();
+	case EZDP_EMEM_DATA:
+		return init_alvs_emem();
 	default:
 		return true;
 	}
@@ -459,7 +462,6 @@ void packet_processing(void)
 	if (ezdp_get_cpu_id() == run_cpus[0]) {
 		alvs_print_info();
 	}
-
 
 	while (true) {
 		/* === Receive Frame === */

@@ -54,6 +54,8 @@
 /*prototypes*/
 bool init_alvs_shared_cmem(void);
 bool init_alvs_private_cmem(void);
+bool init_alvs_emem(void);
+
 
 #define MAX_DECODE_SIZE 28
 

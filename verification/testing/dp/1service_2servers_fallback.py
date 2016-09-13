@@ -99,9 +99,9 @@ print "Server 1  - received %d packets"%packets_received_1
 packets_received_2 = server2.stop_capture()
 print "Server 2  - received %d packets"%packets_received_2
 
-sched_connections_on_server_1 = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server_1 = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server_1
-sched_connections_on_server_2 = ezbox.get_server_sched_connections_stats(1)
+sched_connections_on_server_2 = ezbox.get_server_connections_total_stats(1)
 print "Server 2  - number of scheduled connections %s on server"%sched_connections_on_server_2
 
 error_stats = ezbox.get_error_stats()     
@@ -186,9 +186,9 @@ print "Server 1  - received %d packets"%packets_received_1
 packets_received_2 = server2.stop_capture()
 print "Server 2  - received %d packets"%packets_received_2
 
-sched_connections_on_server_1 = ezbox.get_server_sched_connections_stats(0)
+sched_connections_on_server_1 = ezbox.get_server_connections_total_stats(0)
 print "Server 1  - number of scheduled connections %s on server"%sched_connections_on_server_1
-sched_connections_on_server_2 = ezbox.get_server_sched_connections_stats(1)
+sched_connections_on_server_2 = ezbox.get_server_connections_total_stats(1)
 print "Server 2  - number of scheduled connections %s on server"%sched_connections_on_server_2
 
 error_stats = ezbox.get_error_stats()     

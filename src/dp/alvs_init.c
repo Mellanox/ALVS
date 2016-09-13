@@ -190,6 +190,7 @@ bool init_alvs_shared_cmem(void)
 	return true;
 }
 
+
 /******************************************************************************
  * \brief         Initialize alvs private CMEM constructor
  *
@@ -197,24 +198,33 @@ bool init_alvs_shared_cmem(void)
  */
 bool init_alvs_private_cmem(void)
 {
-	struct ezdp_ext_addr	addr;
-	uint32_t id;
 
-	memset(&addr, 0x0, sizeof(struct ezdp_ext_addr));
-	addr.mem_type = EZDP_EXTERNAL_MS;
-	addr.msid     = EMEM_SPINLOCK_MSID;
-
-	for (id = 0; id < ALVS_CONN_LOCK_ELEMENTS_COUNT; id++) { /*TODO is this code redundant?*/
-		ezdp_init_spinlock_ext_addr(&cmem_alvs.conn_spinlock, &addr);
-		addr.address++;
-	}
-
+	cmem_alvs.conn_spinlock.addr.mem_type = EZDP_EXTERNAL_MS;
+	cmem_alvs.conn_spinlock.addr.msid     = EMEM_SPINLOCK_MSID;
 	/*init state sync*/
 	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 	cmem_alvs.conn_sync_state.amount_buffers = 0;
 	cmem_alvs.conn_sync_state.current_base = NULL;
 	cmem_alvs.conn_sync_state.current_len = 0;
 	cmem_alvs.conn_sync_state.conn_count = 0;
+
+	return true;
+}
+
+bool init_alvs_emem(void)
+{
+	struct ezdp_ext_addr	addr;
+	uint32_t id;
+	ezdp_spinlock_t conn_spinlock;
+
+	ezdp_mem_set(&addr, 0x0, sizeof(struct ezdp_ext_addr));
+	addr.mem_type = EZDP_EXTERNAL_MS;
+	addr.msid     = EMEM_SPINLOCK_MSID;
+
+	for (id = 0; id < ALVS_CONN_LOCK_ELEMENTS_COUNT; id++) {
+		ezdp_init_spinlock_ext_addr(&conn_spinlock, &addr);
+		addr.address++;
+	}
 
 	return true;
 }
