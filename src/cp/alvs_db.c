@@ -50,11 +50,10 @@
 #include <EZapiPrm.h>
 #include "alvs_db.h"
 #include "sqlite3.h"
-#include "stack.h"
 #include "defs.h"
 #include "infrastructure.h"
 #include "application_search_defs.h"
-
+#include "index_pool.h"
 
 
 /* Global pointer to the DB */
