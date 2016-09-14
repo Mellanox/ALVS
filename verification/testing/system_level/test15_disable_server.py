@@ -64,8 +64,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
 		
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for index, client in enumerate(client_list):
 		process_list.append(Process(target=client_execution, args=(client,vip_list[index%service_count],)))

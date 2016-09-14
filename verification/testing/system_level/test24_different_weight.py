@@ -65,7 +65,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port,server.weight)
 	
-	time.sleep(5)
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:

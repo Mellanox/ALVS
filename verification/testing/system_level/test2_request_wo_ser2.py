@@ -64,8 +64,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	
 	ezbox.delete_service(vip, port)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))

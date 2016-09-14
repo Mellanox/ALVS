@@ -65,8 +65,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	for index, client in enumerate(client_list):
 		process_list.append(Process(target=client_execution, args=(client,vip_list[index],False,)))
 	for p in process_list:
@@ -78,8 +76,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	process_list = []
 	for i in range(service_count):
 		ezbox.delete_service(vip_list[i], port)
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
+
 	for index, client in enumerate(client_list):
 		new_log_name = client.logfile_name+'_1'
 		client.add_log(new_log_name) 
@@ -99,8 +96,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	for index, client in enumerate(client_list):
 		new_log_name = client.logfile_name+'_2'
 		client.add_log(new_log_name) 

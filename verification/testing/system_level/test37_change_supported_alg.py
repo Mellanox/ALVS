@@ -65,8 +65,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		print "adding server %s to service %s" %(server.ip,server.vip)
 		ezbox.add_server(server.vip, port, server.ip, port, server.weight)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
@@ -79,8 +77,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to RR" %(vip)
 	ezbox.modify_service(vip, port, sched_alg='rr', sched_alg_opt='')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name+'_1'
@@ -95,8 +91,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to WRR" %(vip)
 	ezbox.modify_service(vip, port, sched_alg='wrr', sched_alg_opt='')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_2'
@@ -111,8 +105,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to SH" %(vip)
 	ezbox.modify_service(vip, port,  sched_alg='sh', sched_alg_opt='-b sh-port')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_3'
@@ -127,8 +119,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to WRR" %(vip)
 	ezbox.modify_service(vip, port,  sched_alg='wrr', sched_alg_opt='')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_4'
@@ -143,8 +133,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to RR" %(vip)
 	ezbox.modify_service(vip, port,  sched_alg='rr', sched_alg_opt='')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_5'
@@ -159,8 +147,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "modify scheduling algorithm of service %s to SH" %(vip)
 	ezbox.modify_service(vip, port,  sched_alg='sh', sched_alg_opt='-b sh-port')
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_6'

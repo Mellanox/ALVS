@@ -103,9 +103,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for server in server_list:
 		ezbox.add_server(server.vip, port, server.ip, port)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
-	
+		
 	
 	#===========================================================================
 	# send requests on current configuration 
@@ -156,9 +154,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		print "server %s weigth change to zero" %(s.ip)
 		
  
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
- 
 	process_list = []
 	for client in client_list:
 		new_log_name = client.logfile_name[:-2]+'_2'
@@ -181,9 +176,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		s.weight = g_base_weight
 		ezbox.modify_server(vip, port, s.ip, port, weight=s.weight)
 		
-
-	print "wait 10 second for EZbox to update"
-	time.sleep(10)
 
 	process_list = []
 	for client in client_list:

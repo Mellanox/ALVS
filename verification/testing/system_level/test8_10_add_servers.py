@@ -93,8 +93,6 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		
  		ezbox.add_server(vip, port, s.ip, port)
 
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 
 	#===========================================================================
 	# send requests & check results 
@@ -119,8 +117,6 @@ def run_user_test_step(server_list, ezbox, client_list, vip_list):
 		# init new server & add to service 
  		ezbox.add_server(vip, port, s.ip, port)
 	
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 
 	#===========================================================================
 	# send requests & check results

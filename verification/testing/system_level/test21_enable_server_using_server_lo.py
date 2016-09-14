@@ -95,9 +95,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 		ezbox.add_server(server.vip, port, server.ip, port)
 	
 	server_list[0].take_down_loopback()
-
-	print "wait 6 second for EZbox to update"
-	time.sleep(6)
 	
 	process_list = []
 	for client in client_list:

@@ -67,7 +67,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	print "adding server: %s" %(server_list[0].ip)
 	ezbox.add_server(server_list[0].vip, port, server_list[0].ip, port)
 	
-	time.sleep(5)
 	for client in client_list:
 		process_list.append(Process(target=client_execution, args=(client,vip,)))
 	for p in process_list:
@@ -115,7 +114,6 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 	for p in process_list:
 		p.join()
 	
-	time.sleep(5)
 	print "start step 3 ..."
 	process_list = []
 	

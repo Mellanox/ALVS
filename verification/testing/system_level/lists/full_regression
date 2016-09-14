@@ -10,6 +10,7 @@ test9_add_servers.py
 test10_add_servers.py
 test11_delete_reAdd_server.py
 test12_delete_server_w_connection.py
+test13_delete_server_wo_connection.py
 test14_delete_reAdd_server.py
 test15_disable_server.py
 test16_disable_multiple_servers.py
