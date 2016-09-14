@@ -345,7 +345,7 @@ class ezbox_host:
 
 	def alvs_service_start(self):
 		self.alvs_service("start")
-		self.syslog_ssh.execute_command("echo \"\" > /var/log/syslog")
+		self.run_app_ssh.execute_command("echo \"\" > /var/log/syslog")
 
 	def alvs_service_stop(self):
 		self.alvs_service("stop")
