@@ -1,0 +1,12 @@
+
+# SYSTEM_LEVEL_TESTS
+test4_sh_wo_port.py
+#test7_change_sh_alg.py                           #fail due to a bug on cp (859178) 
+test17_replace_servers.py
+test22_add_del_add_service.py
+test29_change_weight_to_zero.py
+#test30_unsupported_alg.py - not stable
+
+# CP_UNIT_LEVEL_TESTS
+
+# DP_UNIT_LEVEL_TESTS

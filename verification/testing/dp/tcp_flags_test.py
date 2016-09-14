@@ -5,28 +5,7 @@ sys.path.append("verification/testing")
 from test_infra import * 
 import random
 
-args = read_test_arg(sys.argv)	
-
-log_file = "tcp_flags_test.log"
-if 'log_file' in args:
-	log_file = args['log_file']
-init_logging(log_file)
-
-ezbox = ezbox_host(args['setup_num'])
-
-if args['hard_reset']:
-	ezbox.reset_ezbox()
-
-# init ALVS daemon
-ezbox.connect()
-ezbox.flush_ipvs()
-ezbox.alvs_service_stop()
-ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.copy_dp_bin(debug_mode=args['debug'])
-ezbox.alvs_service_start()
-ezbox.wait_for_cp_app()
-ezbox.wait_for_dp_app()
-ezbox.clean_director()
+ezbox,args = init_test(test_arguments=sys.argv)
 
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
@@ -107,8 +86,6 @@ data_reset_fin_packets = create_pcap_file(packets_list=[data_packet.packet,reset
 fin_data_packets = create_pcap_file(packets_list=[fin_packet.packet, data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet7.pcap')
 data_fin_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet8.pcap')
 
-# pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
-
 pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
 
 pcaps_with_fin_no_reset = [fin_data_packets, data_fin_packets]
@@ -142,12 +119,12 @@ for pcap_to_send in pcaps_with_reset:
 	print "Send Packet with reset to Service"
 	client_object.send_packet_to_nps(pcap_to_send)
 	
-#	 # verify that connection was made
-#	 time.sleep(0.5)
-#	 connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-#	 if connection == None:
-#		 print "ERROR, connection is not exist\n"
-#		 exit(1)
+	# verify that connection was made
+	time.sleep(0.5)
+	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+	if connection == None:
+		print "ERROR, connection is not exist\n"
+		exit(1)
 
 	# check how many packets were captured
 	time.sleep(0.5)
@@ -204,11 +181,11 @@ for pcap_to_send in pcaps_with_reset:
 	client_object.send_packet_to_nps(pcap_to_send)
 
 	# verify that connection was made
-# 	time.sleep(0.5)
-# 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-# 	if connection == None:
-# 		print "ERROR, connection was created, even though server is not exist\n"
-# 		exit(1)
+	time.sleep(0.5)
+	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+	if connection == None:
+		print "ERROR, connection was created, even though server is not exist\n"
+		exit(1)
 	
 	# check how many packets were captured
 	time.sleep(0.5)

@@ -1,0 +1,59 @@
+
+# SYSTEM_LEVEL_TESTS
+test1_request_wo_ser.py
+test2_request_wo_ser2.py
+test3_request_from_port.py
+test4_sh_wo_port.py
+test5_sh_w_port.py
+test6_sh_w_port_2_services.py
+test7_change_sh_alg.py
+test8_add_servers.py
+test9_add_servers.py
+test10_add_servers.py
+test11_delete_reAdd_server.py
+test12_delete_server_w_connection.py
+test14_delete_reAdd_server.py
+test15_disable_server.py
+test16_disable_multiple_servers.py
+test17_replace_servers.py
+#test21_enable_server_using_server_lo.py - currenly failed due to bug
+test22_add_del_add_service.py
+test23_add_del_add_services.py
+test24_different_weight.py
+test26_change_weight.py
+test28_change_weight_down.py
+test29_change_weight_to_zero.py
+#test30_unsupported_alg.py
+test33_basic_RR.py
+test34_basic_WRR.py
+test35_RR_multiple_services.py
+test36_WRR_multiple_services.py
+test37_change_supported_alg.py
+test38_WRR_change_weights.py
+test39_RR_change_weights.py
+test40_services_diff_sched_alg.py
+test41_WRR_delete_server.py
+test42_WRR_add_server.py
+
+# CP_UNIT_LEVEL_TESTS
+#alvs_cp_check_agt_port.py
+#fib_testing.py
+#ipvs_stats_test.py
+#sched_info_test.py
+#service_db_test.py
+#state_sync_control_test.py
+#state_sync_test.py
+
+# DP_UNIT_LEVEL_TESTS
+#lag_test.py
+#tcp_flags_test.py
+#server_fail_test.py -scenarios 1,2,3,4,5
+#server_fail_test.py -scenarios 6                  #fail to to a bug
+#1service_1server_overloaded_flag.py
+#1service_2servers_fallback.py
+#1sevice_1server_overloaded_flag_fallback.py
+#dp_packet_to_host_test.py
+#host_to_network_test.py
+#schedule_algorithm_test.py
+#slow_path_test.py
+#state_sync_test.py

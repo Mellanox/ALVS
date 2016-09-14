@@ -58,7 +58,7 @@ def generic_main():
 	if not options.setup_num:
 		print 'ERROR: setup_num is not given'
 		exit(1)
-	if (options.setup_num == 0) or (options.setup_num > 7):
+	if (options.setup_num == 0) or (options.setup_num > 8):
 		print 'ERROR: setup_num is not in range'
 		exit(1)
 
@@ -177,7 +177,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
 	
 		ezbox.alvs_service_stop()
-		ezbox.update_cp_params("--agt_enabled --port_type=10GE")
+		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
 		
 		if test_config['use_install']:
 			ezbox.copy_and_install_alvs(test_config['install_file'])
@@ -361,10 +361,10 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
 	
-	if not os.path.exists("log"):
-		os.makedirs("log")
+	if not os.path.exists("logs"):
+		os.makedirs("logs")
 		
-	dir_name = 'log/test_logs_'
+	dir_name = 'logs/test_logs_'
 	
 	if (setup_num != None):
 		dir_name += 'setup%s_' %setup_num

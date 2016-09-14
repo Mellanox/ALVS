@@ -474,8 +474,8 @@ def add2mac(addr,num):
 	return int2mac(temp)
 
 def init_logging(log_file): 
-	if "log/" not in log_file:
-		log_file = "log/" + log_file
+	if "logs/" not in log_file:
+		log_file = "logs/" + log_file
 		
 	if not os.path.exists("log"):
 		os.makedirs("log")
@@ -489,6 +489,7 @@ def read_test_arg(args):
 	scenarios = range(1, 100)
 	dp_bin = 'alvs_dp'
 	cp_bin = 'alvs_daemon'
+	install_file = 'alvs.tar.gz'
 	nps_ip = None
 	host_ip = None
 	hard_reset = False
@@ -500,6 +501,7 @@ def read_test_arg(args):
 		compile = True
 	if '-debug' in args:
 		debug_mode = True
+		install_file = 'alvs_debug.tar.gz'
 	if '-host_ip' in args:
 		if '-ezbox' in args:
 			print "dont use ezbox parameter with host_ip parameter"
@@ -581,15 +583,25 @@ def read_test_arg(args):
 			ezbox_interface = 'eth0.9'
 			data_ip = '192.168.0.6'
 			setup_num = 6
-		
-		print "ezbox setup: " + str(ezbox)
-		print "host_ip: " + host_ip
-		print "nps_ip: " + nps_ip
-		print "host data ip: " + data_ip
-		print "ezbox interface is: " + ezbox_interface
+		if ezbox == 'ezbox50':
+			setup_num = 7
+		if ezbox == 'ezbox74':
+			setup_num = 8	
+			
+		setup = get_ezbox_names(setup_num)	
+		print "ezbox setup: " + setup['name']
+		print "host_ip: " + setup['host']
+		print "nps_ip: " + setup['chip']
 	else:
-		print "Please specify the ezbox name that you want to use"
-		exit(1)
+		if '-setup' in args:
+			try:
+				setup_num = int(args[args.index('-setup') + 1])
+			except:
+				print "ERROR, need to add setup num after -setup, example: -setup 3"
+				raise
+		else:
+			print "Please specify the ezbox name or setup number that you want to use (-setup setup_num or -ezbox ezbox_name )"
+			exit(1)
 			
 	if '-reset' in args:
 		hard_reset = True
@@ -610,18 +622,44 @@ def read_test_arg(args):
 		
 	return {'debug':debug_mode,
 			'setup_num':setup_num,
-			'ezbox_interface':ezbox_interface,
-			'data_ip':data_ip,
 			'log_file':log_file,
-			'host_ip':host_ip,
-			'nps_ip':nps_ip ,
 			'cp_bin':cp_bin,
 			'dp_bin':dp_bin,
 			'scenarios':scenarios,
-			'ezbox':ezbox,
 			'hard_reset':hard_reset,
-			'compile':compile}	  
+			'compile':compile,
+			'install_file':install_file}	  
 	
+def init_test(test_arguments, agt_enable=True, wait_for_dp=True):
+	
+	args = read_test_arg(test_arguments)
+
+	log_file = test_arguments[0]
+	if 'log_file' in args:
+		log_file = args['log_file']
+	init_logging(log_file)
+	
+	ezbox = ezbox_host(args['setup_num'])
+	
+	if args['hard_reset']:
+		ezbox.reset_ezbox()
+	
+	# init ALVS daemon
+	ezbox.connect()
+	ezbox.flush_ipvs()
+	ezbox.alvs_service_stop()
+	ezbox.copy_and_install_alvs(install_tar=args['install_file'])
+	if agt_enable==True:
+		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
+	else:
+		ezbox.update_cp_params("--port_type=%s"%ezbox.setup['nps_port_type'])
+	ezbox.alvs_service_start()
+	ezbox.wait_for_cp_app()
+	if wait_for_dp==True:
+		ezbox.wait_for_dp_app()
+	
+	return [ezbox,args,args['scenarios']]
+
 def carry_around_add(a, b):
 	c = a + b
 	return (c & 0xffff) + (c >> 16)

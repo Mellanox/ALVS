@@ -135,7 +135,7 @@ class ezbox_host:
 		outfile.write('}\n')
 		for vip in services.keys():
 			outfile.write('virtual_server %s 80 {\n'%vip)
- 			outfile.write('	delay_loop 5\n')
+			outfile.write('	delay_loop 5\n')
 			outfile.write('	lb_algo sh\n') #todo
 			outfile.write('	lb_kind DR\n')
 			outfile.write('	protocol TCP\n')
@@ -853,8 +853,6 @@ class ezbox_host:
 		                                             		  	     			read=0, 
 		                                             		  	     			use_shadow_group=0).result['long_counter_config']['counters']
 
-		
-		print sched_connections_on_server
 		return sched_connections_on_server[0]['value']
 
 	def get_interface_stats(self, interface_id):
@@ -1272,7 +1270,8 @@ def get_ezbox_names(setup_id):
 							'username':            input_list[4],
 							'password':            input_list[5],
 							'data_ip_hex_display': input_list[6],
-							'mac_address':         input_list[7]})
+							'mac_address':         input_list[7],
+							'nps_port_type':       input_list[8]})
 	
 	return setup_dict[setup_id-1]
 
