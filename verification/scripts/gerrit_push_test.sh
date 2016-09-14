@@ -145,7 +145,7 @@ function exec_regression()
     fi
     
     # run regression
-    $scripts_path"../testing/system_level/regression_run.py" $setup_num push_regression false true
+    $scripts_path"../testing/system_level/regression_run.py" -s $setup_num -l push_regression -e true
     rc=$?
     if [ $rc -ne 0 ]; then
         echo 'ERROR: Regression failed'
