@@ -227,7 +227,7 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 		return rc;
 	}
 
-	if (cmem_alvs.conn_info_result.delete_bit || cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_CLOSE_WAIT) {
+	if (cmem_alvs.conn_info_result.delete_bit) {
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
