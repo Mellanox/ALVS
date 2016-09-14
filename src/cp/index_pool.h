@@ -143,7 +143,7 @@ void index_pool_release(struct index_pool *pool, uint32_t index)
 	uint32_t tail;
 
 	/* Check if index is valid */
-	if (index < pool->max_size) {
+	if (index >= pool->max_size) {
 		write_log(LOG_WARNING, "Index %d is out of pool boundaries..", index);
 		return;
 	}
