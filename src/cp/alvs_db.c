@@ -143,6 +143,20 @@ char *my_inet_ntoa(in_addr_t ip)
 	return inet_ntoa(ip_addr);
 }
 
+#define TABLE_ENTRY_IP				0
+#define TABLE_ENTRY_PORT			1
+#define TABLE_ENTRY_PRTOTOCOL			2
+#define TABLE_ENTRY_NPS_INDEX			3
+#define TABLE_ENTRY_NPS_FLAGS			4
+#define TABLE_ENTRY_SCHED_ALG			5
+#define TABLE_ENTRY_CONNECTION_SCHEDULD	6
+#define TABLE_ENTRY_STATS_BASE			7
+#define TABLE_ENTRY_IN_PACKET			8
+#define TABLE_ENTRY_IN_BYTE			9
+#define TABLE_ENTRY_OUT_PACKET			10
+#define TABLE_ENTRY_OUT_BYTE			11
+#define TABLE_ENTRY_SCHED_ENTRIES_COUNT		12
+
 enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 {
 	int rc;
@@ -185,18 +199,19 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    statistics base
 	 */
 	sql = "CREATE TABLE services("
-		"ip INT NOT NULL,"			/* 0 */
-		"port INT NOT NULL,"			/* 1 */
-		"protocol INT NOT NULL,"		/* 2 */
-		"nps_index INT NOT NULL,"		/* 3 */
-		"flags INT NOT NULL,"			/* 4 */
-		"sched_alg INT NOT NULL,"		/* 5 */
-		"stats_base INT NOT NULL,"		/* 6 */
-		"in_packet BIGINT NOT NULL,"		/* 7 */
-		"in_byte BIGINT NOT NULL,"		/* 8 */
-		"out_packet BIGINT NOT NULL,"		/* 9 */
-		"out_byte BIGINT NOT NULL,"		/* 10 */
-		"connection_scheduled BIGINT NOT NULL,"	/* 11 */
+		"ip INT NOT NULL,"			/* TABLE_ENTRY_IP */
+		"port INT NOT NULL,"			/* TABLE_ENTRY_PORT */
+		"protocol INT NOT NULL,"		/* TABLE_ENTRY_PRTOTOCOL */
+		"nps_index INT NOT NULL,"		/* TABLE_ENTRY_NPS_INDEX */
+		"flags INT NOT NULL,"			/* TABLE_ENTRY_NPS_FLAGS */
+		"sched_alg INT NOT NULL,"		/* TABLE_ENTRY_SCHED_ALG */
+		"connection_scheduled BIGINT NOT NULL,"	/* TABLE_ENTRY_CONNECTION_SCHEDULD */
+		"stats_base INT NOT NULL,"		/* TABLE_ENTRY_STATS_BASE */
+		"in_packet BIGINT NOT NULL,"		/* TABLE_ENTRY_IN_PACKET */
+		"in_byte BIGINT NOT NULL,"		/* TABLE_ENTRY_IN_BYTE */
+		"out_packet BIGINT NOT NULL,"		/* TABLE_ENTRY_OUT_PACKET */
+		"out_byte BIGINT NOT NULL,"		/* TABLE_ENTRY_OUT_BYTE */
+		"sched_entries_count INT NOT NULL,"	/* TABLE_ENTRY_SCHED_ENTRIES_COUNT */
 		"PRIMARY KEY (ip,port,protocol));";
 
 	/* Execute SQL statement */
@@ -493,18 +508,18 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 		sqlite3_finalize(statement);
 		return ALVS_DB_FAILURE;
 	}
-
 	if (full_service) {
 		/* retrieve service info from result */
-		service->nps_index = sqlite3_column_int(statement, 3);
-		service->flags = sqlite3_column_int(statement, 4);
-		service->sched_alg = (enum alvs_scheduler_type)sqlite3_column_int(statement, 5);
-		service->stats_base.raw_data = sqlite3_column_int(statement, 6);
-		service->service_stats.connection_scheduled = sqlite3_column_int64(statement, 8);
-		service->service_stats.in_packet = sqlite3_column_int64(statement, 9);
-		service->service_stats.in_byte = sqlite3_column_int64(statement, 10);
-		service->service_stats.out_packet = sqlite3_column_int64(statement, 11);
-		service->service_stats.out_byte = sqlite3_column_int64(statement, 12);
+		service->nps_index = sqlite3_column_int(statement, TABLE_ENTRY_NPS_INDEX);
+		service->flags = sqlite3_column_int(statement, TABLE_ENTRY_NPS_FLAGS);
+		service->sched_alg = (enum alvs_scheduler_type)sqlite3_column_int(statement, TABLE_ENTRY_SCHED_ALG);
+		service->service_stats.connection_scheduled = sqlite3_column_int64(statement, TABLE_ENTRY_CONNECTION_SCHEDULD);
+		service->stats_base.raw_data = sqlite3_column_int(statement, TABLE_ENTRY_STATS_BASE);
+		service->service_stats.in_packet = sqlite3_column_int64(statement, TABLE_ENTRY_IN_PACKET);
+		service->service_stats.in_byte = sqlite3_column_int64(statement, TABLE_ENTRY_IN_BYTE);
+		service->service_stats.out_packet = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_PACKET);
+		service->service_stats.out_byte = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_BYTE);
+		service->sched_entries_count = sqlite3_column_int(statement, TABLE_ENTRY_SCHED_ENTRIES_COUNT);
 	}
 
 	/* finalize SQL statement */
@@ -530,14 +545,14 @@ enum alvs_db_rc internal_db_add_service(struct alvs_db_service *service)
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "INSERT INTO services "
-		"(ip, port, protocol, nps_index, flags, sched_alg, stats_base, connection_scheduled, "
-		"in_packet, in_byte, out_packet, out_byte) "
-		"VALUES (%d, %d, %d, %d, %d, %d, %d, %ld, %ld, %ld, %ld, %ld);",
+		"(ip, port, protocol, nps_index, flags, sched_alg, connection_scheduled, stats_base, "
+		"in_packet, in_byte, out_packet, out_byte, sched_entries_count) "
+		"VALUES (%d, %d, %d, %d, %d, %d, %ld, %d, %ld, %ld, %ld, %ld, %d);",
 		service->ip, service->port, service->protocol,
 		service->nps_index, service->flags, service->sched_alg,
-		service->stats_base.raw_data, service->service_stats.connection_scheduled,
+		service->service_stats.connection_scheduled, service->stats_base.raw_data,
 		service->service_stats.in_packet, service->service_stats.in_byte, service->service_stats.out_packet,
-		service->service_stats.out_byte);
+		service->service_stats.out_byte, service->sched_entries_count);
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(alvs_db, sql, NULL, NULL, &zErrMsg);
@@ -567,9 +582,9 @@ enum alvs_db_rc internal_db_modify_service(struct alvs_db_service *service)
 	char *zErrMsg = NULL;
 
 	sprintf(sql, "UPDATE services "
-		"SET flags=%d, sched_alg=%d "
+		"SET flags=%d, sched_alg=%d, sched_entries_count=%d "
 		"WHERE ip=%d AND port=%d AND protocol=%d;",
-		service->flags, service->sched_alg,
+		service->flags, service->sched_alg, service->sched_entries_count,
 		service->ip, service->port, service->protocol);
 
 	/* Execute SQL statement */
@@ -2117,12 +2132,6 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d",
 		  cp_service.sched_alg, cp_service.flags);
 
-	/* Modify service information in internal DB */
-	if (internal_db_modify_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
-		write_log(LOG_CRIT, "Failed to modify service in internal DB.");
-		return ALVS_DB_INTERNAL_ERROR;
-	}
-
 	if (prev_sched_alg != cp_service.sched_alg) {
 		/* Recalculate scheduling information */
 		enum alvs_db_rc rc = alvs_db_recalculate_scheduling_info(&cp_service);
@@ -2131,6 +2140,12 @@ enum alvs_db_rc alvs_db_modify_service(struct ip_vs_service_user *ip_vs_service)
 			write_log(LOG_CRIT, "Failed to recalculate scheduling information.");
 			return rc;
 		}
+	}
+
+	/* Modify service information in internal DB */
+	if (internal_db_modify_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
+		write_log(LOG_CRIT, "Failed to modify service in internal DB.");
+		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	/* Modify service information in NPS search structure */
@@ -2508,6 +2523,11 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		if (rc != ALVS_DB_OK) {
 			write_log(LOG_ERR, "Failed to delete scheduling information.");
 			return rc;
+		}
+
+		if (internal_db_modify_service(&cp_service) == ALVS_DB_INTERNAL_ERROR) {
+			write_log(LOG_CRIT, "Failed to modify service in internal DB.");
+			return ALVS_DB_INTERNAL_ERROR;
 		}
 
 		build_nps_service_info_key(&cp_service,
