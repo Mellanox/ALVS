@@ -140,7 +140,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 		       cmem_alvs.conn_class_key.protocol);
 
 		(void)ezdp_delete_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
-		                            conn_index,
+					    conn_index,
 					    0,
 					    cmem_wa.alvs_wa.conn_info_table_wa,
 					    sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
