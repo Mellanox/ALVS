@@ -80,6 +80,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 							   uint32_t flags, bool reset)
 {
 	uint32_t conn_index;
+	uint32_t rc;
 
 	/*allocate new index*/
 	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
@@ -106,14 +107,8 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 
 	if (conn_state == IP_VS_TCP_S_ESTABLISHED) {
 		cmem_alvs.conn_info_result.conn_flags &= ~IP_VS_CONN_F_INACTIVE;
-		if (bound) {
-			alvs_update_connection_statistics(1, 1, 0);
-		}
 	} else {
 		cmem_alvs.conn_info_result.conn_flags |= IP_VS_CONN_F_INACTIVE;
-		if (bound) {
-			alvs_update_connection_statistics(1, 0, 1);
-		}
 	}
 
 	/*first create connection info entry*/
@@ -127,7 +122,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 
 	cmem_alvs.conn_result.conn_index = conn_index;
 
-	(void)ezdp_add_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
+	rc = ezdp_add_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
 				 &cmem_alvs.conn_class_key,
 				 sizeof(struct alvs_conn_classification_key),
 				 &cmem_alvs.conn_result,
@@ -135,6 +130,37 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 				 EZDP_UNCONDITIONAL,
 				 cmem_wa.alvs_wa.conn_hash_wa,
 				 sizeof(cmem_wa.alvs_wa.conn_hash_wa));
+
+	if (rc != 0) {
+		alvs_write_log(LOG_DEBUG, "ezdp_add_hash_entry: connection (0x%x:%d --> 0x%x:%d, protocol=%d)...failed",
+		       cmem_alvs.conn_class_key.client_ip,
+		       cmem_alvs.conn_class_key.client_port,
+		       cmem_alvs.conn_class_key.virtual_ip,
+		       cmem_alvs.conn_class_key.virtual_port,
+		       cmem_alvs.conn_class_key.protocol);
+
+		(void)ezdp_delete_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
+		                            conn_index,
+					    0,
+					    cmem_wa.alvs_wa.conn_info_table_wa,
+					    sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
+
+		alvs_server_overload_on_delete_conn(server);
+		ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
+		alvs_discard_and_stats(ALVS_ERROR_CONN_CLASS_ALLOC_FAIL);
+		return ALVS_SERVICE_DATA_PATH_IGNORE;
+	}
+
+	if (conn_state == IP_VS_TCP_S_ESTABLISHED) {
+		if (bound) {
+			alvs_update_connection_statistics(1, 1, 0);
+		}
+	} else {
+		if (bound) {
+			alvs_update_connection_statistics(1, 0, 1);
+		}
+	}
+
 
 	if (bound) {
 		alvs_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully", conn_index, server);
@@ -266,15 +292,6 @@ static __always_inline
 void alvs_conn_delete_without_lock(uint32_t conn_index)
 {
 
-	if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) == 0) {
-		if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED) {
-			alvs_update_connection_statistics(0, -1, 0);
-		} else {
-			alvs_update_connection_statistics(0, 0, -1);
-		}
-		alvs_server_overload_on_delete_conn(cmem_alvs.conn_info_result.server_index);
-	}
-
 	/*1st remove the classification entry*/
 	if (ezdp_delete_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
 			       &cmem_alvs.conn_info_result.conn_class_key,
@@ -294,6 +311,15 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 				sizeof(cmem_wa.alvs_wa.conn_info_table_wa)) != 0) {
 		alvs_write_log(LOG_DEBUG, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
 		return;
+	}
+
+	if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) == 0) {
+		if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED) {
+			alvs_update_connection_statistics(0, -1, 0);
+		} else {
+			alvs_update_connection_statistics(0, 0, -1);
+		}
+		alvs_server_overload_on_delete_conn(cmem_alvs.conn_info_result.server_index);
 	}
 
 	ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
