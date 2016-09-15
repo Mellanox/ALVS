@@ -205,7 +205,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_director(services)
 		#wait for director	
-		time.sleep(6)
+		time.sleep(25)
 		#flush director configurations
 		ezbox.flush_ipvs()
 
