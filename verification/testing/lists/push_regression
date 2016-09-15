@@ -1,7 +1,7 @@
 
 # SYSTEM_LEVEL_TESTS
 test4_sh_wo_port.py
-#test7_change_sh_alg.py                           #fail due to a bug on cp (859178) 
+test7_change_sh_alg.py 
 test17_replace_servers.py
 test22_add_del_add_service.py
 test29_change_weight_to_zero.py
