@@ -415,9 +415,9 @@ def general_checker(server_list, ezbox, client_list, expected={}):
 	if host_rc == False:
 		print "Error: host statistic failed. expected host_stat_clean = " + str(expected['host_stat_clean'])
 		
-		
 	if 'syslog_clean' in expected:
-		no_debug = expected.get('no_debug', True)
+		#no_debug = expected.get('no_debug', True)
+		no_debug = False	# Allow debug in syslog
 		rc = syslog_checker(ezbox, no_debug)
 		if expected['syslog_clean'] == False:
 			syslog_rc = (True if rc == False else False)
@@ -425,7 +425,6 @@ def general_checker(server_list, ezbox, client_list, expected={}):
 			syslog_rc = rc
 	if syslog_rc == False:
 		print "Error: syslog checker failed . expected syslog_clean = " + str(expected['syslog_clean'])
-	
 	
 	if 'no_open_connections' in expected or 'no_error_stats' in expected:
 		stats_rc = statistics_checker(ezbox, no_errors=expected.get('no_error_stats', False), no_connections=expected.get('no_open_connections', False))
