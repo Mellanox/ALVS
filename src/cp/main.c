@@ -92,8 +92,6 @@ int main(int argc, char **argv)
 	main_thread = pthread_self();
 	open_log("alvs_daemon");
 
-	printf("Application version: %s\n", version);
-
 	/* Defaults */
 	agt_enabled = false;
 	port_type = EZapiChannel_EthIFType_40GE;
