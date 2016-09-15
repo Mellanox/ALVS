@@ -112,14 +112,13 @@ class ezbox_host:
 		self.execute_command_on_host(cmd)
 
 	def clean(self, use_director=False, stop_ezbox=False):
+		self.zero_all_ipvs_stats()
+		self.flush_ipvs()
 		if use_director:
 			self.clean_director()
 			
 		if stop_ezbox:
 			self.alvs_service_stop()
-		else:
-			self.zero_all_ipvs_stats()
-			self.flush_ipvs()
 		self.clean_vips()
 		self.logout()
 		
@@ -688,31 +687,31 @@ class ezbox_host:
 
 	def add_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -A -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(1)
+		time.sleep(2)
 
 	def modify_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -E -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(1)
+		time.sleep(2)
 
 	def delete_service(self, vip, port):
 		self.execute_command_on_host("ipvsadm -D -t %s:%s"%(vip,port))
-		time.sleep(0.5)
+		time.sleep(2)
 
 	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
 		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
-		time.sleep(1)
+		time.sleep(2)
 
 	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
 		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
-		time.sleep(1)
+		time.sleep(2)
 
 	def delete_server(self, vip, service_port, server_ip, server_port):
 		self.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s"%(vip, service_port, server_ip, server_port))
-		time.sleep(0.5)
+		time.sleep(2)
 
 	def flush_ipvs(self):
 		self.execute_command_on_host("ipvsadm -C")
-		time.sleep(0.5)
+		time.sleep(2)
 
 	def zero_all_ipvs_stats(self):
 		logging.log(logging.INFO, "zero all ipvs stats")
@@ -728,7 +727,7 @@ class ezbox_host:
 		logging.log(logging.INFO, "get all ipvs stats")
 		result, output = self.execute_command_on_host('ipvsadm --list --stats')
 		if result == False:
-			print "ERROR, failed to execute zero command"
+			print "ERROR, failed to execute ipvs list command"
 			print output
 			return False
 		
