@@ -216,16 +216,16 @@ void alvs_server_overload_on_delete_conn(uint16_t server_index)
 }
 
 /******************************************************************************
- * \brief       try to bind connection to a server, this will be done if
- *		the lookup in the server classification table succeeded.
- *		otherwise, connection will remain unbound.
+ * \brief       Try to find the server index from server 5-tuple.
+ *              (virtual ip, virtual port, server ip, server port, protocol)
  *
- * \return	none
+ * \return	true if server exists (index stored in server_index),
+ *              false if server not exists.
  */
 static __always_inline
-void alvs_server_try_bind(in_addr_t server_ip, in_addr_t virtual_ip,
-			  uint16_t server_port, uint16_t virtual_port,
-			  uint16_t protocol)
+bool alvs_find_server_index(in_addr_t server_ip, in_addr_t virtual_ip,
+			    uint16_t server_port, uint16_t virtual_port,
+			    uint16_t protocol, uint32_t *server_index)
 {
 	uint32_t rc;
 	uint32_t found_result_size;
@@ -252,15 +252,15 @@ void alvs_server_try_bind(in_addr_t server_ip, in_addr_t virtual_ip,
 				    cmem_wa.alvs_wa.server_hash_wa,
 				    sizeof(cmem_wa.alvs_wa.server_hash_wa));
 
-	if (rc == 0) {
-		/* Server found */
-		cmem_alvs.conn_info_result.bound = true;
-		cmem_alvs.conn_info_result.server_index = server_class_res_ptr->server_index;
-		alvs_write_log(LOG_DEBUG, "Server found and bound to connection");
-		/* TODO - update server statistics? */
-	} else {
+	if (rc != 0) {
+		/* Server not found */
 		alvs_write_log(LOG_DEBUG, "Server not found");
+		return false;
 	}
+
+	*server_index = server_class_res_ptr->server_index;
+	alvs_write_log(LOG_DEBUG, "Server found in index %d.", *server_index);
+	return true;
 }
 
 #endif  /*ALVS_SERVER_H_*/

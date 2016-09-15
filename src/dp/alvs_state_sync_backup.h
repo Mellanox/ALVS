@@ -64,6 +64,7 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 	enum alvs_service_output_result create_entry_res;
 	in_addr_t server_addr;
 	uint16_t server_port;
+	uint32_t server_index;
 	ezdp_hashed_key_t hash_value;
 	int32_t final_res;
 
@@ -182,7 +183,10 @@ int32_t alvs_state_sync_process_conn(struct alvs_state_sync_conn *conn)
 
 		if (cmem_alvs.conn_info_result.bound == false) {
 			alvs_write_log(LOG_DEBUG, "Try to bind server");
-			alvs_server_try_bind(conn->server_addr, conn->virtual_addr, conn->server_port, conn->virtual_port, conn->protocol);
+			if (alvs_find_server_index(conn->server_addr, conn->virtual_addr, conn->server_port, conn->virtual_port, conn->protocol, &server_index) == true) {
+				cmem_alvs.conn_info_result.server_index = server_index;
+				cmem_alvs.conn_info_result.bound = true;
+			}
 		}
 
 		flags &= IP_VS_CONN_F_BACKUP_UPD_MASK;

@@ -363,6 +363,55 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 	return rc;
 }
 
+
+/******************************************************************************
+ * \brief       set connection to be bound to a server.
+ *              a new frame arrives to the NPS which belongs to this connection.
+ *
+ * \return      0 in case of success, otherwise failure.
+ */
+static __always_inline
+uint32_t alvs_conn_bind(uint32_t conn_index,
+			uint32_t server_index)
+{
+	uint32_t rc;
+	ezdp_hashed_key_t hash_value;
+
+	/*lock connection*/
+	alvs_lock_connection(&hash_value);
+
+	/*perform another lookup to prevent race conditions*/
+	rc = alvs_conn_info_lookup(conn_index);
+
+	if (rc != 0) {
+		alvs_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_bind", conn_index);
+		alvs_unlock_connection(hash_value);
+		return rc;
+	}
+
+	if (cmem_alvs.conn_info_result.bound == true) {
+		alvs_write_log(LOG_DEBUG, "connection %d is already bound (other thread performed the bind before)", conn_index);
+		return 0;
+	}
+
+	/* turn on the aging bit */
+	cmem_alvs.conn_info_result.server_index = server_index;
+	cmem_alvs.conn_info_result.bound = true;
+
+	rc =  ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
+			conn_index,
+			&cmem_alvs.conn_info_result,
+			sizeof(struct alvs_conn_info_result),
+			EZDP_UNCONDITIONAL,
+			cmem_wa.alvs_wa.conn_info_table_wa,
+			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
+
+	/*unlock*/
+	alvs_unlock_connection(hash_value);
+	return rc;
+}
+
+
 /******************************************************************************
  * \brief       set connection entry aging bit to 0. this function is called only
  *              from aging mechanism.
@@ -463,6 +512,7 @@ static __always_inline
 void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t conn_index)
 {
 	uint32_t rc;
+	uint32_t server_index;
 
 	alvs_write_log(LOG_DEBUG, "conn_idx  = %d exists (fast path)", conn_index);
 
@@ -471,9 +521,15 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 
 	if (likely(rc == 0)) {
 		if (cmem_alvs.conn_info_result.bound == false) {
-			alvs_server_try_bind(cmem_alvs.conn_info_result.server_addr, cmem_alvs.conn_class_key.virtual_ip,
-					     cmem_alvs.conn_info_result.server_port, cmem_alvs.conn_class_key.virtual_port,
-					     cmem_alvs.conn_class_key.protocol);
+			if (alvs_find_server_index(cmem_alvs.conn_info_result.server_addr, cmem_alvs.conn_class_key.virtual_ip,
+						   cmem_alvs.conn_info_result.server_port, cmem_alvs.conn_class_key.virtual_port,
+						   cmem_alvs.conn_class_key.protocol, &server_index) == true) {
+				/* store server index in connection info */
+				alvs_write_log(LOG_DEBUG, "Server index found for conn_idx = %d, trying to bind.", conn_index);
+				if (alvs_conn_bind(conn_index, server_index) != 0) {
+					alvs_write_log(LOG_WARNING, "conn_idx  = %d,  binding server FAILED, continue as unbound.", conn_index);
+				}
+			}
 		}
 
 		/*check if someone already indicated that this connection should be deleted...*/
