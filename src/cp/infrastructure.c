@@ -112,7 +112,7 @@ enum infra_emem_spaces_params {
 };
 
 /* Memory spaces */
-#define INFRA_X1_CLUSTER_CODE_SIZE          144
+#define INFRA_X1_CLUSTER_CODE_SIZE          160
 #define INFRA_ALL_CLUSTER_CODE_SIZE         128
 #define INFRA_ALL_CLUSTER_DATA_SIZE         1
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        5
