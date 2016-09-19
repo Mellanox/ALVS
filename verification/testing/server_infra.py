@@ -45,12 +45,12 @@ class HttpServer(player):
 		self.set_index_html(index_str)
 		self.set_test_html()
 
-	def clean_server(self):
-		self.stop_http_daemon()
-		self.take_down_loopback()
+	def clean_server(self, verbose = True):
+		self.stop_http_daemon(verbose)
+		self.take_down_loopback(verbose)
 		self.enable_arp()
-		self.delete_index_html()
-		self.delete_test_html()
+		self.delete_index_html(verbose)
+		self.delete_test_html(verbose)
 		self.logout()
 		
 	def start_http_daemon(self):
@@ -64,11 +64,10 @@ class HttpServer(player):
 			print "ERROR: setting chkconfig ON failed. rc=" + str(rc) + " " + output
 			return
 
-	def stop_http_daemon(self):
+	def stop_http_daemon(self, verbose = True):
 		rc, output = self.ssh.execute_command("service httpd stop")
-		if rc != True:
+		if rc != True and verbose:
 			print "ERROR: Stop HTTP daemon failed. rc=" + str(rc) + " " + output
-			return
 	
 	def update_vip(self,new_vip):
 		self.take_down_loopback()
@@ -82,13 +81,11 @@ class HttpServer(player):
 			print "ERROR: Configuting loopback failed. rc=" + str(rc) + " " + output
 			return
 	
-	def take_down_loopback(self):
+	def take_down_loopback(self, verbose = True):
 		cmd = "ifconfig lo:0 down"
 		rc, output = self.ssh.execute_command(cmd)
-		if rc != True:
+		if rc != True and verbose:
 			print "ERROR: Take down loopback failed. rc=" + str(rc) + " " + output
-			return
-	
 
 	def disable_arp(self):
 		# Disable IP forwarding
@@ -181,16 +178,15 @@ class HttpServer(player):
 			print "ERROR: setting test.html failed. rc=" + str(rc) + " " + output
 			return
 
-	def delete_index_html(self):
+	def delete_index_html(self, verbose = True):
 		cmd = "rm -f /var/www/html/index.html"
 		rc, output = self.ssh.execute_command(cmd)
-		if rc != True:
+		if rc != True and verbose:
 			print "ERROR: deleting index.html failed. rc=" + str(rc) + " " + output
-			return
-	def delete_test_html(self):
+
+	def delete_test_html(self, verbose = True):
 		cmd = "rm -f /var/www/html/test.html"
 		rc, output = self.ssh.execute_command(cmd)
-		if rc != True:
+		if rc != True and verbose:
 			print "ERROR: deleting test.html failed. rc=" + str(rc) + " " + output
-			return
-
+	
