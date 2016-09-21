@@ -76,6 +76,7 @@ bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 int agt_enabled;
 EZapiChannel_EthIFType port_type;
+int fd = -1;
 /******************************************************************************/
 
 int main(int argc, char **argv)
@@ -90,6 +91,11 @@ int main(int argc, char **argv)
 
 	cancel_application_flag = false;
 	main_thread = pthread_self();
+
+	if((fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444)) == -1) {
+	       exit(1);
+	}
+
 	open_log("alvs_daemon");
 
 	/* Defaults */
@@ -418,6 +424,12 @@ void main_thread_graceful_stop(void)
 	EZstatus ez_ret_val;
 
 	write_log(LOG_INFO, "Shut down ALVS daemon.");
+
+  	if (fd >= 0) {
+  		close(fd);
+  		unlink("/var/lock/nps_cp.lock");
+  	}
+
 	cancel_application_flag = true;
 	if (is_object_allocated[object_type_nw_db_manager]) {
 		pthread_join(nw_db_manager_thread, NULL);
