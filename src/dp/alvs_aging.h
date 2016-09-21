@@ -48,7 +48,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 {
 	uint32_t conn_index;
 	uint32_t last_conn_index;
-	uint32_t iteration_num = event_id / ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
+	uint8_t iteration_num = event_id / ALVS_AGING_TIMER_EVENTS_PER_ITERATION;
 	in_addr_t source_ip = 0;
 	uint8_t sync_id = 0;
 
@@ -100,10 +100,7 @@ void alvs_handle_aging_event(uint32_t event_id)
 					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
 					       cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
-				if (alvs_conn_age_out(conn_index,
-						      ezdp_mod(iteration_num,
-							       alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state),
-							       0, 0)) == 0) {
+				if (alvs_conn_age_out(conn_index, iteration_num) == 0) {
 					/*aggregate active connection into current state sync frame*/
 					if (unlikely(cmem_alvs.conn_sync_state.conn_sync_status == ALVS_CONN_SYNC_NEED)) {
 						alvs_state_sync_aggr(source_ip, sync_id);

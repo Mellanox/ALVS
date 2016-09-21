@@ -149,7 +149,7 @@ char *my_inet_ntoa(in_addr_t ip)
 #define TABLE_ENTRY_NPS_INDEX			3
 #define TABLE_ENTRY_NPS_FLAGS			4
 #define TABLE_ENTRY_SCHED_ALG			5
-#define TABLE_ENTRY_CONNECTION_SCHEDULD	6
+#define TABLE_ENTRY_CONNECTION_SCHEDULD		6
 #define TABLE_ENTRY_STATS_BASE			7
 #define TABLE_ENTRY_IN_PACKET			8
 #define TABLE_ENTRY_IN_BYTE			9
@@ -3435,17 +3435,18 @@ enum alvs_db_rc alvs_db_print_services_stats(void)
 		write_log(LOG_INFO,
 			"                        In Pkt       In Byte      Out Pkt      Out Byte     Con Sched");
 	}
+
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
-		service_internal_db_stats.ip = sqlite3_column_int(statement, 0);
-		service_internal_db_stats.port = sqlite3_column_int(statement, 1);
-		service_internal_db_stats.protocol = sqlite3_column_int(statement, 2);
-		service_internal_db_stats.nps_index = sqlite3_column_int(statement, 3);
-		service_internal_db_stats.service_stats.in_packet = sqlite3_column_int64(statement, 7);
-		service_internal_db_stats.service_stats.in_byte = sqlite3_column_int64(statement, 8);
-		service_internal_db_stats.service_stats.out_packet = sqlite3_column_int64(statement, 9);
-		service_internal_db_stats.service_stats.out_byte = sqlite3_column_int64(statement, 10);
-		service_internal_db_stats.service_stats.connection_scheduled = sqlite3_column_int64(statement, 11);
+		service_internal_db_stats.ip = sqlite3_column_int(statement, TABLE_ENTRY_IP);
+		service_internal_db_stats.port = sqlite3_column_int(statement, TABLE_ENTRY_PORT);
+		service_internal_db_stats.protocol = sqlite3_column_int(statement, TABLE_ENTRY_PRTOTOCOL);
+		service_internal_db_stats.nps_index = sqlite3_column_int(statement, TABLE_ENTRY_NPS_INDEX);
+		service_internal_db_stats.service_stats.in_packet = sqlite3_column_int64(statement, TABLE_ENTRY_IN_PACKET);
+		service_internal_db_stats.service_stats.in_byte = sqlite3_column_int64(statement, TABLE_ENTRY_IN_BYTE);
+		service_internal_db_stats.service_stats.out_packet = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_PACKET);
+		service_internal_db_stats.service_stats.out_byte = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_BYTE);
+		service_internal_db_stats.service_stats.connection_scheduled = sqlite3_column_int64(statement, TABLE_ENTRY_CONNECTION_SCHEDULD);
 
 		/* read counter */
 		if (alvs_db_get_service_counters(service_internal_db_stats.nps_index,

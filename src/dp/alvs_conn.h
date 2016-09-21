@@ -299,7 +299,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 			       0,
 			       cmem_wa.alvs_wa.conn_hash_wa,
 			       sizeof(cmem_wa.alvs_wa.conn_hash_wa)) != 0) {
-		alvs_write_log(LOG_DEBUG, "unable to delete conn_class_key conn_idx = %d alvs_conn_delete", conn_index);
+		alvs_write_log(LOG_CRIT, "unable to delete conn_class_key conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
 
@@ -309,7 +309,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 				0,
 				cmem_wa.alvs_wa.conn_info_table_wa,
 				sizeof(cmem_wa.alvs_wa.conn_info_table_wa)) != 0) {
-		alvs_write_log(LOG_DEBUG, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
+		alvs_write_log(LOG_CRIT, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
 
@@ -445,7 +445,7 @@ uint32_t alvs_conn_bind(uint32_t conn_index,
  * \return      0 in case of success, otherwise failure.
  */
 static __always_inline
-uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
+uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t iteration_num)
 {
 	uint32_t rc;
 	ezdp_hashed_key_t hash_value;
@@ -457,14 +457,16 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_age_out", conn_index);
+		alvs_write_log(LOG_CRIT, "fail in conn_idx = %d conn_info lookup alvs_conn_age_out", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
 
 	/* turn off the aging bit */
 	cmem_alvs.conn_info_result.aging_bit = 0;
-	cmem_alvs.conn_info_result.age_iteration = age_iteration;
+	cmem_alvs.conn_info_result.age_iteration = ezdp_mod(iteration_num,
+							    alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state),
+							    0, 0);
 
 	rc = ezdp_modify_table_entry(&shared_cmem_alvs.conn_info_struct_desc,
 			conn_index,
@@ -473,6 +475,7 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t age_iteration)
 			EZDP_UNCONDITIONAL,
 			cmem_wa.alvs_wa.conn_info_table_wa,
 			sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
+
 	/*unlock*/
 	alvs_unlock_connection(hash_value);
 	return rc;
@@ -599,13 +602,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 		/*check if state changed*/
 		if (tcp_hdr->rst) {
 			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, got RST = 1 go conn_mark_to_delete", conn_index);
-			if (alvs_conn_mark_to_delete(conn_index, 1) != 0) {
-				/*unable to update connection - weird error scenario*/
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, conn_mark_to_delete FAILED ", conn_index);
-				/*drop frame*/
-				alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
-				return;
-			}
+			(void)alvs_conn_mark_to_delete(conn_index, 1);
 		} else {
 			if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED && tcp_hdr->fin) {
 				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  IP_VS_TCP_S_ESTABLISHED got FIN = 1 ", conn_index);
