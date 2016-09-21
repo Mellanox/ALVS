@@ -70,9 +70,11 @@
 #include "infrastructure.h"
 #include "version.h"
 
+extern int print_stats_enabled;
 bool *alvs_db_manager_cancel_application_flag;
 int raw_sock;
 int family;
+
 
 void alvs_db_manager_delete(void);
 void alvs_db_manager_init(void);
@@ -790,37 +792,40 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 		break;
 
 	case IPVS_CMD_GET_DEST:
+		if (print_stats_enabled == true) {
+			ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
+			if (ret < 0)
+				return NL_SKIP;
 
-		ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
-		if (ret < 0)
-			return NL_SKIP;
-
-		alvs_ret = alvs_db_print_servers_stats(&svc);
-		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Problem printing servers statistics");
+			alvs_ret = alvs_db_print_servers_stats(&svc);
+			if (alvs_ret != ALVS_DB_OK) {
+				write_log(LOG_ERR, "Problem printing servers statistics");
+			}
 		}
 
 		break;
 	case IPVS_CMD_GET_SERVICE:
 
-		write_log(LOG_INFO, "Application version: %s", version);
-		alvs_ret = alvs_db_print_global_error_stats();
-		if (alvs_ret != ALVS_DB_OK) {
-			write_log(LOG_ERR, "Problem printing global error statistics");
-		}
-
-		if (nw_db_print_all_interfaces_stats() != NW_DB_OK) {
-			write_log(LOG_ERR, "Problem printing interface statistics");
-		}
-
-		if (info->nlh->nlmsg_flags & NLM_F_DUMP) {
-			alvs_ret = alvs_db_print_services_stats();
+		if (print_stats_enabled == true) {
+			write_log(LOG_INFO, "Application version: %s", version);
+			alvs_ret = alvs_db_print_global_error_stats();
 			if (alvs_ret != ALVS_DB_OK) {
-				write_log(LOG_ERR, "Problem printing services statistics");
+				write_log(LOG_ERR, "Problem printing global error statistics");
 			}
-		} else {
-			/* todo add code to print stats of a specific service */
-			write_log(LOG_NOTICE, "GET_SERIVECE command is not supported for a specific service (only on dump mode)");
+
+			if (nw_db_print_all_interfaces_stats() != NW_DB_OK) {
+				write_log(LOG_ERR, "Problem printing interface statistics");
+			}
+
+			if (info->nlh->nlmsg_flags & NLM_F_DUMP) {
+				alvs_ret = alvs_db_print_services_stats();
+				if (alvs_ret != ALVS_DB_OK) {
+					write_log(LOG_ERR, "Problem printing services statistics");
+				}
+			} else {
+				/* todo add code to print stats of a specific service */
+				write_log(LOG_NOTICE, "GET_SERIVECE command is not supported for a specific service (only on dump mode)");
+			}
 		}
 
 		break;

@@ -75,6 +75,7 @@ pthread_t alvs_db_manager_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 int agt_enabled;
+int print_stats_enabled;
 EZapiChannel_EthIFType port_type;
 int fd = -1;
 /******************************************************************************/
@@ -86,19 +87,22 @@ int main(int argc, char **argv)
 
 	struct option long_options[] = {
 		{ "agt_enabled", no_argument, &agt_enabled, true },
+		{ "statistics", no_argument, &print_stats_enabled, true },
 		{ "port_type", required_argument, 0, 'p' },
 		{0, 0, 0, 0} };
 
 	cancel_application_flag = false;
 	main_thread = pthread_self();
 
-	if((fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444)) == -1) {
-	       exit(1);
+	fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444);
+	if (fd == -1) {
+		exit(1);
 	}
 
 	open_log("alvs_daemon");
 
 	/* Defaults */
+	print_stats_enabled = false;
 	agt_enabled = false;
 	port_type = EZapiChannel_EthIFType_40GE;
 
@@ -141,9 +145,9 @@ int main(int argc, char **argv)
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS, signal_terminate_handler);
 
-	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s) ...",
+	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s, Print Statistics = %s) ...",
 		  port_type == EZapiChannel_EthIFType_10GE ? "10GE" : (port_type == EZapiChannel_EthIFType_40GE ? "40GE" : "100GE"),
-			  agt_enabled ? "True" : "False");
+			  agt_enabled ? "True" : "False", print_stats_enabled ? "True" : "False");
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
@@ -425,10 +429,10 @@ void main_thread_graceful_stop(void)
 
 	write_log(LOG_INFO, "Shut down ALVS daemon.");
 
-  	if (fd >= 0) {
-  		close(fd);
-  		unlink("/var/lock/nps_cp.lock");
-  	}
+	if (fd >= 0) {
+		close(fd);
+		unlink("/var/lock/nps_cp.lock");
+	}
 
 	cancel_application_flag = true;
 	if (is_object_allocated[object_type_nw_db_manager]) {
