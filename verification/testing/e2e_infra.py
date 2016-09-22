@@ -467,7 +467,7 @@ def host_stats_checker(ezbox):
 	return rc
 
 '''
-	SYSlog_checker: checks syslog for errors.
+	SYSlog_checker: checks SYSlog for errors.
 '''
 def syslog_checker(ezbox, no_debug):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
