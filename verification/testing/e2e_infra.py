@@ -340,7 +340,7 @@ def clean_players(server_list, ezbox, client_list, use_director = False, stop_ez
 
 
 #===============================================================================
-# Run functions
+# Run functions (servers and clients)
 #===============================================================================
 def run_test(server_list, client_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
