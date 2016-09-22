@@ -259,15 +259,17 @@ void alvs_state_sync_first(in_addr_t source_ip, uint8_t sync_id)
 static __always_inline
 void alvs_state_sync_send_single(in_addr_t source_ip, uint8_t sync_id)
 {
+	uint32_t rc;
 	/*create first sync frame buffer with current connection*/
 	alvs_state_sync_first(source_ip, sync_id);
 
 	/*verify buffer length*/
 	assert(cmem_alvs.conn_sync_state.current_len <= (EZFRAME_BUF_DATA_SIZE - ALVS_STATE_SYNC_HEADROOM));
-
+	rc = ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len, ALVS_STATE_SYNC_HEADROOM, EZFRAME_MOVE_BUF_TO_EMEM);
 	/*create new frame*/
-	if (unlikely(ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len, ALVS_STATE_SYNC_HEADROOM, 0) != 0)) {
-		alvs_write_log(LOG_ERR, "sync master failed to create new sync frame");
+	if (unlikely(rc != 0)) {
+		alvs_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len, rc);
+		alvs_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
 		return;
 	}
 
@@ -297,9 +299,10 @@ uint32_t alvs_state_sync_add_buffer(void)
 
 	if (unlikely(cmem_alvs.conn_sync_state.amount_buffers == 1)) {
 		/*reduce the added headroom*/
-		rc = ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, ALVS_STATE_SYNC_HEADROOM, 0);
+		rc = ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, ALVS_STATE_SYNC_HEADROOM, EZFRAME_MOVE_BUF_TO_EMEM);
 		if (rc != 0) {
-			alvs_write_log(LOG_ERR, "sync master failed to create new sync frame");
+			alvs_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, rc);
+			alvs_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
 		}
 	} else {
 		rc = ezframe_append_buf(&frame, frame_data, cmem_alvs.conn_sync_state.current_len, 0);
