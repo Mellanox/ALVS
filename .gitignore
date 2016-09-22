@@ -9,4 +9,10 @@ bin/*
 target/work/*
 .pydevproject
 test_logs_*
-*.tar.gz
+
+# packaging:
+*.deb
+*.changes
+package/debian/alvs
+package/debian/files
+package/build-stamp

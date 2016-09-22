@@ -39,13 +39,13 @@ def generic_main():
 	parser.add_option("-m", "--modify_run_cpus", dest="modify_run_cpus", choices=bool_choices,
 					  help="modify run CPUs configuration before running the test. 		(default=True)")
 	parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus", choices=bool_choices,
-					  help="true = use 4k cpu. false = use 512 cpus 		in case modify_run_cpus is false, use_4k_cpus ignored. (default=False)")
-	parser.add_option("-i", "--use_install", dest="use_install", choices=bool_choices,
-					  help="Use instalation tar.gz file 				(default=True)")
+					  help="true = use 4k cpu. false = use 512 cpus (default=False).  in case modify_run_cpus is false, use_4k_cpus ignored. (default=False)")
+	parser.add_option("-i", "--install_package", dest="install_package", choices=bool_choices,
+					  help="Use ALVS package file (alvs_<version>.deb")
 	parser.add_option("-f", "--install_file", dest="install_file",
-					  help="instalation tar.gz file name 				(default=alvs.tar.gz)")
+					  help="installation file name (default=alvs_<version>_amd64.deb)")
 	parser.add_option("-b", "--copy_binaries", dest="copy_binaries", choices=bool_choices,
-					  help="Copy binaries instead using alvs.tar.gz 		in case use_install is true, copy_binaries ignored.	(default=True)")
+					  help="Copy binaries instead of using package installation (default=True). in case install_package is true, copy_binaries ignored")
 	parser.add_option("-d", "--use_director", dest="use_director", choices=bool_choices,
 					  help="Use director at host 								(default=True)")
 	parser.add_option("--start", "--start_ezbox", dest="start_ezbox", choices=bool_choices,
@@ -68,8 +68,8 @@ def generic_main():
 		config['modify_run_cpus'] = bool_str_to_bool(options.modify_run_cpus)
 	if options.use_4k_cpus:
 		config['use_4k_cpus']     = bool_str_to_bool(options.use_4k_cpus)
-	if options.use_install:
-		config['use_install']     = bool_str_to_bool(options.use_install)
+	if options.install_package:
+		config['install_package'] = bool_str_to_bool(options.install_package)
 	if options.install_file:
 		config['install_file']    = options.install_file
 	if options.copy_binaries:
@@ -170,21 +170,20 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	# start ALVS daemon and DP
 	ezbox.connect()
 	if test_config['start_ezbox']:
-		if test_config['modify_run_cpus']:
-			# validate chip is up
-			ezbox.alvs_service_stop()
-			ezbox.alvs_service_start()
-			ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
-	
-		ezbox.alvs_service_stop()
-		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
-		
-		if test_config['use_install']:
+		if test_config['install_package']:
 			ezbox.copy_and_install_alvs(test_config['install_file'])
 		else:
 			if test_config['copy_binaries']:
+				ezbox.alvs_service_stop()
 				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-		
+
+		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
+		if test_config['modify_run_cpus']:
+			# validate chip is up
+			ezbox.alvs_service_start()
+			ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
+ 	
+		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
 		ezbox.alvs_service_start()
@@ -205,10 +204,10 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_director(services)
 		#wait for director	
-		time.sleep(25)
+		time.sleep(15)
 		#flush director configurations
 		ezbox.flush_ipvs()
-
+	ezbox.logout()
 
 #------------------------------------------------------------------------------
 def fill_default_config(test_config):
@@ -217,8 +216,8 @@ def fill_default_config(test_config):
 	default_config = {'setup_num'       : None,  # supply by user
 					  'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored
 					  'use_4k_cpus'     : False,
-					  'use_install'     : True,  # in case use_install is true, copy_binaries ignored
-					  'install_file'    : 'alvs.tar.gz',
+					  'install_package' : True,  # in case install_package is true, copy_binaries ignored
+					  'install_file'    : None,
 					  'copy_binaries'   : True,
 					  'use_director'    : True,
 					  'start_ezbox'		: False,
@@ -256,7 +255,7 @@ def init_players(server_list, ezbox, client_list, vip_list, test_config={}):
 
 	# connect Ezbox (proccess work on ezbox copy and not on ezbox object
 	ezbox.connect()
-	
+ 	
 	for s in server_list:
 		init_server(s)
 	for c in client_list:
@@ -264,7 +263,6 @@ def init_players(server_list, ezbox, client_list, vip_list, test_config={}):
 
 	# Wait for EZbox proccess to finish
 	ezbox_init_proccess.join()
-
 	# Wait for all proccess to finish
 	if ezbox_init_proccess.exitcode:
 		print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)

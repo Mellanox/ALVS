@@ -282,69 +282,76 @@ class ezbox_host:
 			alvs_dp += '_debug'
 		self.copy_file_to_host(alvs_dp, "/usr/lib/alvs/alvs_dp")
 
-	def install_alvs(self):
+	def copy_package(self, alvs_package):
+		func_name = sys._getframe().f_code.co_name
+		print "FUNCTION %s: copy %s to %s " %(func_name, alvs_package, self.install_path)
+
+		rc = self.execute_command_on_host("rm -rf %s" %self.install_path)
+		if rc is True:
+			print "ERROR: %s Failed to remove install folder (%s)" %(func_name, self.install_path)
+
+		self.execute_command_on_host("mkdir -p %s" %self.install_path)
+		if rc is True:
+			print "ERROR: %s Failed to create install folder (%s)" %(func_name, self.install_path)
+			exit (1)
+
+		self.copy_file_to_host(alvs_package, self.install_path)
+		if rc is True:
+			print "ERROR: %s Failed to copy package" %(func_name)
+			exit (1)
+
+	def install_package(self, alvs_package):
+		func_name = sys._getframe().f_code.co_name
+		print "FUNCTION %s: called with %s" %(func_name, alvs_package)
+		
 		try:
-			cmd = "./alvs_install.py"
+			cmd = "echo 'N' | dpkg -i %s" %(os.path.join(self.install_path, alvs_package))
 			self.ssh_object.ssh_object.sendline(cmd)
-			# wait for: "Do you want to continue [Y/n]?"
-			self.ssh_object.ssh_object.expect("[Y/n]?", 20)
-			# continue instalation
-			self.ssh_object.ssh_object.sendline('Y')
-			# clean before / expect
-			try:
-				self.ssh_object.ssh_object.prompt(1)
-			except:
-				pass
-			# wait for: "Do you want to overwrite configuration [Y/n]?"
-			self.ssh_object.ssh_object.expect("[Y/n]?", 30)
-			# dont overide configuration & continue
-			self.ssh_object.ssh_object.sendline('n')
-			self.ssh_object.ssh_object.prompt(300)
-			# look for success string ("ALVS installation completed successfully")
-			if "installation completed successfully" in self.ssh_object.ssh_object.before:
-				print "installation completed successfully"
-			else:
-				print "ERROR: instalation failed"
-				print self.ssh_object.ssh_object.before
-				exit(1)
+			time.sleep(5) #TODO what to do with "Reading database..." that messing with expect?
+			self.ssh_object.ssh_object.prompt(60)
 			
+			# check exit code
+			self.ssh_object.ssh_object.sendline("echo $?")
+			self.ssh_object.ssh_object.prompt(timeout=30)
+			exit_code = self.ssh_object.ssh_object.before.split('\n')[1]
+			try:
+				exit_code = int(exit_code)
+			except:
+				exit_code = 1
 		except:
 			rc = "Unexpected error: %s" %sys.exc_info()[0]
 			print rc
 			exit(1)
+			
+		if exit_code != 0:
+			print "ERROR: installation failed (%s)" % exit_code
+			exit(1)
 
-	def copy_install_tar(self, install_tar):
-		func_name = sys._getframe().f_code.co_name
-		print "FUNCTION %s: copy %s to %s " %(func_name, install_tar, self.install_path)
-		self.execute_command_on_host("rm -rf %s" %self.install_path)
-		self.execute_command_on_host("mkdir -p %s" %self.install_path)
-		self.copy_file_to_host(install_tar, self.install_path)
+	def get_version(self):
+		cmd = "grep -e \"\\\"\\$Revision: .* $\\\"\" src/common/version.h"
+		cmd += " | cut -d\":\" -f 2 | cut -d\" \" -f2 | cut -d\".\" -f1-2| uniq"
+		version = os.popen(cmd).read().strip()
+		version += ".0000" 
+		
+		return version
+	
+	def copy_and_install_alvs(self, alvs_package=None):
+		if alvs_package is None:
+			# get package name
+			version = self.get_version()
+			alvs_package = "alvs_%s_amd64.deb" %(version)
 
-	def install_tar(self, install_tar):
-		func_name = sys._getframe().f_code.co_name
-		print "FUNCTION %s: called" %(func_name)
-		
-		# CD folder & extract tar
-		self.execute_command_on_host("cd %s/" %self.install_path)
-		cmd = "tar xfv %s" %(install_tar)
-		self.execute_command_on_host(cmd)
-		
-		self.install_alvs()
-		
-		# back to previos folder
-		self.execute_command_on_host("cd -")
-
-	def copy_and_install_alvs(self, install_tar='alvs.tar.gz'):
-		self.copy_install_tar(install_tar)
-		self.install_tar(install_tar)
+		self.copy_package(alvs_package)
+		self.install_package(alvs_package)
 
 	def alvs_service(self, cmd):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"
 		self.run_app_ssh.execute_command("/etc/init.d/alvs " + cmd)
 
 	def alvs_service_start(self):
+		self.run_app_ssh.execute_command("cat /dev/null > /var/log/syslog")
+		self.syslog_ssh.wait_for_msgs(['file truncated'])
 		self.alvs_service("start")
-		self.run_app_ssh.execute_command("echo \"\" > /var/log/syslog")
 
 	def alvs_service_stop(self):
 		self.alvs_service("stop")

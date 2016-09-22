@@ -1,0 +1,18 @@
+Source: alvs
+Section: admin
+Priority: extra
+Maintainer: Kobi Sagi <kobis@mellanox.com>
+Build-Depends: debhelper (>=9)
+Standards-Version: 3.9.8
+Homepage: http://www.mellanox.com
+
+Package: alvs
+Architecture: any
+Depends: ipvsadm, libnl-3-200
+Homepage: http://www.mellanox.com
+Description: ALVS is Accelerated Linux Virtual Server (LVS).
+             The ALVS improves the performance of the LVS by implementing the data path
+             processing of incoming traffic using the NPS-400 network processor while
+             maintaining the configuration interface as is, thus allowing building
+             a more powerful, highly scalable data-center networks using ALVS but still
+             maintaining a known simple way of configuring and setting-up load-balancers

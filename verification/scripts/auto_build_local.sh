@@ -121,7 +121,6 @@ function cp_tar_file_to_products()
 {
 	echo -e "\n======== $FUNCNAME ========="
 
-    # TODO: check if need folder variables
     main_folder=$1
     echo "main_folder   = $main_folder"
 
@@ -186,25 +185,35 @@ function build_and_add_bins()
 	echo -e "\n======== Build ALVS and add bin files ========="
 	
     cd $git_dir
-    
-    ./verification/scripts/make_all.sh release install
+
+    # Create release package    
+    ./verification/scripts/make_all.sh release deb
     if [ $? -ne 0 ]; then
         echo "Failed at make_all release in version $version!"
         is_stable=0
     fi
     	
-	# Copy bin directory before make clean
-	cp_tar_file_to_products $git_dir
+	# Copy debian package to products path
+    mv *.deb $build_products_path
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to move debian package to failed to $build_products_path"
+        is_stable=0
+    fi
 
 
-	./verification/scripts/make_all.sh debug install
+    # Create debug package    
+	./verification/scripts/make_all.sh debug deb
 	if [ $? -ne 0 ]; then
         echo "ERROR: Failed at make_all debug in version $version!"
         is_stable=0
     fi
 
-	# Copy bin directory
-    cp_tar_file_to_products $git_dir
+	# Copy debug debian package to products path
+    mv *.deb $build_products_path
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to move debian debug package to failed to $build_products_path"
+        is_stable=0
+    fi
     
 	echo -e "\n======== END Build ALVS and add bin files ========="
 }

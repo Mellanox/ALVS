@@ -93,7 +93,7 @@ function exec_make()
 {
     echo "running make script"
     echo "==================="
-    $scripts_path"make_all.sh" all install
+    $scripts_path"make_all.sh" all deb
     rc=$?
     if [ $rc -ne 0 ]; then
         echo 'ERROR: Make script failed'

@@ -17,6 +17,7 @@
 
 script_name=$(basename $0)
 script_dir=$(cd $(dirname $0) && pwd)
+alvs_dir=$(dirname $(dirname $(cd $(dirname $0) && pwd)))
 
 function error_exit()
 {
@@ -28,11 +29,11 @@ function error_exit()
 function usage()
 {
     cat <<EOF
-Usage: $script_name [release | debug | all | EMPTY (all), install]
-This script runs build on the current working area (release and/or debug)
+Usage: $script_name [release | debug | all | EMPTY (all), deb]
+This script runs build on the current working area (release/debug/package)
 
 Examples:
-$script_name release install
+$script_name release deb
 
 EOF
    exit 1
@@ -45,7 +46,7 @@ function parse_cmd()
 {
     echo "args: "$@
     # check number of arguments
-    intall_flag=0
+    deb_flag=0
     
     test $# -eq 0
     no_args=$?
@@ -67,8 +68,8 @@ function parse_cmd()
         fi
         
         if [ $two_args -eq 0 ]; then
-            if [ $2 == "install" ]; then
-                intall_flag=1
+            if [ $2 == "deb" ]; then
+                deb_flag=1
             else
                 usage
             fi
@@ -126,9 +127,6 @@ function make_release()
 
     # prepare compilation parameters
     make_params="all"
-    if [ $intall_flag = 1 ]; then
-        make_params="install"
-    fi
     make_clean_file=$wa_path"make_clean_release.log"
     make_log_file=$wa_path"make_release.log"
 
@@ -136,9 +134,19 @@ function make_release()
     compile_git
     rc=$?
     if [ $rc -ne 0 ]; then
-        echo "ERROR: $FUNCNAME failed"
+        echo "ERROR: $FUNCNAME failed on git compilation"
         exit_status=1
         return $rc
+    fi
+
+    # create package
+    if [ $deb_flag = 1 ]; then
+        make_deb ""
+        if [ $rc -ne 0 ]; then
+            echo "ERROR: $FUNCNAME failed on debian package creation"
+            exit_status=1
+            return $rc
+        fi
     fi
 
     return $rc
@@ -157,26 +165,56 @@ function make_debug()
     
     # prepare compilation parameters
     make_params="all"
-    if [ $intall_flag == 1 ]; then
-        make_params="install"
-    fi
     make_clean_file=$wa_path"make_clean_debug.log"
     make_log_file=$wa_path"make_debug.log"
 
     # make
     compile_git
-    # make
+
+    # unset local variable
+    unset DEBUG
+    
+    # check make result
     rc=$?
     if [ $rc -ne 0 ]; then
-        echo "ERROR: $FUNCNAME failed"
+        echo "ERROR: $FUNCNAME failed on git compilation"
         exit_status=1
         return $rc
     fi
 
-    # unset local variable
-    unset DEBUG
+    # create package
+    if [ $deb_flag = 1 ]; then
+        make_deb "DEBUG=1"
+        if [ $rc -ne 0 ]; then
+            echo "ERROR: $FUNCNAME failed on debian package creation"
+            exit_status=1
+            return $rc
+        fi
+    fi
+
 
     return $rc
+}
+
+#######################################################################################
+
+function make_deb()
+{
+    echo "Function: $FUNCNAME called"
+    
+    FLAGS=$1
+
+    WHOAMI=$(whoami)
+    set -x
+    if [ "$WHOAMI" == "root" ]; then
+        sshpass -p 3tango ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+    elif [ "$WHOAMI" == "gilf" ]; then
+        sshpass -p 123456 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+    else
+        sshpass -p $(whoami)11 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+    fi
+    set +x
+    
 }
 
 
@@ -216,7 +254,6 @@ function main()
     start_script
     exit_status=0
 
-
     create_log_folder
 
     echo "compile flag: $compile_flag"
@@ -226,8 +263,8 @@ function main()
     elif [ $compile_flag == "debug" ]; then
 	    make_debug
     else #"all"
-	    make_release
 	    make_debug
+	    make_release
     fi
 
     exit_script

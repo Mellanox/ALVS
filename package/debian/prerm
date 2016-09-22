@@ -1,0 +1,54 @@
+#!/bin/sh
+# prerm script for alvs
+#
+# see: dh_installdeb(1)
+
+set -e
+
+# summary of how this script can be called:
+#		* <prerm> `remove'
+#		* <old-prerm> `upgrade' <new-version>
+#		* <new-prerm> `failed-upgrade' <old-version>
+#		* <conflictor's-prerm> `remove' `in-favour' <package> <new-version>
+#		* <deconfigured's-prerm> `deconfigure' `in-favour'
+#		  <package-being-installed> <version> `removing'
+#		  <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+
+#-------------------------------------------------------------------------------
+stop_alvs()
+{
+	if [ -x "/etc/init.d/alvs" ]; then
+		echo " Stopping alvs service"
+		service alvs stop > /dev/null 2>&1
+	fi
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+
+
+filename=$(basename $0)
+
+rc=0
+case "$1" in
+	remove|upgrade|deconfigure)
+		stop_alvs
+		rc=$?
+	;;
+
+	failed-upgrade)
+		stop_alvs
+		rc=$?
+	;;
+
+	*)
+		echo "$filename called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+# exit with status
+exit $rc
