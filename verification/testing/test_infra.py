@@ -17,7 +17,6 @@ import socket
  
 import logging
 
-
 class real_server:
 	def __init__(self, management_ip, data_ip, username='root', password='3tango', eth = 'ens6'):
 		self.data_ip = data_ip
@@ -151,7 +150,6 @@ class real_server:
 #			 print "output: " + output
 #			 return -1
 			
-		
 	def compare_received_packets_to_pcap_file(self, pcap_file, pcap_file_on_server=None):
 #		 local_dir = os.getcwd()
 		if pcap_file_on_server == None:
@@ -175,7 +173,6 @@ class real_server:
 #			 exit(1)
 		
 #		 cmd = local_dir + '/../'
-				   
 class service:
 	
 	services_dictionary = {}
@@ -309,7 +306,6 @@ class arp_entry:
 		self.flags = flags
 		self.mask = mask
 		self.type = type
-		 
 
 class tcp_packet:
 	
@@ -326,6 +322,10 @@ class tcp_packet:
 			self.ip_src = '%02x %02x %02x %02x'%(int(ip_src[0]), int(ip_src[1]), int(ip_src[2]), int(ip_src[3]))
 		
 		self.ip_dst = ip_dst
+		if len(tcp_source_port) != 5:
+			print "ERROR, tcp_source_port is wrong"
+		if len(tcp_dst_port) != 5:
+			print "ERROR, tcp_dst_port is wrong"
 		self.tcp_source_port = tcp_source_port
 		self.tcp_dst_port = tcp_dst_port
 		self.tcp_reset_flag = tcp_reset_flag
@@ -373,7 +373,7 @@ class tcp_packet:
 		string_to_pcap_file(self.packet, self.pcap_file_name)
 		
 		return self.packet
-			  
+
 class client:
 	 
 	def __init__(self,management_ip, data_ip, username='root', password='3tango'):
@@ -432,8 +432,6 @@ class client:
 			return [True, output]
 		else:
 			return [False, output]
-		
-
 		
 	def send_packet_to_nps(self, pcap_file):
 		logging.log(logging.DEBUG,"Send packet to NPS") 
@@ -630,7 +628,7 @@ def read_test_arg(args):
 			'compile':compile,
 			'install_file':install_file}	  
 	
-def init_test(test_arguments, agt_enable=True, wait_for_dp=True):
+def init_test(test_arguments, agt_enable=True, wait_for_dp=True, add_to_cp_params=None):
 	
 	args = read_test_arg(test_arguments)
 
@@ -646,19 +644,32 @@ def init_test(test_arguments, agt_enable=True, wait_for_dp=True):
 	
 	# init ALVS daemon
 	ezbox.connect()
+	
+	# disable the ldirector - causes noise on the nps ports..
+	ezbox.execute_command_on_host('service ldirectord stop')
+	ezbox.execute_command_on_host('service keepalived stop')
+	
 	ezbox.flush_ipvs()
 	ezbox.alvs_service_stop()
+	time.sleep(10)
 	ezbox.copy_and_install_alvs(install_tar=args['install_file'])
+	time.sleep(5)
+	
 	if agt_enable==True:
-		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
+		params = "--statistics --agt_enabled --port_type=%s"%ezbox.setup['nps_port_type']
 	else:
-		ezbox.update_cp_params("--port_type=%s"%ezbox.setup['nps_port_type'])
+		params = "--port_type=%s"%ezbox.setup['nps_port_type']
+	
+	if add_to_cp_params != None:
+		params += (" " + add_to_cp_params)
+	ezbox.update_cp_params(params)
+	time.sleep(2)
 	ezbox.alvs_service_start()
 	ezbox.wait_for_cp_app()
 	if wait_for_dp==True:
 		ezbox.wait_for_dp_app()
 	
-	return [ezbox,args,args['scenarios']]
+	return [ezbox,args]
 
 def carry_around_add(a, b):
 	c = a + b

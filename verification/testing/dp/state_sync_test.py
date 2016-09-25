@@ -786,7 +786,7 @@ def clear_test(ezbox):
 		print "after FLUSH all, num_of_services should be 0\n"
 		return False
 	print "Cleaning EZbox..."
-	ezbox.clean(use_director=False, stop_service=True)
+	ezbox.clean(use_director=False, stop_ezbox=True)
 	return True
 	
 

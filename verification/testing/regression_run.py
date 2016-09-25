@@ -125,7 +125,7 @@ def main():
 			print 'running test %s ...' % test
 			
 			# prepare test command
-			logfilename = 'logs/%s_log' %test
+			logfilename = 'logs/%s_log' %test.split()[0]
 			
 			if test_group == 'system_level':
 				cmd = currentdir + '/system_level/' + test + ' -s ' + setup_num

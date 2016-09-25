@@ -5,7 +5,8 @@ sys.path.append("verification/testing")
 from test_infra import * 
 import random
 
-ezbox,args,scenarios_to_run = init_test(test_arguments=sys.argv)
+ezbox,args = init_test(test_arguments=sys.argv)
+scenarios_to_run = args['scenarios']
 
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
@@ -361,7 +362,4 @@ print "Test Passed"
 # checkers
 # server1.compare_received_packets_to_pcap_file(pcap_file='p1.pcap', pcap_file_on_server='/tmp/server_dump.pcap')
 
-# tear down
-server1.close()
-client.close()
-ezbox.close()
+ezbox.clean()

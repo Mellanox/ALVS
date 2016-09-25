@@ -5,34 +5,11 @@ sys.path.append("verification/testing/")
 from test_infra import *
 from time import sleep
 
-args = read_test_arg(sys.argv)	
-
+ezbox,args = init_test(test_arguments=sys.argv)
 scenarios_to_run = args['scenarios']
-scenarios_to_run = [1,2,3,4,5,6,7]
 
-log_file = "scheduling_algorithm_test.log"
-if 'log_file' in args:
-	log_file = args['log_file']
-init_logging(log_file)
-
-ezbox = ezbox_host(args['setup_num'])
-
-if args['hard_reset']:
-	ezbox.reset_ezbox()
-
-if args['compile']:
-	compile(clean=True, debug=args['debug'])
-
-# init ALVS daemon
-ezbox.connect()
 ezbox.flush_ipvs()
-ezbox.alvs_service_stop()
-ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.copy_dp_bin(debug_mode=args['debug'])
-ezbox.alvs_service_start()
-ezbox.wait_for_cp_app()
-ezbox.wait_for_dp_app()
-ezbox.clean_director()
+ezbox.flush_fib_entries()
 sleep(5)
 
 def send_packet_and_check_servers(service, 
@@ -331,80 +308,83 @@ if 4 in scenarios_to_run:
 ##########################################################################################
 ########################### add max entries to fib table #################################
 ##########################################################################################
-if 5 in scenarios_to_run:
-	print "\nScenario 5 - add max entries to fib table"
-	# create drop entries
-	for i in range(8191):
-		if i%100 == 0:
-			print i
-		server_ip = add2ip('192.168.100.1',i*2)
-		server_ip=mask_ip(server_ip, 31)
-		result,output = ezbox.add_fib_entry(ip=server_ip, mask=31, gateway=server2.data_ip)
-		if result == False:
-			print "ERROR, add fib entry was failed"
-			print output
-			exit(1)
-			
-	result,output = ezbox.add_fib_entry(ip=server1.data_ip, mask=32, gateway=server2.data_ip)
-	if result == False:
-		print "ERROR, add fib entry was failed"
-		print output
-		exit(1)
-		
-	result,output = ezbox.add_fib_entry(ip='192.168.200.1', mask=32)
-	if result == False:
-		print "ERROR, add fib entry was failed"
-		print output
-		exit(1)
-		
-	# check for an error message on syslog
-		
-		
-	send_packet_and_check_servers(service=first_service, 
-					  	  packet=data_packet.pcap_file_name, 
-					  	  server1=server1, server2=server2, 
-					  	  expected_packets_1=0, expected_packets_2=1)
-		
-	# capture packets from both servers
-	print "capture packets from both servers"
-	server1.capture_packets_from_service(service=first_service)
-	server2.capture_packets_from_service(service=first_service)
-		 
-	# send packet
-	print "Send packet"
-	client_object.send_packet_to_nps(data_packet.pcap_file_name)
-		 
-	# check where the packet was send
-	print"check where the packet was send"
-	time.sleep(2)
-	packets_received1 = server1.stop_capture()
-	packets_received2 = server2.stop_capture()
-		 
-	print "packets received in server 1 %d"%packets_received1
-	print "packets received in server 2 %d"%packets_received2
-		 
- 	if packets_received2 != 1 or packets_received1 != 0:
- 		print "ERROR, packet should be send to the second server"
- 		ezbox.delete_fib_entry(ip=mask_ip(server1.data_ip, mask), mask=mask)
- 		exit(1)
-
-	# delete entries
-	for i in range(8191):
-		server_ip = add2ip('192.168.100.1',i*2)
-		result,output = ezbox.delete_fib_entry(ip=server_ip, mask=31, gateway=server2.data_ip)
-		if result == False:
-			print "ERROR, add fib entry was failed"
-			print output
-			exit(1)
-			
-	result,output = ezbox.delete_fib_entry(ip=server1.data_ip, mask=32, gateway=server2.data_ip)
-	if result == False:
-		print "ERROR, add fib entry was failed"
-		print output
-		exit(1)
-		
-		
-	ezbox.flush_fib_entries()	
+# if 5 in scenarios_to_run:
+# 	print "\nScenario 5 - add max entries to fib table"
+# 	# create drop entries
+# 	for i in range(8192):
+# 		if i%100 == 0:
+# 			print i
+# 		server_ip = add2ip('192.168.100.1',i*2)
+# 		server_ip=mask_ip(server_ip, 31)
+# 		result,output = ezbox.add_fib_entry(ip=server_ip, mask=31, gateway=server2.data_ip)
+# 		if result == False:
+# 			print "ERROR, add fib entry was failed"
+# 			print output
+# 			exit(1)
+# 		
+# 	print "creating 32 mask entry"
+# 	sleep(10)
+# 	i+=1
+# 	server_ip = add2ip('192.168.100.1',i*2)
+# 	result,output = ezbox.add_fib_entry(ip=server1.data_ip, mask=32, gateway=server2.data_ip)
+# 	if result == False:
+# 		print "ERROR, add fib entry was failed"
+# 		print output
+# 		exit(1)
+# 		
+# 	result,output = ezbox.add_fib_entry(ip='192.168.200.1', mask=32)
+# 	if result == False:
+# 		print "ERROR, add fib entry was failed"
+# 		print output
+# 		exit(1)
+# 		
+# 	# todo check for an error message on syslog
+# 	
+# 	send_packet_and_check_servers(service=first_service, 
+# 					  	  packet=data_packet.pcap_file_name, 
+# 					  	  server1=server1, server2=server2, 
+# 					  	  expected_packets_1=0, expected_packets_2=1)
+# 		
+# 	# capture packets from both servers
+# 	print "capture packets from both servers"
+# 	server1.capture_packets_from_service(service=first_service)
+# 	server2.capture_packets_from_service(service=first_service)
+# 		 
+# 	# send packet
+# 	print "Send packet"
+# 	client_object.send_packet_to_nps(data_packet.pcap_file_name)
+# 		 
+# 	# check where the packet was send
+# 	print"check where the packet was send"
+# 	time.sleep(2)
+# 	packets_received1 = server1.stop_capture()
+# 	packets_received2 = server2.stop_capture()
+# 		 
+# 	print "packets received in server 1 %d"%packets_received1
+# 	print "packets received in server 2 %d"%packets_received2
+# 		 
+#  	if packets_received2 != 1 or packets_received1 != 0:
+#  		print "ERROR, packet should be send to the second server"
+#  		ezbox.delete_fib_entry(ip=mask_ip(server1.data_ip, mask), mask=mask)
+#  		exit(1)
+# 
+# 	# delete entries
+# 	for i in range(8000):
+# 		server_ip = add2ip('192.168.100.1',i*2)
+# 		result,output = ezbox.delete_fib_entry(ip=server_ip, mask=31, gateway=server2.data_ip)
+# 		if result == False:
+# 			print "ERROR, add fib entry was failed"
+# 			print output
+# 			exit(1)
+# 			
+# 	result,output = ezbox.delete_fib_entry(ip=server1.data_ip, mask=32, gateway=server2.data_ip)
+# 	if result == False:
+# 		print "ERROR, add fib entry was failed"
+# 		print output
+# 		exit(1)
+# 		
+# 		
+# 	ezbox.flush_fib_entries()	
 		
 	### check if no match statistics was added
 

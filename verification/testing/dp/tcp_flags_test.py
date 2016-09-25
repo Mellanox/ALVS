@@ -90,11 +90,11 @@ pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, res
 
 pcaps_with_fin_no_reset = [fin_data_packets, data_fin_packets]
 
-for pcap_to_send in pcaps_with_reset:
+for index,pcap_to_send in enumerate(pcaps_with_reset):
 	##########################################################################
 	# send packet to slow path (connection is not exist)
 	##########################################################################
-	print "\nSend packet number %d from %d packets with reset to slow path (connection not exist)\n"%(pcaps_with_reset.index(pcap_to_send)+1,len(pcaps_with_reset))
+	print "\nSend packet number %d from %d packets with reset to slow path (connection not exist)\n"%(index+1,len(pcaps_with_reset))
 	
 	# delete and create service
 	print "Delete and Create Service"
@@ -115,37 +115,45 @@ for pcap_to_send in pcaps_with_reset:
 	# take statistics before packet was send
 	packet_drop_before = ezbox.get_error_stats()['ALVS_ERROR_CONN_MARK_TO_DELETE']
 	
-	# send packet
-	print "Send Packet with reset to Service"
-	client_object.send_packet_to_nps(pcap_to_send)
-	
-	# verify that connection was made
-	time.sleep(0.5)
-	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-	if connection == None:
-		print "ERROR, connection is not exist\n"
-		exit(1)
-
+	# create a connection and verify that connection was made
+	for num_of_sent_packets in range(1,30):
+		# send packet
+		print "Send the packets with reset to service"
+		client_object.send_packet_to_nps(pcap_to_send)
+		time.sleep(1)
+		# verify connection was made
+		connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+		if connection == None:
+			if num_of_sent_packets > 20:
+				print "ERROR, connection wasnt created\n"
+				exit(1)
+			else:
+				print "Connection is not exist, maybe it was deleted too quickly, trying again"
+				continue
+		else:
+			break
+		
 	# check how many packets were captured
-	time.sleep(0.5)
+	time.sleep(1)
 	packets_received = server1.stop_capture()
 
 	if pcap_to_send == reset_fin_packet.pcap_file_name:
-		if packets_received != 1:
+		if packets_received != 1*num_of_sent_packets:
 			ezbox.print_all_stats()
 			print "ERROR, wrong number of packets were received on server"
 			exit(1)
 	else:		
 		packet_drop = ezbox.get_error_stats()['ALVS_ERROR_CONN_MARK_TO_DELETE']-packet_drop_before
-		if packet_drop+packets_received != 3:
+		if packet_drop+packets_received != 3*num_of_sent_packets:
 			ezbox.print_all_stats()
 			print "ERROR, wrong number of packets were received on server"
 			exit(1)
 
 	print "Connection was made and packet was received on server"	
+	
 	# wait 16 seconds and check that the connection was deleted
 	print "Check that connection is deleting after 16 seconds"
-	time.sleep(CLOSE_WAIT_DELETE_TIME+2)
+	time.sleep(CLOSE_WAIT_DELETE_TIME)
 
 	# verify that connection was deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
@@ -156,7 +164,7 @@ for pcap_to_send in pcaps_with_reset:
 	##########################################################################
 	# run the same with an active connection, (fast path) 
 	##########################################################################
-	print "\nSend packet number %d from %d packets with reset to fast path (connection exist)\n"%(pcaps_with_reset.index(pcap_to_send)+1,len(pcaps_with_reset))
+	print "\nSend packet number %d from %d packets with reset to fast path (connection exist)\n"%(index+1,len(pcaps_with_reset))
 	# send data packet
 	print "Send data packet to service and create a connection"
 	client_object.send_packet_to_nps(data_packet.pcap_file_name)
@@ -175,30 +183,36 @@ for pcap_to_send in pcaps_with_reset:
 	
 	# take statistics before packet was send
 	packet_drop_before = ezbox.get_error_stats()['ALVS_ERROR_CONN_MARK_TO_DELETE']
-	
-	# send packet
-	print "Send the packets with reset to service"
-	client_object.send_packet_to_nps(pcap_to_send)
 
-	# verify that connection was made
-	time.sleep(0.5)
-	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-	if connection == None:
-		print "ERROR, connection was created, even though server is not exist\n"
-		exit(1)
+	# create a connection and verify that connection was made
+	for num_of_sent_packets in range(1,30):
+		# send packet
+		print "Send the packets with reset to service"
+		client_object.send_packet_to_nps(pcap_to_send)
+		time.sleep(1)
+		connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+		if connection == None:
+			if num_of_sent_packets > 20:
+				print "ERROR, connection wasnt created\n"
+				exit(1)
+			else:
+				print "Connection is not exist, maybe it was deleted too quickly, trying again"
+				continue
+		else:
+			break
 	
 	# check how many packets were captured
 	time.sleep(0.5)
 	packets_received = server1.stop_capture()
 
 	if pcap_to_send == reset_fin_packet.pcap_file_name:
-		if packets_received != 1:
+		if packets_received != 1*num_of_sent_packets:
 			ezbox.print_all_stats()
 			print "ERROR, wrong number of packets were received on server"
 			exit(1)
 	else:		
 		packet_drop = ezbox.get_error_stats()['ALVS_ERROR_CONN_MARK_TO_DELETE']-packet_drop_before
-		if packet_drop+packets_received != 3:
+		if packet_drop+packets_received != 3*num_of_sent_packets:
 			ezbox.print_all_stats()
 			print "ERROR, wrong number of packets were received on server"
 			exit(1)
@@ -206,13 +220,13 @@ for pcap_to_send in pcaps_with_reset:
 	print "Connection was made and packet was received on server"  
 	# wait 16 seconds and check that the connection was deleted
 	print "Check that connection is deleting after 16 seconds"
-	time.sleep(CLOSE_WAIT_DELETE_TIME+2)
+	time.sleep(CLOSE_WAIT_DELETE_TIME)
 
 	# verify that connection was deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
 	if connection != None:
 		print "ERROR, connection wasnt deleted properly\n"
-		exit(1)	   
+		exit(1)
 		
 for pcap_to_send in pcaps_with_fin_no_reset:
 	##########################################################################
@@ -236,16 +250,23 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 	# capture all packets on server
 	server1.capture_packets_from_service(service=first_service)
 	
-	# send packet
-	print "Send Packet to Service"
-	client_object.send_packet_to_nps(pcap_to_send)
-	
-	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-	if connection == None:
-		print "ERROR, connection was created, even though server is not exist\n"
-		exit(1)
-	
+	# send the packet and create a connection and verify that connection was made
+	for num_of_sent_packets in range(1,30):
+		# send packet
+		print "Send the packets with reset to service"
+		client_object.send_packet_to_nps(pcap_to_send)
+		time.sleep(1)
+		connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+		if connection == None:
+			if num_of_sent_packets > 20:
+				print "ERROR, connection wasnt created\n"
+				exit(1)
+			else:
+				print "Connection is not exist, maybe it was deleted too quickly, trying again"
+				continue
+		else:
+			break
+		
 	# check how many packets were captured
 	time.sleep(0.5)
 	packets_received = server1.stop_capture()
@@ -256,7 +277,7 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 	print "Connection was made and packet was received on server"	
 	# wait 16 seconds and check that the connection was not deleted
 	print "Check that connection is not deleting after 16 seconds"
-	time.sleep(CLOSE_WAIT_DELETE_TIME)
+	time.sleep(CLOSE_WAIT_DELETE_TIME-2)
 	
 	# verify that connection was not deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
@@ -264,7 +285,7 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 		print "ERROR, connection was deleted\n"
 		exit(1)
 		
-	time.sleep(60-CLOSE_WAIT_DELETE_TIME)
+	time.sleep(32-CLOSE_WAIT_DELETE_TIME)
 	
 	# verify that connection was deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
@@ -294,15 +315,22 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 	# capture all packets on server
 	server1.capture_packets_from_service(service=first_service)
 	
-	# send packet
-	print "Send the packet to service"
-	client_object.send_packet_to_nps(pcap_to_send)
-	
-	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
-	if connection == None:
-		print "ERROR, connection was created, even though server is not exist\n"
-		exit(1)
+	# send the packet and create a connection and verify that connection was made
+	for num_of_sent_packets in range(1,30):
+		# send packet
+		print "Send the packets with reset to service"
+		client_object.send_packet_to_nps(pcap_to_send)
+		time.sleep(1)
+		connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+		if connection == None:
+			if num_of_sent_packets > 20:
+				print "ERROR, connection wasnt created\n"
+				exit(1)
+			else:
+				print "Connection is not exist, maybe it was deleted too quickly, trying again"
+				continue
+		else:
+			break
 	
 	# check how many packets were captured
 	time.sleep(0.5)
@@ -314,7 +342,7 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 	print "Connection was made and packet was received on server"  
 	# wait 16 seconds and check that the connection was not deleted
 	print "Check that connection is not deleting after 16 seconds"
-	time.sleep(CLOSE_WAIT_DELETE_TIME)
+	time.sleep(CLOSE_WAIT_DELETE_TIME-5)
 	
 	# verify that connection was deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
@@ -322,8 +350,8 @@ for pcap_to_send in pcaps_with_fin_no_reset:
 		print "ERROR, connection was deleted\n"
 		exit(1)
 
-	print "Check that connection was deleted after 60 seconds"
-	time.sleep(60-CLOSE_WAIT_DELETE_TIME)
+	print "Check that connection was deleted after 32 seconds (max time to delete connection after fin packet)"
+	time.sleep(32-CLOSE_WAIT_DELETE_TIME)
 	
 	# verify that connection was deleted
 	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)

@@ -61,7 +61,7 @@ EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*N
 
 EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
 
-CLOSE_WAIT_DELETE_TIME = 32#16 #todo need to change it back to 16 after a fix to aging time.. 
+CLOSE_WAIT_DELETE_TIME = 16 #todo need to change it back to 16 after a fix to aging time.. 
 FIN_FLAG_DELETE_TIME = 60
 	
 #===============================================================================
@@ -969,7 +969,9 @@ class ezbox_host:
 		return [result,output] 
 	
 	def read_stats_on_syslog(self):
-# 		os.system("sshpass -p ezchip scp root@%s:/var/log/syslog temp_syslog"%(self.setup['host']))
+		time.sleep(3)
+		os.system("sshpass -p ezchip scp root@%s:/var/log/syslog temp_syslog"%(self.setup['host']))
+		time.sleep(3)
 		syslog_lines = [line.rstrip('\n') for line in open('temp_syslog')]
 		interface_stats = {}
 		global_syslog_stats = {}
@@ -977,40 +979,60 @@ class ezbox_host:
 		service_stats = {}
 				
 		for index,line in enumerate(syslog_lines):
+			
 			if 'Statistics of global errors' in line:
-				print "found global, index = " + str(index)
+				# create initilized stats dictinary 
+				interface_stats = {}
 				global_syslog_stats = {}
-				for i in range(index+1,index+100):
+				all_servers_stats = {}
+				service_stats = {}
+
+				for i in range(index+1,index+ALVS_NUM_OF_ALVS_ERROR_STATS+1):
+					if i >= len(syslog_lines):
+						break
 					temp = syslog_lines[i].find('<info>      ')
-					if temp>0:
+					if temp>0 and "No Errors On Global Counters" not in syslog_lines[i]:
 						try:
-							global_syslog_stats[syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[9])
+							global_syslog_stats[syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[8])
 						except:
 							print "error parsing global stats syslog message"
 							pass
 					else:
 						break
+
 			if 'Statistics of Network Interface' in line or 'Statistics of Host Interface' in line:
-				interface_stats = {}
 				if 'Statistics of Host Interface' in line:
 					interface_num = 'host'
 				else:
 					interface_num = int(line.split()[line.split().index('Interface')+1])
-				print interface_num
-				interface_stats[interface_num] = {}
+					
+				# create and initialize interface stats dictionary
+				if interface_num == 'host':
+					interface = 4
+				else:
+					interface = int(interface_num)
+					
 				for i in range(index+1,index+100):
+					if i >= len(syslog_lines):
+						break
+					if "Statistics of Network Interface" in syslog_lines[i] or "Statistics of Host Interface" in syslog_lines[i]:
+						break 
+					interface_stats[interface_num] = {}
 					temp = syslog_lines[i].find('<info>      ')
-					if temp>0:
+					if temp>0 and "No Errors On Counters" not in syslog_lines[i]:
 						try:
-							interface_stats[interface_num][syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[9])
+							interface_stats[interface_num][syslog_lines[i].split()[6]] = int(syslog_lines[i].split()[8])
 						except:
 							print "error parsing interface stats syslog message"
 							pass
 					else:
 						break
-			if 'Print Statistics for Services:' in line:
+					
+			if 'Statistics for Services' in line:
 				service_stats = {}
 				for i in range(index+2,index+258):
+					if i >= len(syslog_lines):
+						break
 					try:
 						line_split = syslog_lines[i].split()
 						if ':80' in line_split[6]:
@@ -1025,16 +1047,18 @@ class ezbox_host:
 							break
 					except:
 						print "Error parsing service stats"
-
-			if 'Print Statistics for Servers:' in line:
-				all_servers_stats = {}
+				
+			if 'Statistics for Servers' in line:
 				server_index = 0
 				service = line.split()[11]
 				all_servers_stats[service] = {}
 				for i in range(index+2,index+258):
+					if i>=len(syslog_lines):
+						break
 					try:
 						line_split = syslog_lines[i].split()
 						if 'Server' in line_split[6] and ':80' in line_split[7]:
+							server = line_split[7]
 							server_stats = {}
 							server_stats['IN_PACKETS'] = int(line_split[8])
 							server_stats['IN_BYTES'] = int(line_split[10])
@@ -1044,14 +1068,16 @@ class ezbox_host:
 							server_stats['CONN_TOTAL'] = int(line_split[18])
 							server_stats['ACTIVE_CONN'] = int(line_split[20])
 							server_stats['INACTIVE_CONN'] = int(line_split[22])
-							all_servers_stats[service][line_split[7]] = server_stats
+							all_servers_stats[service][server] = server_stats
 							
 						else:
 							break
 					except:
 						print "Error parsing servers stats"
 						pass	
-
+				
+		os.system("rm -f temp_syslog")
+		
 		return {'interface_stats':interface_stats,
 				'global_stats':global_syslog_stats,
 				'server_stats':all_servers_stats,

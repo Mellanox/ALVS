@@ -5,30 +5,11 @@ sys.path.append("verification/testing")
 from test_infra import * 
 import random
 
-args = read_test_arg(sys.argv)    
-
-log_file = "tcp_flags_test.log"
-if 'log_file' in args:
-    log_file = args['log_file']
-init_logging(log_file)
-
-ezbox = ezbox_host(args['setup_num'])
-
-if args['hard_reset']:
-    ezbox.reset_ezbox()
-
-# init ALVS daemon
-ezbox.connect()
-ezbox.flush_ipvs()
-ezbox.alvs_service_stop()
-ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.copy_dp_bin(debug_mode=args['debug'])
-ezbox.alvs_service_start()
-ezbox.wait_for_cp_app()
-ezbox.wait_for_dp_app()
+ezbox,args = init_test(test_arguments=sys.argv)
 
 # disable the ldirector - causes noise on the nps ports..
 ezbox.execute_command_on_host('/usr/sbin/ldirectord stop')
+ezbox.execute_command_on_host('service keepalived stop')
 
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
@@ -67,9 +48,11 @@ print "Send 500 packets with different mac da"
 
 mac_da = '52:54:00:c5:15:41'
 for i in range(500):
-    ezbox.execute_command_on_host('arp -s %s %s'%(server1.data_ip, mac_da)) # change the arp entry to use different mac da for this service    
-    client_object.send_packet_to_nps(data_packet1.pcap_file_name)
-    mac_da = add2mac(mac_da, 1)
+	sys.stdout.write("Sending packet num %d\r" % i)
+	sys.stdout.flush()
+	ezbox.execute_command_on_host('arp -s %s %s'%(server1.data_ip, mac_da)) # change the arp entry to use different mac da for this service    
+	client_object.send_packet_to_nps(data_packet1.pcap_file_name)
+	mac_da = add2mac(mac_da, 1)
 
 port0 = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=0,if_engine=0,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 port0 = int(port0.get_struct_dict()['counter_value'],16)
@@ -107,11 +90,12 @@ before_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=0,
 before_result = int(before_result.get_struct_dict()['counter_value'],16)
 ezbox.execute_command_on_host('arp -s %s 52:54:00:c5:15:42'%server1.data_ip) # port 0,0
 time.sleep(1)
+# send 500 packets
 client_object.send_packet_to_nps(pcap_to_send)
 time.sleep(2)
 after_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=0,if_engine=0,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 after_result = int(after_result.get_struct_dict()['counter_value'],16)
-if after_result-before_result < 300:
+if after_result-before_result < 500:
     print "ERROR, lag port 0,0 wasnt used\n"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete static arp
     exit(1)
@@ -123,11 +107,12 @@ before_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=0,
 before_result = int(before_result.get_struct_dict()['counter_value'],16)
 ezbox.execute_command_on_host('arp -s %s 52:54:00:c5:15:40'%server1.data_ip) # port 0,1
 time.sleep(1)
+# send 500 packets
 client_object.send_packet_to_nps(pcap_to_send)
 time.sleep(1)
 after_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=0,if_engine=1,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 after_result = int(after_result.get_struct_dict()['counter_value'],16)
-if after_result-before_result < 300:
+if after_result-before_result < 500:
     print "ERROR, lag port 0,1 wasnt used\n"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete static arp
     exit(1)
@@ -139,11 +124,12 @@ before_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,
 before_result = int(before_result.get_struct_dict()['counter_value'],16)
 ezbox.execute_command_on_host('arp -s %s 52:54:00:c5:15:43'%server1.data_ip) # port 1,0
 time.sleep(1)
+# send 500 packets
 client_object.send_packet_to_nps(pcap_to_send)
 time.sleep(1)
 after_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,if_engine=0,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 after_result = int(after_result.get_struct_dict()['counter_value'],16)
-if after_result-before_result < 300:
+if after_result-before_result < 500:
     print "ERROR, lag port 1,0 wasnt used\n"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete static arp
     exit(1)
@@ -155,11 +141,12 @@ before_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,
 before_result = int(before_result.get_struct_dict()['counter_value'],16)
 ezbox.execute_command_on_host('arp -s %s 52:54:00:c5:15:41'%server1.data_ip) # port 1,1
 time.sleep(1)
+# send 500 packets
 client_object.send_packet_to_nps(pcap_to_send)
 time.sleep(1)
 after_result = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,if_engine=1,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 after_result = int(after_result.get_struct_dict()['counter_value'],16)
-if after_result-before_result < 300:
+if after_result-before_result < 500:
     print "ERROR, lag port 0,1 wasnt used\n"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete static arp
     exit(1)

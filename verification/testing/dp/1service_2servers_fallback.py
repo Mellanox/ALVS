@@ -1,35 +1,12 @@
+#!/usr/bin/env python
+
 import sys
 sys.path.append("verification/testing")
 from test_infra import * 
 import random
 
-args = read_test_arg(sys.argv)    
-
-log_file = "1service_2servers_fallback.log"
-if 'log_file' in args:
-    log_file = args['log_file']
-init_logging(log_file)
-
-# scenarios_to_run = args['scenarios']
-scenarios_to_run = [1]
-
-ezbox = ezbox_host(args['setup_num'])
-
-if args['hard_reset']:
-    ezbox.reset_ezbox()
-
-
-# init ALVS daemon
-ezbox.connect()
-ezbox.flush_ipvs()
-ezbox.alvs_service_stop()
-ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.copy_dp_bin(debug_mode=args['debug'])
-ezbox.alvs_service_start()
-ezbox.wait_for_cp_app()
-ezbox.wait_for_dp_app()
-ezbox.clean_director()
-
+ezbox,args = init_test(test_arguments=sys.argv)
+scenarios_to_run = args['scenarios']
 
 # each setup can use differen VMs
 ip_list = get_setup_list(args['setup_num'])
