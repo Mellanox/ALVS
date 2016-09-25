@@ -239,16 +239,20 @@ bool alvs_sched_rr_schedule_connection(uint8_t service_index)
 
 	/*get server info according to schedule counter*/
 	sched_count = ezdp_atomic_read_and_inc32_sum_addr(cmem_alvs.service_info_result.service_sched_ctr, NULL);
+
 	alvs_write_log(LOG_DEBUG, "service_index = %d, sched_count = %d", service_index, sched_count);
 
 	do {
-		/*ezdp_mod uses 8-bit values and cannot handle bucket size >= 256*/
-		if (cmem_alvs.service_info_result.sched_entries_count == ALVS_SIZE_OF_SCHED_BUCKET) {
+		/*check of entries count is power of 2. if so, do not use mod operations. (use mask)*/
+		if (ezdp_count_bits(cmem_alvs.service_info_result.sched_entries_count, 0, 16) == 1) {
 			/*workaround for >= 256 bucket size. bucket size must be power of 2*/
-			sched_count = sched_count & (ALVS_SIZE_OF_SCHED_BUCKET-1);
+			sched_count = sched_count & (cmem_alvs.service_info_result.sched_entries_count-1);
 		} else {
-			/*sched_entries_count >0 due to prior checks*/
-			sched_count = ezdp_mod(sched_count, cmem_alvs.service_info_result.sched_entries_count, 0, 0);
+			/* this equation should decrease to minimum the deviation of connection allocation between servers
+			 * when sched_count is overlapped
+			 */
+			sched_count = ezdp_mod((ezdp_mod(sched_count, cmem_alvs.service_info_result.sched_entries_count, 0, 0) +
+				ezdp_mod(sched_count, cmem_alvs.service_info_result.sched_entries_count, 16, 0)), cmem_alvs.service_info_result.sched_entries_count, 0, 0);
 		}
 		sched_server_result = alvs_sched_get_server_info(service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + sched_count);
 		/* retry if the selected server is no longer in the bucket */
