@@ -43,9 +43,9 @@
  */
 
 #ifdef NDEBUG
-static const char * const version = "$Revision: 22.0200.0000 $";
+static const char * const version = "$Revision: 22.0300.0000 $";
 #else
-static const char * const version = "$Revision: 22.0200.0000-debug $";
+static const char * const version = "$Revision: 22.0300.0000-debug $";
 #endif
 
 #endif /* SRC_COMMON_VERSION_H_ */
