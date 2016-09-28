@@ -87,7 +87,6 @@ void alvs_state_sync_set_net_hdr(struct net_hdr *net_hdr_info, int conn_count, i
 	net_hdr_info->ipv4.frag_off = IP_DF;
 	net_hdr_info->ipv4.ttl = 1;
 	net_hdr_info->ipv4.protocol = IPPROTO_UDP;
-	net_hdr_info->ipv4.check = 0;
 	net_hdr_info->ipv4.saddr = source_ip;
 	net_hdr_info->ipv4.daddr = ALVS_STATE_SYNC_DST_IP;
 

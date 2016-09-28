@@ -90,7 +90,7 @@ struct alvs_conn_sync_state {
 	enum alvs_conn_sync_status        conn_sync_status:4;
 	unsigned                          amount_buffers:4;
 	uint8_t                           *current_base;
-	uint8_t                           current_len;
+	uint16_t                           current_len;
 	uint8_t                           conn_count;
 };
 
