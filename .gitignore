@@ -9,7 +9,8 @@ bin/*
 target/work/*
 .pydevproject
 test_logs_*
-
+#venus
+verification/venus/dp/output
 # packaging:
 *.deb
 *.changes
