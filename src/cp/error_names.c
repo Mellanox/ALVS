@@ -42,7 +42,7 @@ const char *nw_if_posted_stats_offsets_names[] = {
 	"FAIL_FIB_LOOKUP",			/* 9 */
 	"REJECT_BY_FIB",			/* 10 */
 	"UNKNOWN_FIB_RESULT",			/* 11 */
-	"",					/* 12 */
+	"FAIL_STORE_BUF",			/* 12 */
 	"",					/* 13 */
 	"",					/* 14 */
 	"",					/* 15 */

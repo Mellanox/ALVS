@@ -17,3 +17,14 @@ verification/venus/dp/output
 package/debian/alvs
 package/debian/files
 package/build-stamp
+
+*.tar.gz
+config/
+ipvs_kernel/
+ipvsadm-1.24/
+ipvsadm-1.28/
+libnl-3.2.27/
+logs/
+verification/testing/dp/pcap_files/
+log/
+verification/testing/lists/failed_tests

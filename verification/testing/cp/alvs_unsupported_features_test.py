@@ -5,28 +5,10 @@
 ###############################################################################################################################
 
 import sys
-sys.path.append("../")
+sys.path.append("verification/testing")
 from test_infra import *
 
-args = read_test_arg(sys.argv)    
-
-log_file = "alvs_unsupported_features_test.log"
-if 'log_file' in args:
-    log_file = args['log_file']
-init_logging(log_file)
-
-scenarios_to_run = args['scenarios']
-
-ezbox = ezbox_host(management_ip=args['host_ip'], username='root', password='ezchip',  nps_ip=args['nps_ip'], cp_app_bin=args['cp_bin'], dp_app_bin=args['dp_bin'])
-
-if args['hard_reset']:
-    ezbox.reset_ezbox(args['ezbox'])
-
-ezbox.connect()
-ezbox.terminate_cp_app()
-ezbox.reset_chip()
-ezbox.copy_cp_bin_to_host()
-ezbox.run_cp_app()
+ezbox,args = init_test(test_arguments=sys.argv, agt_enable=True, wait_for_dp=False)
 
 # add ipv6 arp entry
 cmd = 'ip -6 neigh add lladdr a:a:a:a:a:a dev eth0 fe80::a539:c48e:4c21:2f18'
@@ -38,7 +20,7 @@ print pid
 
 result = ezbox.compare_arp_tables(update_arp_entries=True)
 if result == False:
-    print "Error - arp table from linux and control plane is not equal"
-    exit(1)
-    
+	print "Error - arp table from linux and control plane is not equal"
+	exit(1)
+
 

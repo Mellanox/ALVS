@@ -372,7 +372,11 @@ void alvs_state_sync_send_aggr(void)
 		alvs_state_sync_update_net_hdr_len(net_hdr_info, cmem_alvs.conn_sync_state.conn_count);
 		/*update sync header length*/
 		alvs_state_sync_update_sync_hdr_len(sync_hdr, cmem_alvs.conn_sync_state.conn_count);
-		ezframe_store_buf(&frame, frame_base, frame_length, 0);
+		rc = ezframe_store_buf(&frame, frame_base, frame_length, 0);
+		if (rc != 0) {
+			ezframe_free(&frame, 0);
+			return;
+		}
 	}
 
 	alvs_write_log(LOG_DEBUG, "send aggregated sync frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);

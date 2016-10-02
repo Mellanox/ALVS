@@ -38,8 +38,10 @@ for table in alvs_tables:
 for table in nw_tables:
 	if table in sys.argv:
 		print "\nTable %s:\n"%table
-		os.system('/swgwork/tomeri/sandbox/sqlite3 -header %s %s/nw_tmp.db "select * from %s"'%(column_or_line,local_dir, table))
-
+		if table == "fib_entries":
+			os.system('/swgwork/tomeri/sandbox/sqlite3 -header %s %s/nw_tmp.db "select * from %s ORDER BY nps_index DESC"'%(column_or_line,local_dir, table))
+		else:
+			os.system('/swgwork/tomeri/sandbox/sqlite3 -header %s %s/nw_tmp.db "select * from %s"'%(column_or_line,local_dir, table))
 
 os.system("rm -f %s/alvs_tmp.db"%local_dir)
 os.system("rm -f %s/nw_tmp.db"%local_dir)

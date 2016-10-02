@@ -968,6 +968,19 @@ class ezbox_host:
 		result,output = self.execute_command_on_host("ip route add 192.168.0.0/16 dev " + self.setup['interface'])
 		return [result,output] 
 	
+	def check_syslog_message(self, message):
+		time.sleep(3)
+		os.system("sshpass -p ezchip scp root@%s:/var/log/syslog temp_syslog"%(self.setup['host']))
+		time.sleep(3)
+		syslog_lines = [line.rstrip('\n') for line in open('temp_syslog')]
+		for index,line in enumerate(syslog_lines):
+			if message in line:
+				os.system("rm -f temp_syslog")
+				return True
+			
+		os.system("rm -f temp_syslog")
+		return False
+	
 	def read_stats_on_syslog(self):
 		time.sleep(3)
 		os.system("sshpass -p ezchip scp root@%s:/var/log/syslog temp_syslog"%(self.setup['host']))

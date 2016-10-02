@@ -401,9 +401,11 @@ bool delete_fib_entry_from_nps(struct nw_db_fib_entry *cp_fib_entry)
 }
 
 /**************************************************************************//**
- * \brief       Take all entries in interanl DB with lower mask length than
- *              fib_entry and move them one index up.
- *              Also sets index of fib_entry to the new gap created (for insertion)
+ * \brief       Push entries up, create a gap to insert the new entry, from each group of
+ *              entries with the same mask we will move up to lower mask,
+ *              for example if we will add an entry with mask 16, an entry with mask 0 will move up,
+ *              instead of the moved entry we will move an entry from mask 1 group, and on.. until we have a gap
+ *              to insert our new entry
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
@@ -417,47 +419,55 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 	char sql[256];
 	sqlite3_stmt *statement;
 	struct nw_db_fib_entry tmp_fib_entry;
+	uint32_t current_mask, previous_updated_index = 0;
 
 	memset(&tmp_fib_entry, 0, sizeof(tmp_fib_entry));
 
 	write_log(LOG_DEBUG, "Reorder FIB table - push entries up.");
 
-	sprintf(sql, "SELECT * FROM fib_entries "
-		"WHERE mask_length < %d "
-		"ORDER BY nps_index DESC;",
-		new_fib_entry->mask_length);
 
-	/* Prepare SQL statement */
-	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s",
-			  sqlite3_errmsg(nw_db));
-		return NW_DB_INTERNAL_ERROR;
-	}
+	for (current_mask = 0; current_mask < new_fib_entry->mask_length; current_mask++) {
 
-	/* Execute SQL statement */
-	rc = sqlite3_step(statement);
+		sprintf(sql, "SELECT * FROM fib_entries "
+			"WHERE mask_length = %d "
+			"ORDER BY nps_index ASC;", current_mask);
 
-	/* Error */
-	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
-		sqlite3_finalize(statement);
-		return NW_DB_INTERNAL_ERROR;
-	}
+		/* Prepare SQL statement */
+		rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
+		if (rc != SQLITE_OK) {
+			write_log(LOG_CRIT, "SQL error: %s",
+				  sqlite3_errmsg(nw_db));
+			return NW_DB_INTERNAL_ERROR;
+		}
 
-	if (rc == SQLITE_DONE) {
-		/* No entries were found - put new entry at the end */
-		write_log(LOG_DEBUG, "Reorder FIB table - no entries were found. put new entry at the end.");
-		new_fib_entry->nps_index = fib_entry_count;
-	} else {
-		/* Go over all FIB entries and move them one index up */
-		while (rc == SQLITE_ROW) {
+		/* Execute SQL statement */
+		rc = sqlite3_step(statement);
+
+		/* Error */
+		if (rc < SQLITE_ROW) {
+			write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
+			sqlite3_finalize(statement);
+			return NW_DB_INTERNAL_ERROR;
+		}
+
+		if (rc == SQLITE_DONE) {
+			/* No entries were found - continue to the next mask */
+			write_log(LOG_DEBUG, "Reorder FIB table - no entries were found with mask %d", current_mask);
+			sqlite3_finalize(statement);
+			continue;
+		} else {
 			tmp_fib_entry.dest_ip = sqlite3_column_int(statement, 0);
 			tmp_fib_entry.mask_length = sqlite3_column_int(statement, 1);
 			tmp_fib_entry.result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
 			tmp_fib_entry.next_hop = sqlite3_column_int(statement, 3);
-			tmp_fib_entry.nps_index = sqlite3_column_int(statement, 4);
-			tmp_fib_entry.nps_index++;
+			if (current_mask == 0) {
+				/* only one entry with mask 0, move its index up */
+				previous_updated_index = sqlite3_column_int(statement, 4);
+				tmp_fib_entry.nps_index = previous_updated_index + 1;
+			} else {
+				tmp_fib_entry.nps_index = previous_updated_index;
+				previous_updated_index = sqlite3_column_int(statement, 4);
+			}
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 
@@ -474,26 +484,23 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
 				return NW_DB_NPS_ERROR;
 			}
-			rc = sqlite3_step(statement);
 		}
-		/* Error */
-		if (rc < SQLITE_ROW) {
-			write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
-			sqlite3_finalize(statement);
-			return NW_DB_INTERNAL_ERROR;
-		}
-		/* Take the index from the last updated entry (Add the new entry before all found entries) */
-		new_fib_entry->nps_index = tmp_fib_entry.nps_index - 1;
+
+		sqlite3_finalize(statement);
+
+
 	}
-	sqlite3_finalize(statement);
+
+	/* Take the index from the last updated entry  */
+	new_fib_entry->nps_index = previous_updated_index;
 
 	return NW_DB_OK;
 }
 
 /**************************************************************************//**
- * \brief       Take all entries in interanl DB with higher index than
- *              fib_entry and move them one index down.
- *              Also sets index of fib_entry to last (for deletion)
+ * \brief       Push entries down, instead of the deleted entry the function
+ *              will insert an entry from s lower mask to the gap of the deleted entry,
+ *              and later another move to the from lower mask and on until mask number 0,
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
@@ -501,71 +508,81 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
  *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
  *              NW_DB_NPS_ERROR - failed to communicate with NPS
  */
+
+
 enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
 	sqlite3_stmt *statement;
 	struct nw_db_fib_entry tmp_fib_entry;
+	int current_mask;
+	uint32_t previous_updated_index;
 
 	memset(&tmp_fib_entry, 0, sizeof(tmp_fib_entry));
+
 	write_log(LOG_DEBUG, "Reorder FIB table - push entries down.");
 
-	sprintf(sql, "SELECT * FROM fib_entries "
-		"WHERE nps_index > %d "
-		"ORDER BY nps_index ASC;",
-		fib_entry->nps_index);
+	previous_updated_index = fib_entry->nps_index;
 
-	/* Prepare SQL statement */
-	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s",
-			  sqlite3_errmsg(nw_db));
-		return NW_DB_INTERNAL_ERROR;
-	}
+	for (current_mask = fib_entry->mask_length; current_mask >= 0; current_mask--) {
+		sprintf(sql, "SELECT * FROM fib_entries "
+			"WHERE mask_length = %d "
+			"ORDER BY nps_index DESC;",
+			current_mask);
 
-	/* Execute SQL statement */
-	rc = sqlite3_step(statement);
-
-	/* Error */
-	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
-		sqlite3_finalize(statement);
-		return NW_DB_INTERNAL_ERROR;
-	}
-
-	/* Go over all FIB entries and move them one index down */
-	while (rc == SQLITE_ROW) {
-		tmp_fib_entry.dest_ip = sqlite3_column_int(statement, 0);
-		tmp_fib_entry.mask_length = sqlite3_column_int(statement, 1);
-		tmp_fib_entry.result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
-		tmp_fib_entry.next_hop = sqlite3_column_int(statement, 3);
-		tmp_fib_entry.nps_index = sqlite3_column_int(statement, 4);
-		tmp_fib_entry.nps_index--;
-		write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
-			nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
-		/* Update DBs */
-		if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_DB_INTERNAL_ERROR) {
-			/* Internal error */
-			write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
-				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
+		/* Prepare SQL statement */
+		rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
+		if (rc != SQLITE_OK) {
+			write_log(LOG_CRIT, "SQL error: %s",
+				  sqlite3_errmsg(nw_db));
 			return NW_DB_INTERNAL_ERROR;
+		}
 
-		}
-		if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
-			write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
-				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
-			return NW_DB_NPS_ERROR;
-		}
+		/* Execute SQL statement */
 		rc = sqlite3_step(statement);
-	}
-	/* Error */
-	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
+
+		if (rc < SQLITE_ROW) {
+			write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
+			sqlite3_finalize(statement);
+			return NW_DB_INTERNAL_ERROR;
+		}
+
+		if (rc == SQLITE_DONE) {
+			/* No entries were found - continue to the next mask */
+			write_log(LOG_DEBUG, "Reorder FIB table - no entries were found with mask %d", current_mask);
+			sqlite3_finalize(statement);
+			continue;
+		} else {
+
+			tmp_fib_entry.dest_ip = sqlite3_column_int(statement, 0);
+			tmp_fib_entry.mask_length = sqlite3_column_int(statement, 1);
+			tmp_fib_entry.result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
+			tmp_fib_entry.next_hop = sqlite3_column_int(statement, 3);
+
+			tmp_fib_entry.nps_index = previous_updated_index;
+			previous_updated_index = sqlite3_column_int(statement, 4);
+
+			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
+				nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
+			/* Update DBs */
+			if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+				/* Internal error */
+				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
+					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
+				return NW_DB_INTERNAL_ERROR;
+
+			}
+			if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
+				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
+					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
+				return NW_DB_NPS_ERROR;
+			}
+		}
+
 		sqlite3_finalize(statement);
-		return NW_DB_INTERNAL_ERROR;
+
 	}
-	sqlite3_finalize(statement);
 
 	/* Update index of current entry to last index for deletion */
 	fib_entry->nps_index = fib_entry_count - 1;

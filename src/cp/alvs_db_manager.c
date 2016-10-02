@@ -824,7 +824,7 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 				}
 			} else {
 				/* todo add code to print stats of a specific service */
-				write_log(LOG_NOTICE, "GET_SERIVECE command is not supported for a specific service (only on dump mode)");
+				write_log(LOG_NOTICE, "GET_SERIVCE command is not supported for a specific service (only on dump mode)");
 			}
 		}
 

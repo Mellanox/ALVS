@@ -37,23 +37,26 @@ test42_WRR_add_server.py
 
 # CP_UNIT_LEVEL_TESTS
 #alvs_cp_check_agt_port.py
-#fib_testing.py
-#ipvs_stats_test.py
-#sched_info_test.py
-#service_db_test.py
-#state_sync_control_test.py
-#state_sync_test.py
+fib_testing.py - scenarios 1,2,3,4
+#fib_testing.py - scenarios 5 #long test 30 minutes
+ipvs_stats_test.py
+sched_info_test.py
+service_db_test.py
+state_sync_control_test.py
+state_sync_test.py
 
 # DP_UNIT_LEVEL_TESTS
-#lag_test.py
-#tcp_flags_test.py
-#server_fail_test.py -scenarios 1,2,3,4,5
+lag_test.py
+tcp_flags_test.py
+server_fail_test.py -scenarios 1,2,3,4,5
 #server_fail_test.py -scenarios 6                  #fail to to a bug
-#1service_1server_overloaded_flag.py
-#1service_2servers_fallback.py
-#1sevice_1server_overloaded_flag_fallback.py
-#dp_packet_to_host_test.py
-#host_to_network_test.py
-#schedule_algorithm_test.py
-#slow_path_test.py
-#state_sync_test.py
+1service_1server_overloaded_flag.py
+1service_2servers_fallback.py
+1sevice_1server_overloaded_flag_fallback.py
+dp_packet_to_host_test.py
+host_to_network_test.py
+source_hash_test.py
+state_sync_test.py
+connection_established_delete_test.py
+
+

@@ -100,10 +100,17 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */
-		ezframe_store_buf(frame,
+		rc = ezframe_store_buf(frame,
 				  buffer_base,
 			   frame_buff_size,
 			   0);
+
+		if (rc != 0) {
+			alvs_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
+			nw_discard_frame();
+			return;
+		}
 
 		nw_send_frame_to_network(frame,
 					 buffer_base,
