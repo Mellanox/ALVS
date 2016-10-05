@@ -6,6 +6,11 @@ function build_unit {
 	
 	echo -e "\nStart building our test..." | tee -a $log
 
+	echo -e "\nRemoving old binary..." | tee -a $log
+	echo rm -f ${output_dir}/$1
+	echo ""
+	rm -f ${output_dir}/$1
+
 	# unit test builder
 	export GTEST=/swgwork/yohadd/unittestAPI/etc/gmock/origin/gmock-1.7.0/gtest/
 	export GMOCK=/swgwork/yohadd/unittestAPI/etc/gmock/origin/gmock-1.7.0/
@@ -20,11 +25,11 @@ function build_unit {
 
 	g++ -DNDEBUG -O0 -ggdb3 -o ${output_dir}/$1 ${output_dir}/mock/venus_syslib.c  ${output_dir}/mock/venus_mock.c ${output_dir}/mock/dut_mock.cpp $2 ${CFLAGS} ${LDFLAGS} -I${GTEST}/include -I${GMOCK}/include -pthread -L${output_dir}/mock/ -L${GMOCK_LIB} -L${GTEST_LIB} -L. -Wl,-rpath=${output_dir}/mock/ -Wl,-rpath=${GMOCK_LIB} -Wl,-rpath=. -Wl,-rpath=${GTEST_LIB} -lgmock -lgtest -ldut -lc | tee -a $log
 
-	if [ "$?" == 1 ]
+	if [ -e "${output_dir}/$1" ]
 	then
-		return 1
+		return 0
 	fi
-	return 0
+	return 1
 }
 
 ###############################################################################
@@ -50,7 +55,12 @@ function run_unit_test {
 	echo -e "\nStart running unit test" | tee -a $log
 	
 	echo "gdb -x ${output_dir}/mock/dut_mock.gdb ${output_dir}/$1" | tee -a $log
-	gdb -x ${output_dir}/mock/dut_mock.gdb ${output_dir}/$1 | tee -a $log
+	unbuffer gdb -x ${output_dir}/mock/dut_mock.gdb ${output_dir}/$1 | tee -a $log
+	if [ "`tail -n 1 output/alvs_packet_processing/alvs_packet_processing.log`" == "Program exited with code 01." ] 
+	then
+		return 1
+	fi
+	return 0
 
 }
 
@@ -61,7 +71,12 @@ function run_test_case {
 	echo -e "\nStart running unit test" | tee -a $log
 	
 	echo gdb -batch -x ${output_dir}/mock/dut_mock.gdb --args ${output_dir}/$1 --gtest_filter="PrePostTest.$2" | tee -a $log
-	gdb -batch -x ${output_dir}/mock/dut_mock.gdb --args ${output_dir}/$1 --gtest_filter="PrePostTest.$2" | tee -a $log
+	unbuffer gdb -batch -x ${output_dir}/mock/dut_mock.gdb --args ${output_dir}/$1 --gtest_filter="PrePostTest.$2" | tee -a $log
+	if [ "`tail -n 1 output/alvs_packet_processing/alvs_packet_processing.log`" == "Program exited with code 01." ] 
+	then
+		return 1
+	fi
+	return 0
 
 }
 
@@ -93,7 +108,7 @@ function main {
 	build_unit $1 $2
 	if [ "$?" == 1 ]
 	then
-		echo "ERROR: failed in build test: $2" | tee -a $log
+		echo -e "\nERROR: failed in build test: $2" | tee -a $log
 		return 1
 	fi
 

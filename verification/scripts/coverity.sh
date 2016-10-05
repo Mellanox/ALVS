@@ -54,8 +54,20 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
-	ALVS_ACCEPTED_FP_CP=2
-
+	ALVS_ACCEPTED_FP_CP=3
+	
+	#####FP1: Error: BUFFER_SIZE_WARNING:
+	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/alvs_db_manager.c:1106:
+	#buffer_size_warning: Calling strncpy with a maximum size argument of 16 bytes on destination array "(ret_daemon + i).mcast_ifn" of size 16 bytes might leave the destination string unterminated.
+	
+	#####FP2:Error: INTEGER_OVERFLOW:
+	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/nw_db.c:544:
+	#overflow_const: Decrement (--) operation overflows on operand "tmp_fib_entry.nps_index", whose value is an unsigned constant, 0.
+	
+	#####FP3: Error: PW.DECLARED_BUT_NOT_REFERENCED:
+	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/common/version.h:46:
+	#declared_but_not_referenced: variable "version" was declared but never referenced
+	
 	echo "Creating $ALVS_COVERITY_RES_DIR_CP for CP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_CP &>> $LOG_FILE
 

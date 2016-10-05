@@ -37,7 +37,7 @@ def find_include_mock_stat(unit_test):
 
 #===============================================================================
 
-def run_all():
+def run_all(dependencies):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	src_unittests_dict = {}
@@ -57,9 +57,14 @@ def run_all():
 	final_rc = 0
 
 	for src_name, unit_tests in src_unittests_dict.items():
-		rc = os.system("./scripts/make_venus.sh " + src_name)
+		make_venus_args = src_name + " "
+		if dependencies != None:
+			for d in dependencies:
+				make_venus_args += d + " "
+
+		rc = os.system("./scripts/make_venus.sh " + make_venus_args)
 		if rc:
-			print "ERROR in ./scripts/make_venus.sh " +  src_name
+			print "ERROR in ./scripts/make_venus.sh " +  make_venus_args
 			print "Skip running unit tests: " + unit_tests
 			final_rc = 1
 			continue
@@ -85,17 +90,22 @@ def run_all():
 
 #===============================================================================
 
-def run_unit_test(unit_test , test_case , run_make_venus):
+def run_unit_test(unit_test , test_case , run_make_venus, dependencies):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	src_name_without_extention = find_include_mock_stat(unit_test)
 	if src_name_without_extention == "":
 		return 1
 	
-	if run_make_venus:
-		rc = os.system("./scripts/make_venus.sh " + src_name_without_extention)
+	make_venus_args = src_name_without_extention + " "
+	if dependencies != None:
+		for d in dependencies:
+			make_venus_args += d + " "
+
+	if run_make_venus:	
+		rc = os.system("./scripts/make_venus.sh " + make_venus_args)
 		if rc:
-			print "ERROR in ./scripts/make_venus.sh " +  src_name_without_extention
+			print "ERROR in ./scripts/make_venus.sh " +  make_venus_args
 			return 1
 	else:
 		print "--no_make_venus option was used! skip running make_venus script!"
@@ -114,24 +124,26 @@ def run_unit_test(unit_test , test_case , run_make_venus):
 #===============================================================================
 def main():
 	
-	usage = "usage: %prog [-u, -t]"
+	usage = "usage: %prog [-u, -t, --no_make_venus, -d]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	parser.add_option("-u", "--unit_test", dest="unit_test",
 					  help="Unit test path", type="str")
 	parser.add_option("-t", "--test_case", dest="test_case",
 					  help="Name of a specific test case to run", default='', type="str")
-	parser.add_option("--no_make_venus", action="store_false", dest="no_make_venus",
+	parser.add_option("-n","--no_make_venus", action="store_false", dest="no_make_venus",
 					  help="Do NOT run make_venus script which build model & mock environment")
+	parser.add_option("-d", "--dependencies", dest="dependencies", action="append",
+					  help="Other src files which our tested src file depends on", type="str")
 	(options, args) = parser.parse_args()
 
 	if not options.unit_test:	
 		print "-u argument was not used. Start running all regression..."
-		return run_all()
+		return run_all(options.dependencies)
 	
 	run_make_venus = True if options.no_make_venus == None else False
 
-	return run_unit_test(options.unit_test , options.test_case , run_make_venus)
+	return run_unit_test(options.unit_test , options.test_case , run_make_venus, options.dependencies)
 
 main()
 

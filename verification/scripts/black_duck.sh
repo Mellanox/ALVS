@@ -55,7 +55,7 @@ function create_wa()
 	curr_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	alvs_dir="${curr_dir}/../../"
 
-	version=$(grep -e "\"\$Revision: .* $\"" $alvs_dir/src/common/version.h | cut -d":" -f 2 | cut -d" " -f2)
+	version=$(grep -e "\"\$Revision: .* $\"" $alvs_dir/src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | head -n 1)
 
 	release_dir=$wa_path/ALVS_$version
 	echo "Creating release dir: $release_dir"
@@ -103,7 +103,7 @@ function remove_redundant_files()
 	echo "app_skeleton bin  build .cproject EZdk  EZide  .git  .gitignore .project  .settings  target  verification"
 	rm -rf $release_dir/app_skeleton $release_dir/bin  $release_dir/build $release_dir/.cproject $release_dir/EZdk  $release_dir/EZide
 	rm -rf $release_dir/.git  $release_dir/.gitignore $release_dir/.project  $release_dir/.settings  $release_dir/target  $release_dir/verification
-
+	rm -rf $release_dir/*.tar.gz $release_dir/install $release_dir/log
 	echo "====== END Removing redundant files ======="
 }
 
