@@ -111,8 +111,8 @@ enum alvs_sched_server_result {
 
 /* Number of lag members is hard coded and depended on compilation flag. */
 /* in case user wants to disable LAG functionality need to set this flag. */
-#	define DEFAULT_NW_BASE_LOGICAL_ID           0
-#	define NUM_OF_LAG_MEMBERS                   4
+#define DEFAULT_NW_BASE_LOGICAL_ID           0
+#define NUM_OF_LAG_MEMBERS                   4
 
 /*************************************************************
  * SEARCH defs
