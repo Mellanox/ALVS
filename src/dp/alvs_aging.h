@@ -124,10 +124,12 @@ void alvs_handle_aging_event(uint32_t event_id)
 			}
 		}
 	}
+
 	/*send last state sync frame*/
 	if (unlikely(cmem_alvs.conn_sync_state.amount_buffers > 0)) {
 		alvs_state_sync_send_aggr();
 	}
+
 	/*finish aging, reset sync status*/
 	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 }
