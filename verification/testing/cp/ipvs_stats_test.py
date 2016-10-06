@@ -90,7 +90,7 @@ def compare_server_stats(server_stats, in_packets, in_bytes, out_packets, out_by
 data_packet_to_first_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 00',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = False,
@@ -101,7 +101,7 @@ data_packet_to_first_service1.generate_packet()
 data_packet_to_first_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 03',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = False,
@@ -112,7 +112,7 @@ data_packet_to_first_service2.generate_packet()
 data_packet_to_second_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=second_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 00',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = False,
@@ -123,7 +123,7 @@ data_packet_to_second_service1.generate_packet()
 data_packet_to_second_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=second_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 03',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = False,
@@ -134,7 +134,7 @@ data_packet_to_second_service2.generate_packet()
 reset_packet_first_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 00',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = True,
@@ -145,7 +145,7 @@ reset_packet_first_service1.generate_packet()
 reset_packet_first_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 03',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = True,
@@ -156,7 +156,7 @@ reset_packet_first_service2.generate_packet()
 reset_packet_second_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=second_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 00',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = True,
@@ -167,7 +167,7 @@ reset_packet_second_service1.generate_packet()
 reset_packet_second_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=second_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 03',
                          tcp_dst_port = '00 50', # port 80
                          tcp_reset_flag = True,
@@ -178,7 +178,7 @@ reset_packet_second_service2.generate_packet()
 fin_packet_to_first_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
                          mac_sa=client_object.mac_address,
                          ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
+                         ip_src='192.168.0.100',
                          tcp_source_port = '00 03',
                          tcp_dst_port = '00 50', # port 80
                          tcp_fin_flag = True,

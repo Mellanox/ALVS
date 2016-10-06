@@ -63,22 +63,22 @@ port2 = int(port2.get_struct_dict()['counter_value'],16)
 port3 = ezbox.cpe.cp.interface.get_eth_stat_counter(channel_id=0,side=1,if_engine=1,eth_if_type='10GE',if_number=0,counter_id=ezbox.cpe.cp.interface.EthStatCounterId.__getattribute__('TX_FRM'))
 port3 = int(port3.get_struct_dict()['counter_value'],16)
  
-if port0 < 125 * 0.90 or port0 > 125 * 1.1:
+if port0 < 125 * 0.85 or port0 > 125 * 1.15:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
     
-if port1 < 125 * 0.9 or port0 > 125 * 1.1:
+if port1 < 125 * 0.85 or port0 > 125 * 1.15:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
 
-if port2 < 125 * 0.9 or port0 > 125 * 1.1:
+if port2 < 125 * 0.85 or port0 > 125 * 1.15:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
 
-if port3 < 125 * 0.9 or port0 > 125 * 1.1:
+if port3 < 125 * 0.85 or port0 > 125 * 1.15:
     print "ERROR, lag deviation is wrong"
     ezbox.execute_command_on_host('arp -d %s'%server1.data_ip) # delete the static arp
     exit(1)
