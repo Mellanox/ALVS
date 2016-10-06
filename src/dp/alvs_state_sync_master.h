@@ -75,7 +75,7 @@ static __always_inline
 void alvs_state_sync_set_net_hdr(struct net_hdr *net_hdr_info, int conn_count, in_addr_t source_ip)
 {
 	/*fill fields of UDP header*/
-	net_hdr_info->udp.source = ALVS_STATE_SYNC_DST_PORT;
+	net_hdr_info->udp.source = ALVS_STATE_SYNC_SRC_PORT;
 	net_hdr_info->udp.dest = ALVS_STATE_SYNC_DST_PORT;
 	net_hdr_info->udp.check = 0;
 
