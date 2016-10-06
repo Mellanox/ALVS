@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-
+from tester_class import Tester
 
 
 # pythons modules 
@@ -37,78 +37,52 @@ service_count = 1
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-
-def user_init(setup_num):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+class Test30(Tester):
 	
-	dict = generic_init(setup_num, service_count, server_count, client_count)
-	
-	for s in dict['server_list']:
-		s.vip = dict['vip_list'][0]
+	def user_init(self, setup_num):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-	return convert_generic_init_to_user_format(dict)
-
-def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, request_count)
-	client.execute()
-
-def run_user_test(server_list, ezbox, client_list, vip_list):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	process_list = []
-	vip = vip_list[0]
-	port = '80'
-
-	ezbox.add_service(vip, port, sched_alg='lc' ,sched_alg_opt='')
-	for server in server_list:
-		ezbox.add_server(vip, port, server.ip, port)
+		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		
+		for s in self.test_resources['server_list']:
+			s.vip = self.test_resources['vip_list'][0]
 	
+	def client_execution(self, client, vip):
+		client.exec_params += " -i %s -r %d" %(vip, request_count)
+		client.execute()
 	
-	for client in client_list:
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
-	for p in process_list:
-		p.start()
-	for p in process_list:
-		p.join()
+	def run_user_test(self):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		process_list = []
+		ezbox = self.test_resources['ezbox']
+		server_list = self.test_resources['server_list']
+		client_list = self.test_resources['client_list']
+		vip = self.test_resources['vip_list'][0]
+		port = '80'
 	
-	print 'End user test'
-
-def run_user_checker(server_list, ezbox, client_list, log_dir):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict= {'client_response_count':request_count,
-					'client_count': len(client_list), 
-					'no_404': True,
-					'no_connection_closed': True,
-					'server_count_per_client':server_count}
+		ezbox.add_service(vip, port, sched_alg='lc' ,sched_alg_opt='')
+		for server in server_list:
+			ezbox.add_server(vip, port, server.ip, port)
+		
+		
+		for client in client_list:
+			process_list.append(Process(target=self.client_execution, args=(client,vip,)))
+		for p in process_list:
+			p.start()
+		for p in process_list:
+			p.join()
+		
+		print 'End user test'
 	
-	return client_checker(log_dir, expected_dict)
-
-#===============================================================================
-# main function
-#===============================================================================
-def main():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	def run_user_checker(self, log_dir):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		expected_dict= {'client_response_count':request_count,
+						'client_count': client_count, 
+						'no_404': True,
+						'no_connection_closed': True,
+						'server_count_per_client':server_count}
+		
+		return client_checker(log_dir, expected_dict)
 	
-	config = generic_main()
-	
-	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
-	
-	init_players(server_list, ezbox, client_list, vip_list, config)
-
-	run_user_test(server_list, ezbox, client_list, vip_list)
-
-	log_dir = collect_logs(server_list, ezbox, client_list)
-
-	gen_rc = general_checker(server_list, ezbox, client_list,expected={'host_stat_clean':False} )
-	
-	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
-	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir)
-	
-	if user_rc and gen_rc:
-		print 'Test passed !!!'
-		exit(0)
-	else:
-		print 'Test failed !!!'
-		exit(1)
-
-main()
+current_test = Test30()
+current_test.main()

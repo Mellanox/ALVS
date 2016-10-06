@@ -157,7 +157,7 @@ class ezbox_host:
 						print "error while figure out genhash value, server %s"%server
 						if i==10:
 							print "ERROR"
-							exit(1)
+							raise
 						i+=1
 						
 				outfile.write('				digest %s\n'%digest)
@@ -269,8 +269,8 @@ class ezbox_host:
 	def copy_file_to_host(self, filename, dest):
 		rc =  os.system("sshpass -p " + self.setup['password'] + " scp " + filename + " " + self.setup['username'] + "@" + self.setup['host'] + ":" + dest)
 		if rc:
-			print "ERROR: failed to copy %s to %s" %(filename, dest)
-			exit(1) 
+			err_msg =  "failed to copy %s to %s" %(filename, dest)
+			raise RuntimeError(err_msg)
 
 	def copy_cp_bin(self, alvs_daemon='bin/alvs_daemon', debug_mode=False):
 		if debug_mode == True:
@@ -292,13 +292,13 @@ class ezbox_host:
 
 		self.execute_command_on_host("mkdir -p %s" %self.install_path)
 		if rc is True:
-			print "ERROR: %s Failed to create install folder (%s)" %(func_name, self.install_path)
-			exit (1)
+			err_msg =  "ERROR: %s Failed to create install folder (%s)" %(func_name, self.install_path)
+			raise RuntimeError(err_msg)
 
 		self.copy_file_to_host(alvs_package, self.install_path)
 		if rc is True:
-			print "ERROR: %s Failed to copy package" %(func_name)
-			exit (1)
+			err_msg =  "ERROR: %s Failed to copy package" %(func_name)
+			raise RuntimeError(err_msg)
 
 	def install_package(self, alvs_package):
 		func_name = sys._getframe().f_code.co_name
@@ -319,13 +319,12 @@ class ezbox_host:
 			except:
 				exit_code = 1
 		except:
-			rc = "Unexpected error: %s" %sys.exc_info()[0]
-			print rc
-			exit(1)
+			err_msg = "Unexpected error: %s" %sys.exc_info()[0]
+			raise RuntimeError(err_msg)
 			
 		if exit_code != 0:
-			print "ERROR: installation failed (%s)" % exit_code
-			exit(1)
+			err_msg =  "ERROR: installation failed (%s)" % exit_code
+			raise RuntimeError(err_msg)
 
 	def get_version(self):
 		cmd = "grep -e \"\\\"\\$Revision: .* $\\\"\" src/common/version.h"
@@ -370,11 +369,11 @@ class ezbox_host:
 		if output == 0:
 			return True
 		elif output < 0:
-			print '\nwait_for_cp_app: Error... (end of output)'
-			exit(1)
+			err_msg = '\nwait_for_cp_app: Error... (end of output)'
+			raise RuntimeError(err_msg)
 		else:
-			print '\nwait_for_cp_app: Error... (Unknown output)'
-			exit(1)
+			err_msg =  '\nwait_for_cp_app: Error... (Unknown output)'
+			raise RuntimeError(err_msg)
 		
 	def wait_for_dp_app(self):
 		sys.stdout.write("Waiting for DP application to load...")
@@ -411,13 +410,13 @@ class ezbox_host:
 		time.sleep(1)
 		result, output = self.ssh_object.execute_command('tcpdump -r /tmp/dump.pcap | wc -l')
 		if result == False:
-			print 'ERROR, reading captured num of packets was failed'
-			exit(1)
+			err_msg = 'ERROR, reading captured num of packets was failed'
+			raise RuntimeError(err_msg)
 		try:
 			num_of_packets = int(output.split('\n')[1].strip('\r'))
 		except:
-			print 'ERROR, reading captured num of packets was failed'
-			exit(1)
+			err_msg = 'ERROR, reading captured num of packets was failed'
+			raise RuntimeError(err_msg)
 
 		return num_of_packets
 	
@@ -1104,17 +1103,22 @@ class SshConnect:
 		self.username   = username
 		self.password   = password
 		self.ssh_object = pxssh.pxssh()
+		self.connection_established = False
 
 	def connect(self):
 		print "Connecting to : " + self.ip_address + ", username: " + self.username + " password: " + self.password
 		self.ssh_object.login(self.ip_address, self.username, self.password, login_timeout=120)
+		self.connection_established = True
 		print self.ip_address + " Connected"
 		
 	def logout(self):
-		self.ssh_object.send('\003')	#send ctrl+c
-		self.ssh_object.logout()
+		if self.connection_established:
+			self.ssh_object.send('\003')	#send ctrl+c
+			self.ssh_object.logout()
+			self.connection_established = False
 
 	def recreate_ssh_object(self):
+		self.logout()
 		self.ssh_object = pxssh.pxssh()
 
 
@@ -1375,8 +1379,8 @@ def compile(clean=True, debug=False):
 		output = os.system("make")
 		
 	if int(output) != 0:
-		print "ERROR while compiling"
-		exit(1)
+		err_msg = "ERROR while compiling"
+		raise RuntimeError(err_msg)
 		
 	print
 	print "Compilation Passed"

@@ -13,6 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
+from tester_class import Tester
 
 
 
@@ -38,84 +39,56 @@ service_count = 1
 # User Area function needed by infrastructure
 #===============================================================================
 
-def user_init(setup_num):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+class Test12(Tester):
 	
-	dict = generic_init(setup_num, service_count, server_count, client_count)
-	
-	for s in dict['server_list']:
-		s.vip = dict['vip_list'][0]
+	def user_init(self, setup_num):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-	return convert_generic_init_to_user_format(dict)
-
-def client_execution(client, vip):
-	connTimeout = 30
-	client.exec_params += " -i %s -r %d -t %d" %(vip, request_count,connTimeout)
-	client.execute()
-
-def run_user_test(server_list, ezbox, client_list, vip_list):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	process_list = []
-	port = '80'
-	vip = vip_list[0]
+		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		
+		for s in self.test_resources['server_list']:
+			s.vip = self.test_resources['vip_list'][0]
 	
-	ezbox.add_service(vip, port)
-	for server in server_list:
-		server.set_extra_large_index_html()
-		ezbox.add_server(server.vip, port, server.ip, port)
+	def client_execution(self, client, vip):
+		connTimeout = 30
+		client.exec_params += " -i %s -r %d -t %d" %(vip, request_count,connTimeout)
+		client.execute()
 	
-	for client in client_list:
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
-	for p in process_list:
-		p.start()
+	def run_user_test(self):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		process_list = []
+		port = '80'
+		vip = self.test_resources['vip_list'][0]
+		
+		self.test_resources['ezbox'].add_service(vip, port)
+		for server in self.test_resources['server_list']:
+			server.set_extra_large_index_html()
+			self.test_resources['ezbox'].add_server(server.vip, port, server.ip, port)
+		
+		for client in self.test_resources['client_list']:
+			process_list.append(Process(target=self.client_execution, args=(client,vip,)))
+		for p in process_list:
+			p.start()
+		
+		time.sleep(7)
+		
+		print 'remove server[0]'
+		self.test_resources['ezbox'].delete_server(self.test_resources['server_list'][0].vip, port, self.test_resources['server_list'][0].ip, port)
+		
+		for p in process_list:
+			p.join()
+		
+		print 'End user test'
 	
-	time.sleep(7)
+	def run_user_checker(self, log_dir):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		expected_dict = {}
+		expected_dict = {'client_response_count':request_count,
+							'client_count': client_count,
+							'no_connection_closed': False,
+							'no_404': True}
+		
+		return client_checker(log_dir, expected_dict, 1)
 	
-	print 'remove server[0]'
-	ezbox.delete_server(server_list[0].vip, port, server_list[0].ip, port)
-	
-	for p in process_list:
-		p.join()
-	
-	print 'End user test'
-
-def run_user_checker(server_list, ezbox, client_list, log_dir, vip_list):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict = {}
-	expected_dict = {'client_response_count':request_count,
-						'client_count': len(client_list),
-						'no_connection_closed': False,
-						'no_404': True}
-	
-	return client_checker(log_dir, expected_dict, 1)
-
-#===============================================================================
-# main function
-#===============================================================================
-def main():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	config = generic_main()
-	
-	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
-	
-	init_players(server_list, ezbox, client_list, vip_list, config)
-	
-	run_user_test(server_list, ezbox, client_list, vip_list)
-	
-	log_dir = collect_logs(server_list, ezbox, client_list)
-
-	gen_rc = general_checker(server_list, ezbox, client_list)
-	
-	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
-	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir,vip_list)
-	
-	if user_rc and gen_rc:
-		print 'Test passed !!!'
-		exit(0)
-	else:
-		print 'Test failed !!!'
-		exit(1)
-
-main()
+current_test = Test12()
+current_test.main()

@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-import copy
+from tester_class import Tester
 
 
 # pythons modules 
@@ -49,156 +49,94 @@ g_sched_alg_opt  = "-b sh-port"
 #
 # Brief:
 #===============================================================================
-def user_init(setup_num):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+class Test21(Tester):
 	
-	dict = generic_init(setup_num, service_count, server_count, client_count)
-	
-	for s in dict['server_list']:
-		s.vip = dict['vip_list'][0]
+	def user_init(self, setup_num):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-	return convert_generic_init_to_user_format(dict)
-
-#===============================================================================
-# Function: client_execution
-#
-# Brief:
-#===============================================================================
-def client_execution(client, vip):
-	client.exec_params += " -i %s -r %d" %(vip, g_request_count)
-	client.execute()
-
-
-#===============================================================================
-# Function: run_user_test
-#
-# Brief:
-#===============================================================================
-def run_user_test(server_list, ezbox, client_list, vip_list):
-	# modified global variables
-	global g_request_count
-	
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		self.test_resources = generic_init(setup_num, g_service_count, g_server_count, g_client_count)
 		
-	#===========================================================================
-	# init local variab;es 
-	#===========================================================================
-	vip        = vip_list[0]
-	port       = 80
+		for s in self.test_resources['server_list']:
+			s.vip = self.test_resources['vip_list'][0]
+	
+	def client_execution(self, client, vip):
+		client.exec_params += " -i %s -r %d" %(vip, g_request_count)
+		client.execute()
 
+	def run_user_test(self):
 	
-	#===========================================================================
-	# add service with servers
-	#===========================================================================
-	ezbox.add_service(vip, port, g_sched_alg, g_sched_alg_opt)
-	for server in server_list:
-		ezbox.add_server(server.vip, port, server.ip, port)
-	
-	server_list[0].take_down_loopback()
-	
-	process_list = []
-	for client in client_list:
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
-	for p in process_list:
-		p.start()
-	for p in process_list:
-		p.join()
-	
-	
-	#===========================================================================
-	# enable first server  
-	#===========================================================================
-	process_list = []
-	for client in client_list:
-		new_log_name = client.logfile_name+'_1'
-		client.add_log(new_log_name) 
-		process_list.append(Process(target=client_execution, args=(client,vip,)))
-	for p in process_list:
-		p.start()
-	
-	server_list[0].configure_loopback()
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
-
-	for p in process_list:
-		p.join()
+		ezbox = self.test_resources['ezbox']
+		server_list = self.test_resources['server_list']
+		client_list = self.test_resources['client_list']
+		vip        = self.test_resources['vip_list'][0]
+		port       = 80
+			
+		#===========================================================================
+		# add service with servers
+		#===========================================================================
+		ezbox.add_service(vip, port, g_sched_alg, g_sched_alg_opt)
+		for server in server_list:
+			ezbox.add_server(server.vip, port, server.ip, port)
+		
+		server_list[0].take_down_loopback()
+		
+		process_list = []
+		for client in client_list:
+			process_list.append(Process(target=self.client_execution, args=(client,vip,)))
+		for p in process_list:
+			p.start()
+		for p in process_list:
+			p.join()
+		
+		
+		#===========================================================================
+		# enable first server  
+		#===========================================================================
+		process_list = []
+		for client in client_list:
+			new_log_name = client.logfile_name+'_1'
+			client.add_log(new_log_name) 
+			process_list.append(Process(target=self.client_execution, args=(client,vip,)))
+		for p in process_list:
+			p.start()
+		
+		server_list[0].configure_loopback()
 	
 	
-	print 'End user test'
-
-
-#===============================================================================
-# Function: run_user_checker
-#
-# Brief:
-#===============================================================================
-def run_user_checker(server_list, ezbox, client_list, log_dir,vip_list):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	expected_dict = {}
+		for p in process_list:
+			p.join()
+		
+		
+		print 'End user test'
 	
-
-	expected_dict[0] = {'client_response_count':g_request_count,
-						'g_client_count': len(client_list),
-						'no_connection_closed': True,
-						'no_404': True,
-						'server_count_per_client':(g_server_count - 1)}
-	expected_dict[1] = {'client_response_count':g_request_count,
-						'g_client_count': len(client_list),
-						'no_connection_closed': True,
-						'no_404': True,
-						'server_count_per_client':g_server_count}
 	
-	if client_checker(log_dir, expected_dict,2):
-		return True
-	else:
-		return False
-
-
-#===============================================================================
-# Function: print_params
-#
-# Brief:
-#===============================================================================
-def print_params():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	print "service_count:  " + str(g_service_count)
-	print "server_count:   " + str(g_server_count)
-	print "client_count:   " + str(g_client_count)
-	print "request_count:  " + str(g_request_count)
-
-
-#===============================================================================
-# Function: main
-#
-# Brief:
-#===============================================================================
-def main():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	#===============================================================================
+	# Function: run_user_checker
+	#
+	# Brief:
+	#===============================================================================
+	def run_user_checker(self, log_dir):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		expected_dict = {}
+		
 	
-	print_params()
-
-	config = generic_main()
+		expected_dict[0] = {'client_response_count':g_request_count,
+							'g_client_count': g_client_count,
+							'no_connection_closed': True,
+							'no_404': True,
+							'server_count_per_client':(g_server_count - 1)}
+		expected_dict[1] = {'client_response_count':g_request_count,
+							'g_client_count': g_client_count,
+							'no_connection_closed': True,
+							'no_404': True,
+							'server_count_per_client':g_server_count}
+		
+		if client_checker(log_dir, expected_dict,2):
+			return True
+		else:
+			return False
 	
-	server_list, ezbox, client_list, vip_list = user_init(config['setup_num'])
-	
-	init_players(server_list, ezbox, client_list, vip_list, config)
-	
-	run_user_test(server_list, ezbox, client_list, vip_list)
-	
-	log_dir = collect_logs(server_list, ezbox, client_list)
-
-	gen_rc = general_checker(server_list, ezbox, client_list)
-	
-	clean_players(server_list, ezbox, client_list, True, config['stop_ezbox'])
-	
-	user_rc = run_user_checker(server_list, ezbox, client_list, log_dir, vip_list)
-	
-	if user_rc and gen_rc:
-		print 'Test passed !!!'
-		exit(0)
-	else:
-		print 'Test failed !!!'
-		exit(1)
-
-
-main()
+current_test = Test21()
+current_test.main()

@@ -29,7 +29,7 @@ from multiprocessing import Process
 #===============================================================================
 def generic_main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-		
+	
 	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, --start, --stop]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
@@ -56,11 +56,9 @@ def generic_main():
 
 	# validate options
 	if not options.setup_num:
-		print 'ERROR: setup_num is not given'
-		exit(1)
+		raise ValueError('setup_num is not given')
 	if (options.setup_num == 0) or (options.setup_num > 8):
-		print 'ERROR: setup_num is not in range'
-		exit(1)
+		raise ValueError('setup_num: ' + str(options.setup_num) + ' is not in range')
 
 	# set user configuration
 	config = {}
@@ -243,32 +241,28 @@ def fill_default_config(test_config):
 
 
 #------------------------------------------------------------------------------
-def init_players(server_list, ezbox, client_list, vip_list, test_config={}):
+def init_players(test_resources, test_config={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	test_config = fill_default_config(test_config)
 	
 	# init ezbox in another proccess
 	ezbox_init_proccess = Process(target=init_ezbox,
-								  args=(ezbox, server_list, vip_list, test_config))
+								  args=(test_resources['ezbox'], test_resources['server_list'], test_resources['vip_list'], test_config))
 	ezbox_init_proccess.start()
-
+	
 	# connect Ezbox (proccess work on ezbox copy and not on ezbox object
-	ezbox.connect()
- 	
-	for s in server_list:
+	test_resources['ezbox'].connect()
+	
+	for s in test_resources['server_list']:
 		init_server(s)
-	for c in client_list:
+	for c in test_resources['client_list']:
 		init_client(c)
-
+	
 	# Wait for EZbox proccess to finish
 	ezbox_init_proccess.join()
 	# Wait for all proccess to finish
 	if ezbox_init_proccess.exitcode:
 		print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
 		exit(ezbox_init_proccess.exitcode)
-
-
 
 #===============================================================================
 # clean functions
@@ -302,25 +296,27 @@ def clean_ezbox(ezbox, use_director, stop_ezbox):
 
 
 #------------------------------------------------------------------------------ 
-def clean_players(server_list, ezbox, client_list, use_director = False, stop_ezbox = False):
+def clean_players(test_resources, use_director = False, stop_ezbox = False):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	# Add servers, client & EZbox to proccess list
 	# in adition, recreate ssh object for the new proccess (patch)
 	process_list = []
-	for s in server_list:
-		s.ssh.recreate_ssh_object()
-		process_list.append(Process(target=clean_server, args=(s,)))
+	for s in test_resources['server_list']:
+		if s.ssh.connection_established:
+			s.ssh.recreate_ssh_object()
+			process_list.append(Process(target=clean_server, args=(s,)))
 		
-	for c in client_list:
-		c.ssh.recreate_ssh_object()
-		process_list.append(Process(target=clean_client, args=(c,)))
-	ezbox.ssh_object.recreate_ssh_object()
-	ezbox.run_app_ssh.recreate_ssh_object()
-	ezbox.syslog_ssh.recreate_ssh_object()
-
-	process_list.append(Process(target=clean_ezbox, args=(ezbox, use_director, stop_ezbox,)))
-	
+	for c in test_resources['client_list']:
+		if s.ssh.connection_established:
+			c.ssh.recreate_ssh_object()
+			process_list.append(Process(target=clean_client, args=(c,)))
+			
+	if test_resources['ezbox']:
+		test_resources['ezbox'].ssh_object.recreate_ssh_object()
+		test_resources['ezbox'].run_app_ssh.recreate_ssh_object()
+		test_resources['ezbox'].syslog_ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_ezbox, args=(test_resources['ezbox'], use_director, stop_ezbox,)))
 	
 	# run clean for all player parallely
 	for p in process_list:
@@ -329,8 +325,7 @@ def clean_players(server_list, ezbox, client_list, use_director = False, stop_ez
 	# Wait for all proccess to finish
 	for p in process_list:
 		p.join()
-
-	# Wait for all proccess to finish
+		
 	for p in process_list:
 		if p.exitcode:
 			print p, p.exitcode
@@ -355,7 +350,7 @@ def run_test(server_list, client_list):
 	
 	
 
-def collect_logs(server_list, ezbox, client_list, setup_num = None):
+def collect_logs(test_resources, setup_num = None):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
 	
@@ -369,7 +364,7 @@ def collect_logs(server_list, ezbox, client_list, setup_num = None):
 	dir_name += current_time
 	cmd = "mkdir -p %s" %dir_name
 	os.system(cmd)
-	for c in client_list:
+	for c in test_resources['client_list']:
 		c.get_log(dir_name)
 
 	return dir_name
@@ -396,7 +391,7 @@ def default_general_checker_expected(expected):
 '''	
 	general_checker: This checker should run in all tests before clean_players
 '''
-def general_checker(server_list, ezbox, client_list, expected={}):
+def general_checker(test_resources, expected={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	expected = default_general_checker_expected(expected)
@@ -405,7 +400,7 @@ def general_checker(server_list, ezbox, client_list, expected={}):
 	syslog_rc = True
 	stats_rc = True
 	if 'host_stat_clean' in expected:
-		rc = host_stats_checker(ezbox)
+		rc = host_stats_checker(test_resources['ezbox'])
 		if expected['host_stat_clean'] == False:
 			host_rc = (True if rc == False else False)
 		else:
@@ -416,7 +411,7 @@ def general_checker(server_list, ezbox, client_list, expected={}):
 	if 'syslog_clean' in expected:
 		#no_debug = expected.get('no_debug', True)
 		no_debug = False	# Allow debug in syslog
-		rc = syslog_checker(ezbox, no_debug)
+		rc = syslog_checker(test_resources['ezbox'], no_debug)
 		if expected['syslog_clean'] == False:
 			syslog_rc = (True if rc == False else False)
 		else:
@@ -425,7 +420,7 @@ def general_checker(server_list, ezbox, client_list, expected={}):
 		print "Error: syslog checker failed . expected syslog_clean = " + str(expected['syslog_clean'])
 	
 	if 'no_open_connections' in expected or 'no_error_stats' in expected:
-		stats_rc = statistics_checker(ezbox, no_errors=expected.get('no_error_stats', False), no_connections=expected.get('no_open_connections', False))
+		stats_rc = statistics_checker(test_resources['ezbox'], no_errors=expected.get('no_error_stats', False), no_connections=expected.get('no_open_connections', False))
 	if stats_rc == False:
 		print "Error: Statistic checker failed."
 

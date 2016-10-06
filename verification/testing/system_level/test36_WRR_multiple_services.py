@@ -8,4 +8,5 @@ from test35_36_RR_WRR_multiple_services import *
 #===============================================================================
 # main function
 #===============================================================================
-tests35_36_main("wrr")
+current_test = Test35_36("wrr")
+current_test.main()

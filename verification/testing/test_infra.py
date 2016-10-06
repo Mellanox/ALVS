@@ -92,9 +92,7 @@ class real_server:
 		# retrieve local mac address
 		result, self.mac_address = self.ssh_object.execute_command("cat /sys/class/net/ens6/address")
 		if result == False:
-			print "Error while retreive local address"
-			print self.mac_address
-			exit(1)
+			raise RuntimeError("Error while retreive local address", self.mac_address)
 		
 		self.mac_address = self.mac_address[0:17]
 		
@@ -198,21 +196,16 @@ class service:
 		elif schedule_algorithm == 'wrr':
 			self.schedule_algorithm = 'wrr'
 		else:
-			print 'This Schedule algorithm is not supported'
-			exit(1)
+			raise RuntimeError('This Schedule algorithm is not supported')
 		result, output = self.ezbox.execute_command_on_host("ipvsadm -A -t %s:%s -s %s" % (self.virtual_ip, self.port, self.schedule_algorithm))
 		if result == False:
-			print "ERROR, Failed to add service"
-			print output
-			exit(1)
+			raise RuntimeError("ERROR, Failed to add service", output)
 			
 # 		 ezbox.config_vips([self.virtual_ip])
 		cmd = "ifconfig " + ezbox.setup['interface'] + ":" + str(self.services_counter + 1) + " " + virtual_ip + " netmask 255.255.0.0"
 		result, output = self.ezbox.execute_command_on_host(cmd)
 		if result == False:
-			print "ERROR, Failed to add service"
-			print output
-			exit(1)
+			raise RuntimeError("ERROR, Failed to add service", output)
 		
 		# service number is been use when we create the interface/port on the ezbox host (eth0:service_num)
 		self.service_number = service.services_counter
@@ -227,9 +220,7 @@ class service:
 
 		result, output = self.ezbox.execute_command_on_host(cmd)		
 		if result == False:
-			print "Error while removing server from service"
-			print output
-			exit(1)
+			raise RuntimeError("Error while removing server from service", output)
 
 		cmd = "ifconfig lo:0 " + self.virtual_ip + " netmask 255.255.255.255"
 		result, output = new_server.ssh_object.execute_command(cmd)
@@ -240,9 +231,7 @@ class service:
 		# create arp static entry , workaround for a problem (can use director instead)
 		result, output = self.ezbox.execute_command_on_host("arp -s %s %s"%(new_server.data_ip, new_server.mac_address))
 		if result == False:
-			print "Error while adding arp entry"
-			print output
-			exit(1)
+			raise RuntimeError("Error while adding arp entry", output)
 		
 		# add the server to the services dictionary, will use it later on the director initialize
 		service.services_dictionary[self.virtual_ip].append(new_server.data_ip)
@@ -254,9 +243,7 @@ class service:
 		self.servers.remove(server_to_delete)
 		result, output = self.ezbox.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s" % (self.virtual_ip, self.port, server_to_delete.data_ip, self.port))
 		if result == False:
-			print "Error while removing server from service"
-			print output
-			exit(1)
+			raise RuntimeError("Error while removing server from service", output)
 	
 		# need to wait until this will be executed on cp
 		time.sleep(1)
@@ -264,8 +251,7 @@ class service:
 	def modify_server(self, server_to_modify, weight=1, u_thresh=0, l_thresh=0):
 		
 		if server_to_modify not in self.servers:
-			print "Error, Server is not exist on Service"
-			exit(1)
+			raise RuntimeError("Error, Server is not exist on Service")
 			
 		self.ezbox.modify_server(self.virtual_ip, self.port, server_to_modify.data_ip, self.port, weight, u_thresh=u_thresh, l_thresh=l_thresh)
 		
@@ -277,16 +263,12 @@ class service:
 	def remove_service(self):
 		result, output = self.ezbox.execute_command_on_host("ipvsadm -D -t %s:%s" % (self.virtual_ip, self.port))
 		if result == False:
-			print "ERROR, Failed to remove service"
-			print output
-			exit(1)
+			raise RuntimeError("ERROR, Failed to remove service", output)
 			
 		cmd = "ifdown " + self.ezbox.setup['interface'] + ":" + str(self.service_number + 1) + " " + self.virtual_ip 
 		result, output = self.ezbox.execute_command_on_host(cmd)
 		if result == False:
-			print "ERROR, Failed to add service"
-			print output
-			exit(1)
+			raise RuntimeError("ERROR, Failed to add service", output)
 			
 		# remove from the global service dictionary
 		del service.services_dictionary[self.virtual_ip]
@@ -399,9 +381,7 @@ class client:
 		# retrieve local mac address
 		result, self.mac_address = self.execute_command("cat /sys/class/net/ens6/address")
 		if result == False:
-			print "Error while retreive local address"
-			print self.mac_address
-			exit(1)
+			raise RuntimeError("Error while retreive local address", self.mac_address)
 		self.mac_address = self.mac_address.strip('\r')
 		self.mac_address = self.mac_address.replace(':', ' ')
 		
@@ -440,9 +420,7 @@ class client:
 		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
 		result, output = self.execute_command(cmd)
 		if result == False:
-			print "Error while sending a packet to NPS"
-			print output
-			exit(1)
+			raise RuntimeError("Error while sending a packet to NPS", output)
 
 def ip2int(addr):
 	return struct.unpack("!I", socket.inet_aton(addr))[0]
@@ -502,16 +480,14 @@ def read_test_arg(args):
 		install_file = 'alvs_debug.tar.gz'
 	if '-host_ip' in args:
 		if '-ezbox' in args:
-			print "dont use ezbox parameter with host_ip parameter"
-			exit(1)
+			raise RuntimeError("dont use ezbox parameter with host_ip parameter")
 		host_ip_index = args.index('-host_ip') + 1
 		host_ip = args[host_ip_index]
 		print "Host IP is: " + host_ip   
 	
 	if '-nps_ip' in args:
 		if '-ezbox' in args:
-			print "dont use ezbox parameter with nps_ip parameter"
-			exit(1)
+			raise RuntimeError("dont use ezbox parameter with nps_ip parameter")
 		nps_ip_index = args.index('-nps_ip') + 1
 		nps_ip = args[nps_ip_index]
 		print "NPS IP is: " + nps_ip
@@ -544,16 +520,14 @@ def read_test_arg(args):
 		host_ip = os.popen("host " + ezbox + "-host")
 		host_ip = host_ip.read()
 		if 'not found' in host_ip:
-			print "error - wrong ezbox name"
-			exit(1)
+			raise RuntimeError("error - wrong ezbox name")
 		host_ip = host_ip.split()
 		host_ip = host_ip[-1]
 		
 		nps_ip = os.popen("host " + ezbox + "-chip")
 		nps_ip = nps_ip.read()
 		if 'not found' in nps_ip:
-			print "error - wrong ezbox name"
-			exit(1)
+			raise RuntimeError("error - wrong ezbox name")
 		nps_ip = nps_ip.split()
 		nps_ip = nps_ip[-1]
 		
@@ -598,8 +572,7 @@ def read_test_arg(args):
 				print "ERROR, need to add setup num after -setup, example: -setup 3"
 				raise
 		else:
-			print "Please specify the ezbox name or setup number that you want to use (-setup setup_num or -ezbox ezbox_name )"
-			exit(1)
+			raise RuntimeError("Please specify the ezbox name or setup number that you want to use (-setup setup_num or -ezbox ezbox_name )")
 			
 	if '-reset' in args:
 		hard_reset = True
@@ -730,10 +703,10 @@ def compare_pcap_files(file_name_1, file_name_2):
 	
 	
 	if len(num_of_packets_1) != len(num_of_packets_2):
-		print "ERROR, num of packets on pcap files is not equal"
-		print "first pcap num of packets " + num_of_packets_1
-		print "second pcap num of packets " + num_of_packets_2
-		exit(1) 
+		err_msg =  "ERROR, num of packets on pcap files is not equal"
+		err_first_stat =  "first pcap num of packets " + num_of_packets_1
+		err_second_stat =  "second pcap num of packets " + num_of_packets_2
+		raise RuntimeError(err_msg , err_first_stat, err_second_stat)
 	
 	
 	data_1 = os.popen("tcpdump -r %s -XX "%file_name_1).read().split('\n')

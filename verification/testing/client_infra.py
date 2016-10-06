@@ -45,6 +45,7 @@ class HttpClient(player):
 
 	def clean_client(self):
 		self.remove_exec_script()
+		self.logout()
 	
 	def add_log(self, new_log):
 		self.logfile_name = new_log
