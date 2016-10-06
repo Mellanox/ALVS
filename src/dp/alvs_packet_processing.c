@@ -34,10 +34,7 @@
 */
 
 #include "alvs_packet_processing.h"
-
 #include "alvs_state_sync_backup.h"
-
-#define UDP_DEST 8848
 
 void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 {
@@ -112,7 +109,7 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint3
 			/* TODO - should we check that DIP is multicast? */
 			/* TODO - should we check TTL? */
 			udp_hdr = (struct udphdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
-			if (udp_hdr->dest == UDP_DEST) {
+			if (udp_hdr->dest == ALVS_STATE_SYNC_DST_PORT) {
 				buflen -= (ip_hdr->ihl << 2) + sizeof(struct udphdr);
 				alvs_state_sync_backup(frame, (uint8_t *)udp_hdr + sizeof(struct udphdr), buflen);
 			} else {
