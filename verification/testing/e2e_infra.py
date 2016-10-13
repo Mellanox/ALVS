@@ -175,7 +175,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 				ezbox.alvs_service_stop()
 				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 
-		ezbox.update_cp_params("--agt_enabled --port_type=%s"%ezbox.setup['nps_port_type'])
+		ezbox.update_cp_params("--agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
 		if test_config['modify_run_cpus']:
 			# validate chip is up
 			ezbox.alvs_service_start()
@@ -200,7 +200,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
-		ezbox.init_director(services)
+		ezbox.init_keepalived(services)
 		#wait for director	
 		time.sleep(15)
 		#flush director configurations
@@ -671,3 +671,34 @@ def client_checker(log_dir, expected={}, step_count = 1):
 					rc = False
 	return rc		
 
+def pcap_checker(results, expected):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	rc = True
+	for step,result in enumerate(results):
+		print "checking step %d:" %step
+		if 'count_pcap_checker' in result:
+			if result['count_pcap_checker'] !=  expected[step]['count_pcap_checker']:
+				print 'ERROR: the result for count_pcap_checker is %s, and was expected %s' %(result['count_pcap_checker'],expected[step]['count_pcap_checker'])
+				rc = False
+			else:
+				print "pcap count OK"
+		if 'compare_stats' in result:
+			if result['compare_stats'] <  expected[step]['compare_stats']:
+				print 'ERROR: the result for compare_stats is %s, and was expected %s' %(result['compare_stats'],expected[step]['compare_stats'])
+				rc = False
+			else:
+				print "Statistics OK"
+		if 'compare_packets_count' in result:
+			#multiple comparisons
+			comp_count = 0
+			for (curr_packets_count, curr_expected_packets_count) in zip((result['compare_packets_count'] ,expected[step]['compare_packets_count'])):
+				#packets count per server
+				for server in range(len(curr_packets_count)):
+					if curr_packets_count[server] < curr_expected_packets_count[server]:
+						print 'ERROR: in comparison number %d for server %d:\n The num of packets was captured is %d\n And num of packets was expected to catch is: %d ' %(comp_count, server, curr_packets_count[server], curr_expected_packets_count[server])
+						rc = False
+						
+				comp_count +=1
+	return rc
+				

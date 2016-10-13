@@ -262,6 +262,7 @@
     
     
     <case>
+        <ignore> <bug> 878689 </bug> </ignore>
         <info> test15 </info>
         <name> test_15 </name>
         <tags> Functional </tags>
@@ -279,6 +280,7 @@
     
     
     <case>
+        <ignore> <bug> 878689 </bug> </ignore>
         <info> test16 </info>
         <name> test_16 </name>
         <tags> Functional </tags>

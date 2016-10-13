@@ -42,6 +42,17 @@ class HttpClient(player):
 		self.connect()
 		self.clear_arp_table()
 		self.copy_exec_script()
+		
+	def send_packet_to_nps(self, pcap_file):
+		logging.log(logging.DEBUG,"Send packet to NPS") 
+		local_dir = os.getcwd()
+		cmd = "tcpreplay --intf1=ens6 " + local_dir + "/" + pcap_file
+		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
+		result, output = self.execute_command(cmd)
+		if result == False:
+			print "Error while sending a packet to NPS"
+			print output
+			exit(1)
 
 	def clean_client(self):
 		self.remove_exec_script()
@@ -76,4 +87,14 @@ class HttpClient(player):
 	def remove_exec_script(self):
 		cmd = "rm -rf %s/%s" %(self.exe_path, self.exe_script)
 		self.execute_command(cmd)
+	
+	def get_mac_adress(self):
+		[result, mac_address] = self.execute_command("cat /sys/class/net/ens6/address")
+		if result == False:
+			print "Error while retreive local address"
+			print mac_address
+			exit(1)
+		mac_address = mac_address.strip()
+		mac_address = mac_address.replace(':', ' ')
+		return mac_address
 

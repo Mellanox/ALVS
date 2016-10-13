@@ -49,7 +49,6 @@ ALVS_SERVERS_MAX_ENTRIES	 = ALVS_SERVICES_MAX_ENTRIES*1024
 ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
 NUM_OF_INTERFACES			 = 5
-
 ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
 NW_NUM_OF_IF_STATS			 = 20
 ALVS_NUM_OF_ALVS_ERROR_STATS = 40
@@ -63,16 +62,23 @@ EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*N
 EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
 
 CLOSE_WAIT_DELETE_TIME = 16 #todo need to change it back to 16 after a fix to aging time.. 
+
 FIN_FLAG_DELETE_TIME = 60
+
+
 	
 #===============================================================================
 # Classes
 #===============================================================================
+
 class ezbox_host:
+	
 	def __init__(self, setup_id):
+
 		self.setup = get_ezbox_names(setup_id)
 		self.ssh_object = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.run_app_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
+		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
 		self.install_path = "alvs_install"
@@ -116,10 +122,11 @@ class ezbox_host:
 		self.zero_all_ipvs_stats()
 		self.flush_ipvs()
 		if use_director:
-			self.clean_director()
+			self.clean_keepalived()
 			
 		if stop_ezbox:
 			self.alvs_service_stop()
+		
 		self.clean_vips()
 		self.logout()
 		
@@ -225,6 +232,7 @@ class ezbox_host:
 		outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
 		outfile.write('########################################################################\n')
 		outfile.write('# Empty configuration\n')
+
 		outfile.close()
 		self.execute_command_on_host('/etc/init.d/ldirectord stop')
 		self.copy_file_to_host(conf_filename, conf_folder+conf_filename)
@@ -703,8 +711,8 @@ class ezbox_host:
 		self.execute_command_on_host("ipvsadm -D -t %s:%s"%(vip,port))
 		time.sleep(2)
 
-	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' '):
-		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt))
+	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
+		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
 		time.sleep(2)
 
 	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
@@ -858,6 +866,7 @@ class ezbox_host:
 		                                             		  	     			read=0, 
 		                                             		  	     			use_shadow_group=0).result['long_counter_config']['counters']
 
+		
 		return sched_connections_on_server[0]['value']
 
 	def get_interface_stats(self, interface_id):
@@ -1105,6 +1114,7 @@ class SshConnect:
 		self.ssh_object = pxssh.pxssh()
 		self.connection_established = False
 
+
 	def connect(self):
 		print "Connecting to : " + self.ip_address + ", username: " + self.username + " password: " + self.password
 		self.ssh_object.login(self.ip_address, self.username, self.password, login_timeout=120)
@@ -1260,6 +1270,14 @@ class player(object):
 
 	def connect(self):
 		self.ssh.connect()
+		# retrieve local mac address
+		result, self.mac_address = self.ssh.execute_command("cat /sys/class/net/ens6/address")
+		if result == False:
+			print "Error while retreive local address"
+			print self.mac_address
+			exit(1)
+		
+		self.mac_address = self.mac_address[0:17]
 
 	def clear_arp_table(self):
 		self.ssh.execute_command('ip neigh flush all')
@@ -1271,7 +1289,7 @@ class player(object):
 		return self.ip
 
 	def execute_command(self, cmd):
-		self.ssh.execute_command(cmd)
+		return self.ssh.execute_command(cmd)
 		
 	def copy_file_to_player(self, filename, dest):
 
@@ -1282,6 +1300,68 @@ class player(object):
 		return rc
 
 
+class tcp_packet:
+	
+	packets_counter = 0
+	
+	def __init__(self, mac_da, mac_sa, ip_src, ip_dst, tcp_source_port, tcp_dst_port, tcp_reset_flag = False, tcp_fin_flag = False, tcp_sync_flag = False, packet_length = 64):
+		self.mac_sa = mac_sa
+		self.mac_da = mac_da
+		
+		self.ip_src = ip_src
+		# change the format of the ip to "xx xx xx xx" instead of "xxx.xxx.xxx.xxx"
+		if '.' in self.ip_src:
+			ip_src = ip_src.split('.')
+			self.ip_src = '%02x %02x %02x %02x'%(int(ip_src[0]), int(ip_src[1]), int(ip_src[2]), int(ip_src[3]))
+		
+		self.ip_dst = ip_dst
+		self.tcp_source_port = tcp_source_port
+		self.tcp_dst_port = tcp_dst_port
+		self.tcp_reset_flag = tcp_reset_flag
+		self.tcp_fin_flag = tcp_fin_flag
+		self.tcp_sync_flag = tcp_sync_flag
+		self.packet_length = packet_length
+		self.packet = ''
+		self.pcap_file_name = 'verification/testing/dp/pcap_files/packet' + str(self.packets_counter) + '.pcap'
+		tcp_packet.packets_counter += 1
+	
+	def generate_packet(self):
+		logging.log(logging.DEBUG, "generating the packet, packet size is %d"%self.packet_length)
+		l2_header = self.mac_da + ' ' + self.mac_sa + ' ' + '08 00'
+		data = '45 00 00 2e 00 00 40 00 40 06 00 00 ' + self.ip_src + ' ' + self.ip_dst  
+		data = data.split()
+		data = map(lambda x: int(x,16), data)
+		ip_checksum = checksum(data)
+		ip_checksum = '%04x'%ip_checksum
+		ip_header = '45 00 00 2e 00 00 40 00 40 06 ' + ip_checksum[0:2] + ' ' + ip_checksum[2:4] + ' ' + self.ip_src + ' ' + self.ip_dst
+		
+		flag = 0
+		if self.tcp_fin_flag:
+			flag += 1
+		if self.tcp_sync_flag:
+			flag += 2	
+		if self.tcp_reset_flag:
+			flag += 4
+		flag = '%02x'%flag
+
+		data = self.tcp_source_port + ' ' + self.tcp_dst_port + ' 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC 00 00 00 00'
+		data = data.split()
+		data = map(lambda x: int(x,16), data)
+		tcp_checksum = checksum(data)
+		tcp_checksum = '%04x'%tcp_checksum
+		tcp_header = self.tcp_source_port + ' ' + self.tcp_dst_port + ' 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC ' + tcp_checksum[0:2] + ' ' + tcp_checksum[2:4] + ' 00 00'
+		
+		packet = l2_header + ' ' + ip_header + ' ' + tcp_header
+		temp_length = len(packet.split())
+		zero_padding_length = self.packet_length - temp_length
+		for i in range(zero_padding_length):
+			packet = packet + ' 00'
+			
+		self.packet = packet[:]
+		print self.packet
+		string_to_pcap_file(self.packet, self.pcap_file_name)
+		
+		return self.packet
 #===============================================================================
 # Setup Functions
 #===============================================================================
@@ -1388,4 +1468,120 @@ def compile(clean=True, debug=False):
 	print "Compilation Passed"
 	print
 	
+def compare_pcap_files(file_name_1, file_name_2):
+	num_of_packets_1 = os.popen("tcpdump -r %s"%file_name_1).read().strip('\n')
+	num_of_packets_2 = os.popen("tcpdump -r %s"%file_name_1).read().strip('\n')
+	
+	
+	if len(num_of_packets_1) != len(num_of_packets_2):
+		print "ERROR, num of packets on pcap files is not equal"
+		print "first pcap num of packets " + num_of_packets_1
+		print "second pcap num of packets " + num_of_packets_2
+		exit(1) 
+	
+	
+	data_1 = os.popen("tcpdump -r %s -XX "%file_name_1).read().split('\n')
+	data_2 = os.popen("tcpdump -r %s -XX "%file_name_2).read().split('\n')
+	
+	
+	for i in range(len(data_1)):
+		print i
+		print data_1[i]
+		print data_2[i]
+		
+		if data_1[i] in num_of_packets_1: # this line we are not comparing (description of the packet, includes imestamp)
+			continue
+	   
+		if data_1[i] != data_2[i]:
+			return False
+		
+	return True
+	 
+def check_packets_on_pcap(pcap_file_name, ssh_object=None):
+	cmd = "tcpdump -r %s | wc -l "%pcap_file_name
+	logging.log(logging.DEBUG,"executing: "+cmd)
+	
+	if ssh_object == None:
+		output = os.popen(cmd)
+		output = output.read()
+		try:
+			num_of_packets_received = int(output.split('\n')[1])
+			return num_of_packets_received
+		except:
+			print "ERROR, cannot get num of packets that was received"
+			print "output: " + output
+			return -1
+	else:
+		ssh_object.sendline(cmd)
+		ssh_object.prompt()
+		output = ssh_object.before
+		logging.log(logging.DEBUG,"output: "+output)
+	
+		try:
+			num_of_packets_received = int(output.split('\n')[2])
+			return num_of_packets_received
+		except:
+			print "ERROR, cannot get num of packets that was received"
+			print "output: " + output
+			return -1
+		
+pcap_counter = 0		
+def create_pcap_file(packets_list, output_pcap_file_name=None):
+	# create a temp pcap directory for pcap files
+	if not os.path.exists("verification/testing/dp/pcap_files"):
+		os.makedirs("verification/testing/dp/pcap_files")
 
+	if output_pcap_file_name == None:
+		global pcap_counter
+		output_pcap_file_name = 'verification/testing/dp/pcap_files/temp_pcap_%d.pcap'%pcap_counter
+		pcap_counter += 1
+	
+	# create temp text file
+	os.system("rm -f "+ output_pcap_file_name)
+	
+	for packet_str in packets_list:
+		cmd = "echo 0000	" + packet_str + " >> verification/testing/dp/temp.txt"
+		os.system(cmd)
+
+	os.system("echo 0000 >> verification/testing/dp/temp.txt")
+	
+	cmd = "text2pcap " + "verification/testing/dp/temp.txt " + output_pcap_file_name + ' &> /dev/null'
+	os.system(cmd)
+	os.system("rm -f verification/testing/dp/temp.txt")
+	
+	return output_pcap_file_name
+
+def string_to_pcap_file(packet_string, output_pcap_file):
+	# create a temp pcap directory for pcap files
+	if not os.path.exists("verification/testing/dp/pcap_files"):
+		os.makedirs("verification/testing/dp/pcap_files")
+		
+	os.system("rm -f " + output_pcap_file)
+	cmd = "echo 0000	" + packet_string + " > tmp.txt"   
+	os.system(cmd)
+	cmd = "text2pcap " + "tmp.txt " + output_pcap_file + ' &> /dev/null'
+	os.system(cmd)
+	os.system("rm -f tmp.txt")
+
+def ip_to_hex_display(ip):
+	splitted_ip = ip.split('.')
+	return '%02x %02x %02x %02x'%(int(splitted_ip[0]), int(splitted_ip[1]), int(splitted_ip[2]), int(splitted_ip[3]))
+	
+def add2mac(addr,num):
+	temp = mac2int(addr)
+	temp = temp + num
+	return int2mac(temp)
+
+def ip2int(addr):
+	return struct.unpack("!I", socket.inet_aton(addr))[0]
+
+def carry_around_add(a, b):
+	c = a + b
+	return (c & 0xffff) + (c >> 16)
+
+def checksum(msg):
+	s = 0
+	for i in range(0, len(msg), 2):
+		w = msg[i+1] + (msg[i] << 8)
+		s = carry_around_add(s, w)
+	return ~s & 0xffff
