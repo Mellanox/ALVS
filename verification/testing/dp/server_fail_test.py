@@ -2,87 +2,103 @@
 
 import sys
 sys.path.append("verification/testing")
-from test_infra import * 
 import random
+from common_infra import *
+from e2e_infra import *
 
-ezbox,args = init_test(test_arguments=sys.argv)
-scenarios_to_run = args['scenarios']
+server_count   = 3
+client_count   = 1
+service_count  = 3
 
-# each setup can use differen VMs
-ip_list = get_setup_list(args['setup_num'])
+def user_init(setup_num):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		
+	dict = generic_init(setup_num, service_count, server_count, client_count)
+	
+	w = 1
+	for i,s in enumerate(dict['server_list']):
+		s.vip = dict['vip_list'][i]
+		s.weight = w
+	
+	return dict
 
-# each setup can use different the virtual ip 
-virtual_ip_address_1 = get_setup_vip(args['setup_num'], 0)
-virtual_ip_address_2 = get_setup_vip(args['setup_num'], 1)
-virtual_ip_address_3 = get_setup_vip(args['setup_num'], 2)
+def main():
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	config = fill_default_config(generic_main())
+	
+	dict = user_init(config['setup_num'])
+	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "Test Passed"
+	
 
-# create servers
-server1 = real_server(management_ip=ip_list[0]['hostname'], data_ip=ip_list[0]['ip'])
- 
-# create services on ezbox
-first_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_1, port='80', schedule_algorithm = 'source_hash')
-first_service.add_server(server1, weight='1')
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	port = '80'
+	sched_algorithm = 'sh'
 
-second_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_2, port='80', schedule_algorithm = 'source_hash')
-second_service.add_server(server1, weight='1')
+	print "service %s is set with %s scheduling algorithm" %(vip_list[0],sched_algorithm)
+	for vip in vip_list:
+		ezbox.add_service(vip, port, sched_alg=sched_algorithm, sched_alg_opt='')
+	
+	for server in server_list:
+		ezbox.add_server(server.vip, port, server.ip, port)
 
-third_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_3, port='80', schedule_algorithm = 'source_hash')
-third_service.add_server(server1, weight='1')
+	# create packet
+	data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
+	                         mac_sa=client_list[0].mac_address.replace(':',' '),
+	                         ip_dst=ip_to_hex_display(vip_list[0]),
+	                         ip_src=ip_to_hex_display(client_list[0].ip),
+	                         tcp_source_port = '00 00',
+	                         tcp_dst_port = '00 50', # port 80
+	                         packet_length=155)
+	data_packet.generate_packet()
+	
+	data_packet_to_the_second_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
+	                                               mac_sa=client_list[0].mac_address.replace(':',' '),
+	                                               ip_dst=ip_to_hex_display(vip_list[1]),
+	                                               ip_src=ip_to_hex_display(client_list[0].ip),
+	                                               tcp_source_port = '00 00',
+	                                               tcp_dst_port = '00 50', # port 80
+	                                               packet_length=113)
+	data_packet_to_the_second_service.generate_packet()
+	
+	data_packet_to_the_third_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
+	                                               mac_sa=client_list[0].mac_address.replace(':',' '),
+	                                               ip_dst=ip_to_hex_display(vip_list[2]),
+	                                               ip_src=ip_to_hex_display(client_list[0].ip),
+	                                               tcp_source_port = '00 00',
+	                                               tcp_dst_port = '00 50', # port 80
+	                                               packet_length=157)
+	data_packet_to_the_third_service.generate_packet()
 
-# set the director
-# ezbox.init_director(service.services_dictionary)
-
-# create client
-client_object = client(management_ip=ip_list[3]['hostname'], data_ip=ip_list[3]['ip'])
-
-# create packet
-data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
-                         mac_sa=client_object.mac_address,
-                         ip_dst=first_service.virtual_ip_hex_display,
-                         ip_src=client_object.hex_display_to_ip,
-                         tcp_source_port = '00 00',
-                         tcp_dst_port = '00 50', # port 80
-                         packet_length=155)
-data_packet.generate_packet()
-
-data_packet_to_the_second_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
-                                               mac_sa=client_object.mac_address,
-                                               ip_dst=second_service.virtual_ip_hex_display,
-                                               ip_src=client_object.hex_display_to_ip,
-                                               tcp_source_port = '00 00',
-                                               tcp_dst_port = '00 50', # port 80
-                                               packet_length=113)
-data_packet_to_the_second_service.generate_packet()
-
-data_packet_to_the_third_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
-                                               mac_sa=client_object.mac_address,
-                                               ip_dst=third_service.virtual_ip_hex_display,
-                                               ip_src=client_object.hex_display_to_ip,
-                                               tcp_source_port = '00 00',
-                                               tcp_dst_port = '00 50', # port 80
-                                               packet_length=157)
-data_packet_to_the_third_service.generate_packet()
-
-##########################################################################
-# first check: delete server without existing connection
-##########################################################################
-if 1 in scenarios_to_run:
+	##########################################################################
+	# first check: delete server without existing connection
+	##########################################################################
 	print "\nfirst check: delete server without existing connection"
 	      
 	# delete server
 	print "Remove a server from service"
-	first_service.remove_server(server1)
+	ezbox.delete_server(server_list[0].vip, port, server_list[0].ip, port)
+# 	first_service.remove_server(server1)
 	        
 	# capture all packets on server
-	server1.capture_packets_from_service(service=first_service)
+	server_list[0].capture_packets_from_service(server_list[0].vip)
 	        
 	# send packet to the service
 	print "Send a packet to service"
-	client_object.send_packet_to_nps(data_packet.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet.pcap_file_name)
 	          
 	# check if packets were received
 	print "Check if packet was received on server"
-	packets_received = server1.stop_capture()
+	packets_received = server_list[0].stop_capture()
 	if packets_received != 0:
 	    print "ERROR, alvs didnt forward the packets to server"
 	    exit(1)
@@ -90,62 +106,60 @@ if 1 in scenarios_to_run:
 	print "Packet wasn't received on server"
 	 
 	# verify that connection wasn't made
-	connection=ezbox.get_connection(ip2int(first_service.virtual_ip), first_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[0]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection != None:
 	    print "ERROR, connection was created, even though server is not exist\n"
 	    exit(1)
-	     
-	# TODO add check statistics
-
-##########################################################################
-# second check: delete service without existing connection
-##########################################################################
-if 2 in scenarios_to_run:
+		     
+		# TODO add check statistics
+	
+	##########################################################################
+	# second check: delete service without existing connection
+	##########################################################################
 	print "\nsecond check: delete service without existing connection"
 	      
 	# delete server
 	print "Delete a service"
-	first_service.remove_service()
+	ezbox.delete_service(vip_list[0], port)
 	        
 	# capture all packets on server
-	server1.capture_packets_from_service(service=first_service)
+	server_list[0].capture_packets_from_service(server_list[0].vip)
 	        
 	# send packet
 	print "Send a packet to service"
-	client_object.send_packet_to_nps(data_packet.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet.pcap_file_name)
 	    
 	time.sleep(1)
 	    
 	# check if packets were received on server
 	print "Check if packet was received on server"
-	packets_received = server1.stop_capture()
+	packets_received = server_list[0].stop_capture()
 	if packets_received != 0:
 	    print "ERROR, alvs didnt forward the packets to server"
 	    exit(1)
 	            
 	print "Packet wasn't received on server"
-       
-##########################################################################
-# third check: create a connection and then delete server
-##########################################################################
-if 3 in scenarios_to_run:
+	       
+	##########################################################################
+	# third check: create a connection and then delete server
+	##########################################################################
 	print "\nthird check: create a connection and then delete server"
 	# capture all packets on the server
-	server1.capture_packets_from_service(service=second_service)
+	server_list[1].capture_packets_from_service(server_list[1].vip)
 	        
 	# send a packet and create a connection
 	print "Create a connection"
-	client_object.send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
 	  
 	# verify that connection was made
 	time.sleep(1)
-	connection=ezbox.get_connection(ip2int(second_service.virtual_ip), second_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[1]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasn't created properly\n"
 	    exit(1)
 	    
 	# check if packet was received on server
-	packets_received = server1.stop_capture()
+	packets_received = server_list[1].stop_capture()
 	if packets_received == 0:
 	    print "ERROR, alvs didnt forward the packets to server\n"
 	    exit(1)
@@ -153,19 +167,19 @@ if 3 in scenarios_to_run:
 	      
 	# delete server
 	print "Delete the connection server from the service"
-	second_service.remove_server(server1)
+	ezbox.delete_server(server_list[1].vip, port, server_list[1].ip, port)
 	        
 	# capture all packets on the server
-	server1.capture_packets_from_service(service=second_service)
+	server_list[1].capture_packets_from_service(server_list[1].vip)
 	        
 	# send another packet and create a connection
 	print "Send a packet to service"
-	client_object.send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
 	      
 	time.sleep(0.5)
 	# check if packets were received on server  
 	print "Check if packet was received on server"
-	packets_received = server1.stop_capture()
+	packets_received = server_list[1].stop_capture()
 	if packets_received != 0:
 	    print "ERROR, alvs didnt forward the packets to server"
 	    exit(1)
@@ -173,7 +187,7 @@ if 3 in scenarios_to_run:
 	print "Packet wasn't received on server"
 	       
 	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(second_service.virtual_ip), second_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[1]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasn't created properly\n"
 	    exit(1)
@@ -181,64 +195,62 @@ if 3 in scenarios_to_run:
 	print "Verify that the connection was deleted after 16 seconds"    
 	time.sleep(CLOSE_WAIT_DELETE_TIME)
 	# verify that connection was deleted
-	connection=ezbox.get_connection(ip2int(second_service.virtual_ip), second_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[1]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection != None:
 	    print "ERROR, connection wasn't deleted properly\n"
 	    exit(1)
-      
-##########################################################################
-# fourth check: create a connection and then delete service
-##########################################################################
-if 4 in scenarios_to_run:
+	      
+	##########################################################################
+	# fourth check: create a connection and then delete service
+	##########################################################################
 	print "\nfourth check - create a connection and then delete service"
 	       
 	# add the deleted server from last check
-	second_service.add_server(server1)
+	ezbox.add_server(server_list[1].vip, port, server_list[1].ip, port)
 	      
 	# send a packet and create a connection
 	print "Create a new connection"
-	client_object.send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
 	       
 	time.sleep(CLOSE_WAIT_DELETE_TIME) 
 	         
 	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(second_service.virtual_ip), second_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[1]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasn't created properly\n"
 	    exit(1) # todo - failing due to bug 812957
 	      
 	# delete service
 	print "Delete Service"
-	second_service.remove_service()
+	ezbox.delete_service(vip_list[1], port)
 	        
 	# capture all packets on the server
-	server1.capture_packets_from_service(service=second_service)
+	server_list[1].capture_packets_from_service(server_list[1].vip)
 	        
 	# send another packet and create a connection
 	print "Send packet to service"
-	client_object.send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_second_service.pcap_file_name)
 	      
 	time.sleep(1)
 	# check if packets were received on server  
 	print "Check if packet was received on server"
-	packets_received = server1.stop_capture()
+	packets_received = server_list[1].stop_capture()
 	if packets_received != 0:
 	    print "ERROR, alvs forward the packets to server"
 	    exit(1)
-        
-##########################################################################
-# fifth check: create a connection, delete a server, 
-# send a packet and add this server again, send again packet 
-# and check connection after 16 seconds
-##########################################################################
-if 5 in scenarios_to_run:
+	        
+	##########################################################################
+	# fifth check: create a connection, delete a server, 
+	# send a packet and add this server again, send again packet 
+	# and check connection after 16 seconds
+	##########################################################################
 	print "\nfifth check - check connectivity after delete and create server "
 	   
 	print "Send a packet - create a connection"
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	   
 	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(third_service.virtual_ip), third_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[2]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasnt created"
 	    exit(1)
@@ -247,10 +259,10 @@ if 5 in scenarios_to_run:
 	stats_before = ezbox.get_error_stats()
 	 
 	print "Delete server from service"    
-	third_service.remove_server(server1)
+	ezbox.delete_server(server_list[2].vip, port, server_list[2].ip, port)
 	   
 	# send a packet
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	 
 	# check that packet was dropped 
 	print "Check drop statistics"
@@ -263,64 +275,65 @@ if 5 in scenarios_to_run:
 	     
 	# add server back
 	print "Add the server back again"
-	third_service.add_server(server1)
+	ezbox.add_server(server_list[2].vip, port, server_list[2].ip, port)
 	 
 	# capture packets from third service
-	server1.capture_packets_from_service(service=third_service)
+	server_list[2].capture_packets_from_service(server_list[2].vip)
 	    
 	# send a packet
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	 
 	# check if packets were received on server  
 	time.sleep(0.5)
 	print "Check if packet was received on server"
-	packets_received = server1.stop_capture()
+	packets_received = server_list[2].stop_capture()
 	if packets_received == 0:
 	    print "ERROR, alvs forward the packets to server"
 	    exit(1)
 	     
 	time.sleep(CLOSE_WAIT_DELETE_TIME)
 	        
-	connection = ezbox.get_connection(ip2int(third_service.virtual_ip), third_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection = ezbox.get_connection(ip2int(vip_list[2]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasnt supposed to be deleted"
 	    exit(1)
-   
-##########################################################################
-# sixth check: create a connection, delete a service, 
-# send a packet and add this service again, send again packet 
-# and check connection after 16 seconds
-##########################################################################
-if 6 in scenarios_to_run:
+	   
+	##########################################################################
+	# sixth check: create a connection, delete a service, 
+	# send a packet and add this service again, send again packet 
+	# and check connection after 16 seconds
+	##########################################################################
 	print "\nsixth check - check connectivity after delete and create service "
 	  
 	print "Send a packet - create a connection"
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	  
 	# verify that connection was made
-	connection=ezbox.get_connection(ip2int(third_service.virtual_ip), third_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection=ezbox.get_connection(ip2int(vip_list[2]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasnt created"
 	    exit*(1)
 	  
 	print "Delete the service"    
-	third_service.remove_service()
+	ezbox.delete_service(vip_list[2], port)
 	  
 	# send a packet
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	  
 	# create the service again
-	third_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_3, port='80', schedule_algorithm = 'source_hash')
-	third_service.add_server(server1, weight='1')
+	ezbox.add_service(vip_list[2], port, sched_alg=sched_algorithm, sched_alg_opt='')
+	ezbox.add_server(server_list[2].vip, port, server_list[2].ip, port)
+# 	third_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_3, port='80', schedule_algorithm = 'source_hash')
+# 	third_service.add_server(server1, weight='1')
 	  
 	# save stats before packet
 	stats_before = ezbox.get_services_stats(service_id=2)
 	server_stats_before = ezbox.get_servers_stats(server_id=2)
 	
-	client_object.send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet_to_the_third_service.pcap_file_name)
 	
 	time.sleep(0.5)
-	connection = ezbox.get_connection(ip2int(third_service.virtual_ip), third_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection = ezbox.get_connection(ip2int(vip_list[2]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasnt supposed to be deleted"
 	    exit(1)
@@ -345,21 +358,15 @@ if 6 in scenarios_to_run:
 	
 	time.sleep(CLOSE_WAIT_DELETE_TIME)
 	      
-	connection = ezbox.get_connection(ip2int(third_service.virtual_ip), third_service.port, ip2int(client_object.data_ip) , 0, 6)
+	connection = ezbox.get_connection(ip2int(vip_list[2]), port, ip2int(client_list[0].ip) , 0, 6)
 	if connection == None:
 	    print "ERROR, connection wasnt supposed to be deleted"
 	    exit(1)
 	
 	# check if packet was received on server
-	packets_received = server1.stop_capture()
+	packets_received = server_list[2].stop_capture()
 	if packets_received == 0:
 	    print "ERROR, alvs didnt forward the packets to server\n"
-	    exit(1)
- 
-print 
-print "Test Passed"
-
-# checkers
-# server1.compare_received_packets_to_pcap_file(pcap_file='p1.pcap', pcap_file_on_server='/tmp/server_dump.pcap')
-
-ezbox.clean()
+	    exit(1) 
+	
+main()

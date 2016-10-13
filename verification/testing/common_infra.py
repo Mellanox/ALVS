@@ -118,7 +118,7 @@ class ezbox_host:
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
-	def clean(self, use_director=False, stop_ezbox=False):
+	def clean(self, use_director=True, stop_ezbox=False):
 		self.zero_all_ipvs_stats()
 		self.flush_ipvs()
 		if use_director:
