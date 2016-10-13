@@ -5,7 +5,6 @@
             <info> Regression </info>
             <name> Regression </name>
             <owner> anat </owner>
-            <tags> basic </tags>
 		    <pre>
 		           <type> reg_exec_func </type>
 		           <name> run_test_wrapper </name>

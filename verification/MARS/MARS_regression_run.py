@@ -33,9 +33,8 @@ def main():
         print 'ERROR: setup_num was not given'
         exit(1)
     
-    #'/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\setup_cli
     command_line = 'python2.7 '\
-                   '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/setup_cli.py '\
+                   '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
                    '--cmd start '\
                    '--setup ALVS' + options.setup_num + \
                    ' --conf alvs_'+ options.setup_num +'.setup '\
@@ -51,8 +50,8 @@ def main():
     if options.tags:
         command_line += ' --enable_tags "('
         for tag in options.tags:
-            command_line += tag + ', '
-        command_line = command_line[:len(command_line)-2] + ')"'
+            command_line += tag + ','
+        command_line = command_line[:len(command_line)-1] + ')"'
     
     if options.file_name:
         command_line += ' --meinfo_file_name='
@@ -68,7 +67,7 @@ def main():
         print "Executing:"
         print command_line
         s.sendline (command_line)
-        s.prompt(timeout=600)         # match the prompt
+        s.prompt(timeout=36000)         # match the prompt
         print (s.before)     # print everything before the prompt.
         s.logout()
     
