@@ -79,7 +79,6 @@ enum alvs_service_output_result {
 #define ALVS_STATE_SYNC_DST_IP           0xe0000051/*224.0.0.81*/
 #define ALVS_STATE_SYNC_SRC_PORT         8848
 #define ALVS_STATE_SYNC_DST_PORT         8848
-#define ALVS_STATE_SYNC_DST_MAC          {0x01, 0x00, 0x5e, 0x00, 0x00, 0x51}
 
 enum alvs_conn_sync_status {
 	ALVS_CONN_SYNC_NEED              = 0,

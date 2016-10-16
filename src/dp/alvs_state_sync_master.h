@@ -42,6 +42,7 @@
 #include "alvs_server.h"
 #include "application_search_defs.h"
 #include "nw_routing.h"
+#include "nw_mc.h"
 
 /******************************************************************************
  * \brief       update network header (ipv4, udp) length fields according to
@@ -92,39 +93,6 @@ void alvs_state_sync_set_net_hdr(struct net_hdr *net_hdr_info, int conn_count, i
 
 	/*update length fields and checksum*/
 	alvs_state_sync_update_net_hdr_len(net_hdr_info, conn_count);
-}
-
-/******************************************************************************
- * \brief       perform network interface lookup and update ethernet header
- *              with source and destination mac addresses.
- *
- * \return      void
- *
- */
-/*TODO move this logic to a new nw multicast routing module.
- * it should perform nw interface lookup, update L2 headers and route.
- * port logical id should be taken from application info table.
- */
-static __always_inline
-void alvs_state_sync_set_eth_hdr(struct ether_header *eth_header)
-{
-	uint8_t dst_eth_addr[6] = ALVS_STATE_SYNC_DST_MAC;
-
-	/*lookup for network interface*/
-	if (unlikely(nw_interface_lookup(USER_BASE_LOGICAL_ID) != 0)) {
-		alvs_write_log(LOG_DEBUG, "sync master fail nw interface lookup - port id =%d!", 0);
-		return;
-	}
-
-	/*fill ethernet source MAC*/
-	ezdp_mem_copy((uint8_t *)eth_header->ether_shost,
-		      cmem_nw.interface_result.mac_address.ether_addr_octet,
-		      sizeof(struct ether_addr));
-
-	eth_header->ether_type = ETHERTYPE_IP;
-
-	/*fill ethernet destination MAC*/
-	ezdp_mem_copy((uint8_t *)eth_header, dst_eth_addr, sizeof(struct ether_addr));
 }
 
 /******************************************************************************
@@ -217,16 +185,14 @@ void alvs_state_sync_first(in_addr_t source_ip, uint8_t sync_id)
 	struct net_hdr  *net_hdr_info;
 	struct alvs_state_sync_conn *sync_conn;
 	struct alvs_state_sync_header *sync_hdr;
-	struct ether_header *eth_header;
 
 	cmem_alvs.conn_sync_state.amount_buffers = 1;
 	cmem_alvs.conn_sync_state.conn_count = 1;
 
 	/*partition first buffer*/
-	eth_header = (struct ether_header *)frame_data;
-	net_hdr_info = (struct net_hdr *)((uint8_t *)eth_header + sizeof(struct ether_header));
-	sync_hdr = (struct alvs_state_sync_header *)((uint8_t *)net_hdr_info + sizeof(struct net_hdr));
-	sync_conn = (struct alvs_state_sync_conn *)((uint8_t *)sync_hdr + sizeof(struct alvs_state_sync_header));
+	net_hdr_info = (struct net_hdr *)((uint8_t *)frame_data);
+	sync_hdr     = (struct alvs_state_sync_header *)((uint8_t *)net_hdr_info + sizeof(struct net_hdr));
+	sync_conn    = (struct alvs_state_sync_conn *)((uint8_t *)sync_hdr + sizeof(struct alvs_state_sync_header));
 	cmem_alvs.conn_sync_state.current_base = (uint8_t *)sync_conn + sizeof(struct alvs_state_sync_conn);
 
 	/*set length*/
@@ -234,9 +200,6 @@ void alvs_state_sync_first(in_addr_t source_ip, uint8_t sync_id)
 		sizeof(struct net_hdr) +
 		sizeof(struct alvs_state_sync_header) +
 		sizeof(struct alvs_state_sync_conn);
-
-	/*set eth header*/
-	alvs_state_sync_set_eth_hdr(eth_header);
 
 	/*set net header*/
 	alvs_state_sync_set_net_hdr(net_hdr_info, 1, source_ip);
@@ -273,8 +236,7 @@ void alvs_state_sync_send_single(in_addr_t source_ip, uint8_t sync_id)
 	}
 
 	alvs_write_log(LOG_DEBUG, "send single conn sync frame");
-	/*TODO should be replaced with a call to nw multicast module*/
-	nw_send_frame_to_network(&frame, frame_data, USER_BASE_LOGICAL_ID);
+	nw_mc_handle(&frame);
 }
 
 /******************************************************************************
@@ -379,9 +341,8 @@ void alvs_state_sync_send_aggr(void)
 		}
 	}
 
-	alvs_write_log(LOG_DEBUG, "send aggregated sync frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);
-	/*TODO should be replaced with a call to nw multicast module*/
-	nw_send_frame_to_network(&frame, frame_data, USER_BASE_LOGICAL_ID);
+	alvs_write_log(LOG_DEBUG, "send aggregated sync MC frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);
+	nw_mc_handle(&frame);
 }
 
 /******************************************************************************
