@@ -8,13 +8,13 @@
 ######################################
 # files
 ALVS_BIN				= $(CURDIR)/../bin
-ALVS_DP_BIN				= $(ALVS_BIN)/alvs_dp
-ALVS_DAEMON_BIN			= $(ALVS_BIN)/alvs_daemon
+ALVS_DP_BIN				= alvs_dp
+ALVS_DAEMON_BIN			= alvs_daemon
 
 # destination
 DEST_BASE				= $(CURDIR)/debian/alvs
-ALVS_DP_BIN_DEST		= $(DEST_BASE)/usr/lib/alvs/
-ALVS_DAEMON_BIN_DEST	= $(DEST_BASE)/usr/sbin/
+ALVS_DP_BIN_DEST		= $(DEST_BASE)/usr/lib/alvs
+ALVS_DAEMON_BIN_DEST	= $(DEST_BASE)/usr/sbin
 
 
 ######################################
@@ -37,8 +37,8 @@ define copy_alvs_files=
 	# copy files to mirror folders
 	# ----------------------------
 	# bins
-	install -m 775 $(ALVS_DP_BIN)* $(ALVS_DP_BIN_DEST)
-	install -m 775 $(ALVS_DAEMON_BIN)* $(ALVS_DAEMON_BIN_DEST)
+	install -m 775 $(ALVS_BIN)/$(ALVS_DP_BIN)* $(ALVS_DP_BIN_DEST)/$(ALVS_DP_BIN)
+	install -m 775 $(ALVS_BIN)/$(ALVS_DAEMON_BIN)* $(ALVS_DAEMON_BIN_DEST)/$(ALVS_DAEMON_BIN)
 	# config
 	cp -f $(CURDIR)/cfg/alvs_rsyslog.conf  $(DEST_BASE)/etc/rsyslog.d/alvs.conf
 	cp -f $(CURDIR)/cfg/alvs_sysctl.conf   $(DEST_BASE)/etc/sysctl.d/alvs.conf
