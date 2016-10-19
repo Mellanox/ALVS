@@ -176,21 +176,21 @@ class Test29(Tester):
 	
 		# TODO: test weight
 		expected_dict[0] = {'client_response_count':g_request_count,
-							'g_client_count': g_client_count,
+							'client_count': g_client_count,
 							'no_connection_closed': True,
 							'no_404': True,
 							'server_count_per_client':g_server_count,
 							'check_distribution':(server_list,vip_list,0.02)}
 		expected_dict[1] = {'client_response_count':g_request_count_s1,
-							'g_client_count': g_client_count,
+							'client_count': g_client_count,
 							'no_connection_closed': True,
 							'no_404': True}
 		expected_dict[2] = {'client_response_count':g_request_count_s2,
-							'g_client_count': g_client_count,
+							'client_count': g_client_count,
 							'no_connection_closed': True,
 							'no_404': False}
 		expected_dict[3] = {'client_response_count':g_request_count,
-							'g_client_count': g_client_count,
+							'client_count': g_client_count,
 							'no_connection_closed': True,
 							'no_404': True,
 							'server_count_per_client':g_server_count} # TODO: change 1 with variable
