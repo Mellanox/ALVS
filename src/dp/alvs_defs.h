@@ -187,7 +187,7 @@ extern struct alvs_shared_cmem  shared_cmem_alvs;
 extern union cmem_workarea      cmem_wa;
 extern ezframe_t                frame;
 extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];
-
+extern struct packet_meta_data  packet_meta_data;
 
 /*************************************************************
  * State sync structures

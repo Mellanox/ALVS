@@ -50,8 +50,6 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 {
 	uint8_t	*frame_base;
 	struct iphdr *ip_ptr;
-	bool my_mac;
-	uint32_t buflen;
 
 	if (unlikely(nw_interface_lookup(port_id) != 0)) {
 		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
@@ -69,16 +67,17 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	if (cmem_nw.interface_result.path_type == DP_PATH_FROM_NW_PATH) {
 
+		ezdp_mem_set(&cmem_wa.nw_wa.ezdp_decode_result, 0, sizeof(struct ezdp_decode_result));
 		/* === Load Data of first frame buffer === */
 		frame_base = ezframe_load_buf(frame, frame_data,
-					      &buflen, 0);
+					    0, 0);
 
 		/* decode mac to ensure it is valid */
 		ezdp_decode_mac(frame_base, MAX_DECODE_SIZE,
-				&cmem_nw.mac_decode_result);
+				&cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result);
 
 		/*in case of any error send frame to host*/
-		if (unlikely(cmem_nw.mac_decode_result.error_codes.decode_error)) {
+		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.error_codes.decode_error)) {
 			alvs_write_log(LOG_DEBUG, "Decode MAC failed!");
 			nw_interface_inc_counter(NW_IF_STATS_MAC_ERROR);
 			nw_host_do_route(frame);
@@ -86,40 +85,49 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		}
 
 		/*check if my_mac is set*/
-		if (unlikely(!(cmem_nw.mac_decode_result.control.my_mac | cmem_nw.mac_decode_result.control.ipv4_multicast))) {
+		if (unlikely(!(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.my_mac | cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.ipv4_multicast))) {
 			alvs_write_log(LOG_DEBUG, "Not my MAC or not multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame);
 			return;
 		}
 
-		my_mac = cmem_nw.mac_decode_result.control.my_mac;
-
-		if (!cmem_nw.mac_decode_result.last_tag_protocol_type.ipv4) {
+		if (!cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.last_tag_protocol_type.ipv4) {
 			alvs_write_log(LOG_DEBUG, "Not IPv4!");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
 			nw_host_do_route(frame);
 			return;
 		}
 
-		ip_ptr = (struct iphdr *)(frame_base + cmem_nw.mac_decode_result.layer2_size);
-		buflen -= cmem_nw.mac_decode_result.layer2_size;
+		/*copy decode results to metadata*/
+		ezdp_mem_copy(&packet_meta_data.mac_control, &cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control, sizeof(struct ezdp_decode_mac_control));
+		ezdp_mem_copy(&packet_meta_data.last_tag_protocol_type, &cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.last_tag_protocol_type, sizeof(struct ezdp_decode_mac_protocol_type));
+		packet_meta_data.number_of_tags = cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.number_of_tags;
+		packet_meta_data.ip_offset = cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.layer2_size;
+
+		ip_ptr = (struct iphdr *)(frame_base + packet_meta_data.ip_offset);
 
 		/*skip L2 and validate IP is ok*/
 		ezdp_decode_ipv4((uint8_t *)ip_ptr, sizeof(struct iphdr),
 				 frame->job_desc.frame_desc.frame_length,
-				 &cmem_nw.ipv4_decode_result);
+				 &cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result);
+
 
 		/*in case of any error send frame to host*/
-		if (unlikely(cmem_nw.ipv4_decode_result.error_codes.decode_error)) {
+		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.error_codes.decode_error)) {
 			alvs_write_log(LOG_DEBUG, "IPv4 decode failed");
 			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
 			nw_host_do_route(frame);
 			return;
 		}
 
+		/* copy decode result to metadata */
+		ezdp_mem_copy(&packet_meta_data.ip_next_protocol,
+			      &cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.next_protocol,
+			      sizeof(struct ezdp_decode_ip_next_protocol));
+
 		/*frame is OK, let's start alvs IF_STATS processing*/
-		alvs_packet_processing(frame, frame_base, buflen, ip_ptr, my_mac);
+		alvs_packet_processing(frame, frame_base);
 
 	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
 		/*currently send frame to network without any change or any other operations*/

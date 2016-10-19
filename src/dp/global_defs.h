@@ -46,4 +46,5 @@ union cmem_workarea {
 };
 
 
+
 #endif  /*GLOBAL_DEFS_H_*/

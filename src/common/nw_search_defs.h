@@ -61,6 +61,28 @@ struct nw_if_key {
 
 CASSERT(sizeof(struct nw_if_key) == 1);
 
+struct nw_if_apps {
+#ifdef NPS_BIG_ENDIAN
+	unsigned alvs_en            : 1;
+	unsigned tc_en              : 1;
+	unsigned routing_en         : 1;
+	unsigned qos_en             : 1;
+	unsigned firewall_en        : 1;
+	unsigned  /*reserved*/      : 3;
+#else
+	unsigned  /*reserved*/      : 3;
+	unsigned firewall_en        : 1;
+	unsigned qos_en             : 1;
+	unsigned routing_en         : 1;
+	unsigned tc_en              : 1;
+	unsigned alvs_en            : 1;
+#endif
+	unsigned  /*reserved*/      : 8;
+} __packed;
+
+CASSERT(sizeof(struct nw_if_apps) == 2);
+
+
 /*result*/
 struct nw_if_result {
 	/*byte0*/
@@ -70,9 +92,9 @@ struct nw_if_result {
 
 	unsigned           oper_status   : 1;
 	enum dp_path_type  path_type     : 2;
-	unsigned           is_vlan       : 1;
+	unsigned           is_direct_output_lag       : 1;
 #else
-	unsigned           is_vlan       : 1;
+	unsigned           is_direct_output_lag       : 1;
 	enum dp_path_type  path_type     : 2;
 	unsigned           oper_status   : 1;
 
@@ -80,18 +102,29 @@ struct nw_if_result {
 	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	uint8_t              lag_id;
+	uint8_t              direct_output_if;
+
 	/*byte2-3*/
-	uint16_t             default_vlan;
+	struct nw_if_apps    app_bitmap;
+
 	/*byte4-9*/
 	struct ether_addr    mac_address;
+
 	/*byte10*/
 	uint8_t              output_channel;
+
 	/*byte11*/
-	unsigned             /*reserved*/       : 8;
+#ifdef NPS_BIG_ENDIAN
+	unsigned             sft_en        : 1;
+	unsigned        /*reserved*/       : 7;
+#else
+	unsigned        /*reserved*/       : 7;
+	unsigned             sft_en        : 1;
+#endif
+
 	/*byte12-15*/
 	ezdp_sum_addr_t      nw_stats_base;
-};
+} __packed;
 
 CASSERT(sizeof(struct nw_if_result) == 16);
 

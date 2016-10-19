@@ -45,41 +45,62 @@
 void packet_processing(void) __fast_path_code;
 bool init_nw_shared_cmem(void);
 
+struct packet_meta_data {
+	/*byte0*/
+	unsigned number_of_tags                   : EZDP_DECODE_MAC_RESULT_NUMBER_OF_TAGS_SIZE;
+	unsigned     /* reserved */               : 5;
+	/*byte1*/
+	unsigned     /* reserved */               : 8;
+	/*byte2-3*/
+	struct ezdp_decode_mac_control            mac_control;
+	/*byte4-5*/
+	struct ezdp_decode_mac_protocol_type      last_tag_protocol_type;
+	/*byte6*/
+	struct ezdp_decode_ip_next_protocol       ip_next_protocol;
+	/*byte7*/
+	uint8_t                                   ip_offset;
+} __packed;
+
 struct cmem_nw_info {
-	union{
-		struct ezdp_decode_mac_result      mac_decode_result;
-		/**< Result of Decode MAC */
-		struct ezdp_decode_ipv4_result     ipv4_decode_result;
-		/**< Result of Decode IP */
-		struct  nw_if_result    host_interface_result;
-	};
+
+	struct  nw_if_result            interface_result;
 
 	/* FIB & ARP are not used in the same time - saving CMEM */
 	union {
 		struct nw_arp_key                    arp_key;
 		/**< arp key */
-
 		struct nw_fib_key                    fib_key;
 		/**< FIB key */
-	};
-
-	struct  nw_if_result                 interface_result;
-	/**< interface result */
-
-	union{
-		struct nw_fib_result                 fib_result;
-		/**< FIB result */
-
-		struct ezdp_lookup_int_tcam_result   int_tcam_result;
-		/**< DP general result for iTCAM */
+		struct  nw_if_result		     host_interface_result;
+		/**< interface result */
 	};
 };
 
+struct ezdp_decode_result {
+	union {
+		struct ezdp_decode_mac_result      mac_decode_result;
+		/**< Result of Decode MAC */
+		struct ezdp_decode_ipv4_result     ipv4_decode_result;
+		/**< Result of Decode IP */
+	};
+} __packed;
+
+/*temp workarea*/
 union nw_workarea {
-	char                    arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
-	char                    table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
-	char			app_info_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(union application_info_result))];
-};
+	char                                 arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
+	char                                 table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
+	char			             app_info_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(union application_info_result))];
+	/**< working areas */
+
+	struct ezdp_decode_result            ezdp_decode_result;
+	/**< protocol decode result */
+
+	struct nw_fib_result                 fib_result;
+	/**< FIB result */
+
+	struct ezdp_lookup_int_tcam_result   int_tcam_result;
+	/**< DP general result for iTCAM */
+} __packed;
 
 /***********************************************************************//**
  * \struct  nw_shared_cmem

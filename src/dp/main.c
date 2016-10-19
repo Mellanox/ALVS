@@ -59,7 +59,9 @@
 ezframe_t  frame __cmem_var;
 uint8_t    frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
 union      cmem_workarea cmem_wa __cmem_var;
-uint16_t dummy __emem_var;
+struct packet_meta_data packet_meta_data __cmem_var;
+uint16_t   dummy __emem_var;
+
 
 
 #define MAX_NUM_OF_CPUS 4096

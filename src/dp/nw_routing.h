@@ -143,7 +143,7 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 						   NW_FIB_TCAM_PROFILE,
 						   &cmem_nw.fib_key,
 						   sizeof(struct nw_fib_key),
-						   &cmem_nw.int_tcam_result);
+						   &cmem_wa.nw_wa.int_tcam_result);
 
 	/* check matching */
 	if (unlikely(tcam_retval.assoc_data.match == 0)) {
@@ -151,8 +151,8 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
 		return 0;
 	}
-	result_type = cmem_nw.fib_result.result_type;
-	res_dest_ip = cmem_nw.fib_result.dest_ip;
+	result_type = cmem_wa.nw_wa.fib_result.result_type;
+	res_dest_ip = cmem_wa.nw_wa.fib_result.dest_ip;
 
 	/* get dest_ip */
 	if (likely(result_type == NW_FIB_NEIGHBOR)) {

@@ -773,6 +773,11 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
 		node = (struct alvs_server_node *)malloc(sizeof(struct alvs_server_node));
+		if (node == NULL) {
+			alvs_free_server_list(*server_list);
+			return ALVS_DB_INTERNAL_ERROR;
+		}
+
 		node->server.ip = sqlite3_column_int (statement, 0);
 		node->server.port = sqlite3_column_int (statement, 1);
 		node->server.nps_index = sqlite3_column_int (statement, 5);

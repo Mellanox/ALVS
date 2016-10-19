@@ -59,6 +59,7 @@
 #include "nw_db_manager.h"
 #include "infrastructure.h"
 #include "nw_db.h"
+#include "cfg.h"
 
 /* Function Definition */
 void nw_db_manager_init(void);
@@ -179,6 +180,22 @@ void nw_db_manager_poll(void)
 }
 
 /******************************************************************************
+ * \brief       Build application bitmap.
+ *
+ * \param[out]  nw_if_apps - reference to application bitmap
+ *
+ * \return      void
+ */
+static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
+{
+	nw_if_apps->alvs_en = (system_cfg_is_alvs_app_en() == true) ? 1 : 0;
+	nw_if_apps->tc_en = (system_cfg_is_tc_app_en() == true) ? 1 : 0;
+	nw_if_apps->routing_en = (system_cfg_is_routing_app_en() == true) ? 1 : 0;
+	nw_if_apps->qos_en = (system_cfg_is_qos_app_en() == true) ? 1 : 0;
+	nw_if_apps->firewall_en = (system_cfg_is_firewall_app_en() == true) ? 1 : 0;
+}
+
+/******************************************************************************
  * \brief       Interface table init.
  *
  * \return      void
@@ -189,22 +206,28 @@ void nw_db_manager_if_table_init(void)
 	struct nw_if_result if_result;
 	uint32_t ind;
 
+	/* initialize my MAC in interface result */
 	if (infra_get_my_mac(&if_result.mac_address) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Retrieving my MAC failed.");
 		nw_db_manager_exit_with_error();
 	}
 
+	/* build host interface entry */
 	if_key.logical_id = USER_BASE_LOGICAL_ID + USER_NW_IF_NUM;
 	if_result.path_type = DP_PATH_FROM_HOST_PATH;
 	if_result.nw_stats_base = bswap_32((EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
 					   (EMEM_IF_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
 					   ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 	if_result.output_channel = 24 | (1 << 7);
+	build_nw_if_apps(&if_result.app_bitmap);
+	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
+
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.");
 		nw_db_manager_exit_with_error();
 	}
 
+	/* build network interfaces entries */
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if_key.logical_id = USER_BASE_LOGICAL_ID + ind;
@@ -212,6 +235,8 @@ void nw_db_manager_if_table_init(void)
 						   (EMEM_IF_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
 						   ((EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
 		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
+		build_nw_if_apps(&if_result.app_bitmap);
+		if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.", ind);
 			nw_db_manager_exit_with_error();

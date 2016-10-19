@@ -54,7 +54,7 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
-	ALVS_ACCEPTED_FP_CP=3
+	ALVS_ACCEPTED_FP_CP=0
 	
 	#####FP1: Error: BUFFER_SIZE_WARNING:
 	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/alvs_db_manager.c:1106:

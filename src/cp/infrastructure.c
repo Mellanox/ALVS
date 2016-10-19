@@ -55,7 +55,7 @@
 #include "user_defs.h"
 #include "application_infra.h"
 #include "alvs_search_defs.h"
-
+#include "cfg.h"
 
 extern EZapiChannel_EthIFType port_type;
 
@@ -115,7 +115,7 @@ enum infra_emem_spaces_params {
 #define INFRA_X1_CLUSTER_CODE_SIZE          160
 #define INFRA_ALL_CLUSTER_CODE_SIZE         128
 #define INFRA_ALL_CLUSTER_DATA_SIZE         1
-#define INFRA_X1_CLUSTER_SEARCH_SIZE        5
+#define INFRA_X1_CLUSTER_SEARCH_SIZE        12    /* can be lower than 12KB, need to test */
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
 
 #define INFRA_EMEM_SEARCH_HASH_SIZE         (3584)
@@ -252,7 +252,7 @@ bool infra_create_if_mapping(void)
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if (infra_create_intetface(network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 				network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
-				port_type,
+				system_cfg_get_port_type(),
 				USER_BASE_LOGICAL_ID + ind) == false) {
 			return false;
 		}
@@ -329,12 +329,13 @@ bool infra_create_mem_partition(void)
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIntMemSpaceParams, &int_mem_space_params);
 			if (EZrc_IS_ERROR(ret_val)) {
+				write_log(LOG_CRIT, "fail IMEM config index = %d, size = %d (rc = 0x%08x)\n", int_mem_space_params.uiIndex, int_mem_space_params.uiSize, ret_val);
 				return false;
 			}
 
 			/* Keep index in imem_spaces_params */
 			imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX] = int_mem_space_params.uiIndex;
-			write_log(LOG_DEBUG, "IMEM %d is in index %d", ind, int_mem_space_params.uiIndex);
+			write_log(LOG_DEBUG, "IMEM %d is in index %d size %d", ind, int_mem_space_params.uiIndex, int_mem_space_params.uiSize);
 		}
 	}
 
@@ -863,7 +864,7 @@ bool infra_initialized(void)
 	write_log(LOG_DEBUG, "Load partition...");
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "setup_chip: load partition failed.");
+		write_log(LOG_CRIT, "setup_chip: load partition failed (rc = 0x%08x)", ez_ret_val);
 		return false;
 	}
 

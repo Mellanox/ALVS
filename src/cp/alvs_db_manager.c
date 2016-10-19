@@ -69,8 +69,8 @@
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 #include "version.h"
+#include "cfg.h"
 
-extern int print_stats_enabled;
 bool *alvs_db_manager_cancel_application_flag;
 int raw_sock;
 int family;
@@ -792,7 +792,7 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 		break;
 
 	case IPVS_CMD_GET_DEST:
-		if (print_stats_enabled == true) {
+		if (system_cfg_is_print_staistics_en() == true) {
 			ret = alvs_genl_parse_service(info->attrs[IPVS_CMD_ATTR_SERVICE], &svc, need_full_svc);
 			if (ret < 0)
 				return NL_SKIP;
@@ -805,8 +805,7 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 
 		break;
 	case IPVS_CMD_GET_SERVICE:
-
-		if (print_stats_enabled == true) {
+		if (system_cfg_is_print_staistics_en() == true) {
 			write_log(LOG_INFO, "Application version: %s", version);
 			alvs_ret = alvs_db_print_global_error_stats();
 			if (alvs_ret != ALVS_DB_OK) {
@@ -1091,19 +1090,25 @@ static int alvs_genl_parse_daemon_from_msghdr(struct nlmsghdr *nlh, void *arg)
 	int i = 0;
 
 	/* We may get two daemons.  If we've already got one, then this is the second */
-	if ((ret_daemon[0]).state == IP_VS_STATE_MASTER || (ret_daemon[0]).state == IP_VS_STATE_BACKUP)
+	if ((ret_daemon[0]).state == IP_VS_STATE_MASTER || (ret_daemon[0]).state == IP_VS_STATE_BACKUP) {
 		i = 1;
-	if (genlmsg_parse(nlh, 0, attrs, IPVS_CMD_ATTR_MAX, alvs_cmd_policy) != 0)
+	}
+	if (genlmsg_parse(nlh, 0, attrs, IPVS_CMD_ATTR_MAX, alvs_cmd_policy) != 0) {
 		return -1;
+	}
 	if (nla_parse_nested(daemon_attrs, IPVS_DAEMON_ATTR_MAX,
-			     attrs[IPVS_CMD_ATTR_DAEMON], alvs_daemon_policy))
+			     attrs[IPVS_CMD_ATTR_DAEMON], alvs_daemon_policy)) {
 		return -1;
+	}
 	if (!(daemon_attrs[IPVS_DAEMON_ATTR_STATE] &&
 	      daemon_attrs[IPVS_DAEMON_ATTR_MCAST_IFN] &&
-	      daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID]))
+	      daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID])) {
 		return -1;
+	}
 	(ret_daemon[i]).state = nla_get_u32(daemon_attrs[IPVS_DAEMON_ATTR_STATE]);
-	strncpy((ret_daemon[i]).mcast_ifn, nla_get_string(daemon_attrs[IPVS_DAEMON_ATTR_MCAST_IFN]), IP_VS_IFNAME_MAXLEN);
+
+	/* copying only (IP_VS_IFNAME_MAXLEN - 1) chars to leave room for '/0' */
+	strncpy((ret_daemon[i]).mcast_ifn, nla_get_string(daemon_attrs[IPVS_DAEMON_ATTR_MCAST_IFN]), IP_VS_IFNAME_MAXLEN - 1);
 	(ret_daemon[i]).syncid = nla_get_u32(daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID]);
 
 	write_log(LOG_DEBUG, "parse daemon callback function will return with: i = %d, state = %d, mcast_ifn = %s, syncid = %d",

@@ -82,16 +82,18 @@ void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
  *
  * \return        void
  */
-void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint32_t buflen,
-			    struct iphdr *ip_hdr, bool my_mac)
+void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 {
 	struct udphdr *udp_hdr;
+	struct iphdr  *ip_hdr;
+	uint32_t      buflen;
 
 	/*reset sync status for current packet*/
 	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 
-	if (cmem_nw.ipv4_decode_result.next_protocol.tcp) {
-		if (my_mac) {
+	if (packet_meta_data.ip_next_protocol.tcp) {
+		if (packet_meta_data.mac_control.my_mac) {
+			ip_hdr = (struct iphdr *)(frame_base + packet_meta_data.ip_offset);
 			alvs_tcp_processing(frame_base, ip_hdr);
 		} else {
 			/* Send to host */
@@ -99,8 +101,8 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint3
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_host_do_route(frame);
 		}
-	} else if (cmem_nw.ipv4_decode_result.next_protocol.udp) {
-		if (my_mac) {
+	} else if (packet_meta_data.ip_next_protocol.udp) {
+		if (packet_meta_data.mac_control.my_mac) {
 			/* TODO - handle UDP, currently sending to host */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
@@ -108,8 +110,11 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base, uint3
 		} else {
 			/* TODO - should we check that DIP is multicast? */
 			/* TODO - should we check TTL? */
+			ip_hdr = (struct iphdr *)(frame_base + packet_meta_data.ip_offset);
 			udp_hdr = (struct udphdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
 			if (udp_hdr->dest == ALVS_STATE_SYNC_DST_PORT) {
+				buflen = ezframe_get_buf_len(frame);
+				buflen -= packet_meta_data.ip_offset;
 				buflen -= (ip_hdr->ihl << 2) + sizeof(struct udphdr);
 				alvs_state_sync_backup(frame, (uint8_t *)udp_hdr + sizeof(struct udphdr), buflen);
 			} else {

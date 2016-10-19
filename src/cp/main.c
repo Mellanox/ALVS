@@ -44,12 +44,10 @@
 
 #include "log.h"
 #include "infrastructure.h"
-
+#include "cfg.h"
 #include "nw_db_manager.h"
 #include "alvs_db_manager.h"
-
 #include "defs.h"
-#include "version.h"
 
 /******************************************************************************/
 #define WAIT_FOR_NPS 500
@@ -79,25 +77,13 @@ pthread_t alvs_db_manager_thread;
 pthread_t dp_run_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
-int agt_enabled;
-int print_stats_enabled;
-char dp_bin_file[256];
-char run_cpus[256];
-EZapiChannel_EthIFType port_type;
 int fd = -1;
 /******************************************************************************/
+
 
 int main(int argc, char **argv)
 {
 	int rc;
-	int option_index;
-	struct option long_options[] = {
-		{ "agt_enabled", no_argument, &agt_enabled, true },
-		{ "statistics", no_argument, &print_stats_enabled, true },
-		{ "port_type", required_argument, 0, 'p' },
-		{ "dp_bin_file", required_argument, 0, 'b'},
-		{ "run_cpus", required_argument, 0, 'r'},
-		{0, 0, 0, 0} };
 
 	cancel_application_flag = false;
 	main_thread = pthread_self();
@@ -110,57 +96,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-
-	/* Defaults */
-	print_stats_enabled = false;
-	agt_enabled = false;
-	port_type = EZapiChannel_EthIFType_40GE;
-	strcpy(dp_bin_file, "/usr/lib/alvs/alvs_dp");
-	strcpy(run_cpus, "not_used");
-
-	while (true) {
-		rc = getopt_long(argc, argv, "", long_options, &option_index);
-		if (rc == -1) {
-			break;
-		}
-
-		switch (rc) {
-		case 0:
-			break;
-
-		case 'p':
-			if (strcmp(optarg, "10GE") == 0) {
-				port_type = EZapiChannel_EthIFType_10GE;
-			} else if (strcmp(optarg, "40GE") == 0) {
-				port_type = EZapiChannel_EthIFType_40GE;
-			} else if (strcmp(optarg, "100GE") == 0) {
-				port_type = EZapiChannel_EthIFType_100GE;
-			} else {
-				write_log(LOG_CRIT, "Port type argument is invalid (%s), valid values are 10GE, 40GE and 100GE.", optarg);
-				abort();
-			}
-			break;
-		case 'b':
-			if (strlen(optarg) > 256) {
-				write_log(LOG_ERR, "dp_bin_file argument length is more than 256 bytes");
-				main_thread_graceful_stop();
-				exit(1);
-			}
-			strcpy(dp_bin_file, optarg);
-			write_log(LOG_INFO, "DP Bin File: %s", dp_bin_file);
-			break;
-		case 'r':
-			strcpy(run_cpus, optarg);
-			write_log(LOG_INFO, "Run CPUs On DP: %s", run_cpus);
-			break;
-		case '?':
-			break;
-
-		default:
-			abort();
-		}
-	}
-
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT, signal_terminate_handler);
 	signal(SIGTERM, signal_terminate_handler);
@@ -168,9 +103,9 @@ int main(int argc, char **argv)
 	signal(SIGSEGV, signal_terminate_handler);
 	signal(SIGBUS, signal_terminate_handler);
 
-	write_log(LOG_INFO, "Starting ALVS daemon application (port type = %s,  AGT enabled = %s, Print Statistics = %s) ...",
-		  port_type == EZapiChannel_EthIFType_10GE ? "10GE" : (port_type == EZapiChannel_EthIFType_40GE ? "40GE" : "100GE"),
-			  agt_enabled ? "True" : "False", print_stats_enabled ? "True" : "False");
+	/* Parse configuration from command line */
+	system_configuration(argc, argv);
+	system_cfg_print();
 
 	memset(is_object_allocated, 0, object_type_count*sizeof(bool));
 	/************************************************/
@@ -282,9 +217,9 @@ void dp_load_and_run(void)
 	sleep(10);
 
 	/* copy dp bin file to nps */
-	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", dp_bin_file);
+	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", system_cfg_get_dp_bin_file());
 	for (i = 0; i < FTP_RETRIES; i++) {
-		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n alvs_nps;", dp_bin_file);
+		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n alvs_nps;", system_cfg_get_dp_bin_file());
 		rc = system(temp);
 		if (rc == 0) {
 			write_log(LOG_INFO, "Copy Succeed");
@@ -301,10 +236,10 @@ void dp_load_and_run(void)
 
 	/* run dp bin */
 	for (i = 0; i < DP_RUN_RETRIES; i++) {
-		if (strcmp(run_cpus, "not_used") == 0) {
+		if (strcmp(system_cfg_get_run_cpus(), "not_used") == 0) {
 			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp &\"; sleep 10;} | telnet alvs_nps &");
 		} else {
-			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp --run_cpus %s &\"; sleep 10;} | telnet alvs_nps &", run_cpus);
+			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp --run_cpus %s &\"; sleep 10;} | telnet alvs_nps &", system_cfg_get_run_cpus());
 		}
 		rc = system(temp);
 		if (rc == 0) {
@@ -482,7 +417,7 @@ bool nps_init(void)
 	/************************************************/
 	/* Enable AGT debug agent interface             */
 	/************************************************/
-	if (agt_enabled == true) {
+	if (system_cfg_is_agt_en() == true) {
 		write_log(LOG_INFO, "Enable AGT...");
 		if (infra_enable_agt() == false) {
 			write_log(LOG_CRIT, "nps_init: infra_enable_agt failed.");
