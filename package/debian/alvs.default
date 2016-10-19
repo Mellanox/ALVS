@@ -22,4 +22,4 @@ WAIT_FOR_NPS=500
 #####################
 
 # arguments for the cp application
-#ALVS_CP_ARGS=
+#ALVS_CP_ARGS="--run_cpus=16-511"

@@ -39,8 +39,6 @@ define copy_alvs_files=
 	# bins
 	install -m 775 $(ALVS_DP_BIN)* $(ALVS_DP_BIN_DEST)
 	install -m 775 $(ALVS_DAEMON_BIN)* $(ALVS_DAEMON_BIN_DEST)
-	# Scripts
-	cp -f $(CURDIR)/scripts/start_alvs_dp.py $(DEST_BASE)/usr/share/alvs/start_alvs_dp
 	# config
 	cp -f $(CURDIR)/cfg/alvs_rsyslog.conf  $(DEST_BASE)/etc/rsyslog.d/alvs.conf
 	cp -f $(CURDIR)/cfg/alvs_sysctl.conf   $(DEST_BASE)/etc/sysctl.d/alvs.conf

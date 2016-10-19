@@ -20,7 +20,6 @@ ALVS_CONFIG = '/etc/default/alvs'
 ALVS_SERVICE = '/etc/init.d/alvs'
 ALVS_DAEMON = '/usr/sbin/alvs_daemon'
 ALVS_DP = '/usr/lib/alvs/alvs_dp'
-ALVS_DP_START = '/usr/share/alvs/start_alvs_dp'
 ALVS_RSYSLOG_CONF = '/etc/rsyslog.d/alvs.conf'
 ALVS_SYSCTL_CONF = '/etc/sysctl.d/alvs.conf'
 ALVS_NETWORK_CONF = '/etc/network/interfaces.d/alvs.conf'
@@ -30,7 +29,6 @@ ALVS_FILES = [('cfg/alvs_defaults',ALVS_CONFIG),
               ('scripts/alvs_init',ALVS_SERVICE),
               ('bin/alvs_daemon',ALVS_DAEMON),
               ('bin/alvs_dp',ALVS_DP),
-              ('scripts/start_alvs_dp.py',ALVS_DP_START),
               ('cfg/alvs_rsyslog.conf',ALVS_RSYSLOG_CONF),
               ('cfg/alvs_sysctl.conf',ALVS_SYSCTL_CONF),
               ('cfg/alvs_network.conf',ALVS_NETWORK_CONF)]

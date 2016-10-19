@@ -54,7 +54,7 @@ def main():
 	
 	bool_choices = ['true', 'false', 'True', 'False']
 	parser.add_option("-s", "--setup_num", dest="setup_num",
-					  help="Setup number. range (1..7)					(Mandatory parameter)")
+					  help="Setup number. range (1..8)					(Mandatory parameter)")
 	parser.add_option("-l", "--list_name", dest="list_name",
 					  help="list name to run							(Mandatory parameter)")
 	parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus", 

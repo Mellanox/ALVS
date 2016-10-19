@@ -52,9 +52,13 @@
 #include "version.h"
 
 /******************************************************************************/
+#define WAIT_FOR_NPS 500
+#define FTP_RETRIES 50
+#define DP_RUN_RETRIES 10
 
 bool nps_init(void);
 bool nps_bringup(void);
+void dp_load_and_run(void);
 void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
 
@@ -72,10 +76,13 @@ enum object_type {
 pthread_t main_thread;
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
+pthread_t dp_run_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 int agt_enabled;
 int print_stats_enabled;
+char dp_bin_file[256];
+char run_cpus[256];
 EZapiChannel_EthIFType port_type;
 int fd = -1;
 /******************************************************************************/
@@ -84,27 +91,32 @@ int main(int argc, char **argv)
 {
 	int rc;
 	int option_index;
-
 	struct option long_options[] = {
 		{ "agt_enabled", no_argument, &agt_enabled, true },
 		{ "statistics", no_argument, &print_stats_enabled, true },
 		{ "port_type", required_argument, 0, 'p' },
+		{ "dp_bin_file", required_argument, 0, 'b'},
+		{ "run_cpus", required_argument, 0, 'r'},
 		{0, 0, 0, 0} };
 
 	cancel_application_flag = false;
 	main_thread = pthread_self();
 
+	open_log("alvs_daemon");
+
 	fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444);
 	if (fd == -1) {
+		write_log(LOG_ERR, "ALVS locked, not posible to load alvs daemon. consider to delete file /var/lock/nps_cp.lock");
 		exit(1);
 	}
 
-	open_log("alvs_daemon");
 
 	/* Defaults */
 	print_stats_enabled = false;
 	agt_enabled = false;
 	port_type = EZapiChannel_EthIFType_40GE;
+	strcpy(dp_bin_file, "/usr/lib/alvs/alvs_dp");
+	strcpy(run_cpus, "not_used");
 
 	while (true) {
 		rc = getopt_long(argc, argv, "", long_options, &option_index);
@@ -128,7 +140,19 @@ int main(int argc, char **argv)
 				abort();
 			}
 			break;
-
+		case 'b':
+			if (strlen(optarg) > 256) {
+				write_log(LOG_ERR, "dp_bin_file argument length is more than 256 bytes");
+				main_thread_graceful_stop();
+				exit(1);
+			}
+			strcpy(dp_bin_file, optarg);
+			write_log(LOG_INFO, "DP Bin File: %s", dp_bin_file);
+			break;
+		case 'r':
+			strcpy(run_cpus, optarg);
+			write_log(LOG_INFO, "Run CPUs On DP: %s", run_cpus);
+			break;
 		case '?':
 			break;
 
@@ -136,7 +160,6 @@ int main(int argc, char **argv)
 			abort();
 		}
 	}
-
 
 	/* listen to the SHUTDOWN signal to handle terminate signal */
 	signal(SIGINT, signal_terminate_handler);
@@ -172,9 +195,22 @@ int main(int argc, char **argv)
 	write_log(LOG_INFO, "ALVS daemon application is running...");
 
 	/************************************************/
+	/* Start DP load and run thread                 */
+	/************************************************/
+	write_log(LOG_DEBUG, "Start DP load and run thread...");
+	rc = pthread_create(&dp_run_thread, NULL,
+			   (void * (*)(void *))dp_load_and_run, NULL);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "Cannot start dp_run_thread: pthread_create failed for dp load and run");
+		main_thread_graceful_stop();
+		exit(1);
+	}
+
+	/************************************************/
 	/* Start network DB manager main thread         */
 	/************************************************/
 	write_log(LOG_DEBUG, "Start network DB manager thread...");
+
 	rc = pthread_create(&nw_db_manager_thread, NULL,
 			    (void * (*)(void *))nw_db_manager_main, &cancel_application_flag);
 	if (rc != 0) {
@@ -197,6 +233,8 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_alvs_db_manager] = true;
 
+
+
 	/************************************************/
 	/* Wait for signal                              */
 	/************************************************/
@@ -213,6 +251,73 @@ int main(int argc, char **argv)
 	main_thread_graceful_stop();
 
 	return 0;
+}
+
+/************************************************************************
+ * \brief      function for dp_run_thread - check connectivity to nps,
+ *             upload and run the dp bin file
+ * \return     void
+ */
+void dp_load_and_run(void)
+{
+	int rc, i;
+	char temp[256];
+
+	/* check connection to NPS */
+	write_log(LOG_INFO, "Waiting for Connection to NPS");
+	for (i = 0; i < WAIT_FOR_NPS; i++) {
+		rc = system("ping -c1 -w10 alvs_nps > /dev/null 2>&1");
+		if (rc == 0) {
+			write_log(LOG_INFO, "Connection to NPS Succeed");
+			break;
+		}
+		write_log(LOG_DEBUG, "No Connection to NPS, Trying Again");
+	}
+	if (i == WAIT_FOR_NPS) {
+		write_log(LOG_ERR, "Connection to NPS failed");
+		main_thread_graceful_stop();
+		exit(1);
+	}
+
+	sleep(10);
+
+	/* copy dp bin file to nps */
+	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", dp_bin_file);
+	for (i = 0; i < FTP_RETRIES; i++) {
+		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n alvs_nps;", dp_bin_file);
+		rc = system(temp);
+		if (rc == 0) {
+			write_log(LOG_INFO, "Copy Succeed");
+			break;
+		}
+		write_log(LOG_INFO, "FTP Copy Failed, Trying again");
+	}
+	if (i == FTP_RETRIES) {
+		write_log(LOG_ERR, "FTP Upload to NPS failed");
+		main_thread_graceful_stop();
+		exit(1);
+	}
+
+
+	/* run dp bin */
+	for (i = 0; i < DP_RUN_RETRIES; i++) {
+		if (strcmp(run_cpus, "not_used") == 0) {
+			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp &\"; sleep 10;} | telnet alvs_nps &");
+		} else {
+			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp --run_cpus %s &\"; sleep 10;} | telnet alvs_nps &", run_cpus);
+		}
+		rc = system(temp);
+		if (rc == 0) {
+			write_log(LOG_INFO, "DP Bin run succeed, waiting for DP load");
+			break;
+		}
+		write_log(LOG_INFO, "DP Bin run failed, Trying again");
+	}
+	if (i == DP_RUN_RETRIES) {
+		write_log(LOG_ERR, "DP Bin run failed");
+		main_thread_graceful_stop();
+		exit(1);
+	}
 }
 
 bool nps_bringup(void)

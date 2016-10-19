@@ -18,23 +18,11 @@
 ALVS_CONFIG="/etc/default/alvs"
 
 ALVS_FOLDER="/usr/share/alvs"
-ALVS_DP_SCRIPT="$ALVS_FOLDER/start_alvs_dp"
 
 DAEMON_NAME="alvs_daemon"
 DAEMON="/usr/sbin/$DAEMON_NAME"
 PIDFILE="/var/run/$DAEMON_NAME.pid"
 
-
-start_dp() {
-    log_action_begin_msg "Start ALVS DP"
-    $ALVS_DP_SCRIPT
-    case "$?" in
-        0) log_action_end_msg 0 
-           return 0 ;;
-        *) log_action_end_msg 1
-           return 1 ;;
-    esac
-}
 
 # Return
 #   0 if daemon has been started
@@ -154,7 +142,6 @@ case "$1" in
     	start_network
         [ "$?" = 0 ] && reset_nps
         [ "$?" = 0 ] && start_daemon
-        [ "$?" = 0 ] && start_dp
         ;;
     stop)
         stop_network

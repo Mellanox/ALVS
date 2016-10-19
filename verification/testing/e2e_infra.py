@@ -175,12 +175,16 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 				ezbox.alvs_service_stop()
 				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
 
-		ezbox.update_cp_params("--agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
 		if test_config['modify_run_cpus']:
 			# validate chip is up
 			ezbox.alvs_service_start()
-			ezbox.update_dp_cpus( test_config['use_4k_cpus'] )
- 	
+			ezbox.update_dp_cpus(test_config['use_4k_cpus'])
+			if test_config['use_4k_cpus']:
+				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+ 			else:
+ 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+ 				
 		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
