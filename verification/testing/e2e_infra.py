@@ -85,8 +85,6 @@ def generic_main():
 
 	config['setup_num'] = options.setup_num
 	
-	print config
-	
 	return config
 
 #===============================================================================

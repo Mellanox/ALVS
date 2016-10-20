@@ -243,6 +243,9 @@ class ezbox_host:
 		for index, vip in enumerate(vip_list):
 			self.execute_command_on_host("ifconfig %s:%d %s netmask 255.255.0.0"%(self.setup['interface'], index+2, vip))
 
+	def add_arp_static_entry(self, ip_address, mac_address):
+		self.execute_command_on_host("arp -s %s %s"%(ip_address, mac_address))
+			
 	def clean_vips(self):
 		interface = self.setup['interface']
 		rc, ret_val = self.execute_command_on_host("ifconfig")
@@ -707,31 +710,31 @@ class ezbox_host:
 
 	def add_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -A -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def modify_service(self, vip, port, sched_alg='sh', sched_alg_opt='-b sh-port'):
 		self.execute_command_on_host("ipvsadm -E -t %s:%s -s %s %s"%(vip,port, sched_alg, sched_alg_opt))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def delete_service(self, vip, port):
 		self.execute_command_on_host("ipvsadm -D -t %s:%s"%(vip,port))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def add_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
 		self.execute_command_on_host("ipvsadm -a -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def modify_server(self, vip, service_port, server_ip, server_port, weight=1, routing_alg_opt=' ', u_thresh = 0, l_thresh = 0):
 		self.execute_command_on_host("ipvsadm -e -t %s:%s -r %s:%s -w %d %s -x %d -y %d"%(vip, service_port, server_ip, server_port, weight, routing_alg_opt, u_thresh, l_thresh))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def delete_server(self, vip, service_port, server_ip, server_port):
 		self.execute_command_on_host("ipvsadm -d -t %s:%s -r %s:%s"%(vip, service_port, server_ip, server_port))
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def flush_ipvs(self):
 		self.execute_command_on_host("ipvsadm -C")
-		time.sleep(2)
+		time.sleep(0.5)
 
 	def zero_all_ipvs_stats(self):
 		logging.log(logging.INFO, "zero all ipvs stats")
@@ -1408,7 +1411,8 @@ def get_ezbox_names(setup_id):
 							'data_ip_hex_display': input_list[6],
 							'mac_address':         input_list[7],
 							'nps_port_type':       input_list[8],
-							'mng_ip':              input_list[9]})
+							'mng_ip':              input_list[9],
+							'trex_hostname':       input_list[10]})
 	
 	return setup_dict[setup_id-1]
 
