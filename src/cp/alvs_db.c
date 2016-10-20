@@ -143,19 +143,48 @@ char *my_inet_ntoa(in_addr_t ip)
 	return inet_ntoa(ip_addr);
 }
 
-#define TABLE_ENTRY_IP				0
-#define TABLE_ENTRY_PORT			1
-#define TABLE_ENTRY_PRTOTOCOL			2
-#define TABLE_ENTRY_NPS_INDEX			3
-#define TABLE_ENTRY_NPS_FLAGS			4
-#define TABLE_ENTRY_SCHED_ALG			5
-#define TABLE_ENTRY_CONNECTION_SCHEDULD		6
-#define TABLE_ENTRY_STATS_BASE			7
-#define TABLE_ENTRY_IN_PACKET			8
-#define TABLE_ENTRY_IN_BYTE			9
-#define TABLE_ENTRY_OUT_PACKET			10
-#define TABLE_ENTRY_OUT_BYTE			11
-#define TABLE_ENTRY_SCHED_ENTRIES_COUNT		12
+#define SERVICE_TABLE_IP                        0
+#define SERVICE_TABLE_PORT                      1
+#define SERVICE_TABLE_PROTOCOL                  2
+#define SERVICE_TABLE_NPS_INDEX                 3
+#define SERVICE_TABLE_NPS_FLAGS                 4
+#define SERVICE_TABLE_SCHED_ALG                 5
+#define SERVICE_TABLE_SCHED_CONNECTIONS         6
+#define SERVICE_TABLE_STATS_BASE                7
+#define SERVICE_TABLE_IN_PACKET                 8
+#define SERVICE_TABLE_IN_BYTE                   9
+#define SERVICE_TABLE_OUT_PACKET                10
+#define SERVICE_TABLE_OUT_BYTE                  11
+#define SERVICE_TABLE_SCHED_ENTRIES_COUNT       12
+
+#define SERVER_TABLE_IP                         0
+#define SERVER_TABLE_PORT                       1
+#define SERVER_TABLE_SERVICE_IP                 2
+#define SERVER_TABLE_SERVICE_PORT               3
+#define SERVER_TABLE_SERVICE_PROTOCOL           4
+#define SERVER_TABLE_NPS_INDEX                  5
+#define SERVER_TABLE_WEIGHT                     6
+#define SERVER_TABLE_CONNECTION_FLAGS           7
+#define SERVER_TABLE_FLAGS                      8
+#define SERVER_TABLE_UPPER_THRESHOLD            9
+#define SERVER_TABLE_LOWER_THRESHOLD            10
+#define SERVER_TABLE_ACTIVE                     11
+#define SERVER_TABLE_STATS_BASE                 12
+#define SERVER_TABLE_SERVICE_STATS_BASE         13
+#define SERVER_TABLE_ON_DEMAND_STATS_BASE       14
+#define SERVER_TABLE_FLAGS_DP_BASE              15
+#define SERVER_TABLE_SCHED_CONNECTIONS          16
+#define SERVER_TABLE_IN_PACKET                  17
+#define SERVER_TABLE_IN_BYTE                    18
+#define SERVER_TABLE_OUT_PACKET                 19
+#define SERVER_TABLE_OUT_BYTE                   20
+
+#define APPLICATION_TABLE_INDEX                 0
+#define APPLICATION_TABLE_IS_MASTER             1
+#define APPLICATION_TABLE_IS_BACKUP             2
+#define APPLICATION_TABLE_MASTER_SYNC_ID        3
+#define APPLICATION_TABLE_BACKUP_SYNC_ID        4
+#define APPLICATION_TABLE_SOURCE_IP             5
 
 enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 {
@@ -199,19 +228,19 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    statistics base
 	 */
 	sql = "CREATE TABLE services("
-		"ip INT NOT NULL,"			/* TABLE_ENTRY_IP */
-		"port INT NOT NULL,"			/* TABLE_ENTRY_PORT */
-		"protocol INT NOT NULL,"		/* TABLE_ENTRY_PRTOTOCOL */
-		"nps_index INT NOT NULL,"		/* TABLE_ENTRY_NPS_INDEX */
-		"flags INT NOT NULL,"			/* TABLE_ENTRY_NPS_FLAGS */
-		"sched_alg INT NOT NULL,"		/* TABLE_ENTRY_SCHED_ALG */
-		"connection_scheduled BIGINT NOT NULL,"	/* TABLE_ENTRY_CONNECTION_SCHEDULD */
-		"stats_base INT NOT NULL,"		/* TABLE_ENTRY_STATS_BASE */
-		"in_packet BIGINT NOT NULL,"		/* TABLE_ENTRY_IN_PACKET */
-		"in_byte BIGINT NOT NULL,"		/* TABLE_ENTRY_IN_BYTE */
-		"out_packet BIGINT NOT NULL,"		/* TABLE_ENTRY_OUT_PACKET */
-		"out_byte BIGINT NOT NULL,"		/* TABLE_ENTRY_OUT_BYTE */
-		"sched_entries_count INT NOT NULL,"	/* TABLE_ENTRY_SCHED_ENTRIES_COUNT */
+		"ip INT NOT NULL,"                      /* SERVICE_TABLE_IP */
+		"port INT NOT NULL,"                    /* SERVICE_TABLE_PORT */
+		"protocol INT NOT NULL,"                /* SERVICE_TABLE_PROTOCOL */
+		"nps_index INT NOT NULL,"               /* SERVICE_TABLE_NPS_INDEX */
+		"flags INT NOT NULL,"                   /* SERVICE_TABLE_NPS_FLAGS */
+		"sched_alg INT NOT NULL,"               /* SERVICE_TABLE_SCHED_ALG */
+		"connection_scheduled BIGINT NOT NULL," /* SERVICE_TABLE_SCHED_CONNECTIONS */
+		"stats_base INT NOT NULL,"              /* SERVICE_TABLE_STATS_BASE */
+		"in_packet BIGINT NOT NULL,"            /* SERVICE_TABLE_IN_PACKET */
+		"in_byte BIGINT NOT NULL,"              /* SERVICE_TABLE_IN_BYTE */
+		"out_packet BIGINT NOT NULL,"           /* SERVICE_TABLE_OUT_PACKET */
+		"out_byte BIGINT NOT NULL,"             /* SERVICE_TABLE_OUT_BYTE */
+		"sched_entries_count INT NOT NULL,"     /* SERVICE_TABLE_SCHED_ENTRIES_COUNT */
 		"PRIMARY KEY (ip,port,protocol));";
 
 	/* Execute SQL statement */
@@ -238,27 +267,27 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    statistics base
 	 */
 	sql = "CREATE TABLE servers("
-		"ip INT NOT NULL,"				/* 0 */
-		"port INT NOT NULL,"				/* 1 */
-		"srv_ip INT NOT NULL,"				/* 2 */
-		"srv_port INT NOT NULL,"			/* 3 */
-		"srv_protocol INT NOT NULL,"			/* 4 */
-		"nps_index INT NOT NULL,"			/* 5 */
-		"weight INT NOT NULL,"				/* 6 */
-		"conn_flags INT NOT NULL,"			/* 7 */
-		"server_flags INT NOT NULL,"			/* 8 */
-		"u_thresh INT NOT NULL,"			/* 9 */
-		"l_thresh INT NOT NULL,"			/* 10 */
-		"active BOOLEAN NOT NULL,"			/* 11 */
-		"server_stats_base INT NOT NULL,"		/* 12 */
-		"service_stats_base INT NOT NULL,"		/* 13 */
-		"server_on_demand_stats_base INT NOT NULL,"	/* 14 */
-		"server_flags_dp_base INT NOT NULL,"		/* 15 */
-		"connection_scheduled BIGINT NOT NULL,"		/* 16 */
-		"in_packet BIGINT NOT NULL,"			/* 17 */
-		"in_byte BIGINT NOT NULL,"			/* 18 */
-		"out_packet BIGINT NOT NULL,"			/* 19 */
-		"out_byte BIGINT NOT NULL,"			/* 20 */
+		"ip INT NOT NULL,"                              /* SERVER_TABLE_IP */
+		"port INT NOT NULL,"                            /* SERVER_TABLE_PORT */
+		"srv_ip INT NOT NULL,"                          /* SERVER_TABLE_SERVICE_IP */
+		"srv_port INT NOT NULL,"                        /* SERVER_TABLE_SERVICE_PORT */
+		"srv_protocol INT NOT NULL,"                    /* SERVER_TABLE_SERVICE_PROTOCOL */
+		"nps_index INT NOT NULL,"                       /* SERVER_TABLE_NPS_INDEX */
+		"weight INT NOT NULL,"                          /* SERVER_TABLE_WEIGHT */
+		"conn_flags INT NOT NULL,"                      /* SERVER_TABLE_CONNECTION_FLAGS */
+		"server_flags INT NOT NULL,"                    /* SERVER_TABLE_FLAGS */
+		"u_thresh INT NOT NULL,"                        /* SERVER_TABLE_UPPER_THRESHOLD */
+		"l_thresh INT NOT NULL,"                        /* SERVER_TABLE_LOWER_THRESHOLD */
+		"active BOOLEAN NOT NULL,"                      /* SERVER_TABLE_ACTIVE */
+		"server_stats_base INT NOT NULL,"               /* SERVER_TABLE_STATS_BASE */
+		"service_stats_base INT NOT NULL,"              /* SERVER_TABLE_SERVICE_STATS_BASE */
+		"server_on_demand_stats_base INT NOT NULL,"     /* SERVER_TABLE_ON_DEMAND_STATS_BASE */
+		"server_flags_dp_base INT NOT NULL,"            /* SERVER_TABLE_FLAGS_DP_BASE */
+		"connection_scheduled BIGINT NOT NULL,"         /* SERVER_TABLE_SCHED_CONNECTIONS */
+		"in_packet BIGINT NOT NULL,"                    /* SERVER_TABLE_IN_PACKET */
+		"in_byte BIGINT NOT NULL,"                      /* SERVER_TABLE_IN_BYTE */
+		"out_packet BIGINT NOT NULL,"                   /* SERVER_TABLE_OUT_PACKET */
+		"out_byte BIGINT NOT NULL,"                     /* SERVER_TABLE_OUT_BYTE */
 		"PRIMARY KEY (ip,port,srv_ip,srv_port,srv_protocol),"
 		"FOREIGN KEY (srv_ip,srv_port,srv_protocol) "
 		"REFERENCES services(ip,port,protocol));";
@@ -282,12 +311,12 @@ enum alvs_db_rc alvs_db_init(bool *cancel_application_flag)
 	 *    b_sync_id
 	 */
 	sql = "CREATE TABLE application_info("
-		"application_index INT NOT NULL,"
-		"is_master INT NOT NULL,"
-		"is_backup INT NOT NULL,"
-		"m_sync_id INT NOT NULL,"
-		"b_sync_id INT NOT NULL,"
-		"source_ip INT NOT NULL,"
+		"application_index INT NOT NULL,"               /* APPLICATION_TABLE_INDEX */
+		"is_master INT NOT NULL,"                       /* APPLICATION_TABLE_IS_MASTER */
+		"is_backup INT NOT NULL,"                       /* APPLICATION_TABLE_IS_BACKUP */
+		"m_sync_id INT NOT NULL,"                       /* APPLICATION_TABLE_MASTER_SYNC_ID */
+		"b_sync_id INT NOT NULL,"                       /* APPLICATION_TABLE_BACKUP_SYNC_ID */
+		"source_ip INT NOT NULL,"                       /* APPLICATION_TABLE_SOURCE_IP */
 		"PRIMARY KEY (application_index));";
 
 	/* Execute SQL statement */
@@ -510,16 +539,16 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 	}
 	if (full_service) {
 		/* retrieve service info from result */
-		service->nps_index = sqlite3_column_int(statement, TABLE_ENTRY_NPS_INDEX);
-		service->flags = sqlite3_column_int(statement, TABLE_ENTRY_NPS_FLAGS);
-		service->sched_alg = (enum alvs_scheduler_type)sqlite3_column_int(statement, TABLE_ENTRY_SCHED_ALG);
-		service->service_stats.connection_scheduled = sqlite3_column_int64(statement, TABLE_ENTRY_CONNECTION_SCHEDULD);
-		service->stats_base.raw_data = sqlite3_column_int(statement, TABLE_ENTRY_STATS_BASE);
-		service->service_stats.in_packet = sqlite3_column_int64(statement, TABLE_ENTRY_IN_PACKET);
-		service->service_stats.in_byte = sqlite3_column_int64(statement, TABLE_ENTRY_IN_BYTE);
-		service->service_stats.out_packet = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_PACKET);
-		service->service_stats.out_byte = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_BYTE);
-		service->sched_entries_count = sqlite3_column_int(statement, TABLE_ENTRY_SCHED_ENTRIES_COUNT);
+		service->nps_index = sqlite3_column_int(statement, SERVICE_TABLE_NPS_INDEX);
+		service->flags = sqlite3_column_int(statement, SERVICE_TABLE_NPS_FLAGS);
+		service->sched_alg = (enum alvs_scheduler_type)sqlite3_column_int(statement, SERVICE_TABLE_SCHED_ALG);
+		service->service_stats.connection_scheduled = sqlite3_column_int64(statement, SERVICE_TABLE_SCHED_CONNECTIONS);
+		service->stats_base.raw_data = sqlite3_column_int(statement, SERVICE_TABLE_STATS_BASE);
+		service->service_stats.in_packet = sqlite3_column_int64(statement, SERVICE_TABLE_IN_PACKET);
+		service->service_stats.in_byte = sqlite3_column_int64(statement, SERVICE_TABLE_IN_BYTE);
+		service->service_stats.out_packet = sqlite3_column_int64(statement, SERVICE_TABLE_OUT_PACKET);
+		service->service_stats.out_byte = sqlite3_column_int64(statement, SERVICE_TABLE_OUT_BYTE);
+		service->sched_entries_count = sqlite3_column_int(statement, SERVICE_TABLE_SCHED_ENTRIES_COUNT);
 	}
 
 	/* finalize SQL statement */
@@ -778,24 +807,24 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 			return ALVS_DB_INTERNAL_ERROR;
 		}
 
-		node->server.ip = sqlite3_column_int (statement, 0);
-		node->server.port = sqlite3_column_int (statement, 1);
-		node->server.nps_index = sqlite3_column_int (statement, 5);
-		node->server.weight = sqlite3_column_int (statement, 6);
-		node->server.conn_flags = sqlite3_column_int (statement, 7);
-		node->server.server_flags = sqlite3_column_int (statement, 8);
-		node->server.u_thresh = sqlite3_column_int (statement, 9);
-		node->server.l_thresh = sqlite3_column_int (statement, 10);
-		node->server.active = sqlite3_column_int (statement, 11);
-		node->server.server_stats_base.raw_data = sqlite3_column_int (statement, 12);
-		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, 13);
-		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 14);
-		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, 15);
-		node->server.server_stats.connection_scheduled = sqlite3_column_int64(statement, 16);
-		node->server.server_stats.in_packet = sqlite3_column_int64(statement, 17);
-		node->server.server_stats.in_byte = sqlite3_column_int64(statement, 18);
-		node->server.server_stats.out_packet = sqlite3_column_int64(statement, 19);
-		node->server.server_stats.out_byte = sqlite3_column_int64(statement, 20);
+		node->server.ip = sqlite3_column_int (statement, SERVER_TABLE_IP);
+		node->server.port = sqlite3_column_int (statement, SERVER_TABLE_PORT);
+		node->server.nps_index = sqlite3_column_int (statement, SERVER_TABLE_NPS_INDEX);
+		node->server.weight = sqlite3_column_int (statement, SERVER_TABLE_WEIGHT);
+		node->server.conn_flags = sqlite3_column_int (statement, SERVER_TABLE_CONNECTION_FLAGS);
+		node->server.server_flags = sqlite3_column_int (statement, SERVER_TABLE_FLAGS);
+		node->server.u_thresh = sqlite3_column_int (statement, SERVER_TABLE_UPPER_THRESHOLD);
+		node->server.l_thresh = sqlite3_column_int (statement, SERVER_TABLE_LOWER_THRESHOLD);
+		node->server.active = sqlite3_column_int (statement, SERVER_TABLE_ACTIVE);
+		node->server.server_stats_base.raw_data = sqlite3_column_int (statement, SERVER_TABLE_STATS_BASE);
+		node->server.service_stats_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_SERVICE_STATS_BASE);
+		node->server.server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_ON_DEMAND_STATS_BASE);
+		node->server.server_flags_dp_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_FLAGS_DP_BASE);
+		node->server.server_stats.connection_scheduled = sqlite3_column_int64(statement, SERVER_TABLE_SCHED_CONNECTIONS);
+		node->server.server_stats.in_packet = sqlite3_column_int64(statement, SERVER_TABLE_IN_PACKET);
+		node->server.server_stats.in_byte = sqlite3_column_int64(statement, SERVER_TABLE_IN_BYTE);
+		node->server.server_stats.out_packet = sqlite3_column_int64(statement, SERVER_TABLE_OUT_PACKET);
+		node->server.server_stats.out_byte = sqlite3_column_int64(statement, SERVER_TABLE_OUT_BYTE);
 
 		if (*server_list == NULL) {
 			node->next = node;
@@ -966,17 +995,17 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 	}
 
 	/* retrieve server info from result */
-	server->nps_index = sqlite3_column_int(statement, 5);
-	server->weight = sqlite3_column_int(statement, 6);
-	server->conn_flags = sqlite3_column_int(statement, 7);
-	server->server_flags = sqlite3_column_int(statement, 8);
-	server->u_thresh = sqlite3_column_int(statement, 9);
-	server->l_thresh = sqlite3_column_int(statement, 10);
-	server->active = sqlite3_column_int(statement, 11);
-	server->server_stats_base.raw_data = sqlite3_column_int(statement, 12);
-	server->service_stats_base.raw_data = sqlite3_column_int(statement, 13);
-	server->server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, 14);
-	server->server_flags_dp_base.raw_data = sqlite3_column_int(statement, 15);
+	server->nps_index = sqlite3_column_int(statement, SERVER_TABLE_NPS_INDEX);
+	server->weight = sqlite3_column_int(statement, SERVER_TABLE_WEIGHT);
+	server->conn_flags = sqlite3_column_int(statement, SERVER_TABLE_CONNECTION_FLAGS);
+	server->server_flags = sqlite3_column_int(statement, SERVER_TABLE_FLAGS);
+	server->u_thresh = sqlite3_column_int(statement, SERVER_TABLE_UPPER_THRESHOLD);
+	server->l_thresh = sqlite3_column_int(statement, SERVER_TABLE_LOWER_THRESHOLD);
+	server->active = sqlite3_column_int(statement, SERVER_TABLE_ACTIVE);
+	server->server_stats_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_STATS_BASE);
+	server->service_stats_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_SERVICE_STATS_BASE);
+	server->server_on_demand_stats_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_ON_DEMAND_STATS_BASE);
+	server->server_flags_dp_base.raw_data = sqlite3_column_int(statement, SERVER_TABLE_FLAGS_DP_BASE);
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
@@ -1248,11 +1277,11 @@ enum alvs_db_rc internal_db_get_application_info(struct alvs_db_application_info
 	}
 
 	/* retrieve state sync alvs info from result */
-	alvs_app_info->is_master = sqlite3_column_int(statement, 1);
-	alvs_app_info->is_backup = sqlite3_column_int(statement, 2);
-	alvs_app_info->m_sync_id = sqlite3_column_int(statement, 3);
-	alvs_app_info->b_sync_id = sqlite3_column_int(statement, 4);
-	alvs_app_info->source_ip = sqlite3_column_int(statement, 5);
+	alvs_app_info->is_master = sqlite3_column_int(statement, APPLICATION_TABLE_IS_MASTER);
+	alvs_app_info->is_backup = sqlite3_column_int(statement, APPLICATION_TABLE_IS_BACKUP);
+	alvs_app_info->m_sync_id = sqlite3_column_int(statement, APPLICATION_TABLE_MASTER_SYNC_ID);
+	alvs_app_info->b_sync_id = sqlite3_column_int(statement, APPLICATION_TABLE_BACKUP_SYNC_ID);
+	alvs_app_info->source_ip = sqlite3_column_int(statement, APPLICATION_TABLE_SOURCE_IP);
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
@@ -3292,10 +3321,10 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 			alvs_free_service_list(*service_list);
 			return ALVS_DB_FAILURE;
 		}
-		node->service.ip = sqlite3_column_int(statement, 0);
-		node->service.port = sqlite3_column_int(statement, 1);
-		node->service.protocol = sqlite3_column_int(statement, 2);
-		node->service.nps_index = sqlite3_column_int(statement, 3);
+		node->service.ip = sqlite3_column_int(statement, SERVICE_TABLE_IP);
+		node->service.port = sqlite3_column_int(statement, SERVICE_TABLE_PORT);
+		node->service.protocol = sqlite3_column_int(statement, SERVICE_TABLE_PROTOCOL);
+		node->service.nps_index = sqlite3_column_int(statement, SERVICE_TABLE_NPS_INDEX);
 
 		if (*service_list == NULL) {
 			node->next = node;
@@ -3443,15 +3472,15 @@ enum alvs_db_rc alvs_db_print_services_stats(void)
 
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
-		service_internal_db_stats.ip = sqlite3_column_int(statement, TABLE_ENTRY_IP);
-		service_internal_db_stats.port = sqlite3_column_int(statement, TABLE_ENTRY_PORT);
-		service_internal_db_stats.protocol = sqlite3_column_int(statement, TABLE_ENTRY_PRTOTOCOL);
-		service_internal_db_stats.nps_index = sqlite3_column_int(statement, TABLE_ENTRY_NPS_INDEX);
-		service_internal_db_stats.service_stats.in_packet = sqlite3_column_int64(statement, TABLE_ENTRY_IN_PACKET);
-		service_internal_db_stats.service_stats.in_byte = sqlite3_column_int64(statement, TABLE_ENTRY_IN_BYTE);
-		service_internal_db_stats.service_stats.out_packet = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_PACKET);
-		service_internal_db_stats.service_stats.out_byte = sqlite3_column_int64(statement, TABLE_ENTRY_OUT_BYTE);
-		service_internal_db_stats.service_stats.connection_scheduled = sqlite3_column_int64(statement, TABLE_ENTRY_CONNECTION_SCHEDULD);
+		service_internal_db_stats.ip = sqlite3_column_int(statement, SERVICE_TABLE_IP);
+		service_internal_db_stats.port = sqlite3_column_int(statement, SERVICE_TABLE_PORT);
+		service_internal_db_stats.protocol = sqlite3_column_int(statement, SERVICE_TABLE_PROTOCOL);
+		service_internal_db_stats.nps_index = sqlite3_column_int(statement, SERVICE_TABLE_NPS_INDEX);
+		service_internal_db_stats.service_stats.in_packet = sqlite3_column_int64(statement, SERVICE_TABLE_IN_PACKET);
+		service_internal_db_stats.service_stats.in_byte = sqlite3_column_int64(statement, SERVICE_TABLE_IN_BYTE);
+		service_internal_db_stats.service_stats.out_packet = sqlite3_column_int64(statement, SERVICE_TABLE_OUT_PACKET);
+		service_internal_db_stats.service_stats.out_byte = sqlite3_column_int64(statement, SERVICE_TABLE_OUT_BYTE);
+		service_internal_db_stats.service_stats.connection_scheduled = sqlite3_column_int64(statement, SERVICE_TABLE_SCHED_CONNECTIONS);
 
 		/* read counter */
 		if (alvs_db_get_service_counters(service_internal_db_stats.nps_index,
@@ -3509,10 +3538,10 @@ enum alvs_db_rc alvs_db_clear_stats(void)
 
 	/* Collect server ids */
 	while (rc == SQLITE_ROW) {
-		service.ip = sqlite3_column_int(statement, 0);
-		service.port = sqlite3_column_int(statement, 1);
-		service.protocol = sqlite3_column_int(statement, 2);
-		service.nps_index = sqlite3_column_int(statement, 3);
+		service.ip = sqlite3_column_int(statement, SERVICE_TABLE_IP);
+		service.port = sqlite3_column_int(statement, SERVICE_TABLE_PORT);
+		service.protocol = sqlite3_column_int(statement, SERVICE_TABLE_PROTOCOL);
+		service.nps_index = sqlite3_column_int(statement, SERVICE_TABLE_NPS_INDEX);
 
 		/*save statistics to internal database */
 		if (internal_db_save_service_stats(service) != ALVS_DB_OK) {
@@ -3684,17 +3713,17 @@ void server_db_aging(void)
 
 		/* Collect server ids */
 		while (rc == SQLITE_ROW) {
-			if (alvs_db_get_num_conn_total(sqlite3_column_int(statement, 5), &value) == ALVS_DB_INTERNAL_ERROR) {
+			if (alvs_db_get_num_conn_total(sqlite3_column_int(statement, SERVER_TABLE_NPS_INDEX), &value) == ALVS_DB_INTERNAL_ERROR) {
 				write_log(LOG_CRIT, "Delete server failed in aging thread");
 				server_db_exit_with_error();
 			}
 			if (value == 0) {
-				cp_server.ip = sqlite3_column_int(statement, 0);
-				cp_server.port = sqlite3_column_int(statement, 1);
-				cp_service.ip = sqlite3_column_int(statement, 2);
-				cp_service.port = sqlite3_column_int(statement, 3);
-				cp_service.protocol = sqlite3_column_int(statement, 4);
-				cp_server.nps_index = sqlite3_column_int(statement, 5);
+				cp_server.ip = sqlite3_column_int(statement, SERVER_TABLE_IP);
+				cp_server.port = sqlite3_column_int(statement, SERVER_TABLE_PORT);
+				cp_service.ip = sqlite3_column_int(statement, SERVER_TABLE_SERVICE_IP);
+				cp_service.port = sqlite3_column_int(statement, SERVER_TABLE_SERVICE_PORT);
+				cp_service.protocol = sqlite3_column_int(statement, SERVER_TABLE_SERVICE_PROTOCOL);
+				cp_server.nps_index = sqlite3_column_int(statement, SERVER_TABLE_NPS_INDEX);
 
 				write_log(LOG_DEBUG, "Aging server %s:%d (index=%d) in service %s:%d (prot=%d)",
 					  my_inet_ntoa(cp_server.ip), cp_server.port,
