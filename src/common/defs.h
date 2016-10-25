@@ -48,7 +48,7 @@ struct net_hdr {
 	struct udphdr udp;
 } __packed;
 
-#define BUILD_SUM_ADDR(mem_space_type, msid, offset) (((mem_space_type) << 31) | ((msid) << 27) | ((offset) << 0))
+#define BUILD_SUM_ADDR(mem_space_type, msid, element_index) (((mem_space_type) << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | ((msid) << EZDP_SUM_ADDR_MSID_OFFSET) | ((element_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET))
 
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}

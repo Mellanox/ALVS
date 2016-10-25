@@ -149,7 +149,9 @@ void alvs_update_connection_statistics(int32_t sched_conn, int32_t active_conn, 
 static __always_inline
 void alvs_update_discard_statistics(enum alvs_error_stats_offsets error_id)
 {
-	ezdp_sum_addr_t addr = (EZDP_EXTERNAL_MS << 31) | (EMEM_ALVS_ERROR_STATS_POSTED_MSID << 27) | ((EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + error_id) << 0);
+	ezdp_sum_addr_t addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+					      EMEM_ALVS_ERROR_STATS_POSTED_MSID,
+					      EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + error_id);
 
 	ezdp_add_posted_ctr(addr, 1);
 }

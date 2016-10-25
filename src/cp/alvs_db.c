@@ -1793,9 +1793,7 @@ void build_nps_service_info_result(struct alvs_db_service *cp_service,
 	nps_service_info_result->sched_entries_count = bswap_16(cp_service->sched_entries_count);
 	nps_service_info_result->service_flags = bswap_32(cp_service->flags);
 	nps_service_info_result->service_stats_base = bswap_32(cp_service->stats_base.raw_data);
-	nps_service_info_result->service_sched_ctr = bswap_32((EZDP_INTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
-		(EZDP_ALL_CLUSTER_DATA << EZDP_SUM_ADDR_MSID_OFFSET) |
-		(cp_service->nps_index << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET));
+	nps_service_info_result->service_sched_ctr = bswap_32(BUILD_SUM_ADDR(EZDP_INTERNAL_MS, EZDP_ALL_CLUSTER_DATA, cp_service->nps_index));
 }
 
 /**************************************************************************//**
@@ -2054,9 +2052,9 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	cp_service.sched_alg = get_sched_alg(ip_vs_service->sched_name);
 	cp_service.flags = ip_vs_service->flags;
 	cp_service.sched_entries_count = 0;
-	cp_service.stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
-		(EMEM_SERVICE_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
-		((EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
+	cp_service.stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+							EMEM_SERVICE_STATS_POSTED_MSID,
+							EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS);
 
 	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d",
 		  cp_service.sched_alg, cp_service.flags);
@@ -2496,14 +2494,16 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.active = true;
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
-		cp_server.server_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | (EMEM_SERVER_STATS_POSTED_MSID << EZDP_SUM_ADDR_MSID_OFFSET) | ((EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
+		cp_server.server_stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+								      EMEM_SERVER_STATS_POSTED_MSID,
+								      EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS);
 		cp_server.service_stats_base.raw_data = cp_service.stats_base.raw_data;
-		cp_server.server_on_demand_stats_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
-			(EMEM_SERVER_STATS_ON_DEMAND_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
-			((EMEM_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
-		cp_server.server_flags_dp_base.raw_data = (EZDP_EXTERNAL_MS << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) |
-			(EMEM_SERVER_FLAGS_MSID << EZDP_SUM_ADDR_MSID_OFFSET) |
-			((EMEM_SERVER_FLAGS_OFFSET + cp_server.nps_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET);
+		cp_server.server_on_demand_stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+										EMEM_SERVER_STATS_ON_DEMAND_MSID,
+										EMEM_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS);
+		cp_server.server_flags_dp_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+									 EMEM_SERVER_FLAGS_MSID,
+									 EMEM_SERVER_FLAGS_OFFSET + cp_server.nps_index);
 
 		write_log(LOG_DEBUG, "Server info: conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
 			  cp_server.conn_flags,
