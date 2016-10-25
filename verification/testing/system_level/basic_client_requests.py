@@ -31,9 +31,9 @@ def end_log():
 	log_file.write("#end HTTP client\n")
 	log_file.close()
 
-def readHtml(ip,connTimeout):
+def readHtml(ip,connTimeout,port):
 	try:
-		response = urllib2.urlopen('http://'+ip, timeout=connTimeout)
+		response = urllib2.urlopen('http://'+ip+port, timeout=connTimeout)
 	except HTTPError as e:
 		log('%s : %s' %(ip, '404 ERROR'))
 		log("#The server couldn\'t fulfill the request. Error code: %s " %str(e.code))
@@ -70,11 +70,13 @@ def readHtml(ip,connTimeout):
 # Function: Main
 ################################################################################
 if __name__ == "__main__":
-	usage = "usage: %prog [-i, -l, -r -t -e]"
+	usage = "usage: %prog [-i, -l, -r -t -e -p]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	parser.add_option("-i", "--http_ip", dest="http_ip",
 					  help="IP of the HTTP server")
+	parser.add_option("-p", "--port", dest="port",
+					  help="PORT of the HTTP server", default= '')
 	parser.add_option("-l", "--log_file", dest="log_file_name",
 					  help="Log file name", default="log")
 	parser.add_option("-r", "--requests", dest="num_of_requests",
@@ -93,9 +95,14 @@ if __name__ == "__main__":
 		log('#HTTP IP is not given')
 		exit(1)
 	
+	
+	if options.port!='':
+		options.port=":"+options.port
+	
+	
 	# read from HTML server x times (x = options.num_of_requests)
 	for i in range(options.num_of_requests):
-		rc = readHtml(options.http_ip,options.timeout)
+		rc = readHtml(options.http_ip,options.timeout,options.port)
 		if rc == -1 and options.expects404 == False:
 			break
 		
