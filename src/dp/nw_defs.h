@@ -38,6 +38,7 @@
 #ifndef NW_DEFS_H_
 #define NW_DEFS_H_
 
+#include "defs.h"
 #include "nw_search_defs.h"
 #include "application_search_defs.h"
 

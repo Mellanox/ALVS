@@ -35,10 +35,12 @@
 *  Desc:                performs logging functionality for ALVS DP
 *
 */
+
 #include "alvs_log.h"
-#include "global_defs.h"
 #include "nw_utils.h"
 
+#define SYSLOG_SERVER_IP          "169.254.42.41"
+#define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}
 
 bool alvs_open_log(void)
 {

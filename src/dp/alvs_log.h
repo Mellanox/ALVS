@@ -42,10 +42,6 @@
 #include "defs.h"
 #include <arpa/inet.h>
 
-
-#define UDP_SYSLOG_SERVER	514
-#define ALVS_SYSLOG_WA	EZDP_SYSLOG_WA
-
 #ifndef NDEBUG
 #define alvs_write_log(priority, str, ...) \
 		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__)

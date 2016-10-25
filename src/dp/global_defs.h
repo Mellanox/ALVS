@@ -36,7 +36,7 @@
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
 
-#include "alvs_log.h"
+#include "log.h"
 #include "alvs_defs.h"
 
 union cmem_workarea {

@@ -36,11 +36,9 @@
 #ifndef NW_UTILS_H_
 #define NW_UTILS_H_
 
-
-#include "defs.h"
 #include "global_defs.h"
 #include "nw_search_defs.h"
-
+#include "alvs_log.h"
 
 /******************************************************************************
  * \brief         perform application info lookup
