@@ -39,6 +39,14 @@
 #include "log.h"
 #include "alvs_defs.h"
 
+
+#define IP_DF           0x4000 /* TODO take from netinet/ip.h after fixing includes */
+
+struct net_hdr {
+	struct iphdr ipv4;
+	struct udphdr udp;
+} __packed;
+
 union cmem_workarea {
 	union alvs_workarea   alvs_wa;
 	union nw_workarea     nw_wa;

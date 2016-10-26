@@ -36,13 +36,11 @@
 #ifndef ALVS_STATE_SYNC_MASTER_H_
 #define ALVS_STATE_SYNC_MASTER_H_
 
-#include "defs.h"
-#include "alvs_defs.h"
-#include "alvs_utils.h"
 #include "alvs_server.h"
 #include "application_search_defs.h"
 #include "nw_routing.h"
 #include "nw_mc.h"
+
 
 /******************************************************************************
  * \brief       update network header (ipv4, udp) length fields according to
@@ -139,7 +137,7 @@ void alvs_state_sync_set_sync_hdr(struct alvs_state_sync_header *hdr, int conn_c
 static __always_inline
 void alvs_state_sync_set_sync_conn(struct alvs_state_sync_conn *sync_conn)
 {
-	sync_conn->type = IP_V4;
+	sync_conn->type = ALVS_STATE_SYNC_TYPE_IPV4;
 	sync_conn->protocol = cmem_alvs.conn_info_result.conn_class_key.protocol;
 	sync_conn->version = 0;
 	sync_conn->size = sizeof(struct alvs_state_sync_conn);

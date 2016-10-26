@@ -37,7 +37,6 @@
 #define ALVS_UTILS_H_
 
 #include "defs.h"
-#include "global_defs.h"
 #include "nw_utils.h"
 #include "alvs_search_defs.h"
 

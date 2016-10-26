@@ -37,7 +37,7 @@
 */
 
 #include "log.h"
-
+#include "global_defs.h"
 
 char ptr_pri_facility[LOG_DEBUG+1][SYSLOG_PRI_FACILITY_STRING_SIZE] = {
 	"<24>", /*LOG_MAKEPRI(LOG_DAEMON, LOG_EMERG)*/

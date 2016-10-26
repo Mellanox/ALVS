@@ -68,12 +68,16 @@ enum alvs_service_output_result {
 /****************************************************************
  * ALVS definitions
  ***************************************************************/
+#define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
+#define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
+#define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID
 
 #define ALVS_TIMER_INTERVAL_SEC 16
 
 #define ALVS_SCHED_RR_RETRIES 10
 
 #define ALVS_STATE_SYNC_PROTO_VER        1
+#define ALVS_STATE_SYNC_TYPE_IPV4        0
 #define ALVS_STATE_SYNC_HEADROOM         64
 #define ALVS_STATE_SYNC_BUFFERS_LIMIT    5 /*value should fit 4 bits*/
 #define ALVS_STATE_SYNC_DST_IP           0xe0000051/*224.0.0.81*/
@@ -103,10 +107,6 @@ enum alvs_sched_server_result {
 };
 
 #define ALVS_CONN_LOCK_ELEMENTS_MASK  (ALVS_CONN_LOCK_ELEMENTS_COUNT - 1)
-
-
-#define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128
-#define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
 
 
 /* Number of lag members is hard coded and depended on compilation flag. */

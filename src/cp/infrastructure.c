@@ -61,6 +61,11 @@ extern EZapiChannel_EthIFType port_type;
 
 EZagtRPCServer host_server;
 
+/* Token bucket */
+#define ALVS_TB_PROFILE_0_CIR_RESOLUTION EZapiStat_TBProfileResolution_1_BYTE
+#define ALVS_TB_PROFILE_0_CIR            0x40000000
+#define ALVS_TB_PROFILE_0_CBS            0x40000000
+
 /* AGT port */
 #define INFRA_AGT_PORT              1234
 
@@ -659,7 +664,7 @@ bool infra_create_timers(void)
 	pmu_timer_params.bEnable = true;
 	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
 	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
-	pmu_timer_params.uiNumJobs = ALVS_AGING_TIMER_EVENTS_PER_ITERATION*ALVS_TCP_CONN_ITER_ESTABLISHED; /* 30*1024*1024; */
+	pmu_timer_params.uiNumJobs = ALVS_AGING_TIMER_EVENTS_PER_ITERATION * ALVS_TCP_CONN_ITER_ESTABLISHED; /* 30*1024*1024; */
 	pmu_timer_params.uiNanoSecPeriod = 0;
 	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
 

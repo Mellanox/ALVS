@@ -42,7 +42,6 @@
  * includes & defines
  *********************************/
 
-#include <ezdp_search_defs.h>
 #include "alvs_search_defs.h"
 
 #define APPLICATION_INFO_MAX_ENTRIES	16

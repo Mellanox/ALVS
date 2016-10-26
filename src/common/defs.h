@@ -34,19 +34,10 @@
 
 #include "user_defs.h"
 #include <ezdp_defs.h>
-#include <linux/ip.h>
-#include <linux/udp.h>
+
 
 #define __fast_path_code __imem_1_cluster_func
 #define __slow_path_code __imem_all_cluster_func
-
-#define IP_DF           0x4000 /* TODO take from netinet/ip.h after fixing includes */
-#define IP_V4           0
-
-struct net_hdr {
-	struct iphdr ipv4;
-	struct udphdr udp;
-} __packed;
 
 #define BUILD_SUM_ADDR(mem_space_type, msid, element_index) (((mem_space_type) << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | ((msid) << EZDP_SUM_ADDR_MSID_OFFSET) | ((element_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET))
 
@@ -174,14 +165,6 @@ enum alvs_error_stats_offsets {
 #define EMEM_STATS_ON_DEMAND_TB_OFFSET         (EMEM_STATS_ON_DEMAND_COLOR_FLAG_OFFSET + EMEM_STATS_ON_DEMAND_COLOR_FLAG_NUM)
 #define EMEM_STATS_ON_DEMAND_TB_STATS_NUM      1
 
-
-#define ALVS_TB_PROFILE_0_CIR_RESOLUTION EZapiStat_TBProfileResolution_1_BYTE
-#define ALVS_TB_PROFILE_0_CIR            0x40000000
-#define ALVS_TB_PROFILE_0_CBS            0x40000000
-
-#define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
-#define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
-#define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID
 
 enum struct_id {
 	STRUCT_ID_NW_INTERFACES                = 0,
