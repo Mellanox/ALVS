@@ -57,46 +57,7 @@ uint32_t nw_app_info_lookup(uint32_t key, void __cmem * entry_ptr, uint32_t entr
 static __always_inline
 void nw_interface_inc_counter(uint32_t counter_id)
 {
-	ezdp_add_posted_ctr(cmem_nw.interface_result.nw_stats_base + counter_id, 1);
-}
-
-/******************************************************************************
- * \brief         interface lookup
- * \return        lookup result
- */
-static __always_inline
-uint32_t nw_interface_lookup(int32_t	logical_id)
-{
-	return ezdp_lookup_table_entry(&shared_cmem_nw.interface_struct_desc,
-				       logical_id, &cmem_nw.interface_result,
-				       sizeof(struct nw_if_result), 0);
-}
-
-/******************************************************************************
- * \brief         interface lookup
- * \return        lookup result
- */
-static __always_inline
-uint32_t nw_interface_lookup_host(void)
-{
-	return ezdp_lookup_table_entry(&shared_cmem_nw.interface_struct_desc,
-				       ALVS_HOST_LOGICAL_ID,
-				       &cmem_nw.host_interface_result,
-				       sizeof(struct nw_if_result), 0);
-}
-
-/******************************************************************************
- * \brief         interface lookup
- * \return        host mac address
- */
-static __always_inline
-uint8_t *nw_interface_get_host_mac_address(void)
-{
-	if (unlikely(nw_interface_lookup_host() != 0)) {
-		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
-		return NULL;
-	}
-	return cmem_nw.host_interface_result.mac_address.ether_addr_octet;
+	ezdp_add_posted_ctr(cmem_nw.ingress_if_result.stats_base + counter_id, 1);
 }
 
 /******************************************************************************
@@ -110,21 +71,73 @@ void nw_discard_frame(void)
 	ezframe_free(&frame, 0);
 }
 
+/******************************************************************************
+ * \brief         interface lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t nw_if_ingress_lookup(int8_t logical_id)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_nw.interface_struct_desc,
+				       logical_id,
+				       &cmem_nw.ingress_if_result,
+				       sizeof(struct nw_if_result), 0);
+}
 
 /******************************************************************************
- * \brief         perform host route
+ * \brief         interface lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t nw_if_egress_lookup(int8_t logical_id)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_nw.interface_struct_desc,
+				       logical_id,
+				       &cmem_nw.egress_if_result,
+				       sizeof(struct nw_if_result), 0);
+}
+
+/******************************************************************************
+ * \brief         calculate & update egress interface
  * \return        void
  */
 static __always_inline
-void nw_host_do_route(ezframe_t	__cmem * frame)
+void nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
-	if (unlikely(nw_interface_lookup_host() != 0)) {
-		alvs_write_log(LOG_CRIT, "error - host interface lookup fail!");
-		/*drop frame*/
+	uint32_t hash_value = 0;
+
+	if (is_lag == 1) {
+		/*do hash on destination mac - for lag calculation*/
+		hash_value = ezdp_hash(((uint32_t *)frame_base)[0],
+				       ((uint32_t *)frame_base)[1],
+				       LOG2(NUM_OF_LAG_MEMBERS),
+				       sizeof(struct ether_addr),
+				       0,
+				       EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
+				       EZDP_HASH_PERMUTATION_0);
+	}
+
+	if (nw_if_egress_lookup(out_if + hash_value) != 0) {
+		alvs_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if + hash_value);
+		/* drop frame!! */
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 		nw_discard_frame();
 		return;
 	}
-	ezframe_send_to_if(frame, cmem_nw.host_interface_result.output_channel, 0);
+}
+
+/******************************************************************************
+ * \brief         interface lookup
+ * \return        host mac address
+ */
+static __always_inline
+uint8_t *nw_interface_get_mac_address(int8_t logical_id)
+{
+	if (unlikely(nw_if_egress_lookup(logical_id) != 0)) {
+		alvs_write_log(LOG_CRIT, "error - egress interface lookup fail!");
+		return NULL;
+	}
+	return cmem_nw.egress_if_result.mac_address.ether_addr_octet;
 }
 
 #endif  /*NW_UTILS_H_*/

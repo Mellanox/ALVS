@@ -56,6 +56,7 @@ sqlite3 *nw_db;
 uint32_t fib_entry_count;
 
 extern const char *nw_if_posted_stats_offsets_names[];
+extern const char *remote_if_posted_stats_offsets_names[];
 
 struct nw_db_fib_entry {
 	in_addr_t                  dest_ip;
@@ -859,18 +860,26 @@ enum nw_db_rc nw_db_print_all_interfaces_stats(void)
 {
 	uint32_t i;
 
-	/* printing interface error stats */
+	/* printing network interface error stats */
 	for (i = 0; i < USER_NW_IF_NUM; i++) {
 		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
-		if (nw_db_print_interface_stats(USER_BASE_LOGICAL_ID+i) != NW_DB_OK) {
+		if (nw_db_print_interface_stats(EMEM_NW_IF_STATS_POSTED_OFFSET + ((USER_NW_BASE_LOGICAL_ID+i) * NW_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, NW_NUM_OF_IF_STATS) != NW_DB_OK) {
 			return NW_DB_NPS_ERROR;
 		}
 	}
 
 	/* printing host error stats */
 	write_log(LOG_INFO, "Statistics of Host Interface");
-	if (nw_db_print_interface_stats(USER_HOST_LOGICAL_ID) != NW_DB_OK) {
+	if (nw_db_print_interface_stats(EMEM_HOST_IF_STATS_POSTED_OFFSET + (USER_HOST_LOGICAL_ID * HOST_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, HOST_NUM_OF_IF_STATS) != NW_DB_OK) {
 		return NW_DB_NPS_ERROR;
+	}
+
+	/* printing network interface error stats */
+	for (i = 0; i < USER_REMOTE_IF_NUM; i++) {
+		write_log(LOG_INFO, "Statistics of Remote Interface %d", i);
+		if (nw_db_print_interface_stats(EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ((USER_REMOTE_BASE_LOGICAL_ID+i) * REMOTE_NUM_OF_IF_STATS), remote_if_posted_stats_offsets_names, REMOTE_NUM_OF_IF_STATS) != NW_DB_OK) {
+			return NW_DB_NPS_ERROR;
+		}
 	}
 
 	return NW_DB_OK;
@@ -880,30 +889,39 @@ enum nw_db_rc nw_db_print_all_interfaces_stats(void)
 /**************************************************************************//**
  * \brief       print interface statistics
  *
- * \param[in]   interface - the interface number that need to print
+ * \param[in]   if_stats_base                  - interface statistics base
+ * \param[in]   if_posted_stats_offsets_names  - array of interface posted statistics names
+ * \param[in]   num_of_if_stats                - number of interface statistics
  *
  * \return	NW_DB_OK - - operation succeeded
  *		NW_DB_NPS_ERROR - fail to read statistics
  */
-enum nw_db_rc nw_db_print_interface_stats(unsigned int interface)
+enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const char *if_posted_stats_offsets_names[], uint32_t num_of_if_stats)
 {
 	uint32_t error_index;
 	uint64_t temp_sum;
-	uint64_t interface_counters[NW_NUM_OF_IF_STATS] = {0};
+	uint64_t *interface_counters = (uint64_t *)malloc(num_of_if_stats * sizeof(uint64_t));
 
-	if (infra_get_posted_counters(EMEM_IF_STATS_POSTED_OFFSET + (interface * NW_NUM_OF_IF_STATS),
-				      NW_NUM_OF_IF_STATS,
+	if (interface_counters == NULL) {
+		return NW_DB_NPS_ERROR;
+	}
+
+	memset(interface_counters, 0, num_of_if_stats * sizeof(uint64_t));
+
+	if (infra_get_posted_counters(if_stats_base,
+				      num_of_if_stats,
 				      interface_counters) == false) {
 		write_log(LOG_CRIT, "Failed to read error statistics counters");
+		free(interface_counters);
 		return NW_DB_NPS_ERROR;
 	}
 
 	temp_sum = 0;
-	for (error_index = 0; error_index < NW_NUM_OF_IF_STATS; error_index++) {
+	for (error_index = 0; error_index < num_of_if_stats; error_index++) {
 		if (interface_counters[error_index] > 0) {
-			if (nw_if_posted_stats_offsets_names[error_index] != NULL) {
+			if (if_posted_stats_offsets_names[error_index] != NULL) {
 				write_log(LOG_INFO, "    %s Counter: %-20lu",
-					  nw_if_posted_stats_offsets_names[error_index],
+					  if_posted_stats_offsets_names[error_index],
 					  interface_counters[error_index]);
 			} else {
 				write_log(LOG_ERR, "    Problem printing statistics for error type %d", error_index);
@@ -914,7 +932,7 @@ enum nw_db_rc nw_db_print_interface_stats(unsigned int interface)
 	if (temp_sum == 0) {
 		write_log(LOG_INFO, "    No Errors On Counters");
 	}
-
+	free(interface_counters);
 	return NW_DB_OK;
 }
 

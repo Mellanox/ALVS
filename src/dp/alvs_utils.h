@@ -100,17 +100,6 @@ void alvs_update_incoming_traffic_stats(void)
 }
 
 /******************************************************************************
- * \brief         update interface statistics counter - special counters for ALVS
- * \return        void
- */
-static __always_inline
-void alvs_update_incoming_port_stats(uint32_t counter_id)
-{
-	ezdp_add_posted_ctr(cmem_nw.interface_result.nw_stats_base + counter_id, 1);
-}
-
-
-/******************************************************************************
  * \brief         update traffic counters in server & service - used when
  *                creating new connection or deletion of an existing one.
  * \return        void

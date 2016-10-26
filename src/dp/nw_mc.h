@@ -85,16 +85,15 @@ void nw_mc_set_eth_hdr(struct ether_header *eth_header,
 		return;
 	}
 
-	/* lookup for network interface */
-	if (unlikely(nw_interface_lookup(USER_BASE_LOGICAL_ID) != 0)) {
-		alvs_write_log(LOG_DEBUG, "set ETH hearer fail nw interface lookup - port id =%d!",
-			       USER_BASE_LOGICAL_ID);
+	/*lookup for network interface*/
+	if (unlikely(nw_if_egress_lookup(USER_NW_BASE_LOGICAL_ID) != 0)) {
+		alvs_write_log(LOG_DEBUG, "set ETH hearer fail nw egress interface lookup - logical id =%d!", USER_NW_BASE_LOGICAL_ID);
 		return;
 	}
 
 	/* fill ethernet source MAC */
 	ezdp_mem_copy((uint8_t *)eth_header->ether_shost,
-		      cmem_nw.interface_result.mac_address.ether_addr_octet,
+		      cmem_nw.egress_if_result.mac_address.ether_addr_octet,
 		      sizeof(struct ether_addr));
 
 	/* fill ethernet type */
@@ -157,7 +156,7 @@ void nw_mc_handle(ezframe_t   __cmem * frame)
 	}
 
 	/* send to network */
-	nw_send_frame_to_network(frame, (uint8_t *)eth_header, USER_BASE_LOGICAL_ID);
+	nw_direct_route(frame, (uint8_t *)eth_header, USER_NW_BASE_LOGICAL_ID, true);
 }
 
 

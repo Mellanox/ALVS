@@ -37,7 +37,7 @@
 */
 
 #include "alvs_log.h"
-#include "nw_utils.h"
+#include "nw_routing.h"
 
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}
@@ -73,7 +73,6 @@ int alvs_send(ezframe_t  __cmem * frame)
 	uint8_t *frame_base;
 	uint32_t orig_length;
 	struct ether_header *eth_p;
-	uint8_t *my_mac;
 	uint8_t src_eth_addr[6] = SYSLOG_CLIENT_ETH_ADDR;
 
 	/*check that wa provided by middle ware not less than
@@ -106,22 +105,7 @@ int alvs_send(ezframe_t  __cmem * frame)
 	/*fill ethernet TYPE*/
 	eth_p->ether_type = ETHERTYPE_IP;
 
-	/*fill ethernet destination MAC*/
-	my_mac = nw_interface_get_host_mac_address();
-	if (my_mac == NULL) {
-		return -EACCES;
-	}
-	ezdp_mem_copy((uint8_t *)eth_p, my_mac, sizeof(struct ether_addr));
-
-	/*update frame length*/
-	orig_length += sizeof(struct ether_header);
-	/*store buffer with updated length*/
-	rc = ezframe_store_buf(frame, eth_p, orig_length, 0);
-	if (rc) {
-		return rc;
-	}
-
-	ezframe_send_to_if(frame, cmem_nw.host_interface_result.output_channel, 0);
+	nw_local_host_route(frame, frame_base, orig_length);
 
 	return 0;
 }

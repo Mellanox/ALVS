@@ -47,11 +47,14 @@
  *********************************/
 
 enum dp_path_type {
-	DP_PATH_FROM_NW_PATH        = 0,
 	/* Frame received on a network port */
+	DP_PATH_FROM_NW_PATH        = 0,
+	/* Frame received on a local host port */
 	DP_PATH_FROM_HOST_PATH      = 1,
-	/* Frame received on a host port */
-	DP_PATH_NOT_VALID           = 2
+	/* Frame received on a remote host port */
+	DP_PATH_FROM_REMOTE_PATH      = 2,
+	/* Invalid Path */
+	DP_PATH_NOT_VALID           = 3
 };
 
 /*key*/
@@ -123,8 +126,8 @@ struct nw_if_result {
 #endif
 
 	/*byte12-15*/
-	ezdp_sum_addr_t      nw_stats_base;
-} __packed;
+	ezdp_sum_addr_t      stats_base;
+};
 
 CASSERT(sizeof(struct nw_if_result) == 16);
 

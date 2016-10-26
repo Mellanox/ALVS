@@ -99,14 +99,14 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 			/* Send to host */
 			alvs_write_log(LOG_DEBUG, "TCP - NOT supported with multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		}
 	} else if (packet_meta_data.ip_next_protocol.udp) {
 		if (packet_meta_data.mac_control.my_mac) {
 			/* TODO - handle UDP, currently sending to host */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		} else {
 			/* TODO - should we check that DIP is multicast? */
 			/* TODO - should we check TTL? */
@@ -121,14 +121,14 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 				/* Send to host */
 				alvs_write_log(LOG_DEBUG, "UDP - NOT supported with multicast");
 				nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
-				nw_host_do_route(frame);
+				nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			}
 		}
 	} else {
 		/* Send to host */
 		alvs_write_log(LOG_DEBUG, "NOT supported protocol");
 		nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
-		nw_host_do_route(frame);
+		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}
 
 

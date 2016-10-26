@@ -39,90 +39,16 @@
 #include "nw_utils.h"
 
 /******************************************************************************
- * \brief         send frames to network ports
+ * \brief         send frame directly to the interface given by direct_if
  * \return        void
  */
 static __always_inline
-void nw_send_frame_to_network(ezframe_t __cmem * frame,
-			      uint8_t __cmem * frame_base,
-			      uint32_t port_id)
+void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
-	/*do hash on destination mac - for lag calculation*/
-	uint32_t hash_value = ezdp_hash(((uint32_t *)frame_base)[0],
-					((uint32_t *)frame_base)[1],
-					LOG2(NUM_OF_LAG_MEMBERS),
-					sizeof(struct ether_addr),
-					0,
-					EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
-					EZDP_HASH_PERMUTATION_0);
 
-	if (nw_interface_lookup(port_id + hash_value) != 0) {
-		alvs_write_log(LOG_ERR, "network interface = %d lookup fail", port_id + hash_value);
-		/* drop frame!! */
-		alvs_discard_and_stats(ALVS_ERROR_SEND_FRAME_FAIL);
-		return;
-	}
-
-	ezframe_send_to_if(frame, cmem_nw.interface_result.output_channel, 0);
+	nw_calc_egress_if(frame_base, out_if, is_lag);
+	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
 }
-
-
-/******************************************************************************
- * \brief         perform arp lookup and modify l2 header before transmission
- * \return        void
- */
-static __always_inline
-void nw_arp_processing(ezframe_t __cmem * frame,
-		       uint8_t __cmem * buffer_base,
-		       in_addr_t dest_ip,
-		       uint32_t	frame_buff_size)
-{
-	 uint32_t rc;
-	 uint32_t found_result_size;
-	 struct nw_arp_result *arp_res_ptr;
-
-
-	 cmem_nw.arp_key.real_server_address = dest_ip;
-
-	 rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
-				     (void *)&cmem_nw.arp_key,
-				     sizeof(struct nw_arp_key),
-				     (void **)&arp_res_ptr, &found_result_size,
-				     0, cmem_wa.nw_wa.arp_hash_wa,
-				     sizeof(cmem_wa.nw_wa.arp_hash_wa));
-
-	if (likely(rc == 0)) {
-		struct ether_addr *dmac = (struct ether_addr *)buffer_base;
-
-		/*copy dst mac*/
-		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-		/*copy src mac*/
-		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.interface_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
-
-		/* Store modified segment data */
-		rc = ezframe_store_buf(frame,
-				  buffer_base,
-			   frame_buff_size,
-			   0);
-
-		if (rc != 0) {
-			alvs_write_log(LOG_DEBUG, "Ezframe store buf was failed");
-			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
-			nw_discard_frame();
-			return;
-		}
-
-		nw_send_frame_to_network(frame,
-					 buffer_base,
-					 arp_res_ptr->base_logical_id);
-	} else {
-		alvs_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
-		nw_discard_frame();
-		return;
-	}
-}
-
 
 /******************************************************************************
  * \brief         perform FIB lookup and get dest_ip for transmission
@@ -175,16 +101,72 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 	return 0;
 }
 
+/******************************************************************************
+ * \brief         perform arp lookup and modify l2 header before transmission
+ * \return        void
+ */
+static __always_inline
+void nw_arp_processing(ezframe_t __cmem * frame,
+		       uint8_t __cmem * frame_base,
+		       in_addr_t dest_ip,
+		       uint32_t	frame_buff_size)
+{
+	 uint32_t rc;
+	 uint32_t found_result_size;
+	 struct nw_arp_result *arp_res_ptr;
+
+
+	 cmem_nw.arp_key.real_server_address = dest_ip;
+
+	 rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
+				     (void *)&cmem_nw.arp_key,
+				     sizeof(struct nw_arp_key),
+				     (void **)&arp_res_ptr, &found_result_size,
+				     0, cmem_wa.nw_wa.arp_hash_wa,
+				     sizeof(cmem_wa.nw_wa.arp_hash_wa));
+
+	if (likely(rc == 0)) {
+		struct ether_addr *dmac = (struct ether_addr *)frame_base;
+
+		/*copy dst mac*/
+		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
+		/*copy src mac*/
+		/*
+		 * TODO nw_calc_egress_if(frame, frame_base, arp_res_ptr->base_logical_id, arp_res_ptr->is_lag);
+		*/
+		nw_calc_egress_if(frame_base, arp_res_ptr->base_logical_id, true);
+		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
+
+		/* Store modified segment data */
+		rc = ezframe_store_buf(frame,
+				       frame_base,
+				       frame_buff_size,
+				       0);
+
+		if (rc != 0) {
+			alvs_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
+			nw_discard_frame();
+			return;
+		}
+
+		ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
+
+	} else {
+		alvs_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
+		nw_discard_frame();
+		return;
+	}
+}
 
 /******************************************************************************
  * \brief         perform nw route
  * \return        void
  */
 static __always_inline
-void nw_do_route(ezframe_t __cmem * frame,
-		 uint8_t *buffer_base,
-		 in_addr_t dest_ip,
-		 uint32_t frame_buff_size)
+void nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
+		in_addr_t dest_ip, uint32_t frame_buff_size)
 {
 	uint32_t fib_dest_ip;
 
@@ -195,7 +177,41 @@ void nw_do_route(ezframe_t __cmem * frame,
 		return;
 	}
 
-	nw_arp_processing(frame, buffer_base, fib_dest_ip, frame_buff_size);
+	nw_arp_processing(frame, frame_base, fib_dest_ip, frame_buff_size);
 }
+
+/******************************************************************************
+ * \brief         calculate my mac, update & send frame directly to the local host interface
+ * \return        void
+ */
+static __always_inline
+void nw_local_host_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint32_t frame_buff_size)
+{
+	uint8_t *my_mac;
+	struct ether_header *eth_p;
+
+	eth_p = (struct ether_header *)(frame_base - sizeof(struct ether_header));
+
+	/*fill ethernet destination MAC*/
+	my_mac = nw_interface_get_mac_address(ALVS_HOST_LOGICAL_ID);
+	if (my_mac == NULL) {
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_GET_MAC_ADDR);
+		nw_discard_frame();
+		return;
+	}
+	ezdp_mem_copy((uint8_t *)eth_p, my_mac, sizeof(struct ether_addr));
+
+	/*update frame length*/
+	frame_buff_size += sizeof(struct ether_header);
+	/*store buffer with updated length*/
+	if (ezframe_store_buf(frame, eth_p, frame_buff_size, 0)) {
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
+		nw_discard_frame();
+		return;
+	}
+
+	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
+}
+
 
 #endif /* NW_ROUTING_H_ */

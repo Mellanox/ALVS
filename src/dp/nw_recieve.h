@@ -46,32 +46,31 @@
 static __always_inline
 void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 				uint8_t __cmem * frame_data,
-				int32_t port_id)
+				int32_t logical_id)
 {
 	uint8_t	*frame_base;
 	struct iphdr *ip_ptr;
 
-	if (unlikely(nw_interface_lookup(port_id) != 0)) {
-		alvs_write_log(LOG_DEBUG, "fail interface lookup - port id =%d!", port_id);
-		nw_host_do_route(frame);
+	if (unlikely(nw_if_ingress_lookup(logical_id) != 0)) {
+		alvs_write_log(LOG_DEBUG, "fail ingress interface lookup - logical id =%d!", logical_id);
+		nw_discard_frame();
 		return;
 	}
+
+	/* === Load Data of first frame buffer === */
+	frame_base = ezframe_load_buf(frame, frame_data, 0, 0);
 
 	/* === Check validity of received frame === */
 	if (unlikely(ezframe_valid(frame) != 0)) {
 		alvs_write_log(LOG_DEBUG, "frame is not valid (%s)", ezdp_get_err_msg());
 		nw_interface_inc_counter(NW_IF_STATS_FRAME_VALIDATION_FAIL);
-		nw_host_do_route(frame);
+		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		return;
 	}
 
-	if (cmem_nw.interface_result.path_type == DP_PATH_FROM_NW_PATH) {
+	if (cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_NW_PATH) {
 
 		ezdp_mem_set(&cmem_wa.nw_wa.ezdp_decode_result, 0, sizeof(struct ezdp_decode_result));
-		/* === Load Data of first frame buffer === */
-		frame_base = ezframe_load_buf(frame, frame_data,
-					    0, 0);
-
 		/* decode mac to ensure it is valid */
 		ezdp_decode_mac(frame_base, MAX_DECODE_SIZE,
 				&cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result);
@@ -80,7 +79,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.error_codes.decode_error)) {
 			alvs_write_log(LOG_DEBUG, "Decode MAC failed!");
 			nw_interface_inc_counter(NW_IF_STATS_MAC_ERROR);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
 		}
 
@@ -88,14 +87,14 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		if (unlikely(!(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.my_mac | cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.ipv4_multicast))) {
 			alvs_write_log(LOG_DEBUG, "Not my MAC or not multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
 		}
 
 		if (!cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.last_tag_protocol_type.ipv4) {
 			alvs_write_log(LOG_DEBUG, "Not IPv4!");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
 		}
 
@@ -117,7 +116,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.error_codes.decode_error)) {
 			alvs_write_log(LOG_DEBUG, "IPv4 decode failed");
 			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
-			nw_host_do_route(frame);
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
 		}
 
@@ -129,21 +128,16 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*frame is OK, let's start alvs IF_STATS processing*/
 		alvs_packet_processing(frame, frame_base);
 
-	} else if (cmem_nw.interface_result.path_type == DP_PATH_FROM_HOST_PATH) {
+	} else if (cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_HOST_PATH || cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_REMOTE_PATH) {
+
 		/*currently send frame to network without any change or any other operations*/
-
-		/* === Load Data of first frame buffer === */
-		frame_base = ezframe_load_buf(frame, frame_data,
-					      NULL, 0);
-
-		nw_send_frame_to_network(frame,
-					 frame_base,
-					 DEFAULT_NW_BASE_LOGICAL_ID);
+		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	} else {
+
 		alvs_write_log(LOG_DEBUG, "Error! no match in interface lookup!");
 		/*currently send frame to host without any change or any other operations*/
 		nw_interface_inc_counter(NW_IF_STATS_NO_VALID_ROUTE);
-		nw_host_do_route(frame);
+		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}
 }
 

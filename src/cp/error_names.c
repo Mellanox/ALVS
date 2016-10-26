@@ -53,6 +53,30 @@ const char *nw_if_posted_stats_offsets_names[] = {
 	"",					/* 20 */
 };
 
+const char *remote_if_posted_stats_offsets_names[] = {
+	"FRAME_VALIDATION_FAIL",		/* 0 */
+	"MAC_ERROR",				/* 1 */
+	"IPV4_ERROR",				/* 2 */
+	"NOT_MY_MAC",				/* 3 */
+	"NOT_IPV4",				/* 4 */
+	"NOT_TCP",				/* 5 */
+	"NO_VALID_ROUTE",			/* 6 */
+	"FAIL_ARP_LOOKUP",			/* 7 */
+	"FAIL_INTERFACE_LOOKUP",		/* 8 */
+	"FAIL_FIB_LOOKUP",			/* 9 */
+	"REJECT_BY_FIB",			/* 10 */
+	"UNKNOWN_FIB_RESULT",			/* 11 */
+	"FAIL_STORE_BUF",			/* 12 */
+	"",					/* 13 */
+	"",					/* 14 */
+	"",					/* 15 */
+	"",					/* 16 */
+	"",					/* 17 */
+	"",					/* 18 */
+	"",					/* 19 */
+	"",					/* 20 */
+};
+
 const char *alvs_error_stats_offsets_names[] = {
 	"UNSUPPORTED_ROUTING_ALGO",		/* 0 */
 	"CANT_EXPIRE_CONNECTION",		/* 1 */

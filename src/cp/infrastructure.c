@@ -69,7 +69,7 @@ EZagtRPCServer host_server;
 /* AGT port */
 #define INFRA_AGT_PORT              1234
 
-/* Host interface parameters */
+/* Local Host interface parameters */
 #define INFRA_HOST_IF_SIDE          1
 #define INFRA_HOST_IF_PORT          24
 
@@ -88,6 +88,22 @@ EZagtRPCServer host_server;
 /* Network interface #3 parameters */
 #define INFRA_NW_IF_3_SIDE          1
 #define INFRA_NW_IF_3_PORT          12
+
+/* Remote interface #0 parameters */
+#define INFRA_REMOTE_IF_0_SIDE      0
+#define INFRA_REMOTE_IF_0_PORT      24
+
+/* Remote interface #1 parameters */
+#define INFRA_REMOTE_IF_1_SIDE      0
+#define INFRA_REMOTE_IF_1_PORT     28
+
+/* Remote interface #2 parameters */
+#define INFRA_REMOTE_IF_2_SIDE     0
+#define INFRA_REMOTE_IF_2_PORT     32
+
+/* Remote interface #3 parameters */
+#define INFRA_REMOTE_IF_3_SIDE     0
+#define INFRA_REMOTE_IF_3_PORT     36
 
 /*! interface configuration parameters possible values. */
 enum infra_interface_params {
@@ -138,11 +154,20 @@ enum infra_emem_spaces_params {
 #define EMEM_SEARCH_1_TABLE_MSID	   0x7
 #define EMEM_SEARCH_2_TABLE_MSID	   0x8
 
+/* Network Interfaces Array */
 uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
 		{INFRA_NW_IF_1_SIDE, INFRA_NW_IF_1_PORT},
 		{INFRA_NW_IF_2_SIDE, INFRA_NW_IF_2_PORT},
 		{INFRA_NW_IF_3_SIDE, INFRA_NW_IF_3_PORT}
+};
+
+/* Remote Interfaces Array */
+uint32_t remote_interface_params[USER_REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
+		{INFRA_REMOTE_IF_0_SIDE, INFRA_REMOTE_IF_0_PORT},
+		{INFRA_REMOTE_IF_1_SIDE, INFRA_REMOTE_IF_1_PORT},
+		{INFRA_REMOTE_IF_2_SIDE, INFRA_REMOTE_IF_2_PORT},
+		{INFRA_REMOTE_IF_3_SIDE, INFRA_REMOTE_IF_3_PORT}
 };
 
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
@@ -245,7 +270,7 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 }
 
 /**************************************************************************//**
- * \brief       Create all interfaces according to network_interface_params
+ * \brief       Create all interfaces according to network_interface_params & remote_interface_params
  *
  * \return      bool - success or failure
  */
@@ -253,12 +278,22 @@ bool infra_create_if_mapping(void)
 {
 	uint32_t ind;
 
-	/* Configure external interfaces */
+	/* Configure network interfaces */
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
 		if (infra_create_intetface(network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 				network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
 				system_cfg_get_port_type(),
-				USER_BASE_LOGICAL_ID + ind) == false) {
+				USER_NW_BASE_LOGICAL_ID + ind) == false) {
+			return false;
+		}
+	}
+
+	/* Configure remote interfaces */
+	for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
+		if (infra_create_intetface(remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
+				remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
+				system_cfg_get_port_type(),
+				USER_REMOTE_BASE_LOGICAL_ID + ind) == false) {
 			return false;
 		}
 	}

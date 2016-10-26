@@ -97,7 +97,7 @@ enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry);
  * \return	NW_DB_OK - - operation succeeded
  *		NW_DB_NPS_ERROR - fail to read statistics
  */
-enum nw_db_rc nw_db_print_interface_stats(unsigned int interface);
+enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const char *if_posted_stats_offsets_names[], uint32_t num_of_if_stats);
 
 /**************************************************************************//**
  * \brief       print all interfaces statistics

@@ -1646,8 +1646,18 @@ enum alvs_db_rc alvs_db_clean_error_stats(void)
  */
 enum alvs_db_rc alvs_db_clean_interface_stats(void)
 {
-	if (infra_clear_posted_counters(EMEM_IF_STATS_POSTED_OFFSET,
-					NW_NUM_OF_IF_STATS * (USER_NW_IF_NUM + 1)) == false) {/* 4 nw interface and 1 host interface */
+	if (infra_clear_posted_counters(EMEM_NW_IF_STATS_POSTED_OFFSET,
+					NW_NUM_OF_IF_STATS * USER_NW_IF_NUM) == false) {/* nw interface */
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	if (infra_clear_posted_counters(EMEM_REMOTE_IF_STATS_POSTED_OFFSET,
+					REMOTE_NUM_OF_IF_STATS * USER_REMOTE_IF_NUM) == false) {/* remote interface */
+		return ALVS_DB_NPS_ERROR;
+	}
+
+	if (infra_clear_posted_counters(EMEM_HOST_IF_STATS_POSTED_OFFSET,
+					HOST_NUM_OF_IF_STATS) == false) {/* host interfaces */
 		return ALVS_DB_NPS_ERROR;
 	}
 

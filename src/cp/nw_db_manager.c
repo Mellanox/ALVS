@@ -206,39 +206,59 @@ void nw_db_manager_if_table_init(void)
 	struct nw_if_result if_result;
 	uint32_t ind;
 
+	/* initialize common fields for all interfaces */
 	/* initialize my MAC in interface result */
 	if (infra_get_my_mac(&if_result.mac_address) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Retrieving my MAC failed.");
 		nw_db_manager_exit_with_error();
 	}
-
-	/* build host interface entry */
-	if_key.logical_id = USER_BASE_LOGICAL_ID + USER_NW_IF_NUM;
-	if_result.path_type = DP_PATH_FROM_HOST_PATH;
-	if_result.nw_stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							  EMEM_IF_STATS_POSTED_MSID,
-							  EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS));
-	if_result.output_channel = 24 | (1 << 7);
-	build_nw_if_apps(&if_result.app_bitmap);
 	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
+	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
+	build_nw_if_apps(&if_result.app_bitmap);
 
+	/* Adding Host Interface */
+	if_key.logical_id = USER_HOST_LOGICAL_ID;
+	if_result.path_type = DP_PATH_FROM_HOST_PATH;
+	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+						       EMEM_IF_STATS_POSTED_MSID,
+						       EMEM_HOST_IF_STATS_POSTED_OFFSET));
+	if_result.output_channel = 24 | (1 << 7);
+	if_result.direct_output_if = USER_NW_BASE_LOGICAL_ID;
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.");
 		nw_db_manager_exit_with_error();
 	}
 
-	/* build network interfaces entries */
+	/* Adding Network Interfaces */
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
-		if_key.logical_id = USER_BASE_LOGICAL_ID + ind;
-		if_result.nw_stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-								  EMEM_IF_STATS_POSTED_MSID,
-								  EMEM_IF_STATS_POSTED_OFFSET + if_key.logical_id * NW_NUM_OF_IF_STATS));
+		if_key.logical_id = USER_NW_BASE_LOGICAL_ID + ind;
+		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+							       EMEM_IF_STATS_POSTED_MSID,
+							       EMEM_NW_IF_STATS_POSTED_OFFSET + ind * NW_NUM_OF_IF_STATS));
 		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		build_nw_if_apps(&if_result.app_bitmap);
-		if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
+		if_result.direct_output_if = (system_cfg_is_remote_control_en() == true) ? (ind + USER_REMOTE_BASE_LOGICAL_ID) : USER_HOST_LOGICAL_ID;
 		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.", ind);
+			nw_db_manager_exit_with_error();
+		}
+	}
+
+	if (system_cfg_is_remote_control_en() == false) {
+		/* remote_control is disabled and no need to add remote interfaces to the IF table */
+		return;
+	}
+	/* remote_control is enabled; Adding Remote Interfaces */
+	if_result.path_type = DP_PATH_FROM_REMOTE_PATH;
+	for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
+		if_key.logical_id = USER_REMOTE_BASE_LOGICAL_ID + ind;
+		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+							       EMEM_IF_STATS_POSTED_MSID,
+							       EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ind * REMOTE_NUM_OF_IF_STATS));
+		if_result.output_channel = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
+		if_result.direct_output_if = (system_cfg_is_remote_control_en() == true) ? (ind + USER_NW_BASE_LOGICAL_ID) : USER_HOST_LOGICAL_ID;
+		if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding remote if (%d) entry to if DB failed.", ind);
 			nw_db_manager_exit_with_error();
 		}
 	}
@@ -451,7 +471,7 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, 
 	if (result) {
 		memcpy(result->dest_mac_addr.ether_addr_octet, nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)), 6);
 
-		result->base_logical_id = USER_BASE_LOGICAL_ID;
+		result->base_logical_id = USER_NW_BASE_LOGICAL_ID;
 	}
 }
 

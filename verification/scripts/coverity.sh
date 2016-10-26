@@ -54,7 +54,9 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
-	ALVS_ACCEPTED_FP_CP=0
+	#FP1: cp/alvs_db.c:3528: uninit_use_in_call: Using uninitialized value "service". Field "service.flags" is uninitialized when calling "internal_db_save_service_stats".
+	#FP2: cp/alvs_db.c:3701: uninit_use: Using uninitialized value "value".
+	ALVS_ACCEPTED_FP_CP=2
 	
 	#####FP1: Error: BUFFER_SIZE_WARNING:
 	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/alvs_db_manager.c:1106:

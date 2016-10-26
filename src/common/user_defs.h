@@ -40,7 +40,9 @@
 #define USER_ON_DEMAND_STATS_MSID   5
 
 #define USER_NW_IF_NUM              4
-#define USER_BASE_LOGICAL_ID        0
-#define USER_HOST_LOGICAL_ID        (USER_BASE_LOGICAL_ID + USER_NW_IF_NUM)
+#define USER_NW_BASE_LOGICAL_ID     0
+#define USER_HOST_LOGICAL_ID        (USER_NW_BASE_LOGICAL_ID + USER_NW_IF_NUM)
+#define USER_REMOTE_BASE_LOGICAL_ID 5
+#define USER_REMOTE_IF_NUM          4
 
 #endif /* USER_DEFS_H_ */

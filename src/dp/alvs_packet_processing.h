@@ -94,7 +94,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	} else {
 		alvs_write_log(LOG_DEBUG, "fail service classification lookup");
 		alvs_update_discard_statistics(ALVS_ERROR_SERVICE_CLASS_LOOKUP);
-		nw_host_do_route(&frame);
+		nw_direct_route(&frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}
 }
 

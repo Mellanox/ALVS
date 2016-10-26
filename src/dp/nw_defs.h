@@ -64,7 +64,7 @@ struct packet_meta_data {
 
 struct cmem_nw_info {
 
-	struct  nw_if_result            interface_result;
+	struct  nw_if_result            ingress_if_result;
 
 	/* FIB & ARP are not used in the same time - saving CMEM */
 	union {
@@ -72,7 +72,7 @@ struct cmem_nw_info {
 		/**< arp key */
 		struct nw_fib_key                    fib_key;
 		/**< FIB key */
-		struct  nw_if_result		     host_interface_result;
+		struct  nw_if_result		     egress_if_result;
 		/**< interface result */
 	};
 };
