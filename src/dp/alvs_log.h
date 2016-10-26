@@ -36,11 +36,11 @@
 #ifndef ALVS_LOG_H_
 #define ALVS_LOG_H_
 
+#include <arpa/inet.h>
 #include <ezdp.h>
 #include <ezframe.h>
 #include "log.h"
-#include "defs.h"
-#include <arpa/inet.h>
+
 
 #ifndef NDEBUG
 #define alvs_write_log(priority, str, ...) \

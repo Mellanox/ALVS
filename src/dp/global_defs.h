@@ -40,12 +40,13 @@
 #include "alvs_defs.h"
 
 
-#define IP_DF           0x4000 /* TODO take from netinet/ip.h after fixing includes */
-
+/* TODO take from netinet/ip.h after fixing includes */
+#define IP_DF           0x4000
 struct net_hdr {
 	struct iphdr ipv4;
 	struct udphdr udp;
 } __packed;
+
 
 union cmem_workarea {
 	union alvs_workarea   alvs_wa;
@@ -53,6 +54,13 @@ union cmem_workarea {
 	struct syslog_wa_info syslog_work_area;
 };
 
+
+extern struct alvs_cmem         cmem_alvs;
+extern struct alvs_shared_cmem  shared_cmem_alvs;
+extern union cmem_workarea      cmem_wa;
+extern ezframe_t                frame;
+extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];
+extern struct packet_meta_data  packet_meta_data;
 
 
 #endif  /*GLOBAL_DEFS_H_*/

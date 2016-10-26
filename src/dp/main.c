@@ -44,23 +44,26 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-/* dp includes */
-#include <ezdp.h>
-#include <ezframe.h>
-
 /*internal includes*/
 #include "nw_recieve.h"
 #include "alvs_aging.h"
 #include "version.h"
 
+/* We need this dummy because otherwise EMEM will not be initialized.
+ * TODO - Need to investigate why and how to solve this issue.
+ */
+uint16_t dummy __emem_var;
+
+
 /******************************************************************************
- * Globals & defines
+ * CMEM variables
  *****************************************************************************/
-ezframe_t  frame __cmem_var;
-uint8_t    frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
-union      cmem_workarea cmem_wa __cmem_var;
-struct packet_meta_data packet_meta_data __cmem_var;
-uint16_t   dummy __emem_var;
+struct alvs_cmem         cmem_alvs __cmem_var;
+struct alvs_shared_cmem  shared_cmem_alvs __cmem_shared_var;
+union cmem_workarea      cmem_wa __cmem_var;
+ezframe_t                frame __cmem_var;
+uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
+struct packet_meta_data  packet_meta_data __cmem_var;
 
 
 

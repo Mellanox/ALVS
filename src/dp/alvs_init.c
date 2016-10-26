@@ -36,9 +36,6 @@
 #include "global_defs.h"
 #include "alvs_utils.h"
 
-struct alvs_cmem             cmem_alvs               __cmem_var;
-struct alvs_shared_cmem      shared_cmem_alvs        __cmem_shared_var;
-
 /******************************************************************************
  * \brief         Initialize alvs shared CMEM constructor
  *

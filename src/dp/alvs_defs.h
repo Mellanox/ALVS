@@ -36,8 +36,6 @@
 #ifndef ALVS_DEFS_H_
 #define ALVS_DEFS_H_
 
-#include <ezdp.h>
-#include <ezframe.h>
 #include "alvs_search_defs.h"
 #include "nw_defs.h"
 
@@ -177,16 +175,6 @@ struct alvs_shared_cmem {
 	ezdp_table_struct_desc_t    service_info_struct_desc;
 	ezdp_table_struct_desc_t    sched_info_struct_desc;
 } __packed;
-
-/*************************************************************
- * CMEM GLOBALS
- *************************************************************/
-extern struct alvs_cmem         cmem_alvs;
-extern struct alvs_shared_cmem  shared_cmem_alvs;
-extern union cmem_workarea      cmem_wa;
-extern ezframe_t                frame;
-extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];
-extern struct packet_meta_data  packet_meta_data;
 
 /*************************************************************
  * State sync structures
