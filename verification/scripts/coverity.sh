@@ -20,6 +20,8 @@ function set_global_vars {
 	LOG_FILE=$ALVS_COVERITY_RES_DIR/coverity.log
 	CP_CONFIG_DIR=$ALVS_COVERITY_RES_DIR_CP/config
 	DP_CONFIG_DIR=$ALVS_COVERITY_RES_DIR_DP/config
+	JOBS_NUM=$(nproc)
+	echo "Used number of cores: $JOBS_NUM"
 }
 
 ###############################################################################
@@ -48,6 +50,7 @@ function unset_global_vars {
 	unset LOG_FILE
 	unset CP_CONFIG_DIR
 	unset DP_CONFIG_DIR
+	unset JOBS_NUM
 }
 
 ###############################################################################
@@ -89,7 +92,7 @@ function run_coverity_cp {
 	cov-build --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP make -C $makefile_dir cp &>> $LOG_FILE
 
 	echo "Running CP Coverity Analysis..." | tee -a $LOG_FILE
-	cov-analyze --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP --all --aggressiveness-level high -j 2 &>> $LOG_FILE
+	cov-analyze --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP --all --aggressiveness-level high -j $JOBS_NUM &>> $LOG_FILE
 
 	echo -e "\n******************************* Generating CP Coverity static error report *********\n" | tee -a $LOG_FILE
 	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS" --exclude-files 'sqlite3\.c' --functionsort | tee -a $LOG_FILE)	
@@ -140,7 +143,7 @@ function run_coverity_dp {
 	cov-build --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP make -C $makefile_dir dp &>> $LOG_FILE
 
 	echo "Running DP Coverity Analysis..." | tee -a $LOG_FILE
-	cov-analyze --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP --all --aggressiveness-level high -j 2  &>> $LOG_FILE
+	cov-analyze --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP --all --aggressiveness-level high -j $JOBS_NUM  &>> $LOG_FILE
 
 	echo -e "\n******************************* Generating DP Coverity static error report *********\n" | tee -a $LOG_FILE
 	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_DP --emacs-style --file "ALVS"  --functionsort | tee -a $LOG_FILE)	
