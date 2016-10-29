@@ -45,8 +45,11 @@
 static __always_inline
 void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
-
-	nw_calc_egress_if(frame_base, out_if, is_lag);
+	if (unlikely(nw_calc_egress_if(frame_base, out_if, is_lag) == false)) {
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
+		nw_discard_frame();
+		return;
+	}
 	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
 }
 
@@ -134,7 +137,11 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 		/*
 		 * TODO nw_calc_egress_if(frame, frame_base, arp_res_ptr->base_logical_id, arp_res_ptr->is_lag);
 		*/
-		nw_calc_egress_if(frame_base, arp_res_ptr->base_logical_id, true);
+		if (unlikely(nw_calc_egress_if(frame_base, arp_res_ptr->base_logical_id, true) == false)) {
+			nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
+			nw_discard_frame();
+			return;
+		}
 		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */
@@ -185,7 +192,7 @@ void nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
  * \return        void
  */
 static __always_inline
-void nw_local_host_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint32_t frame_buff_size)
+void nw_local_host_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint32_t frame_buff_size, uint8_t host_logical_id)
 {
 	uint8_t *my_mac;
 	struct ether_header *eth_p;
@@ -193,7 +200,7 @@ void nw_local_host_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, 
 	eth_p = (struct ether_header *)(frame_base - sizeof(struct ether_header));
 
 	/*fill ethernet destination MAC*/
-	my_mac = nw_interface_get_mac_address(ALVS_HOST_LOGICAL_ID);
+	my_mac = nw_interface_get_mac_address(host_logical_id);
 	if (my_mac == NULL) {
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_GET_MAC_ADDR);
 		nw_discard_frame();

@@ -105,7 +105,7 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 		if (packet_meta_data.mac_control.my_mac) {
 			/* TODO - handle UDP, currently sending to host */
 			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
-			nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+			nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		} else {
 			/* TODO - should we check that DIP is multicast? */
@@ -120,14 +120,14 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 			} else {
 				/* Send to host */
 				alvs_write_log(LOG_DEBUG, "UDP - NOT supported with multicast");
-				nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+				nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 				nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			}
 		}
 	} else {
 		/* Send to host */
 		alvs_write_log(LOG_DEBUG, "NOT supported protocol");
-		nw_interface_inc_counter(NW_IF_STATS_NOT_TCP);
+		nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}
 

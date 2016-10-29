@@ -72,23 +72,22 @@ bool nw_mc_calc_mac(uint32_t  mc_ip,
  *
  * \params[in]	eth_header - multicast IP
  *
- * \return      void
+ * \return      bool - true for success, false for fail
  *
  */
 static __always_inline
-void nw_mc_set_eth_hdr(struct ether_header *eth_header,
-		       uint32_t             mc_ip)
+bool nw_mc_set_eth_hdr(struct ether_header *eth_header, uint32_t mc_ip, uint8_t logical_id)
 {
 	/* fill ethernet destination MAC */
 	if (unlikely(nw_mc_calc_mac(mc_ip, (uint8_t *)eth_header->ether_dhost) == false)) {
 		alvs_write_log(LOG_ERR, "nw_calc_mac_for_mc_ip failed");
-		return;
+		return false;
 	}
 
 	/*lookup for network interface*/
-	if (unlikely(nw_if_egress_lookup(USER_NW_BASE_LOGICAL_ID) != 0)) {
-		alvs_write_log(LOG_DEBUG, "set ETH hearer fail nw egress interface lookup - logical id =%d!", USER_NW_BASE_LOGICAL_ID);
-		return;
+	if (unlikely(nw_calc_egress_if((uint8_t *)eth_header, logical_id, true) == false)) {
+		alvs_write_log(LOG_DEBUG, "set ETH hearer fail nw egress interface lookup - logical id =%d!", logical_id);
+		return false;
 	}
 
 	/* fill ethernet source MAC */
@@ -98,6 +97,7 @@ void nw_mc_set_eth_hdr(struct ether_header *eth_header,
 
 	/* fill ethernet type */
 	eth_header->ether_type = ETHERTYPE_IP;
+	return true;
 }
 
 
@@ -107,7 +107,7 @@ void nw_mc_set_eth_hdr(struct ether_header *eth_header,
  * \return        void
  */
 static __always_inline
-void nw_mc_handle(ezframe_t   __cmem * frame)
+void nw_mc_handle(ezframe_t   __cmem * frame, uint8_t logical_id)
 {
 
 	struct net_hdr      *net_hdr;
@@ -144,7 +144,11 @@ void nw_mc_handle(ezframe_t   __cmem * frame)
 	ezframe_set_buf_headroom(frame, headroom);
 
 	/* set ethernet header */
-	nw_mc_set_eth_hdr(eth_header, mc_ip);
+	if (unlikely(nw_mc_set_eth_hdr(eth_header, mc_ip, logical_id) == false)) {
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_SET_ETH_HEADER);
+		nw_discard_frame();
+		return;
+	}
 
 	/* store bufer with ether header */
 	rc = ezframe_store_buf(frame, frame_base, frame_length, 0);
@@ -156,7 +160,7 @@ void nw_mc_handle(ezframe_t   __cmem * frame)
 	}
 
 	/* send to network */
-	nw_direct_route(frame, (uint8_t *)eth_header, USER_NW_BASE_LOGICAL_ID, true);
+	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
 }
 
 

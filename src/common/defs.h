@@ -77,7 +77,7 @@ enum nw_if_posted_stats_offsets {
 	NW_IF_STATS_IPV4_ERROR              = 2,
 	NW_IF_STATS_NOT_MY_MAC              = 3,
 	NW_IF_STATS_NOT_IPV4                = 4,
-	NW_IF_STATS_NOT_TCP                 = 5,
+	NW_IF_STATS_NOT_SUPPORTED_PROTOCOL  = 5,
 	NW_IF_STATS_NO_VALID_ROUTE          = 6,
 	NW_IF_STATS_FAIL_ARP_LOOKUP         = 7,
 	NW_IF_STATS_FAIL_INTERFACE_LOOKUP   = 8,
@@ -86,6 +86,7 @@ enum nw_if_posted_stats_offsets {
 	NW_IF_STATS_UNKNOWN_FIB_RESULT	    = 11,
 	NW_IF_STATS_FAIL_STORE_BUF          = 12,
 	NW_IF_STATS_FAIL_GET_MAC_ADDR       = 13,
+	NW_IF_STATS_FAIL_SET_ETH_HEADER     = 14,
 
 
 	/*

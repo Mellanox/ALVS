@@ -99,10 +99,10 @@ uint32_t nw_if_egress_lookup(int8_t logical_id)
 
 /******************************************************************************
  * \brief         calculate & update egress interface
- * \return        void
+ * \return        bool - true for success, false for fail
  */
 static __always_inline
-void nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
+bool nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
 	uint32_t hash_value = 0;
 
@@ -117,13 +117,11 @@ void nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 				       EZDP_HASH_PERMUTATION_0);
 	}
 
-	if (nw_if_egress_lookup(out_if + hash_value) != 0) {
+	if (unlikely(nw_if_egress_lookup(out_if + hash_value) != 0)) {
 		alvs_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if + hash_value);
-		/* drop frame!! */
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
-		nw_discard_frame();
-		return;
+		return false;
 	}
+	return true;
 }
 
 /******************************************************************************
