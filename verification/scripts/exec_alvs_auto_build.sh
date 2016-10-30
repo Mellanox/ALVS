@@ -46,8 +46,9 @@ echo "=========================== exec wrapper ================================"
 
 parse_cmd $@
 
-echo "connecting to 10.157.7.200"
-ssh root@10.157.7.200 "/mswg/release/nps/solutions/auto_build.sh $git_project $git_branch $base_commit_num $local_auto_build; exit"
+target_vm="gen-l-vrt-232-005"
+echo "connecting to $target_vm"
+ssh root@$target_vm "/mswg/release/nps/solutions/auto_build.sh $git_project $git_branch $base_commit_num $local_auto_build; exit"
 if [ $? -eq 0 ]; then
     echo "Test passed"
     rc=0
