@@ -118,7 +118,7 @@ class ezbox_host:
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
-	def clean(self, use_director=True, stop_ezbox=False):
+	def clean(self, use_director=False, stop_ezbox=False):
 		self.zero_all_ipvs_stats()
 		self.flush_ipvs()
 		if use_director:
@@ -162,7 +162,7 @@ class ezbox_host:
 						digest = output.split()[2]
 						break
 					except:
-						print "error while figure out genhash value, server %s"%server
+						print "error while figure out genhash value, server %s, trying again.."%server
 						if i==10:
 							print "ERROR"
 							raise
@@ -501,6 +501,25 @@ class ezbox_host:
 				   }
 
 		return service
+	
+	def get_server(self, vip, service_port, server_ip, server_port, protocol):
+		class_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVER_CLASSIFICATION, 0, {'key' : "%08x%08x%04x%04x%04x" % (ip2int(server_ip), ip2int(vip), int(server_port), int(service_port), protocol)})
+		warning_code=class_res.result.get('warning_code',None)
+		if warning_code != None :
+			return None
+		class_res = class_res.result["params"]["entry"]["result"].split(' ')
+		info_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_SERVER_INFO, 0, {'key' : ''.join(class_res[4:8])})
+		warning_code=info_res.result.get('warning_code',None)
+		if warning_code != None :
+			return None
+		info_res = info_res.result["params"]["entry"]["result"].split(' ')
+
+		server = {'index' : int(''.join(class_res[4:8]), 16),
+				  'u_thresh' : int(''.join(info_res[20:22]), 16),
+				  'l_thresh' : int(''.join(info_res[22:24]), 16)
+				 }
+
+		return server
 
 	def get_connection(self, vip, vport, cip, cport, protocol):
 		class_res = self.cpe.cp.struct.lookup(STRUCT_ID_ALVS_CONN_CLASSIFICATION, 0, {'key' : "%08x%08x%04x%04x%04x" % (int(cip), int(vip), int(cport), int(vport), int(protocol))})

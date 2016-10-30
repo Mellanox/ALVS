@@ -164,7 +164,6 @@ def init_client(client):
 #------------------------------------------------------------------------------
 def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	print "init EZbox: " + ezbox.setup['name']
-	
 	# start ALVS daemon and DP
 	ezbox.connect()
 	if test_config['start_ezbox']:
@@ -174,16 +173,22 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			if test_config['copy_binaries']:
 				ezbox.alvs_service_stop()
 				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
+		
+		if test_config['stats']:
+			stats = '--statistics'
+		else:
+			stats = ''
 
-		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
+		
 		if test_config['modify_run_cpus']:
 			# validate chip is up
 			ezbox.alvs_service_start()
 			ezbox.update_dp_cpus(test_config['use_4k_cpus'])
 			if test_config['use_4k_cpus']:
-				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
  			else:
- 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled --port_type=%s "%ezbox.setup['nps_port_type'])
+ 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
  				
 		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
@@ -222,6 +227,7 @@ def fill_default_config(test_config):
 					  'install_file'    : None,
 					  'copy_binaries'   : True,
 					  'use_director'    : True,
+					  'stats'           : False,
 					  'start_ezbox'		: False,
 					  'stop_ezbox'		: False}
 	
@@ -312,7 +318,7 @@ def clean_players(test_resources, use_director = False, stop_ezbox = False):
 			process_list.append(Process(target=clean_server, args=(s,)))
 		
 	for c in test_resources['client_list']:
-		if s.ssh.connection_established:
+		if c.ssh.connection_established:
 			c.ssh.recreate_ssh_object()
 			process_list.append(Process(target=clean_client, args=(c,)))
 			

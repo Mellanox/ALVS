@@ -12,7 +12,7 @@ service_count  = 3
 
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-		
+	
 	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
 	w = 1
@@ -26,6 +26,8 @@ def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	config = fill_default_config(generic_main())
+	
+	config['start_ezbox'] = True
 	
 	dict = user_init(config['setup_num'])
 	

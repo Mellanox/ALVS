@@ -3,7 +3,6 @@
 import sys
 sys.path.append("verification/testing")
 import random
-
 from common_infra import *
 from e2e_infra import *
 
@@ -58,7 +57,7 @@ def run_user_test(server_list, ezbox, client_list, vip_list):
 
 	data_packet1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
 	                         mac_sa=client_list[0].get_mac_adress(),
-	                         ip_dst=ip_to_hex_display(vip_list[0]), #first_service.virtual_ip_hex_display,
+	                         ip_dst=ip_to_hex_display(vip_list[0]), 
 	                         ip_src=ip_to_hex_display(client_list[0].ip),
 	                         tcp_source_port = '00 00',
 	                         tcp_dst_port = '00 50', # port 80

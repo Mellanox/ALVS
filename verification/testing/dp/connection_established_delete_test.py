@@ -28,6 +28,8 @@ def main():
 	
 	config = fill_default_config(generic_main())
 	
+	config['start_ezbox'] = True
+	
 	dict = user_init(config['setup_num'])
 	
 	init_players(dict, config)

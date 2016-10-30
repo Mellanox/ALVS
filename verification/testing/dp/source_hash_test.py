@@ -2,45 +2,60 @@
 
 import sys
 sys.path.append("verification/testing")
-from test_infra import * 
 import random
+from common_infra import *
+from e2e_infra import *
 
-ezbox,args = init_test(test_arguments=sys.argv)
-scenarios_to_run = args['scenarios']
+server_count   = 7
+client_count   = 1
+service_count  = 3
 
-# each setup can use differen VMs
-ip_list = get_setup_list(args['setup_num'])
+def user_init(setup_num):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	dict = generic_init(setup_num, service_count, server_count, client_count)
+	
+	w = 1
+	for i,s in enumerate(dict['server_list']):
+		if i < 3:
+			s.vip = dict['vip_list'][0]
+		elif i < 6:
+			s.vip = dict['vip_list'][1]
+		else:
+			s.vip = dict['vip_list'][2]
+		s.weight = w
+	
+	return dict
 
-# each setup can use different the virtual ip 
-virtual_ip_address_1 = get_setup_vip(args['setup_num'], 0)
-virtual_ip_address_2 = get_setup_vip(args['setup_num'], 1)
-virtual_ip_address_3 = get_setup_vip(args['setup_num'], 2)
+def main():
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	config = fill_default_config(generic_main())
+	
+	dict = user_init(config['setup_num'])
+	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "Test Passed"
+	
 
-# create servers
-server1 = real_server(management_ip=ip_list[0]['hostname'], data_ip=ip_list[0]['ip'])
-server2 = real_server(management_ip=ip_list[1]['hostname'], data_ip=ip_list[1]['ip'])
-server3 = real_server(management_ip=ip_list[2]['hostname'], data_ip=ip_list[2]['ip'])
-server4 = real_server(management_ip=ip_list[4]['hostname'], data_ip=ip_list[4]['ip'])
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	port = '80'
+	sched_algorithm = 'sh'
+	
+	for vip in vip_list:
+		print "service %s is set with %s scheduling algorithm" %(vip,sched_algorithm)
+		ezbox.add_service(vip, port, sched_alg=sched_algorithm, sched_alg_opt='')
+	
+	for server in server_list:
+		ezbox.add_server(server.vip, port, server.ip, port)
 
-# create services on ezbox
-first_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_1, port='80', schedule_algorithm = 'source_hash')
-first_service.add_server(server1, weight='1')
-first_service.add_server(server2, weight='1')
-first_service.add_server(server3, weight='1')
-
-second_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_2, port='80', schedule_algorithm = 'source_hash_with_source_port')
-second_service.add_server(server1, weight='1')
-second_service.add_server(server2, weight='1')
-second_service.add_server(server3, weight='1')
- 
-third_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_3, port='80', schedule_algorithm = 'source_hash')
-third_service.add_server(server1, weight='1')
-
-# create client
-client_object = client(management_ip=ip_list[3]['hostname'], data_ip=ip_list[3]['ip'])
-	 
-
-if 1 in scenarios_to_run:
 	print "\nChecking Scenario 1"
 	
 	# create packets
@@ -59,8 +74,8 @@ if 1 in scenarios_to_run:
 
 		# create packet
 		data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
-								 mac_sa=client_object.mac_address,
-								 ip_dst=first_service.virtual_ip_hex_display,
+								 mac_sa=client_list[0].mac_address.replace(':',' '),
+								 ip_dst=ip_to_hex_display(vip_list[0]),
 								 ip_src='c0 a8 00 69',
 								 tcp_source_port = random_source_port,
 								 tcp_dst_port = '00 50', # port 80
@@ -74,20 +89,20 @@ if 1 in scenarios_to_run:
 	# try to capture max 10 times (capture is not stable on all VMs)
 	for i in range(10):
 		time.sleep(5) 
-		server1.capture_packets_from_service(service=first_service)
-		server2.capture_packets_from_service(service=first_service)
-		server3.capture_packets_from_service(service=first_service)
+		server_list[0].capture_packets_from_service(vip_list[0])
+		server_list[1].capture_packets_from_service(vip_list[0])
+		server_list[2].capture_packets_from_service(vip_list[0])
 		
 		# send packet
 		time.sleep(5)
 		print "Send packets"
-		client_object.send_packet_to_nps(pcap_to_send)
+		client_list[0].send_packet_to_nps(pcap_to_send)
 		
 		time.sleep(15)
 		
-		packets_received_1 = server1.stop_capture()
-		packets_received_2 = server2.stop_capture()
-		packets_received_3 = server3.stop_capture()
+		packets_received_1 = server_list[0].stop_capture()
+		packets_received_2 = server_list[1].stop_capture()
+		packets_received_3 = server_list[2].stop_capture()
 			
 		if packets_received_1 + packets_received_2 + packets_received_3 == 50:
 			print "Server 1 received %d packets"%packets_received_1
@@ -105,13 +120,9 @@ if 1 in scenarios_to_run:
 	if i >= 9:
 		print "error while capture packets"	
 		
-	# compare the packets that were received 
-#	 server1.compare_received_packets_to_pcap_file(pcap_file='p1.pcap', pcap_file_on_server='/tmp/server_dump.pcap')
-		
 ###########################################################################################################################
 # this scenario check the scheduling algorithm of source hash, ip source is changing, (service is on source port disable) #
 ###########################################################################################################################		
-if 2 in scenarios_to_run:
 	print "\nChecking Scenario 2"
 	
 	# create packets
@@ -131,8 +142,8 @@ if 2 in scenarios_to_run:
 		
 		# create packet
 		data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
-								 mac_sa=client_object.mac_address,
-								 ip_dst=first_service.virtual_ip_hex_display,
+								 mac_sa=client_list[0].mac_address.replace(':',' '),
+								 ip_dst=ip_to_hex_display(vip_list[0]),
 								 ip_src=ip_source_address,
 								 tcp_source_port = '00 00',
 								 tcp_dst_port = '00 50', # port 80
@@ -145,19 +156,19 @@ if 2 in scenarios_to_run:
 
 	# try to capture max 10 times (capture is not stable on all VMs)
 	for i in range(10):
-		server1.capture_packets_from_service(service=first_service)
-		server2.capture_packets_from_service(service=first_service)
-		server3.capture_packets_from_service(service=first_service)
+		server_list[0].capture_packets_from_service(vip_list[0])
+		server_list[1].capture_packets_from_service(vip_list[0])
+		server_list[2].capture_packets_from_service(vip_list[0])
 		
 		time.sleep(5)
 		# send packet
-		client_object.send_packet_to_nps(pcap_to_send)
+		client_list[0].send_packet_to_nps(pcap_to_send)
 	
 		time.sleep(15)
 		
-		packets_received_1 = server1.stop_capture()
-		packets_received_2 = server2.stop_capture()
-		packets_received_3 = server3.stop_capture()
+		packets_received_1 = server_list[0].stop_capture()
+		packets_received_2 = server_list[1].stop_capture()
+		packets_received_3 = server_list[2].stop_capture()
 		
 		if packets_received_1 + packets_received_2 + packets_received_3 == 50:
 			print "Server 1 received %d packets"%packets_received_1
@@ -179,12 +190,9 @@ if 2 in scenarios_to_run:
 ########					   this scenario check the scheduling algorithm of source hash,				 ##########
 ########				  ip source and source port is changing, (service is on source port enable)		 ##########
 ###################################################################################################################		
-
-if 3 in scenarios_to_run:
 	print "\nChecking Scenario 3"
 
 	# create packets
-	ip_source_address = get_setup_vip(args['setup_num'], 4)
 	packet_sizes = [60,127,129,511,513,1023,1025,1500]
 	packet_list_to_send = []
 	
@@ -202,8 +210,8 @@ if 3 in scenarios_to_run:
 		
 		# create packet
 		data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
-								 mac_sa=client_object.mac_address,
-								 ip_dst=second_service.virtual_ip_hex_display,
+								 mac_sa=client_list[0].mac_address.replace(':',' '),
+								 ip_dst=ip_to_hex_display(vip_list[1]),
 								 ip_src='192.168.0.100',
 								 tcp_source_port = tcp_source_port,
 								 tcp_dst_port = '00 50', # port 80
@@ -216,19 +224,19 @@ if 3 in scenarios_to_run:
 
 	# try to capture max 10 times (capture is not stable on all VMs)
 	for i in range(10):
-		server1.capture_packets_from_service(service=second_service)
-		server2.capture_packets_from_service(service=second_service)
-		server3.capture_packets_from_service(service=second_service)
+		server_list[3].capture_packets_from_service(vip_list[1])
+		server_list[4].capture_packets_from_service(vip_list[1])
+		server_list[5].capture_packets_from_service(vip_list[1])
 		time.sleep(5)
 		
 		# send packet
-		client_object.send_packet_to_nps(pcap_to_send)
+		client_list[0].send_packet_to_nps(pcap_to_send)
 	
 		time.sleep(15)
 		
-		packets_received_1 = server1.stop_capture()
-		packets_received_2 = server2.stop_capture()
-		packets_received_3 = server3.stop_capture()
+		packets_received_1 = server_list[3].stop_capture()
+		packets_received_2 = server_list[4].stop_capture()
+		packets_received_3 = server_list[5].stop_capture()
 		
 		if packets_received_1 + packets_received_2 + packets_received_3 == 500:
 			print "Server 1 received %d packets"%packets_received_1
@@ -246,31 +254,27 @@ if 3 in scenarios_to_run:
 	if i >= 9:
 		print "error while capture packets"		
 			
-if 4 in scenarios_to_run:
 ############################################################################
 # this scenario checks behavior when the arp table lookup is failing		
 ############################################################################		 
 	print "\nChecking Scenario 4"
 	
 	print "Delete the server arp entry"
-	ezbox.execute_command_on_host("arp -d %s"%server1.data_ip)
+	ezbox.execute_command_on_host("arp -d %s"%server_list[6].ip)
 	
 	
 	# create packet
 	data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
-							 mac_sa=client_object.mac_address,
-							 ip_dst=third_service.virtual_ip_hex_display,
-							 ip_src=client_object.hex_display_to_ip,
+							 mac_sa=client_list[0].mac_address.replace(':',' '),
+							 ip_dst=ip_to_hex_display(vip_list[2]),
+							 ip_src=ip_to_hex_display(client_list[0].ip),
 							 tcp_source_port = '00 00',
 							 tcp_dst_port = '00 50', # port 80
 							 packet_length=128)
 	data_packet.generate_packet()
-	
-	# capture packets on host
-# 	ezbox.capture_packets('dst ' + third_service.virtual_ip)
  	
 	# send packet
-	client_object.send_packet_to_nps(data_packet.pcap_file_name)
+	client_list[0].send_packet_to_nps(data_packet.pcap_file_name)
 	
 	time.sleep(15)
 	# todo - check statistics of unavailable arp entry 
@@ -310,5 +314,4 @@ if 4 in scenarios_to_run:
 # client.close()
 # ezbox.close()
 
-print
-print "Test Passed"
+main()

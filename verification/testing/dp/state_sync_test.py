@@ -11,11 +11,55 @@ import random
 import re
 import time
 
-
 # pythons modules 
 # local
 sys.path.append("verification/testing")
-from test_infra import *
+from common_infra import *
+from e2e_infra import *
+
+server_count   = 5
+client_count   = 1
+service_count  = 2
+
+#===============================================================================
+# main function
+#===============================================================================
+def user_init(setup_num):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	dict = generic_init(setup_num, service_count, server_count, client_count)
+	
+	w = 1
+	for i,s in enumerate(dict['server_list']):
+		if i<2:
+			s.vip = dict['vip_list'][0]
+			s.weight = w
+		else:
+			# the last 2 servers will not be added to any service eventhough it has a vip, for this test purpose.
+			s.vip = dict['vip_list'][1]
+			s.weight = w
+	
+	return dict
+
+def main():
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	config = fill_default_config(generic_main())
+	
+	#require start ezbox because there are open connections
+	config['start_ezbox'] = True
+	
+	dict = user_init(config['setup_num'])
+	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "Test Passed"
 
 
 ###########################################################################################################################################################
@@ -112,69 +156,7 @@ def get_ss_conn(protocol, flags, state, cport, vport, dport, fwmark, timeout, ca
 	header = header.replace('CCCCCCCC', daddr)
 	return header
 
-
-#===============================================================================
-# Test Globals
-#===============================================================================
-client_count = 1
-server_count = 3
-service_count = 2
-
-#===============================================================================
-# User Area function needed by infrastructure
-#===============================================================================
-
-def init_log(args):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	log_file = "scheduling_algorithm_test.log"
-	if 'log_file' in args:
-		log_file = args['log_file']
-	init_logging(log_file)
-
-
-def user_init(setup_num):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
-	
-	setup_list = get_setup_list(setup_num)
-	
-	index = 0
-	server_list=[]
-	for i in range(server_count):
-		server_list.append(real_server(management_ip=setup_list[index]['hostname'], data_ip=setup_list[index]['ip']))
-		index+=1
-
-	client_list=[]
-	for i in range(client_count):
-		client_list.append(client(management_ip=setup_list[index]['hostname'], data_ip=setup_list[index]['ip']))
-		index+=1
-	
-	# EZbox
-	ezbox = ezbox_host(setup_num)
-	
-	return (client_list, server_list, ezbox, vip_list)
-
-
-def init_ezbox(args,ezbox):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	if args['hard_reset']:
-		ezbox.reset_ezbox()
-		# init ALVS daemon
-	ezbox.connect()
-	ezbox.flush_ipvs()
-	ezbox.alvs_service_stop()
-	ezbox.copy_cp_bin(debug_mode=args['debug'])
-	ezbox.copy_dp_bin(debug_mode=args['debug'])
-	ezbox.alvs_service_start()
-	ezbox.wait_for_cp_app()
-	ezbox.wait_for_dp_app()
-	ezbox.clean_director()
-
-
-def test_2():
+def test_2(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 1)
@@ -184,7 +166,7 @@ def test_2():
 	time.sleep(1)
 	
 	# create packet
-	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	# syncid = 2
 	ss_hdr = get_ss_hdr(36+8, 2, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
@@ -196,7 +178,7 @@ def test_2():
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
 	
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
@@ -214,11 +196,11 @@ def test_2():
 	return True
 
 
-def test_3():
+def test_3(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
 	# create packet
-	conn = get_ss_conn(6, 0x100, 7, 12303, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12303, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 2, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -228,7 +210,7 @@ def test_3():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 
@@ -240,9 +222,9 @@ def test_3():
 	
 	return True
 
-def test_4():
+def test_4(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
+	port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 1)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 1"
@@ -250,7 +232,7 @@ def test_4():
 	time.sleep(1)
 	
 	# create packet
-	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12304, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 1, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -261,13 +243,14 @@ def test_4():
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
 	
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
 	conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, 12304, 6)
 	
 	rc = ezbox.stop_state_sync_daemon(state = "backup")
+	server0 = ezbox.get_server(server_list[0].vip, port, server_list[0].ip, port, 6)
 	if rc == False:
 		print "ERROR: Can't stop backup state sync daemon"
 		return False
@@ -276,14 +259,14 @@ def test_4():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_5():
+def test_5(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	rc = ezbox.start_state_sync_daemon(state = "backup")
@@ -293,7 +276,7 @@ def test_5():
 	time.sleep(1)
 
 	# create packet
-	conn = get_ss_conn(6, 0x100, 7, 12305, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12305, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, 1, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -303,7 +286,7 @@ def test_5():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 
@@ -318,15 +301,16 @@ def test_5():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 0 or conn['server'] != ip2int(server_list[0].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
+	if conn['bound'] != 0 or conn['server'] != ip2int(server_list[0].ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_6_9():
+def test_6_9(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	port = '80'
 	
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 0)
 	if rc == False:
@@ -334,8 +318,8 @@ def test_6_9():
 		return False
 	time.sleep(1)
 	# create packet
-	conn0 = get_ss_conn(6, 0x100, 7, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x0, 1, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x100, 7, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
+	conn1 = get_ss_conn(6, 0x0, 1, 12306, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 4, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -345,11 +329,12 @@ def test_6_9():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
 	conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, 12306, 6)
+	server0 = ezbox.get_server(server_list[0].vip, port, server_list[0].ip, port, 6)
 	
 	rc = ezbox.stop_state_sync_daemon(state = "backup")
 	if rc == False:
@@ -360,16 +345,17 @@ def test_6_9():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x20:
+	if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_7():
+def test_7(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
+	port = '80'
 	syncid = 7
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = syncid)
 	if rc == False:
@@ -377,7 +363,7 @@ def test_7():
 		return False
 	time.sleep(1)
 	# create packet
-	conn = get_ss_conn(6, 0x0, 1, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[3].ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, syncid, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -387,14 +373,14 @@ def test_7():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
 	# server not exists
-	service1.add_server(server_list[0])
+	ezbox.add_server(server_list[3].vip, port, server_list[3].ip, port)
 	
-	conn = get_ss_conn(6, 0x100, 7, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 12307, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[3].ip)))[2:])
 	ss_hdr = get_ss_hdr(36+8, syncid, 1)
 	udp_hdr = get_udp_hdr(36+8+8, 1234)
 	ip_hdr = get_ip_header(36+8+8+20, 17, '0a9d0701')
@@ -404,12 +390,12 @@ def test_7():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
-	
 	conn = ezbox.get_connection(ip2int(vip_list[1]), 80, 0x0a9d0701, 12307, 6)
+	server3 = ezbox.get_server(server_list[3].vip, port, server_list[3].ip, port, 6)
 	
 	rc = ezbox.stop_state_sync_daemon(state = "backup")
 	if rc == False:
@@ -420,16 +406,16 @@ def test_7():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 3 or conn['state'] != 7 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != server3['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_8():
+def test_8(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
+	port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 8)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 8"
@@ -437,8 +423,8 @@ def test_8():
 	time.sleep(1)
 	
 	# create packet
-	conn0 = get_ss_conn(6, 0x0, 1, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x100, 7, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x0, 1, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[2].ip)))[2:])
+	conn1 = get_ss_conn(6, 0x100, 7, 12308, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[2].ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 8, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -448,11 +434,12 @@ def test_8():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
 	conn = ezbox.get_connection(ip2int(vip_list[1]), 80, 0x0a9d0701, 12308, 6)
+	server2 = ezbox.get_server(server_list[2].vip, port, server_list[2].ip, port, 6)
 	
 	rc = ezbox.stop_state_sync_daemon(state = "backup")
 	if rc == False:
@@ -463,25 +450,28 @@ def test_8():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 7 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != server2['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_10():
+def test_10(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
+	
+	port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 1)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 1"
 		return False
 	time.sleep(1)
+	
+	server1 = ezbox.get_server(server_list[1].vip, port, server_list[1].ip, port, 6)
 
 	# create packet
-	conn0 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
+	conn1 = get_ss_conn(6, 0x0, 1, 12310, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 1, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -491,7 +481,7 @@ def test_10():
 	packet = (eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1)
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
@@ -506,16 +496,17 @@ def test_10():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 1 or conn['flags'] != 0x20:
+	if conn['bound'] != 1 or conn['server'] != server1['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_11():
+def test_11(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
+	port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 11)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 11"
@@ -523,8 +514,8 @@ def test_11():
 	time.sleep(1)
 	
 	# create packet
-	conn0 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
-	conn1 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn0 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
+	conn1 = get_ss_conn(6, 0x100, 7, 12311, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 	ss_hdr = get_ss_hdr(36*2+8, 11, 2)
 	udp_hdr = get_udp_hdr(36*2+8+8, 1234)
 	ip_hdr = get_ip_header(36*2+8+8+20, 17, '0a9d0701')
@@ -534,11 +525,12 @@ def test_11():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(1)
 	
 	conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, 12311, 6)
+	server0 = ezbox.get_server(server_list[0].vip, port, server_list[0].ip, port, 6)
 	
 	rc = ezbox.stop_state_sync_daemon(state = "backup")
 	if rc == False:
@@ -549,16 +541,17 @@ def test_11():
 		print "ERROR, connection wasn't created"
 		return False
 	
-	if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
+	if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 		print "ERROR, connection was created, but not with correct parameters"
 		print conn
 		return False
 	
 	return True
 
-def test_12():
+def test_12(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
+	server_port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 12)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 12"
@@ -575,20 +568,20 @@ def test_12():
 	packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr
 	
 	for port in [10,20,30]:
-		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 		packet += conn
 	for port in [11,21,31]:
-		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 		packet += conn
 	for port in [12,22,32]:
-		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x100, 7, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[4].ip)))[2:])
 		packet += conn
 	for port in [13]:
-		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+		conn = get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[2].ip)))[2:])
 		packet += conn
 		
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(2)
 	
@@ -597,6 +590,9 @@ def test_12():
 		print "ERROR: Can't stop backup state sync daemon"
 		return False
 	
+	server0 = ezbox.get_server(server_list[0].vip, server_port, server_list[0].ip, server_port, 6)
+	server1 = ezbox.get_server(server_list[1].vip, server_port, server_list[1].ip, server_port, 6)
+	server2 = ezbox.get_server(server_list[2].vip, server_port, server_list[2].ip, server_port, 6)
 	for port in [10,20,30]:
 		conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, port, 6)
 	
@@ -604,11 +600,11 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
-
+	
 	for port in [11,21,31]:
 		conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, port, 6)
 	
@@ -616,19 +612,19 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 1 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != server1['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
 		
 	for port in [12,22,32]:
 		conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, port, 6)
-	
+		
 		if conn == None:
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[4].ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
@@ -640,16 +636,17 @@ def test_12():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 1 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != server2['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection was created, but not with correct parameters"
 			print conn
 			return False
 	
 	return True
 
-def test_13():
+def test_13(server_list, ezbox, client_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 
+	server_port = '80'
 	rc = ezbox.start_state_sync_daemon(state = "backup", syncid = 13)
 	if rc == False:
 		print "ERROR: Can't start backup state sync daemon with syncid 13"
@@ -664,35 +661,35 @@ def test_13():
 	
 	packet = (eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr)
 	
-	conn = get_ss_conn(6, 0x0, 1, 10, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 10, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	packet += conn
 	
-	conn = get_ss_conn(6, 0x100, 7, 20, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 20, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 7, 30, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 30, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[4].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 7, 11, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 11, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x0, 1, 21, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 21, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x0, 1, 31, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 31, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[4].ip)))[2:])
 	packet += conn	
 
-	conn = get_ss_conn(6, 0x0, 1, 12, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[2].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x0, 1, 12, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[4].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 7, 22, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 22, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[0].ip)))[2:])
 	packet += conn
 
-	conn = get_ss_conn(6, 0x100, 7, 32, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].data_ip)))[2:])
+	conn = get_ss_conn(6, 0x100, 7, 32, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 	packet += conn
 		
 	string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file='verification/testing/dp/temp_packet.pcap')
-	client.send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
+	client_list[0].send_packet_to_nps('verification/testing/dp/temp_packet.pcap')
 
 	time.sleep(2)
 	
@@ -701,6 +698,9 @@ def test_13():
 		print "ERROR: Can't stop backup state sync daemon"
 		return False
 	
+	server0 = ezbox.get_server(server_list[0].vip, server_port, server_list[0].ip, server_port, 6)
+	server1 = ezbox.get_server(server_list[1].vip, server_port, server_list[1].ip, server_port, 6)
+	server2 = ezbox.get_server(server_list[2].vip, server_port, server_list[2].ip, server_port, 6)
 	for port in [10,21]:
 		conn = ezbox.get_connection(ip2int(vip_list[0]), 80, 0x0a9d0701, port, 6)
 	
@@ -708,7 +708,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 1 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -720,7 +720,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 	
-		if conn['bound'] != 1 or conn['server'] != 1 or conn['state'] != 7 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != server1['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -732,7 +732,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 7 or conn['flags'] != 0x120:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[4].ip) or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -744,7 +744,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 
-		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[2].data_ip) or conn['state'] != 1 or conn['flags'] != 0x20:
+		if conn['bound'] != 0 or conn['server'] != ip2int(server_list[4].ip) or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -756,11 +756,11 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 0 or conn['state'] != 7 or conn['flags'] != 0x120:
+		if conn['bound'] != 1 or conn['server'] != server0['index'] or conn['state'] != 7 or conn['flags'] != 0x120:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
-
+		
 	for port in [13]:
 		conn = ezbox.get_connection(ip2int(vip_list[1]), 80, 0x0a9d0701, port, 6)
 	
@@ -768,7 +768,7 @@ def test_13():
 			print "ERROR, connection wasn't created"
 			return False
 		
-		if conn['bound'] != 1 or conn['server'] != 2 or conn['state'] != 1 or conn['flags'] != 0x20:
+		if conn['bound'] != 1 or conn['server'] != server2['index'] or conn['state'] != 1 or conn['flags'] != 0x20:
 			print "ERROR, connection (cport=%d) was created, but not with correct parameters"%port
 			print conn
 			return False
@@ -785,129 +785,124 @@ def clear_test(ezbox):
 	if ezbox.get_num_of_services()!= 0:
 		print "after FLUSH all, num_of_services should be 0\n"
 		return False
-	print "Cleaning EZbox..."
-	ezbox.clean(use_director=False, stop_ezbox=True)
 	return True
 	
-
-#===============================================================================
-# main function
-#===============================================================================
-args = read_test_arg(sys.argv)	
-init_log(args)
-client_list, server_list, ezbox, vip_list = user_init(args['setup_num'])
-init_ezbox(args,ezbox)
-
-client = client_list[0]
-service0 = service(ezbox=ezbox, virtual_ip=vip_list[0], port='80', schedule_algorithm = 'source_hash')
-service1 = service(ezbox=ezbox, virtual_ip=vip_list[1], port='80', schedule_algorithm = 'source_hash')
-service0.add_server(server_list[0])
-service0.add_server(server_list[1])
-service1.add_server(server_list[1])
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	port = '80'
+	sched_algorithm = 'sh'
 	
-failed_tests = 0
-
-print "\nTest 2 - check dropping packet with syncid 2 while backup was started with syncid 1"
-rc = test_2()
-if rc == False:
-	print 'Test2 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test2 passed !!!\n'
-
-print "Test 3 - Backup is not started"
-rc = test_3()
-if rc == False:
-	print 'Test3 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test3 passed !!!\n'
-
-print "Test 4 - Create a new connection (bound)"
-print "In addition Test 4 check receiving packet with syncid 1 while backup was started with syncid 1"
-rc = test_4()
-if rc == False:
-	print 'Test4 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test4 passed !!!\n'
-
-print "Test 5 - Create a new connection (unbound)"
-print "In addition Test 5 check receiving packet with syncid 1 while backup was started with syncid 0"
-rc = test_5()
-if rc == False:
-	print 'Test5 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test5 passed !!!\n'
-
-print "Test 6_9 - Update a connection (bound) with new state"
-print "In addition Test 6_9 check receiving packet with syncid 4 while backup was started with syncid 0"
-rc = test_6_9()
-if rc == False:
-	print 'Test6_9 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test6_9 passed !!!\n'
-
-print "Test 7 - "
-rc = test_7()
-if rc == False:
-	print 'Test7 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test7 passed !!!\n'
-
-print "Test 8 - "
-rc = test_8()
-if rc == False:
-	print 'Test8 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test8 passed !!!\n'
-
-print "Test 10 - "
-rc = test_10()
-if rc == False:
-	print 'Test10 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test10 passed !!!\n'
-
-print "Test 11 - "
-rc = test_11()
-if rc == False:
-	print 'Test11 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test11 passed !!!\n'
-
-print "Test 12 - "
-rc = test_12()
-if rc == False:
-	print 'Test12 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test12 passed !!!\n'
-
-print "Test 13 - "
-rc = test_13()
-if rc == False:
-	print 'Test13 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test13 passed !!!\n'
-
-rc = clear_test(ezbox)
-if rc == False:
-	print 'Clear test failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Clear test passed !!!\n'
-
-if failed_tests == 0:
-	print 'ALL Tests were passed !!!'
-	exit(0)
-else:
-	print 'Number of failed tests: %d' %failed_tests
-	exit(1)
+	failed_tests = 0
+	ezbox.add_service(vip_list[0], port, sched_alg=sched_algorithm, sched_alg_opt='')
+	ezbox.add_service(vip_list[1], port, sched_alg=sched_algorithm, sched_alg_opt='')
+	
+	for i,server in enumerate(server_list):
+		# add only the first 3 servers
+		if i < 3:
+			ezbox.add_server(server.vip, port, server.ip, port)
+	
+	print "\nTest 2 - check dropping packet with syncid 2 while backup was started with syncid 1"
+	rc = test_2(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test2 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test2 passed !!!\n'
+	
+	print "Test 3 - Backup is not started"
+	rc = test_3(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test3 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test3 passed !!!\n'
+	
+	print "Test 4 - Create a new connection (bound)"
+	print "In addition Test 4 check receiving packet with syncid 1 while backup was started with syncid 1"
+	rc = test_4(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test4 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test4 passed !!!\n'
+	
+	print "Test 5 - Create a new connection (unbound)"
+	print "In addition Test 5 check receiving packet with syncid 1 while backup was started with syncid 0"
+	rc = test_5(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test5 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test5 passed !!!\n'
+	
+	print "Test 6_9 - Update a connection (bound) with new state"
+	print "In addition Test 6_9 check receiving packet with syncid 4 while backup was started with syncid 0"
+	rc = test_6_9(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test6_9 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test6_9 passed !!!\n'
+	
+	print "Test 7 - "
+	rc = test_7(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test7 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test7 passed !!!\n'
+	
+	print "Test 8 - "
+	rc = test_8(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test8 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test8 passed !!!\n'
+	
+	print "Test 10 - "
+	rc = test_10(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test10 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test10 passed !!!\n'
+	
+	print "Test 11 - "
+	rc = test_11(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test11 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test11 passed !!!\n'
+	
+	print "Test 12 - "
+	rc = test_12(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test12 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test12 passed !!!\n'
+	
+	print "Test 13 - "
+	rc = test_13(server_list, ezbox, client_list, vip_list)
+	if rc == False:
+		print 'Test13 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test13 passed !!!\n'
+	
+	rc = clear_test(ezbox)
+	if rc == False:
+		print 'Clear test failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Clear test passed !!!\n'
+	
+	if failed_tests == 0:
+		print 'ALL Tests were passed !!!'
+		exit(0)
+	else:
+		print 'Number of failed tests: %d' %failed_tests
+		exit(1)
+		
+main()

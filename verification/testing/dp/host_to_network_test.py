@@ -2,57 +2,69 @@
 
 import sys
 sys.path.append("verification/testing")
-from test_infra import * 
 import random
+from common_infra import *
+from e2e_infra import *
 
-args = read_test_arg(sys.argv)    
+server_count   = 0
+client_count   = 1
+service_count  = 0
 
-log_file = "host_to_network_test.log"
-if 'log_file' in args:
-    log_file = args['log_file']
-init_logging(log_file)
+def user_init(setup_num):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+		
+	dict = generic_init(setup_num, service_count, server_count, client_count)
+	
+	w = 1
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		s.weight = w
+	
+	return dict
 
-ezbox = ezbox_host(args['setup_num'])
+def main():
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+	config = fill_default_config(generic_main())
+	
+	dict = user_init(config['setup_num'])
+	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "\nTest Passed\n"
+	
 
-if args['hard_reset']:
-    ezbox.reset_ezbox()
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	port = '80'
+	sched_algorithm = 'source_hash'
+	ezbox.flush_ipvs()    
+	
+	print "Flush all arp entries"
+	ezbox.clean_arp_table()
 
-# init ALVS daemon
-ezbox.connect()
-ezbox.flush_ipvs()
-ezbox.alvs_service_stop()
-ezbox.copy_cp_bin(debug_mode=args['debug'])
-ezbox.copy_dp_bin(debug_mode=args['debug'])
-ezbox.alvs_service_start()
-ezbox.wait_for_cp_app()
-ezbox.wait_for_dp_app()
-ezbox.clean_director()
+	print "Checking ping from host to one of the VMs"
+	result,output = ezbox.execute_command_on_host('ping ' + client_list[0].ip + ' & sleep 10s && pkill -HUP -f ping')
+	print output
+	
+	time.sleep(11)	
 
-ip_list = get_setup_list(args['setup_num'])
-ezbox.flush_ipvs()    
+	print "Reading all the arp entries"
+	arp_entries = ezbox.get_all_arp_entries() 
 
-print "Flush all arp entries"
-ezbox.clean_arp_table()
+	print "The Arp Table:"
+	print arp_entries
 
-# create client
-client_object = client(management_ip=ip_list[0]['hostname'], data_ip=ip_list[0]['ip'])
-
-print "Checking ping from host to one of the VMs"
-result,output = ezbox.execute_command_on_host('ping ' + client_object.data_ip + ' & sleep 10s && pkill -HUP -f ping')
-print output
-    
-time.sleep(11)
-
-print "Reading all the arp entries"
-arp_entries = ezbox.get_all_arp_entries() 
-
-print "The Arp Table:"
-print arp_entries
-
-print "\nChecking if the VM arp entry exist on arp table"
-if client_object.data_ip not in arp_entries:
-    print "ERROR, arp entry is not exist, ping from host to VM was failed\n"
-    exit(1)
-    
-print "Arp entry exist\n"
-print "Test Passed"
+	print "\nChecking if the VM arp entry exist on arp table"
+	if client_list[0].ip not in arp_entries:
+	    print "ERROR, arp entry is not exist, ping from host to VM was failed\n"
+	    exit(1)
+	    
+	print "Arp entry exist\n"
+	
+main()

@@ -13,37 +13,24 @@ import time
 # pythons modules 
 # local
 sys.path.append("verification/testing")
-from test_infra import *
+from common_infra import *
+from e2e_infra import *
 
-#===============================================================================
-# User Area function needed by infrastructure
-#===============================================================================
+server_count   = 0
+client_count   = 0
+service_count  = 0
 
-def init_log(args):
+def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	log_file = "state_sync_control.log"
-	if 'log_file' in args:
-		log_file = args['log_file']
-	init_logging(log_file)
-
-
-def init_ezbox(args,ezbox):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
-	if args['hard_reset']:
-		ezbox.reset_ezbox()
-		# init ALVS daemon
-	ezbox.connect()
-	ezbox.flush_ipvs()
-	ezbox.alvs_service_stop()
-	ezbox.copy_cp_bin(debug_mode=args['debug'])
-	ezbox.copy_dp_bin(debug_mode=args['debug'])
-	ezbox.alvs_service_start()
-	ezbox.wait_for_cp_app()
-	ezbox.wait_for_dp_app()
-	ezbox.clean_director()
-
+	w = 1
+	for s in dict['server_list']:
+		s.vip = dict['vip_list'][0]
+		s.weight = w
+	
+	return dict
 
 def check_alvs_state_sync_info(expected_alvs_ss_info, alvs_ss_info):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
@@ -332,14 +319,23 @@ def start_master_with_illegal_mcast_ifn(ezbox):
 def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	args = read_test_arg(sys.argv)	
-
-	init_log(args)
+	config = fill_default_config(generic_main())
 	
-	ezbox = ezbox_host(args['setup_num'])
+	config['start_ezbox'] = True
 	
-	init_ezbox(args,ezbox)
+	dict = user_init(config['setup_num'])
 	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "Test Passed"
+	
+def run_user_test(server_list, ezbox, client_list, vip_list):
 	failed_tests = 0
 	rc = 0
 	
@@ -386,7 +382,7 @@ def main():
 		failed_tests += 1
 	
 	print "Cleaning EZbox..."
-	ezbox.clean(use_director=False, stop_service=True)
+	ezbox.clean(use_director=False, stop_ezbox=True)
 	
 	if failed_tests == 0:
 		print 'ALL Tests were passed !!!'

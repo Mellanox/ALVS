@@ -8,170 +8,112 @@
 # system  
 import sys
 import random
-
+from __builtin__ import enumerate
 
 # pythons modules 
 # local
 sys.path.append("verification/testing")
-from test_infra import *
+from common_infra import *
+from e2e_infra import *
 
-
-#===============================================================================
-# Test Globals
-#===============================================================================
-server_count = 4
-service_count = 3
-
-#===============================================================================
-# User Area function needed by infrastructure
-#===============================================================================
-
-def init_log(args):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	log_file = "scheduling_algorithm_test.log"
-	if 'log_file' in args:
-		log_file = args['log_file']
-	init_logging(log_file)
-
+server_count   = 5
+client_count   = 0
+service_count  = 4
 
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	vip_list = [get_setup_vip(setup_num,i) for i in range(service_count)]
+	dict = generic_init(setup_num, service_count, server_count, client_count)
 	
-	setup_list = get_setup_list(setup_num)
+	w = 1
+	for i,s in enumerate(dict['server_list']):
+		if i<3:
+			s.vip = dict['vip_list'][0]
+			s.weight = w
+		else:
+			s.vip = dict['vip_list'][1]
+			s.weight = w
 	
-	index = 0
-	server_list=[]
-	for i in range(server_count):
-		server_list.append(real_server(management_ip=setup_list[index]['hostname'], data_ip=setup_list[index]['ip']))
-		index+=1
-	
-	# EZbox
-	ezbox = ezbox_host(setup_num)
-	
-	return (server_list, ezbox, vip_list)
+	return dict
 
-
-def init_ezbox(args,ezbox):
+def main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	if args['hard_reset']:
-		ezbox.reset_ezbox()
-		# init ALVS daemon
-	ezbox.connect()
-	ezbox.flush_ipvs()
-	ezbox.alvs_service_stop()
-	ezbox.copy_cp_bin(debug_mode=args['debug'])
-	ezbox.copy_dp_bin(debug_mode=args['debug'])
-	ezbox.alvs_service_start()
-	ezbox.wait_for_cp_app()
-	ezbox.wait_for_dp_app()
-	ezbox.clean_director()
-
-
-def server_class_hash_add_test():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	config = fill_default_config(generic_main())
 	
-	service0.add_server(server_list[0])
-	service0.add_server(server_list[1])
-	service0.add_server(server_list[2])
-	service1.add_server(server_list[1])
-	service1.add_server(server_list[3])
+	dict = user_init(config['setup_num'])
+	
+	init_players(dict, config)
+	
+	server_list, ezbox, client_list, vip_list = convert_generic_init_to_user_format(dict)
+	
+	run_user_test(server_list, ezbox, client_list, vip_list)
+	
+	clean_players(dict, True, config['stop_ezbox'])
+	
+	print "Test Passed"
+	
 
-	servers = ezbox.get_all_servers()
-
+def server_class_hash_add_test(ezbox, server_list, vip_list):
+	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	port = '80'
+	#adding the servers to their service
+	for server in server_list:
+		ezbox.add_server(server.vip, port, server.ip, port)
 	#Verify server0 in service0
-	found = False
-	for server in servers:
-	    if server['index'] == 0:
-	        if server['key']['server_ip'] == ip2int(server_list[0].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[0]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server0 not found in service0'
-	    return 1
+	server0 = ezbox.get_server(vip_list[0], port, server_list[0].ip, port, 6)
+	if (server0 == None):
+		print 'Server0 not found in service0'
+		return 1
 
 	#Verify server1 in service0
-	found = False
-	for server in servers:
-	    if server['index'] == 1:
-	        if server['key']['server_ip'] == ip2int(server_list[1].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[0]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server1 not found in service0'
-	    return 1
+	server1 = ezbox.get_server(vip_list[0], port, server_list[1].ip, port, 6)
+	if (server1 == None):
+		print 'Server1 not found in service0'
+		return 1
 
-	#Verify server2 in service0
-	found = False
-	for server in servers:
-	    if server['index'] == 2:
-	        if server['key']['server_ip'] == ip2int(server_list[2].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[0]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server2 not found in service0'
-	    return 1
-
-	#Verify server1 in service1
-	found = False
-	for server in servers:
-	    if server['index'] == 3:
-	        if server['key']['server_ip'] == ip2int(server_list[1].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[1]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server1 not found in service1'
-	    return 1
-
-	#Verify server3 in service1
-	found = False
-	for server in servers:
-	    if server['index'] == 4:
-	        if server['key']['server_ip'] == ip2int(server_list[3].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[1]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server3 not found in service1'
-	    return 1
-
+	server2 = ezbox.get_server(vip_list[0], port, server_list[2].ip, port, 6)
+	if (server2 == None):
+		print 'Server2 not found in service0'
+		return 1
+	
+	server3 = ezbox.get_server(vip_list[1], port, server_list[3].ip, port, 6)
+	if (server3 == None):
+		print 'Server3 not found in service1'
+		return 1
+	
+	server4 = ezbox.get_server(vip_list[1], port, server_list[4].ip, port, 6)
+	if (server4 == None):
+		print 'Server4 not found in service1'
+		return 1
+	
 	return 0
 
 
-def server_class_hash_delete_test():
+def server_class_hash_delete_test(ezbox, server_list, vip_list):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	port = '80'
 	
-	service0.remove_server(server_list[1])
-	service1.remove_server(server_list[1])
-
-	servers = ezbox.get_all_servers()
-
+	ezbox.delete_server(server_list[1].vip, port, server_list[1].ip, port)
+	ezbox.delete_server(server_list[3].vip, port, server_list[3].ip, port)
+	
 	#Verify server0 in service0
-	found = False
-	for server in servers:
-	    if server['index'] == 0:
-	        if server['key']['server_ip'] == ip2int(server_list[0].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[0]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server0 not found in service0'
-	    return 1
+	server0 = ezbox.get_server(vip_list[0], port, server_list[0].ip, port, 6)
+	if (server0 == None):
+		print 'Server0 not found in service0'
+		return 1
 
 	#Verify server2 in service0
-	found = False
-	for server in servers:
-	    if server['index'] == 2:
-	        if server['key']['server_ip'] == ip2int(server_list[2].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[0]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server2 not found in service0'
-	    return 1
+	server2 = ezbox.get_server(vip_list[0], port, server_list[2].ip, port, 6)
+	if (server2 == None):
+		print 'Server2 not found in service0'
+		return 1
 
 	#Verify server3 in service1
-	found = False
-	for server in servers:
-	    if server['index'] == 4:
-	        if server['key']['server_ip'] == ip2int(server_list[3].data_ip) and server['key']['virt_ip'] == ip2int(vip_list[1]) and server['key']['server_port'] == 80 and server['key']['virt_port'] == 80 and server['key']['protocol'] == 6:
-	            found=True 
-	if found == False:
-	    print 'Server3 not found in service1'
-	    return 1
+	server4 = ezbox.get_server(vip_list[1], port, server_list[4].ip, port, 6)
+	if (server4 == None):
+		print 'Server4 not found in service1'
+		return 1
 
 	return 0
 
@@ -190,43 +132,43 @@ def clear_test(ezbox):
 #===============================================================================
 # main function
 #===============================================================================
-args = read_test_arg(sys.argv)	
-init_log(args)
-server_list, ezbox, vip_list = user_init(args['setup_num'])
-init_ezbox(args,ezbox)
-service0 = service(ezbox=ezbox, virtual_ip=vip_list[0], port='80', schedule_algorithm = 'source_hash')
-service1 = service(ezbox=ezbox, virtual_ip=vip_list[1], port='80', schedule_algorithm = 'source_hash')
+def run_user_test(server_list, ezbox, client_list, vip_list):
+	port = '80'
+	sched_algorithm = 'sh'
+	ezbox.add_service(vip_list[0], port, sched_alg=sched_algorithm, sched_alg_opt='')
+	ezbox.add_service(vip_list[1], port, sched_alg=sched_algorithm, sched_alg_opt='')
 
-
-failed_tests = 0
-rc = 0
-
-print "Test 1 - Add servers to services"
-rc = server_class_hash_add_test()
-if rc:
-	print 'Test1 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test1 passed !!!\n'
+	failed_tests = 0
+	rc = 0
 	
-print "Test 2 - Delete servers from services"
-rc = server_class_hash_delete_test()
-if rc:
-	print 'Test2 failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Test2 passed !!!\n'
+	print "Test 1 - Add servers to services"
+	rc = server_class_hash_add_test(ezbox, server_list, vip_list)
+	if rc:
+		print 'Test1 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test1 passed !!!\n'
+		
+	print "Test 2 - Delete servers from services"
+	rc = server_class_hash_delete_test(ezbox, server_list, vip_list)
+	if rc:
+		print 'Test2 failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Test2 passed !!!\n'
+	
+	rc = clear_test(ezbox)
+	if rc:
+		print 'Clear test failed !!!\n'
+		failed_tests += 1
+	else:
+		print 'Clear test passed !!!\n'
+	# after test12 all services were cleared
+	
+	if failed_tests == 0:
+		print 'ALL Tests were passed !!!'
+	else:
+		print 'Number of failed tests: %d' %failed_tests
+		exit(1)
 
-rc = clear_test(ezbox)
-if rc:
-	print 'Clear test failed !!!\n'
-	failed_tests += 1
-else:
-	print 'Clear test passed !!!\n'
-# after test12 all services were cleared
-
-if failed_tests == 0:
-	print 'ALL Tests were passed !!!'
-else:
-	print 'Number of failed tests: %d' %failed_tests
-	exit(1)
+main()
