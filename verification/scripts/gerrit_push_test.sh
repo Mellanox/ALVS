@@ -144,8 +144,13 @@ function exec_regression()
         return
     fi
     
+    #delete and copy updated files
+    rm -rf /.autodirect/swgwork/nps_solutions/workspace/mars_push_regression/ALVS
+    mkdir /.autodirect/swgwork/nps_solutions/workspace/mars_push_regression/ALVS
+    cp -r * /.autodirect/swgwork/nps_solutions/workspace/mars_push_regression/ALVS
+
     # run regression
-    $scripts_path"../testing/system_level/regression_run.py" -s $setup_num -l push_regression -e true
+    $scripts_path"../MARS/MARS_regression_run.py" -s $setup_num -t basic -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS
     rc=$?
     if [ $rc -ne 0 ]; then
         echo 'ERROR: Regression failed'

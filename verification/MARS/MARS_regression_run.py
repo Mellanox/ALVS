@@ -57,7 +57,7 @@ def main():
         command_line += ' --meinfo_file_name='
         command_line += options.file_name
     
-    
+    rc = 1
     s = pxssh.pxssh()
     if not s.login ('mtl-stm-76','root','3tango'):
         print "SSH session: ERROR - Failed to login to mtl-stm-76."
@@ -68,8 +68,13 @@ def main():
         print command_line
         s.sendline (command_line)
         s.prompt(timeout=36000)         # match the prompt
+        if '*Session RC: 0' in s.before:
+            rc = 0
         print (s.before)     # print everything before the prompt.
         s.logout()
     
-main()
+    return rc
 
+
+rc = main()
+exit(rc)
