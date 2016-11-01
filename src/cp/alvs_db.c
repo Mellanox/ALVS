@@ -1930,9 +1930,9 @@ void build_nps_application_info_result(struct alvs_db_application_info *cp_daemo
  *
  * \return
  */
-void build_nps_application_info_key(struct application_info_key *nps_application_info_key)
+void build_nps_application_info_key(struct application_info_key *nps_application_info_key, uint8_t app_index)
 {
-	nps_application_info_key->application_id = ALVS_APPLICATION_INFO;
+	nps_application_info_key->application_index = app_index;
 }
 
 /**************************************************************************//**
@@ -1976,7 +1976,7 @@ void build_cp_state_sync_daemon(struct alvs_db_application_info *cp_daemon_info,
  */
 void build_cp_state_sync_daemons(struct alvs_db_application_info *cp_daemon_info, struct ip_vs_daemon_user *ip_vs_daemon_info)
 {
-	cp_daemon_info->application_index = ALVS_APPLICATION_INFO;
+	cp_daemon_info->application_index = ALVS_APPLICATION_INFO_INDEX;
 	/* no sync daemon was configured */
 	if (ip_vs_daemon_info->state != IP_VS_STATE_MASTER && ip_vs_daemon_info->state != IP_VS_STATE_BACKUP) {
 		cp_daemon_info->is_master = false;
@@ -3014,7 +3014,7 @@ enum alvs_db_rc alvs_db_init_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 		  cp_daemon_info.is_master, cp_daemon_info.is_backup, cp_daemon_info.m_sync_id, cp_daemon_info.b_sync_id, my_inet_ntoa(cp_daemon_info.source_ip));
 
 	/* add to NPS DB */
-	build_nps_application_info_key(&nps_ss_daemon_info_key);
+	build_nps_application_info_key(&nps_ss_daemon_info_key, ALVS_APPLICATION_INFO_INDEX);
 	build_nps_application_info_result(&cp_daemon_info, &nps_ss_daemon_info_result);
 	if (infra_add_entry(STRUCT_ID_APPLICATION_INFO,
 			       &nps_ss_daemon_info_key,
@@ -3048,7 +3048,7 @@ enum alvs_db_rc alvs_db_start_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info
 
 	write_log(LOG_DEBUG, "Start state sync daemon info.");
 	/* Get state sync daemon from internal DB */
-	cp_daemon_info.application_index = ALVS_APPLICATION_INFO;
+	cp_daemon_info.application_index = ALVS_APPLICATION_INFO_INDEX;
 	switch (internal_db_get_application_info(&cp_daemon_info)) {
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -3098,7 +3098,7 @@ enum alvs_db_rc alvs_db_start_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info
 	write_log(LOG_DEBUG, "ALVS state sync daemon info was modified successfully in internal DB.");
 
 	/* modify nps DB */
-	build_nps_application_info_key(&nps_ss_daemon_info_key);
+	build_nps_application_info_key(&nps_ss_daemon_info_key, ALVS_APPLICATION_INFO_INDEX);
 	build_nps_application_info_result(&cp_daemon_info, &nps_ss_daemon_info_result);
 	if (infra_modify_entry(STRUCT_ID_APPLICATION_INFO,
 			       &nps_ss_daemon_info_key,
@@ -3133,7 +3133,7 @@ enum alvs_db_rc alvs_db_stop_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 
 	write_log(LOG_DEBUG, "Stop state sync daemon.");
 	/* Get state sync daemon from internal DB */
-	cp_daemon_info.application_index = ALVS_APPLICATION_INFO;
+	cp_daemon_info.application_index = ALVS_APPLICATION_INFO_INDEX;
 	switch (internal_db_get_application_info(&cp_daemon_info)) {
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */
@@ -3176,7 +3176,7 @@ enum alvs_db_rc alvs_db_stop_daemon(struct ip_vs_daemon_user *ip_vs_daemon_info)
 	write_log(LOG_DEBUG, "ALVS state sync daemon info was modified successfully in internal DB.");
 
 	/* modify nps DB */
-	build_nps_application_info_key(&nps_ss_daemon_info_key);
+	build_nps_application_info_key(&nps_ss_daemon_info_key, ALVS_APPLICATION_INFO_INDEX);
 	build_nps_application_info_result(&cp_daemon_info, &nps_ss_daemon_info_result);
 	if (infra_modify_entry(STRUCT_ID_APPLICATION_INFO,
 			       &nps_ss_daemon_info_key,
@@ -3205,7 +3205,7 @@ enum alvs_db_rc alvs_db_log_daemon(void)
 
 	write_log(LOG_DEBUG, "Get state sync daemon.");
 	/* Get state sync daemon from internal DB */
-	cp_daemon_info.application_index = ALVS_APPLICATION_INFO;
+	cp_daemon_info.application_index = ALVS_APPLICATION_INFO_INDEX;
 	switch (internal_db_get_application_info(&cp_daemon_info)) {
 	case ALVS_DB_INTERNAL_ERROR:
 		/* Internal error */

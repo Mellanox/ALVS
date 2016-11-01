@@ -43,32 +43,25 @@
  *********************************/
 
 #include "alvs_search_defs.h"
-#include "nw_search_defs.h"
 
 #define APPLICATION_INFO_MAX_ENTRIES	16
-
+#define ALVS_APPLICATION_INFO_INDEX	0
 
 
 /*********************************
  * application info DB defs
  *********************************/
 
-enum application_id {
-	INIT_APPLICATION_INFO,
-	ALVS_APPLICATION_INFO
-};
-
 /*key*/
 struct application_info_key {
-	enum application_id application_id  : 8;
+	uint8_t application_index;
 } __packed;
 
 CASSERT(sizeof(struct application_info_key) == 1);
 
 
 /*result*/
-struct init_application_info {
-	/*byte0*/
+struct application_info {
 #ifdef NPS_BIG_ENDIAN
 	unsigned	/*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned	/*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
@@ -78,22 +71,13 @@ struct init_application_info {
 	unsigned	/*reserved*/ : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned	/*reserved*/ : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
-	/*byte1*/
-	unsigned	/*reserved*/ : 8;
-
-	/*byte2-3*/
-	struct nw_if_apps    app_bitmap;
-
-	/*byte4-15*/
-	unsigned	/*reserved*/ : 32;
-	unsigned	/*reserved*/ : 32;
-	unsigned	/*reserved*/ : 32;
+	/*byte1-15*/
+	uint8_t		reserverd[15];
 };
 
-
 union application_info_result {
-	struct init_application_info	init_app;
 	struct alvs_app_info_result	alvs_app;
+	struct application_info		app_info;
 };
 
 CASSERT(sizeof(union application_info_result) == 16);

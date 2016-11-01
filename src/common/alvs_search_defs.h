@@ -402,5 +402,4 @@ struct alvs_app_info_result {
 };
 
 CASSERT(sizeof(struct alvs_app_info_result) == 16);
-
 #endif /* ALVS_SERACH_DEFS_H_ */

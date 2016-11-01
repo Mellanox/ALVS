@@ -68,7 +68,7 @@ int alvs_util_get_conn_iterations(enum alvs_tcp_conn_state alvs_state)
 static __always_inline
 int alvs_util_app_info_lookup(void)
 {
-	return nw_app_info_lookup(ALVS_APPLICATION_INFO, &cmem_wa.alvs_wa.alvs_app_info_result,
+	return nw_app_info_lookup(ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
 					sizeof(struct alvs_app_info_result));
 }
 
