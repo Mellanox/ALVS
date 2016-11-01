@@ -58,7 +58,7 @@ uint32_t alvs_sched_service_info_lookup(uint8_t service_index)
 static __always_inline
 void alvs_sched_handle_no_active_servers(void)
 {
-	alvs_write_log(LOG_WARNING, "no servers for scheduling algorithm");
+	anl_write_log(LOG_WARNING, "no servers for scheduling algorithm");
 	/*drop frame*/
 	alvs_discard_and_stats(ALVS_ERROR_NO_ACTIVE_SERVERS);
 }
@@ -138,21 +138,21 @@ enum alvs_sched_server_result alvs_sched_get_server_info(uint8_t service_index, 
 	uint32_t rc;
 
 	/*perform a lookup in scheduling info DB*/
-	alvs_write_log(LOG_DEBUG, "service_idx = %d, sched_idx = %d ", service_index, scheduling_index);
+	anl_write_log(LOG_DEBUG, "service_idx = %d, sched_idx = %d ", service_index, scheduling_index);
 	rc = alvs_server_sched_lookup(scheduling_index);
 
 	/*schedule info lookup succeeded*/
 	if (likely(rc == 0)) {
 		/*perform a look in the server info DB*/
-		alvs_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d", service_index, cmem_alvs.sched_info_result.server_index);
+		anl_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d", service_index, cmem_alvs.sched_info_result.server_index);
 		if (unlikely(alvs_server_info_lookup(cmem_alvs.sched_info_result.server_index))) {
 			/*server info lookup failed*/
-			alvs_write_log(LOG_ERR, "service_idx = %d, server_idx = %d server_info_lookup FAILED", service_index, cmem_alvs.sched_info_result.server_index);
+			anl_write_log(LOG_ERR, "service_idx = %d, server_idx = %d server_info_lookup FAILED", service_index, cmem_alvs.sched_info_result.server_index);
 			alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 			return ALVS_SCHED_SERVER_FAILED;
 		}
 		if (alvs_server_overload_on_create_conn(cmem_alvs.sched_info_result.server_index) & IP_VS_DEST_F_OVERLOAD) {
-			alvs_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
+			anl_write_log(LOG_DEBUG, "service_idx = %d, server_idx = %d is unavailable", service_index, cmem_alvs.sched_info_result.server_index);
 			return ALVS_SCHED_SERVER_UNAVAILABLE;
 		}
 		return ALVS_SCHED_SERVER_SUCCESS;
@@ -161,10 +161,10 @@ enum alvs_sched_server_result alvs_sched_get_server_info(uint8_t service_index, 
 	/*schedule info lookup failed*/
 	if (unlikely(rc == ENOENT)) {
 		/*no server index for the given scheduling index*/
-		alvs_write_log(LOG_DEBUG, "service_idx = %d server_sched_lookup ENOENT", service_index);
+		anl_write_log(LOG_DEBUG, "service_idx = %d server_sched_lookup ENOENT", service_index);
 		return ALVS_SCHED_SERVER_EMPTY;
 	}
-	alvs_write_log(LOG_DEBUG, "service_idx = %d server_sched_lookup FAILED", service_index);
+	anl_write_log(LOG_DEBUG, "service_idx = %d server_sched_lookup FAILED", service_index);
 	/*drop frame*/
 	alvs_discard_and_stats(ALVS_ERROR_SCHEDULING_FAIL);
 	return ALVS_SCHED_SERVER_FAILED;
@@ -188,7 +188,7 @@ bool alvs_sched_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint
 
 	sport = cmem_alvs.service_info_result.service_flags & IP_VS_SVC_F_SCHED_SH_PORT ? sport : 0;
 	final_hash = alvs_sched_sh_get_scheduling_index(sip, sport);
-	alvs_write_log(LOG_DEBUG, "sport = %d, hash_value = 0x%x, input to hash = %d", sport, final_hash, (uint32_t)sport << (sizeof(sport) * 8));
+	anl_write_log(LOG_DEBUG, "sport = %d, hash_value = 0x%x, input to hash = %d", sport, final_hash, (uint32_t)sport << (sizeof(sport) * 8));
 
 	sched_server_result = alvs_sched_get_server_info(service_index, service_index * ALVS_SIZE_OF_SCHED_BUCKET + final_hash);
 	if (likely(sched_server_result == ALVS_SCHED_SERVER_SUCCESS)) {
@@ -219,7 +219,7 @@ bool alvs_sched_sh_schedule_connection(uint8_t service_index, uint32_t sip, uint
 		return false;
 	}
 
-	alvs_write_log(LOG_ERR, "service_idx = %d sh_schedule_connection FAILED", service_index);
+	anl_write_log(LOG_ERR, "service_idx = %d sh_schedule_connection FAILED", service_index);
 	return false;
 }
 
@@ -240,7 +240,7 @@ bool alvs_sched_rr_schedule_connection(uint8_t service_index)
 	/*get server info according to schedule counter*/
 	sched_count = ezdp_atomic_read_and_inc32_sum_addr(cmem_alvs.service_info_result.service_sched_ctr, NULL);
 
-	alvs_write_log(LOG_DEBUG, "service_index = %d, sched_count = %d", service_index, sched_count);
+	anl_write_log(LOG_DEBUG, "service_index = %d, sched_count = %d", service_index, sched_count);
 
 	do {
 		/*check of entries count is power of 2. if so, do not use mod operations. (use mask)*/
@@ -269,7 +269,7 @@ bool alvs_sched_rr_schedule_connection(uint8_t service_index)
 			break;
 		}
 	} while (unlikely(--retries));
-	alvs_write_log(LOG_DEBUG, "entries = %d, entry_index = %d, result = %d",
+	anl_write_log(LOG_DEBUG, "entries = %d, entry_index = %d, result = %d",
 		       cmem_alvs.service_info_result.sched_entries_count, sched_count, sched_server_result);
 
 	if (likely(sched_server_result == ALVS_SCHED_SERVER_SUCCESS)) {
@@ -283,7 +283,7 @@ bool alvs_sched_rr_schedule_connection(uint8_t service_index)
 		alvs_discard_and_stats(ALVS_ERROR_SCHEDULING_FAIL);
 	}
 
-	alvs_write_log(LOG_ERR, "service_idx = %d rr_schedule_connection FAILED", service_index);
+	anl_write_log(LOG_ERR, "service_idx = %d rr_schedule_connection FAILED", service_index);
 fail_out:
 	return false;
 }

@@ -158,14 +158,14 @@ void alvs_state_sync_set_sync_conn(struct alvs_state_sync_conn *sync_conn)
 		sync_conn->server_port = cmem_alvs.conn_info_result.server_port;
 	}
 
-	alvs_write_log(LOG_DEBUG, "sync connection state (caddr=0x%x, cport=%d, saddr=0x%x, sport=%d, vip=0x%x, state=%d, flags=0x%x",
-		       sync_conn->client_addr,
-		       sync_conn->client_port,
-		       sync_conn->server_addr,
-		       sync_conn->server_port,
-		       sync_conn->virtual_addr,
-		       sync_conn->state,
-		       sync_conn->flags);
+	anl_write_log(LOG_DEBUG, "sync connection state (caddr=0x%x, cport=%d, saddr=0x%x, sport=%d, vip=0x%x, state=%d, flags=0x%x",
+		      sync_conn->client_addr,
+		      sync_conn->client_port,
+		      sync_conn->server_addr,
+		      sync_conn->server_port,
+		      sync_conn->virtual_addr,
+		      sync_conn->state,
+		      sync_conn->flags);
 }
 
 /******************************************************************************
@@ -228,12 +228,12 @@ void alvs_state_sync_send_single(in_addr_t source_ip, uint8_t sync_id)
 	rc = ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len, ALVS_STATE_SYNC_HEADROOM, EZFRAME_MOVE_BUF_TO_EMEM);
 	/*create new frame*/
 	if (unlikely(rc != 0)) {
-		alvs_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len, rc);
-		alvs_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
+		anl_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len, rc);
+		anl_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
 		return;
 	}
 
-	alvs_write_log(LOG_DEBUG, "send single conn sync frame");
+	anl_write_log(LOG_DEBUG, "send single conn sync frame");
 	nw_mc_handle(&frame, USER_NW_BASE_LOGICAL_ID);
 }
 
@@ -260,13 +260,13 @@ uint32_t alvs_state_sync_add_buffer(void)
 		/*reduce the added headroom*/
 		rc = ezframe_new(&frame, frame_data, cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, ALVS_STATE_SYNC_HEADROOM, EZFRAME_MOVE_BUF_TO_EMEM);
 		if (rc != 0) {
-			alvs_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, rc);
-			alvs_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
+			anl_write_log(LOG_ERR, "sync master failed to create new sync frame: length  =  %d, rc = %d", cmem_alvs.conn_sync_state.current_len - ALVS_STATE_SYNC_HEADROOM, rc);
+			anl_write_log(LOG_ERR, "%s ", ezdp_get_err_msg());
 		}
 	} else {
 		rc = ezframe_append_buf(&frame, frame_data, cmem_alvs.conn_sync_state.current_len, 0);
 		if (rc != 0) {
-			alvs_write_log(LOG_ERR, "sync master failed to append buffer to sync frame");
+			anl_write_log(LOG_ERR, "sync master failed to append buffer to sync frame");
 			ezframe_free(&frame, 0);
 		}
 	}
@@ -300,21 +300,21 @@ void alvs_state_sync_send_aggr(void)
 
 	/*check if there is anything to sync*/
 	if (unlikely(cmem_alvs.conn_sync_state.amount_buffers == 0)) {
-		alvs_write_log(LOG_DEBUG, "no aggregated connections to send");
+		anl_write_log(LOG_DEBUG, "no aggregated connections to send");
 		return;
 	}
 
 	/*add the last buffer*/
 	if (likely(cmem_alvs.conn_sync_state.current_len > 0)) {
 		if (unlikely(alvs_state_sync_add_buffer())) {
-			alvs_write_log(LOG_DEBUG, "adding last buffer to sync frame");
+			anl_write_log(LOG_DEBUG, "adding last buffer to sync frame");
 			return;
 		}
 	}
 
 	/*go back to first buffer*/
 	if (likely(cmem_alvs.conn_sync_state.amount_buffers > 1)) {
-		alvs_write_log(LOG_DEBUG, "switch back to sync frame first buffer");
+		anl_write_log(LOG_DEBUG, "switch back to sync frame first buffer");
 		rc = ezframe_first_buf(&frame, 0);
 		if (rc != 0) {
 			ezframe_free(&frame, 0);
@@ -324,7 +324,7 @@ void alvs_state_sync_send_aggr(void)
 
 	/*update sync header with amount of connections*/
 	if (likely(cmem_alvs.conn_sync_state.conn_count > 1)) {
-		alvs_write_log(LOG_DEBUG, "update net header and sync header length fields");
+		anl_write_log(LOG_DEBUG, "update net header and sync header length fields");
 		frame_base = ezframe_load_buf(&frame, frame_data, &frame_length, 0);
 		net_hdr_info = (struct net_hdr *)(frame_base + sizeof(struct ether_header));
 		sync_hdr = (struct alvs_state_sync_header *)((uint8_t *)net_hdr_info + sizeof(struct net_hdr));
@@ -339,7 +339,7 @@ void alvs_state_sync_send_aggr(void)
 		}
 	}
 
-	alvs_write_log(LOG_DEBUG, "send aggregated sync MC frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);
+	anl_write_log(LOG_DEBUG, "send aggregated sync MC frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);
 	nw_mc_handle(&frame, USER_NW_BASE_LOGICAL_ID);
 }
 
@@ -362,7 +362,7 @@ void alvs_state_sync_aggr(in_addr_t source_ip, uint8_t sync_id)
 	if (likely(cmem_alvs.conn_info_result.bound == true)) {
 		/*get destination server info. lookup is needed when reaching here from aging*/
 		if (unlikely(alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) != 0)) {
-			alvs_write_log(LOG_ERR, "sync master server info lookup failed ");
+			anl_write_log(LOG_ERR, "sync master server info lookup failed ");
 			goto exit;
 		}
 	}
@@ -376,20 +376,20 @@ void alvs_state_sync_aggr(in_addr_t source_ip, uint8_t sync_id)
 	/*check if there is not enough room in current buffer*/
 	if (unlikely((cmem_alvs.conn_sync_state.current_len + sizeof(struct alvs_state_sync_conn)) > EZFRAME_BUF_DATA_SIZE)) {
 		if (unlikely(cmem_alvs.conn_sync_state.amount_buffers == ALVS_STATE_SYNC_BUFFERS_LIMIT)) {
-			alvs_write_log(LOG_DEBUG, "sync frame full. sending and create a new one");
+			anl_write_log(LOG_DEBUG, "sync frame full. sending and create a new one");
 			/*send the full sync frame*/
 			alvs_state_sync_send_aggr();
 			goto new_frame;
 		}
 		/*current sync frame is not full, add connection to a new buffer*/
-		alvs_write_log(LOG_DEBUG, "adding another buffer to current sync frame");
+		anl_write_log(LOG_DEBUG, "adding another buffer to current sync frame");
 		if (unlikely(alvs_state_sync_add_buffer() != 0)) {
 			goto exit;
 		}
 	}
 
 	/*add connection*/
-	alvs_write_log(LOG_DEBUG, "aggregate current connection for state sync");
+	anl_write_log(LOG_DEBUG, "aggregate current connection for state sync");
 	alvs_state_sync_set_sync_conn((struct alvs_state_sync_conn *)cmem_alvs.conn_sync_state.current_base);
 	cmem_alvs.conn_sync_state.current_base += sizeof(struct alvs_state_sync_conn);
 	cmem_alvs.conn_sync_state.current_len += sizeof(struct alvs_state_sync_conn);
@@ -398,7 +398,7 @@ void alvs_state_sync_aggr(in_addr_t source_ip, uint8_t sync_id)
 
 new_frame:
 	/*create new sync frame*/
-	alvs_write_log(LOG_DEBUG, "create a new aggregated sync frame");
+	anl_write_log(LOG_DEBUG, "create a new aggregated sync frame");
 	alvs_state_sync_first(source_ip, sync_id);
 	/*add headroom to current length for proper filling of the first buffer*/
 	cmem_alvs.conn_sync_state.current_len += ALVS_STATE_SYNC_HEADROOM;

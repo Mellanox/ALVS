@@ -52,7 +52,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	struct iphdr *ip_ptr;
 
 	if (unlikely(nw_if_ingress_lookup(logical_id) != 0)) {
-		alvs_write_log(LOG_DEBUG, "fail ingress interface lookup - logical id =%d!", logical_id);
+		anl_write_log(LOG_DEBUG, "fail ingress interface lookup - logical id =%d!", logical_id);
 		nw_discard_frame();
 		return;
 	}
@@ -62,7 +62,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 	/* === Check validity of received frame === */
 	if (unlikely(ezframe_valid(frame) != 0)) {
-		alvs_write_log(LOG_DEBUG, "frame is not valid (%s)", ezdp_get_err_msg());
+		anl_write_log(LOG_DEBUG, "frame is not valid (%s)", ezdp_get_err_msg());
 		nw_interface_inc_counter(NW_IF_STATS_FRAME_VALIDATION_FAIL);
 		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		return;
@@ -77,7 +77,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.error_codes.decode_error)) {
-			alvs_write_log(LOG_DEBUG, "Decode MAC failed!");
+			anl_write_log(LOG_DEBUG, "Decode MAC failed!");
 			nw_interface_inc_counter(NW_IF_STATS_MAC_ERROR);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
@@ -85,14 +85,14 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*check if my_mac is set*/
 		if (unlikely(!(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.my_mac | cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.ipv4_multicast))) {
-			alvs_write_log(LOG_DEBUG, "Not my MAC or not multicast");
+			anl_write_log(LOG_DEBUG, "Not my MAC or not multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
 		}
 
 		if (!cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.last_tag_protocol_type.ipv4) {
-			alvs_write_log(LOG_DEBUG, "Not IPv4!");
+			anl_write_log(LOG_DEBUG, "Not IPv4!");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_IPV4);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
@@ -114,7 +114,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 
 		/*in case of any error send frame to host*/
 		if (unlikely(cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.error_codes.decode_error)) {
-			alvs_write_log(LOG_DEBUG, "IPv4 decode failed");
+			anl_write_log(LOG_DEBUG, "IPv4 decode failed");
 			nw_interface_inc_counter(NW_IF_STATS_IPV4_ERROR);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			return;
@@ -133,8 +133,7 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*currently send frame to network without any change or any other operations*/
 		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	} else {
-
-		alvs_write_log(LOG_DEBUG, "Error! no match in interface lookup!");
+		anl_write_log(LOG_DEBUG, "Error! no match in interface lookup!");
 		/*currently send frame to host without any change or any other operations*/
 		nw_interface_inc_counter(NW_IF_STATS_NO_VALID_ROUTE);
 		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);

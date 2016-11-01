@@ -36,9 +36,9 @@
 #ifndef NW_UTILS_H_
 #define NW_UTILS_H_
 
+#include "anl_log.h"
 #include "global_defs.h"
 #include "nw_search_defs.h"
-#include "alvs_log.h"
 
 /******************************************************************************
  * \brief         perform application info lookup
@@ -118,7 +118,7 @@ bool nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 	}
 
 	if (unlikely(nw_if_egress_lookup(out_if + hash_value) != 0)) {
-		alvs_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if + hash_value);
+		anl_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if + hash_value);
 		return false;
 	}
 	return true;
@@ -132,7 +132,7 @@ static __always_inline
 uint8_t *nw_interface_get_mac_address(int8_t logical_id)
 {
 	if (unlikely(nw_if_egress_lookup(logical_id) != 0)) {
-		alvs_write_log(LOG_CRIT, "error - egress interface lookup fail!");
+		anl_write_log(LOG_CRIT, "error - egress interface lookup fail!");
 		return NULL;
 	}
 	return cmem_nw.egress_if_result.mac_address.ether_addr_octet;

@@ -29,12 +29,12 @@
 * POSSIBILITY OF SUCH DAMAGE.
 *
 *       Created on: May 18, 2016
-*       file - alvs_log.h
-*       description - contains definitions for alvs_log.c
+*       file - anl_log.h
+*       description - contains definitions for anl_log.c
 */
 
-#ifndef ALVS_LOG_H_
-#define ALVS_LOG_H_
+#ifndef ANL_LOG_H_
+#define ANL_LOG_H_
 
 #include <arpa/inet.h>
 #include <ezdp.h>
@@ -43,42 +43,39 @@
 
 
 #ifndef NDEBUG
-#define alvs_write_log(priority, str, ...) \
+#define anl_write_log(priority, str, ...) \
 		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__)
 
-#define alvs_write_log_simple(priority, str)
-
 #else
-#define ALVS_LOGMASK  LOG_UPTO(LOG_INFO)
-#define alvs_write_log(priority, str, ...) { \
-	if (LOG_MASK(priority) & ALVS_LOGMASK) { \
+#define ANL_LOGMASK  LOG_UPTO(LOG_INFO)
+#define anl_write_log(priority, str, ...) { \
+	if (LOG_MASK(priority) & ANL_LOGMASK) { \
 		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__); \
 	} \
 }
 
-#define alvs_write_log_simple(priority, str) { \
-	if (LOG_MASK(priority) & ALVS_LOGMASK) { \
+#define anl_write_log_simple(priority, str) { \
+	if (LOG_MASK(priority) & ANL_LOGMASK) { \
 		write_log(priority, str, sizeof(str), cmem_wa.syslog_work_area, EZDP_SYSLOG_WA); \
 	} \
 }
 
 #endif
 /*****************************************************************************/
-/*! \fn void alvs_open_log()
+/*! \fn void anl_open_log()
  * \brief  create syslog DP utility.
- * \param[in] s -  none
+ *
  * \return TRUE on SUCCESS, FALSE - otherwise.
  */
-bool alvs_open_log(void);
+bool anl_open_log(void);
 
 /*****************************************************************************/
-/*! \fn void alvs_send()
+/*! \fn void anl_send()
  * \brief  passes as send_cb function in open_log middle ware
- * \param[in]  s -  frame - frame to be sent
- *             wa_frame - WA for working with frame
- *             wa_frame_size - WA sizeof the provided wa_frame
+ * \param[in]  frame - frame to be sent
+ *
  * \return 0 on SUCESS, otherwise 1.
  */
-int alvs_send(ezframe_t  __cmem * frame) __slow_path_code;
+int anl_send(ezframe_t  __cmem * frame) __slow_path_code;
 
-#endif /* ALVS_LOG_H_ */
+#endif /* ANL_LOG_H_ */

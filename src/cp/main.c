@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 	cancel_application_flag = false;
 	main_thread = pthread_self();
 
-	open_log("alvs_daemon");
+	open_log("anl_daemon");
 
 	fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444);
 	if (fd == -1) {

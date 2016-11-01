@@ -51,12 +51,12 @@ void alvs_tcp_processing(uint8_t *frame_base, struct iphdr *ip_hdr)
 	cmem_alvs.conn_class_key.client_port = tcp_hdr->source;
 	cmem_alvs.conn_class_key.protocol = ip_hdr->protocol;
 
-	alvs_write_log(LOG_DEBUG, "Connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-		       cmem_alvs.conn_class_key.client_ip,
-		       cmem_alvs.conn_class_key.client_port,
-		       cmem_alvs.conn_class_key.virtual_ip,
-		       cmem_alvs.conn_class_key.virtual_port,
-		       cmem_alvs.conn_class_key.protocol);
+	anl_write_log(LOG_DEBUG, "Connection (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+		      cmem_alvs.conn_class_key.client_ip,
+		      cmem_alvs.conn_class_key.client_port,
+		      cmem_alvs.conn_class_key.virtual_ip,
+		      cmem_alvs.conn_class_key.virtual_port,
+		      cmem_alvs.conn_class_key.protocol);
 
 	rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.conn_class_struct_desc,
 				    (void *)&cmem_alvs.conn_class_key,
@@ -97,14 +97,14 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 			alvs_tcp_processing(frame_base, ip_hdr);
 		} else {
 			/* Send to host */
-			alvs_write_log(LOG_DEBUG, "TCP - NOT supported with multicast");
+			anl_write_log(LOG_DEBUG, "TCP - NOT supported with multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		}
 	} else if (packet_meta_data.ip_next_protocol.udp) {
 		if (packet_meta_data.mac_control.my_mac) {
 			/* TODO - handle UDP, currently sending to host */
-			alvs_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
+			anl_write_log(LOG_DEBUG, "UDP - NOT supported protocol");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 		} else {
@@ -119,17 +119,15 @@ void alvs_packet_processing(ezframe_t __cmem * frame, uint8_t *frame_base)
 				alvs_state_sync_backup(frame, (uint8_t *)udp_hdr + sizeof(struct udphdr), buflen);
 			} else {
 				/* Send to host */
-				alvs_write_log(LOG_DEBUG, "UDP - NOT supported with multicast");
+				anl_write_log(LOG_DEBUG, "UDP - NOT supported with multicast");
 				nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 				nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 			}
 		}
 	} else {
 		/* Send to host */
-		alvs_write_log(LOG_DEBUG, "NOT supported protocol");
+		anl_write_log(LOG_DEBUG, "NOT supported protocol");
 		nw_interface_inc_counter(NW_IF_STATS_NOT_SUPPORTED_PROTOCOL);
 		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}
-
-
 }

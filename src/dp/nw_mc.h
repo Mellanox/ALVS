@@ -80,13 +80,13 @@ bool nw_mc_set_eth_hdr(struct ether_header *eth_header, uint32_t mc_ip, uint8_t 
 {
 	/* fill ethernet destination MAC */
 	if (unlikely(nw_mc_calc_mac(mc_ip, (uint8_t *)eth_header->ether_dhost) == false)) {
-		alvs_write_log(LOG_ERR, "nw_calc_mac_for_mc_ip failed");
+		anl_write_log(LOG_ERR, "nw_calc_mac_for_mc_ip failed");
 		return false;
 	}
 
 	/*lookup for network interface*/
 	if (unlikely(nw_calc_egress_if((uint8_t *)eth_header, logical_id, true) == false)) {
-		alvs_write_log(LOG_DEBUG, "set ETH hearer fail nw egress interface lookup - logical id =%d!", logical_id);
+		anl_write_log(LOG_DEBUG, "set ETH hearer fail nw egress interface lookup - logical id =%d!", logical_id);
 		return false;
 	}
 
@@ -121,7 +121,7 @@ void nw_mc_handle(ezframe_t   __cmem * frame, uint8_t logical_id)
 	/* get first buffer */
 	rc = ezframe_first_buf(frame, 0);
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "ezframe_first_buf failed in nw_mc_handle");
+		anl_write_log(LOG_DEBUG, "ezframe_first_buf failed in nw_mc_handle");
 		ezframe_free(frame, 0);
 		return;
 	}
@@ -153,7 +153,7 @@ void nw_mc_handle(ezframe_t   __cmem * frame, uint8_t logical_id)
 	/* store bufer with ether header */
 	rc = ezframe_store_buf(frame, frame_base, frame_length, 0);
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+		anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
 		nw_discard_frame();
 		return;

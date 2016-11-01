@@ -30,31 +30,31 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                alvs_log.c
+*  File:                anl_log.c
 *  Created on:          May 18, 2016
-*  Desc:                performs logging functionality for ALVS DP
+*  Desc:                performs logging functionality for ANL DP
 *
 */
 
-#include "alvs_log.h"
+#include "anl_log.h"
 #include "nw_routing.h"
 
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}
 
-bool alvs_open_log(void)
+bool anl_open_log(void)
 {
 	struct syslog_info syslog_info;
 	struct in_addr dest_ip, src_ip;
 	char *syslog_client_ip = "169.254.42.42";
 
-	syslog_info.send_cb = alvs_send;
+	syslog_info.send_cb = anl_send;
 	syslog_info.dest_port = SYSLOG_UDP_SERVER_PORT;
 
 	syslog_info.applic_name_size =
 		snprintf(syslog_info.applic_name,
 			 SYSLOG_APPLIC_NAME_STRING_SIZE,
-			 " alvs_dp ");
+			 " anl_dp ");
 
 	/*get IP from string*/
 	inet_aton(SYSLOG_SERVER_IP, &dest_ip);
@@ -67,7 +67,7 @@ bool alvs_open_log(void)
 	return open_log(&syslog_info);
 }
 
-int alvs_send(ezframe_t  __cmem * frame)
+int anl_send(ezframe_t  __cmem * frame)
 {
 	int rc;
 	uint8_t *frame_base;

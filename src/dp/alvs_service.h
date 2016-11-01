@@ -99,13 +99,13 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t service
 				    sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 	if (rc == 0) {
 		cmem_alvs.conn_result.conn_index = conn_class_res_ptr->conn_index;
-		alvs_write_log(LOG_DEBUG, "new connection was already created!!!! conn_index = %d", cmem_alvs.conn_result.conn_index);
+		anl_write_log(LOG_DEBUG, "new connection was already created!!!! conn_index = %d", cmem_alvs.conn_result.conn_index);
 		result = ALVS_SERVICE_DATA_PATH_RETRY;
 		goto unlock;
 	}
 	if (rc == EIO)	{
 		alvs_discard_and_stats(ALVS_ERROR_CREATE_CONN_MEM_ERROR);
-		alvs_write_log(LOG_CRIT, "try to create new connection --> memory error!");
+		anl_write_log(LOG_CRIT, "try to create new connection --> memory error!");
 		result = ALVS_SERVICE_DATA_PATH_IGNORE;
 		goto unlock;
 	}
@@ -127,7 +127,7 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t service
 			goto unlock;
 		}
 	} else {
-		alvs_write_log(LOG_ERR, "unsupported scheduling algorithm");
+		anl_write_log(LOG_ERR, "unsupported scheduling algorithm");
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_UNSUPPORTED_SCHED_ALGO);
 		result = ALVS_SERVICE_DATA_PATH_IGNORE;
@@ -143,13 +143,13 @@ enum alvs_service_output_result alvs_tcp_schedule_new_connection(uint8_t service
 
 	/*mark connection for state sync*/
 	if (likely(result == ALVS_SERVICE_DATA_PATH_SUCCESS)) {
-		alvs_write_log(LOG_DEBUG, "New connection created and marked for state sync (conn_index = %d)", cmem_alvs.conn_result.conn_index);
+		anl_write_log(LOG_DEBUG, "New connection created and marked for state sync (conn_index = %d)", cmem_alvs.conn_result.conn_index);
 		cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NEED;
 	}
 
 unlock:
 	alvs_unlock_connection(hash_value);
-	alvs_write_log(LOG_DEBUG, "alvs_unlock_connection");
+	anl_write_log(LOG_DEBUG, "alvs_unlock_connection");
 out:
 	return result;
 }
@@ -174,11 +174,11 @@ enum alvs_service_output_result alvs_service_data_path(uint8_t service_index,
 	/*perform lookup in service info DB*/
 	rc = alvs_service_info_lookup(service_index);
 
-	 alvs_write_log(LOG_DEBUG, "(slow path) (ip->dest = 0x%x tcp->dest = %d proto=%d) service_idx = %d",
-			ip_hdr->daddr,
-			tcp_hdr->dest,
-			ip_hdr->protocol,
-			service_index);
+	anl_write_log(LOG_DEBUG, "(slow path) (ip->dest = 0x%x tcp->dest = %d proto=%d) service_idx = %d",
+		      ip_hdr->daddr,
+		      tcp_hdr->dest,
+		      ip_hdr->protocol,
+		      service_index);
 	if (likely(rc == 0)) {
 		if (ip_hdr->protocol == IPPROTO_TCP) {
 			return alvs_tcp_schedule_new_connection(service_index, ip_hdr, tcp_hdr);

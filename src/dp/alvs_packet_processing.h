@@ -61,12 +61,12 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 	 uint32_t found_result_size;
 	 struct  alvs_service_classification_result *service_class_res_ptr;
 
-	 alvs_write_log(LOG_DEBUG, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-			cmem_alvs.conn_class_key.client_ip,
-			cmem_alvs.conn_class_key.client_port,
-			cmem_alvs.conn_class_key.virtual_ip,
-			cmem_alvs.conn_class_key.virtual_port,
-			cmem_alvs.conn_class_key.protocol);
+	 anl_write_log(LOG_DEBUG, "(slow path) (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+		       cmem_alvs.conn_class_key.client_ip,
+		       cmem_alvs.conn_class_key.client_port,
+		       cmem_alvs.conn_class_key.virtual_ip,
+		       cmem_alvs.conn_class_key.virtual_port,
+		       cmem_alvs.conn_class_key.protocol);
 
 	 cmem_alvs.service_class_key.service_address = ip_hdr->daddr;
 	 cmem_alvs.service_class_key.service_port = tcp_hdr->dest;
@@ -92,7 +92,7 @@ void alvs_unknown_packet_processing(uint8_t *frame_base, struct iphdr *ip_hdr, s
 			alvs_conn_data_path(frame_base, tcp_hdr, cmem_alvs.conn_result.conn_index);
 		} /* all other cases - drop or sent to host - packet was already processed. */
 	} else {
-		alvs_write_log(LOG_DEBUG, "fail service classification lookup");
+		anl_write_log(LOG_DEBUG, "fail service classification lookup");
 		alvs_update_discard_statistics(ALVS_ERROR_SERVICE_CLASS_LOOKUP);
 		nw_direct_route(&frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 	}

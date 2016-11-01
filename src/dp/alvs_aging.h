@@ -84,26 +84,26 @@ void alvs_handle_aging_event(uint32_t event_id)
 		conn_index++) {
 		if (alvs_conn_info_lookup(conn_index) == 0) {
 			if (cmem_alvs.conn_info_result.delete_bit == 1) {
-				alvs_write_log(LOG_DEBUG, "(Aging delete_bit) deleting connection  = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-					       conn_index,
-					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.client_port,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
-					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				anl_write_log(LOG_DEBUG, "(Aging delete_bit) deleting connection  = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					      conn_index,
+					      cmem_alvs.conn_info_result.conn_class_key.client_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.client_port,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_port,
+					      cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				alvs_conn_delete(conn_index);
 				continue;
 			}
 
 			if (cmem_alvs.conn_info_result.aging_bit == 1) {
-				alvs_write_log(LOG_DEBUG, "(Aging aging_bit=1) aging connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-					       conn_index,
-					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.client_port,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
-					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				anl_write_log(LOG_DEBUG, "(Aging aging_bit=1) aging connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					      conn_index,
+					      cmem_alvs.conn_info_result.conn_class_key.client_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.client_port,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_port,
+					      cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				if (alvs_conn_age_out(conn_index, iteration_num) == 0) {
 					/*aggregate active connection into current state sync frame*/
@@ -116,13 +116,13 @@ void alvs_handle_aging_event(uint32_t event_id)
 
 			if (cmem_alvs.conn_info_result.age_iteration == ezdp_mod(iteration_num, alvs_util_get_conn_iterations(cmem_alvs.conn_info_result.conn_state), 0, 0) &&
 				cmem_alvs.conn_info_result.aging_bit == 0) {
-				alvs_write_log(LOG_DEBUG, "(Aging aging_bit=0) deleting connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
-					       conn_index,
-					       cmem_alvs.conn_info_result.conn_class_key.client_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.client_port,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
-					       cmem_alvs.conn_info_result.conn_class_key.virtual_port,
-					       cmem_alvs.conn_info_result.conn_class_key.protocol);
+				anl_write_log(LOG_DEBUG, "(Aging aging_bit=0) deleting connection = %d (0x%x:%d --> 0x%x:%d, protocol=%d)...",
+					      conn_index,
+					      cmem_alvs.conn_info_result.conn_class_key.client_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.client_port,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_ip,
+					      cmem_alvs.conn_info_result.conn_class_key.virtual_port,
+					      cmem_alvs.conn_info_result.conn_class_key.protocol);
 				ezdp_mem_copy(&cmem_alvs.conn_class_key, &cmem_alvs.conn_info_result.conn_class_key, sizeof(struct alvs_conn_classification_key));
 				alvs_conn_delete(conn_index);
 				continue;

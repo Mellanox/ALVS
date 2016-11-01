@@ -85,14 +85,14 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 	/*allocate new index*/
 	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
 	if (conn_index == EZDP_NULL_INDEX) {
-		alvs_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
+		anl_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
 		alvs_server_overload_on_delete_conn(server);
 
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_CONN_INDEX_ALLOC_FAIL);
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
-	alvs_write_log(LOG_DEBUG, "Index %d allocated for connection", conn_index);
+	anl_write_log(LOG_DEBUG, "Index %d allocated for connection", conn_index);
 
 	cmem_alvs.conn_info_result.aging_bit = 1;
 	cmem_alvs.conn_info_result.bound = bound;
@@ -132,7 +132,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 				 sizeof(cmem_wa.alvs_wa.conn_hash_wa));
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "ezdp_add_hash_entry: connection (0x%x:%d --> 0x%x:%d, protocol=%d)...failed",
+		anl_write_log(LOG_DEBUG, "ezdp_add_hash_entry: connection (0x%x:%d --> 0x%x:%d, protocol=%d)...failed",
 		       cmem_alvs.conn_class_key.client_ip,
 		       cmem_alvs.conn_class_key.client_port,
 		       cmem_alvs.conn_class_key.virtual_ip,
@@ -163,9 +163,9 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 
 
 	if (bound) {
-		alvs_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully", conn_index, server);
+		anl_write_log(LOG_DEBUG, "Bounded connection created (conn_idx = %d server_idx = %d) successfully", conn_index, server);
 	} else {
-		alvs_write_log(LOG_DEBUG, "Unbounded connection created (conn_idx = %d server_addr = 0x%08x:%d) successfully", conn_index, server, port);
+		anl_write_log(LOG_DEBUG, "Unbounded connection created (conn_idx = %d server_addr = 0x%08x:%d) successfully", conn_index, server, port);
 	}
 
 	return ALVS_SERVICE_DATA_PATH_SUCCESS;
@@ -192,7 +192,7 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "conn_idx = %d info lookup alvs_conn_update_state FAIL", conn_index);
+		anl_write_log(LOG_DEBUG, "conn_idx = %d info lookup alvs_conn_update_state FAIL", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
@@ -219,7 +219,7 @@ uint32_t alvs_conn_update_state(uint32_t conn_index, enum alvs_tcp_conn_state ne
 
 	/*mark connection for state sync*/
 	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NEED;
-	alvs_write_log(LOG_DEBUG, "Connection state updated (conn_idx = %d state = %d) successfully and marked for state sync", conn_index, new_state);
+	anl_write_log(LOG_DEBUG, "Connection state updated (conn_idx = %d state = %d) successfully and marked for state sync", conn_index, new_state);
 
 	/*unlock connection*/
 	alvs_unlock_connection(hash_value);
@@ -248,7 +248,7 @@ uint32_t alvs_conn_mark_to_delete(uint32_t conn_index, uint8_t reset)
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_mark_to_delete", conn_index);
+		anl_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_mark_to_delete", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
@@ -299,7 +299,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 			       0,
 			       cmem_wa.alvs_wa.conn_hash_wa,
 			       sizeof(cmem_wa.alvs_wa.conn_hash_wa)) != 0) {
-		alvs_write_log(LOG_CRIT, "unable to delete conn_class_key conn_idx = %d alvs_conn_delete", conn_index);
+		anl_write_log(LOG_CRIT, "unable to delete conn_class_key conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
 
@@ -309,7 +309,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 				0,
 				cmem_wa.alvs_wa.conn_info_table_wa,
 				sizeof(cmem_wa.alvs_wa.conn_info_table_wa)) != 0) {
-		alvs_write_log(LOG_CRIT, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
+		anl_write_log(LOG_CRIT, "unable to delete conn_info conn_idx = %d alvs_conn_delete", conn_index);
 		return;
 	}
 
@@ -367,7 +367,7 @@ uint32_t alvs_conn_refresh(uint32_t conn_index)
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_refresh", conn_index);
+		anl_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_refresh", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
@@ -410,13 +410,13 @@ uint32_t alvs_conn_bind(uint32_t conn_index,
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_bind", conn_index);
+		anl_write_log(LOG_DEBUG, "fail in conn_idx = %d conn_info lookup alvs_conn_bind", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
 
 	if (cmem_alvs.conn_info_result.bound == true) {
-		alvs_write_log(LOG_DEBUG, "connection %d is already bound (other thread performed the bind before)", conn_index);
+		anl_write_log(LOG_DEBUG, "connection %d is already bound (other thread performed the bind before)", conn_index);
 		return 0;
 	}
 
@@ -457,7 +457,7 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t iteration_num)
 	rc = alvs_conn_info_lookup(conn_index);
 
 	if (rc != 0) {
-		alvs_write_log(LOG_CRIT, "fail in conn_idx = %d conn_info lookup alvs_conn_age_out", conn_index);
+		anl_write_log(LOG_CRIT, "fail in conn_idx = %d conn_info lookup alvs_conn_age_out", conn_index);
 		alvs_unlock_connection(hash_value);
 		return rc;
 	}
@@ -505,7 +505,7 @@ void alvs_conn_do_route(uint8_t *frame_base)
 				    ezframe_get_buf_len(&frame));
 		}
 	} else {
-		alvs_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK);
+		anl_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK);
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO);
 		return;
@@ -543,7 +543,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 	uint32_t rc;
 	uint32_t server_index;
 
-	alvs_write_log(LOG_DEBUG, "conn_idx  = %d exists (fast path)", conn_index);
+	anl_write_log(LOG_DEBUG, "conn_idx  = %d exists (fast path)", conn_index);
 
 	/*perform lookup in conn info DB*/
 	rc = alvs_conn_info_lookup(conn_index);
@@ -554,9 +554,9 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 						   cmem_alvs.conn_info_result.server_port, cmem_alvs.conn_class_key.virtual_port,
 						   cmem_alvs.conn_class_key.protocol, &server_index) == true) {
 				/* store server index in connection info */
-				alvs_write_log(LOG_DEBUG, "Server index found for conn_idx = %d, trying to bind.", conn_index);
+				anl_write_log(LOG_DEBUG, "Server index found for conn_idx = %d, trying to bind.", conn_index);
 				if (alvs_conn_bind(conn_index, server_index) != 0) {
-					alvs_write_log(LOG_WARNING, "conn_idx  = %d,  binding server FAILED, continue as unbound.", conn_index);
+					anl_write_log(LOG_WARNING, "conn_idx  = %d,  binding server FAILED, continue as unbound.", conn_index);
 				}
 			}
 		}
@@ -564,7 +564,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 		/*check if someone already indicated that this connection should be deleted...*/
 		if (cmem_alvs.conn_info_result.reset_bit == 1) {
 			/*server in not available - close connection*/
-			alvs_write_log(LOG_DEBUG, "conn_idx  = %d reset_bit = 1 already", conn_index);
+			anl_write_log(LOG_DEBUG, "conn_idx  = %d reset_bit = 1 already", conn_index);
 			/*drop frame*/
 			alvs_discard_and_stats(ALVS_ERROR_CONN_MARK_TO_DELETE);
 			return;
@@ -574,21 +574,21 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 			/*get destination server info*/
 			if (alvs_server_info_lookup(cmem_alvs.conn_info_result.server_index) != 0) {
 				/*no server info - weird error scenario*/
-				alvs_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+				anl_write_log(LOG_DEBUG, "server_info_Result  lookup conn_idx  = %d, server_idx = %d FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 				/*drop frame*/
 				alvs_discard_and_stats(ALVS_ERROR_SERVER_INFO_LKUP_FAIL);
 				return;
 			}
 
-			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d FOUND", conn_index, cmem_alvs.conn_info_result.server_index);
+			anl_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d FOUND", conn_index, cmem_alvs.conn_info_result.server_index);
 
 			/*check destination server status*/
 			if (!(cmem_alvs.server_info_result.server_flags & IP_VS_DEST_F_AVAILABLE)) {
 				/*server in not available - close connection*/
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d is unavailable ", conn_index, cmem_alvs.conn_info_result.server_index);
+				anl_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d is unavailable ", conn_index, cmem_alvs.conn_info_result.server_index);
 				if (alvs_conn_mark_to_delete(conn_index, 0) != 0) {
 					/*unable to update connection - weird error scenario*/
-					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
+					anl_write_log(LOG_DEBUG, "conn_idx  = %d, server_idx = %d alvs_conn_mark_to_delete FAILED ", conn_index, cmem_alvs.conn_info_result.server_index);
 					/*drop frame*/
 					alvs_discard_and_stats(ALVS_ERROR_CANT_MARK_DELETE);
 					return;
@@ -601,22 +601,22 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 
 		/*check if state changed*/
 		if (tcp_hdr->rst) {
-			alvs_write_log(LOG_DEBUG, "conn_idx  = %d, got RST = 1 go conn_mark_to_delete", conn_index);
+			anl_write_log(LOG_DEBUG, "conn_idx  = %d, got RST = 1 go conn_mark_to_delete", conn_index);
 			(void)alvs_conn_mark_to_delete(conn_index, 1);
 		} else {
 			if (cmem_alvs.conn_info_result.conn_state == IP_VS_TCP_S_ESTABLISHED && tcp_hdr->fin) {
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  IP_VS_TCP_S_ESTABLISHED got FIN = 1 ", conn_index);
+				anl_write_log(LOG_DEBUG, "conn_idx  = %d,  IP_VS_TCP_S_ESTABLISHED got FIN = 1 ", conn_index);
 				if (alvs_conn_update_state(conn_index, IP_VS_TCP_S_CLOSE_WAIT) != 0) {
-					alvs_write_log(LOG_DEBUG, "conn_idx  = %d, update connection state to close FAIL", conn_index);
+					anl_write_log(LOG_DEBUG, "conn_idx  = %d, update connection state to close FAIL", conn_index);
 					/*drop frame*/
 					alvs_discard_and_stats(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					return;
 				}
 			} else if (cmem_alvs.conn_info_result.aging_bit == 0) { /*check if we need to update the aging bit*/
 				/*set connection aging bit back to 1*/
-				alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit", conn_index);
+				anl_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit", conn_index);
 				if (alvs_conn_refresh(conn_index) != 0) {
-					alvs_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit FAILED", conn_index);
+					anl_write_log(LOG_DEBUG, "conn_idx  = %d,  Refreshing aging bit FAILED", conn_index);
 					/*drop frame*/
 					alvs_discard_and_stats(ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE);
 					return;
@@ -627,7 +627,7 @@ void alvs_conn_data_path(uint8_t *frame_base, struct tcphdr *tcp_hdr, uint32_t c
 		alvs_conn_do_route(frame_base);
 	} else {
 		/*no classification info - weird error scenario*/
-		alvs_write_log(LOG_ERR, "conn_idx  = %d,  fail lookup to connection info DB ", conn_index);
+		anl_write_log(LOG_ERR, "conn_idx  = %d,  fail lookup to connection info DB ", conn_index);
 		/*drop frame*/
 		alvs_discard_and_stats(ALVS_ERROR_CONN_INFO_LKUP_FAIL);
 		return;

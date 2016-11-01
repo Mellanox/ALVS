@@ -76,7 +76,7 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 
 	/* check matching */
 	if (unlikely(tcam_retval.assoc_data.match == 0)) {
-		alvs_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", dest_ip);
+		anl_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
 		return 0;
 	}
@@ -86,20 +86,20 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 	/* get dest_ip */
 	if (likely(result_type == NW_FIB_NEIGHBOR)) {
 		/* Destination IP is neighbor. use it for ARP */
-		alvs_write_log(LOG_DEBUG, "NW_FIB_NEIGHBOR: using origin dest IP 0x%08x", dest_ip);
+		anl_write_log(LOG_DEBUG, "NW_FIB_NEIGHBOR: using origin dest IP 0x%08x", dest_ip);
 		return dest_ip;
 	} else if (result_type == NW_FIB_GW) {
 		/* Destination IP is GW. use result IP */
-		alvs_write_log(LOG_DEBUG, "NW_FIB_GW: using result IP 0x%08x", res_dest_ip);
+		anl_write_log(LOG_DEBUG, "NW_FIB_GW: using result IP 0x%08x", res_dest_ip);
 		return res_dest_ip;
 	} else if (result_type == NW_FIB_DROP) {
-		alvs_write_log(LOG_DEBUG, "NW_FIB_DROP: Drop frame.");
+		anl_write_log(LOG_DEBUG, "NW_FIB_DROP: Drop frame.");
 		nw_interface_inc_counter(NW_IF_STATS_REJECT_BY_FIB);
 		return 0;
 	}
 
 	/* Unknown result type.*/
-	alvs_write_log(LOG_ERR, "Unsupported FIB result type. dropping packet");
+	anl_write_log(LOG_ERR, "Unsupported FIB result type. dropping packet");
 	nw_interface_inc_counter(NW_IF_STATS_UNKNOWN_FIB_RESULT);
 	return 0;
 }
@@ -151,7 +151,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 				       0);
 
 		if (rc != 0) {
-			alvs_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+			anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
 			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
 			nw_discard_frame();
 			return;
@@ -160,7 +160,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 		ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
 
 	} else {
-		alvs_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
+		anl_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
 		nw_discard_frame();
 		return;

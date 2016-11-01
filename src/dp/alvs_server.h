@@ -94,12 +94,12 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 	if (cmem_alvs.server_info_result.u_thresh != 0) {
 		counter = cmem_wa.alvs_wa.counter_work_area + 1;
 
-		alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
-		alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d",
-			       server_index, cmem_alvs.server_info_result.server_flags,
-			       cmem_alvs.server_info_result.u_thresh,
-			       cmem_alvs.server_info_result.l_thresh,
-			       (uint32_t)counter);
+		anl_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
+		anl_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d",
+			      server_index, cmem_alvs.server_info_result.server_flags,
+			      cmem_alvs.server_info_result.u_thresh,
+			      cmem_alvs.server_info_result.l_thresh,
+			      (uint32_t)counter);
 		if (counter == cmem_alvs.server_info_result.u_thresh) {
 			/* read if OVERLOADED was set before - if yes - new connection can not created */
 			/* it's required if number of connections was reduced by function of delete_connection */
@@ -112,7 +112,7 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 			}
 			/*need to set OVERLOAD for the next bind_connection*/
 			ezdp_atomic_or32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, IP_VS_DEST_F_OVERLOAD);
-			alvs_write_log(LOG_DEBUG, "counter %d == u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+			anl_write_log(LOG_DEBUG, "counter %d == u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
 			/* return NOT_OVERLOADED - this bit set for next connections*/
 			return !IP_VS_DEST_F_OVERLOAD;
 		} else if (counter > cmem_alvs.server_info_result.u_thresh) {
@@ -121,7 +121,7 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 			/* its not allowed to open new connections if the counter of current connections (including preset connection) is above thresholds*/
 			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 					    1);
-			alvs_write_log(LOG_DEBUG, "counter %d > u_thresh %d ", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh);
+			anl_write_log(LOG_DEBUG, "counter %d > u_thresh %d ", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh);
 			/* return OVERLOADED - in summary number connections above upper threshold */
 			return IP_VS_DEST_F_OVERLOAD;
 		}
@@ -135,7 +135,7 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 				/* if number of connections is bellow thresholds clear OVERLOAD flag */
 				ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base,
 							   ~IP_VS_DEST_F_OVERLOAD);
-				alvs_write_log(LOG_DEBUG, "counter %d <= l_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+				anl_write_log(LOG_DEBUG, "counter %d <= l_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
 				return !IP_VS_DEST_F_OVERLOAD;
 			}
 		}
@@ -145,18 +145,18 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 			ezdp_dec_single_ctr(cmem_alvs.server_info_result.server_on_demand_stats_base + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 					    1);
 		}
-		alvs_write_log(LOG_DEBUG, " counter %d < u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
+		anl_write_log(LOG_DEBUG, " counter %d < u_thresh %d, server_flags = 0x%x", (uint32_t)counter, cmem_alvs.server_info_result.u_thresh, server_flags);
 		/* return current server_flag */
 		return server_flags;
 
 	} else {
-		alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
-		alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d",
+		anl_write_log(LOG_DEBUG, "alvs_server_overload_on_create_conn");
+		anl_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d",
 			       server_index, cmem_alvs.server_info_result.server_flags,
 			       cmem_alvs.server_info_result.u_thresh,
 			       cmem_alvs.server_info_result.l_thresh);
 		/* if upper threshold == 0 -> low threshold == 0 -> increase number of connections and return 0 */
-		alvs_write_log(LOG_DEBUG, " cmem_alvs.server_info_result.u_thresh = 0");
+		anl_write_log(LOG_DEBUG, " cmem_alvs.server_info_result.u_thresh = 0");
 		return !IP_VS_DEST_F_OVERLOAD;
 	}
 }
@@ -172,7 +172,6 @@ uint32_t alvs_server_overload_on_create_conn(uint16_t server_index)
 static __always_inline
 void alvs_server_overload_on_delete_conn(uint16_t server_index)
 {
-
 	uint64_t counter = 0;
 
 	/* this function is called from delete_connection, so OVERLOAD bit can be clear */
@@ -180,36 +179,36 @@ void alvs_server_overload_on_delete_conn(uint16_t server_index)
 				     1, &cmem_wa.alvs_wa.counter_work_area, 0);
 
 	if (cmem_alvs.server_info_result.u_thresh == 0) {
-		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh = l_thresh = 0");
+		anl_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh = l_thresh = 0");
 		ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
 		return;
 	}
 	/* get sched_conns for the formula for updating over_loaded flag*/
 	counter = cmem_wa.alvs_wa.counter_work_area - 1;
 
-	alvs_write_log(LOG_DEBUG, "alvs_server_overload_on_delete_conn");
-	alvs_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d, overloaded_flags = 0x%x",
-		       server_index, cmem_alvs.server_info_result.server_flags,
-		       cmem_alvs.server_info_result.u_thresh,
-		       cmem_alvs.server_info_result.l_thresh,
-		       (uint32_t)counter,
-		       ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base));
+	anl_write_log(LOG_DEBUG, "alvs_server_overload_on_delete_conn");
+	anl_write_log(LOG_DEBUG, "server_index  = %d,  server_flags = 0x%x, u_thresh = %d, l_thresh = %d, sched_conns = %d, overloaded_flags = 0x%x",
+		      server_index, cmem_alvs.server_info_result.server_flags,
+		      cmem_alvs.server_info_result.u_thresh,
+		      cmem_alvs.server_info_result.l_thresh,
+		      (uint32_t)counter,
+		      ezdp_atomic_read32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base));
 
 	if (cmem_alvs.server_info_result.l_thresh != 0) {
 		/* check if low threshold is not 0 */
-		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.l_thresh != 0");
+		anl_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.l_thresh != 0");
 		if (counter < cmem_alvs.server_info_result.l_thresh) {
 			/* if number of connections drops below the low threshold - OVERLOAD flag should be cleared */
-			alvs_write_log(LOG_DEBUG, "counter %d < cmem_alvs.server_info_result.l_thresh %d", (uint32_t)counter, cmem_alvs.server_info_result.l_thresh);
+			anl_write_log(LOG_DEBUG, "counter %d < cmem_alvs.server_info_result.l_thresh %d", (uint32_t)counter, cmem_alvs.server_info_result.l_thresh);
 			ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
 		}
 	} else if (cmem_alvs.server_info_result.u_thresh != 0) {
 		/* check if upper threshold is not 0 */
-		alvs_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh != 0");
+		anl_write_log(LOG_DEBUG, "cmem_alvs.server_info_result.u_thresh != 0");
 		if (counter * 4 < cmem_alvs.server_info_result.u_thresh * 3) {
 			/* if number of connections of the current drops below  three forth of its upper connection threshold. */
 			/* if yes - clear OVERLOAD bit */
-			alvs_write_log(LOG_DEBUG, "counter * 4 < cmem_alvs.server_info_result.u_thresh * 3");
+			anl_write_log(LOG_DEBUG, "counter * 4 < cmem_alvs.server_info_result.u_thresh * 3");
 			ezdp_atomic_and32_sum_addr(cmem_alvs.server_info_result.server_flags_dp_base, ~IP_VS_DEST_F_OVERLOAD);
 		}
 	}
@@ -237,12 +236,12 @@ bool alvs_find_server_index(in_addr_t server_ip, in_addr_t virtual_ip,
 	cmem_alvs.server_class_key.server_port = server_port;
 	cmem_alvs.server_class_key.protocol = protocol;
 
-	alvs_write_log(LOG_DEBUG, "Trying to find server (0x%x:%d) in service (0x%x:%d, protocol=%d)...",
-		       cmem_alvs.server_class_key.server_ip,
-		       cmem_alvs.server_class_key.server_port,
-		       cmem_alvs.server_class_key.virtual_ip,
-		       cmem_alvs.server_class_key.virtual_port,
-		       cmem_alvs.server_class_key.protocol);
+	anl_write_log(LOG_DEBUG, "Trying to find server (0x%x:%d) in service (0x%x:%d, protocol=%d)...",
+		      cmem_alvs.server_class_key.server_ip,
+		      cmem_alvs.server_class_key.server_port,
+		      cmem_alvs.server_class_key.virtual_ip,
+		      cmem_alvs.server_class_key.virtual_port,
+		      cmem_alvs.server_class_key.protocol);
 
 	rc = ezdp_lookup_hash_entry(&shared_cmem_alvs.server_class_struct_desc,
 				    (void *)&cmem_alvs.server_class_key,
@@ -254,12 +253,12 @@ bool alvs_find_server_index(in_addr_t server_ip, in_addr_t virtual_ip,
 
 	if (rc != 0) {
 		/* Server not found */
-		alvs_write_log(LOG_DEBUG, "Server not found");
+		anl_write_log(LOG_DEBUG, "Server not found");
 		return false;
 	}
 
 	*server_index = server_class_res_ptr->server_index;
-	alvs_write_log(LOG_DEBUG, "Server found in index %d.", *server_index);
+	anl_write_log(LOG_DEBUG, "Server found in index %d.", *server_index);
 	return true;
 }
 
