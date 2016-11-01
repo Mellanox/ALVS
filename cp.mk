@@ -6,7 +6,17 @@ PATH := $(PATH):$(abspath $(EZDK_BASE)/ldk/toolchain/bin)
 
 CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/include -I$(EZDK_BASE)/cpe/env/include -I$(EZDK_BASE)/cpe/dev/include -I$(EZDK_BASE)/cpe/cp/include -I$(EZDK_BASE)/cpe/agt/agt-cp/include -I$(EZDK_BASE)/cpe/agt/agt/include
 
-CP_C_SRCS = $(shell ls src/cp/*.c)
+CP_C_SRCS = src/cp/alvs_db.c \
+			src/cp/application_infra.c \
+			src/cp/error_names.c \
+			src/cp/log.c \
+			src/cp/nw_db.c \
+			src/cp/sqlite3.c \
+			src/cp/alvs_db_manager.c \
+			src/cp/cfg.c \
+			src/cp/infrastructure.c \
+			src/cp/main.c \
+			src/cp/nw_db_manager.c
 CP_OBJS = $(patsubst %.c,build/%.o,$(CP_C_SRCS)) 
 CP_C_DEPS = $(patsubst %.c,build/%.d,$(CP_C_SRCS))
 
