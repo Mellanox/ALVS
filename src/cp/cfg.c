@@ -81,7 +81,7 @@ void system_configuration(int argc, char **argv)
 		{ "routing_app", no_argument, (int *)(&system_cfg.applications.routing_en), true },
 		{ "QoS_app", no_argument, (int *)(&system_cfg.applications.qos_en), true },
 		{ "firewall_app", no_argument, (int *)(&system_cfg.applications.firewall_en), true },
-		{ "lag_en", no_argument, (int *)(&system_cfg.lag_en), true },
+		{ "no_lag", no_argument, (int *)(&system_cfg.lag_en), false },
 		{ "dp_bin_file", required_argument, 0, 'b'},
 		{ "run_cpus", required_argument, 0, 'r'},
 		{0, 0, 0, 0} };
@@ -93,6 +93,7 @@ void system_configuration(int argc, char **argv)
 	strcpy(system_cfg.dp_bin_file, "/usr/lib/alvs/alvs_dp");
 	strcpy(system_cfg.run_cpus, "not_used");
 	system_cfg.port_type = EZapiChannel_EthIFType_40GE;
+	system_cfg.lag_en = true;
 
 	while (true) {
 		rc = getopt_long(argc, argv, "", long_options, &option_index);
