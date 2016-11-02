@@ -30,7 +30,7 @@ from multiprocessing import Process
 def generic_main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, --start, --stop]"
+	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, --start, --stop, --remote_control]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	bool_choices = ['true', 'false', 'True', 'False']
@@ -52,6 +52,8 @@ def generic_main():
 					  help="Start the alvs service at the beginning of the test (defualt=False)")
 	parser.add_option("--stop", "--stop_ezbox", dest="stop_ezbox", choices=bool_choices,
 					  help="Stop the alvs service at the end of the test 		(defualt=False)")
+	parser.add_option("--remote_control", "--remote_control", dest="remote_control", choices=bool_choices,
+					  help="Run in remote control mode					 		(defualt=False)")
 	(options, args) = parser.parse_args()
 
 	# validate options
@@ -78,6 +80,8 @@ def generic_main():
 		config['start_ezbox']    = bool_str_to_bool(options.start_ezbox)
 	if options.stop_ezbox:
 		config['stop_ezbox']    = bool_str_to_bool(options.stop_ezbox)
+	if options.remote_control:
+		config['remote_control']    = bool_str_to_bool(options.remote_control)
 
 	config['setup_num'] = options.setup_num
 	
@@ -178,17 +182,22 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			stats = '--statistics'
 		else:
 			stats = ''
+		
+		if test_config['remote_control']:
+			remote_control = '--remote_control'
+		else:
+			remote_control = ''
 
-		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
+		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
 		
 		if test_config['modify_run_cpus']:
 			# validate chip is up
 			ezbox.alvs_service_start()
 			ezbox.update_dp_cpus(test_config['use_4k_cpus'])
 			if test_config['use_4k_cpus']:
-				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
+				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
  			else:
- 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s --port_type=%s "%(stats, ezbox.setup['nps_port_type']))
+ 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
  				
 		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
@@ -229,7 +238,8 @@ def fill_default_config(test_config):
 					  'use_director'    : True,
 					  'stats'           : False,
 					  'start_ezbox'		: False,
-					  'stop_ezbox'		: False}
+					  'stop_ezbox'		: False,
+					  'remote_control'	: False}
 	
 	# Check user configuration
 	for key in test_config:

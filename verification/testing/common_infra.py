@@ -260,7 +260,7 @@ class ezbox_host:
 		self.ssh_object.connect()
 		self.run_app_ssh.connect()
 		self.syslog_ssh.connect()
-		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep alvs', False)
+		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep anl', False)
 		 
 	def logout(self):
 		self.ssh_object.logout()
@@ -549,20 +549,6 @@ class ezbox_host:
 
 		return conn
 
-	def get_interface(self, lid):
-		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_INTERFACES, 0, {'key' : "%02x" % lid}).result["params"]["entry"]["result"]).split(' ')
-		interface = {'oper_status' : (int(res[0], 16) >> 3) & 0x1,
-					 'path_type' : (int(res[0], 16) >> 1) & 0x3,
-					 'is_vlan' : int(res[0], 16) & 0x1,
-					 'lag_id' : int(res[1], 16),
-					 'default_vlan' : int(''.join(res[2:4]), 16),
-					 'mac_address' : int(''.join(res[4:10]), 16),
-					 'output_channel' : int(res[10], 16),
-					 'stats_base' : int(''.join(res[12:16]), 16),
-					 }
-		
-		return interface
-
 	def get_all_arp_entries(self):
 		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_NW_ARP, { 'channel_id': 0 })).result['iterator_params']
 		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_NW_ARP, channel_id = 0)).result['num_entries']['number_of_entries']
@@ -598,15 +584,16 @@ class ezbox_host:
 			lid = int(key, 16)
 			 
 			result = str(iterator_params_dict['entry']['result']).split(' ')
-			interface = {'oper_status' : (int(result[0], 16) >> 3) & 0x1,
+			interface = {'is_direct_output_lag' : (int(result[0], 16) >> 0) & 0x1,
 						 'path_type' : (int(result[0], 16) >> 1) & 0x3,
-						 'is_vlan' : int(result[0], 16) & 0x1,
-						 'lag_id' : int(result[1], 16),
-						 'default_vlan' : int(''.join(result[2:4]), 16),
+						 'oper_status' : (int(result[0], 16) >> 3) & 0x1,
+						 'direct_output_if' : int(''.join(result[1]), 16),
+						 'app_bitmap' : int(''.join(result[2:4]), 16),
 						 'mac_address' : int(''.join(result[4:10]), 16),
-						 'output_channel' : int(result[10], 16),
+						 'output_channel' : int(''.join(result[10]), 16),
+						 'sft_en' : (int(result[11], 16) >> 7) & 0x1,
 						 'stats_base' : int(''.join(result[12:16]), 16),
-						 'key' : {'lid' : lid}
+						 'key' : lid
 						 }
 
 			interfaces.append(interface)
