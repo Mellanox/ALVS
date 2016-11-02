@@ -10,7 +10,7 @@ CP_C_SRCS = src/cp/alvs_db.c \
 			src/cp/application_infra.c \
 			src/cp/error_names.c \
 			src/cp/log.c \
-			src/cp/nw_db.c \
+			src/cp/nw_api.c \
 			src/cp/sqlite3.c \
 			src/cp/alvs_db_manager.c \
 			src/cp/cfg.c \

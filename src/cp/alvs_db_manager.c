@@ -65,7 +65,7 @@
 #include "log.h"
 #include "defs.h"
 #include "alvs_db.h"
-#include "nw_db.h"
+#include "nw_api.h"
 #include "alvs_db_manager.h"
 #include "infrastructure.h"
 #include "version.h"
@@ -812,7 +812,7 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 				write_log(LOG_ERR, "Problem printing global error statistics");
 			}
 
-			if (nw_db_print_all_interfaces_stats() != NW_DB_OK) {
+			if (nw_api_print_if_stats() != NW_API_OK) {
 				write_log(LOG_ERR, "Problem printing interface statistics");
 			}
 

@@ -30,8 +30,8 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                nw_db.c
-*  Desc:                Implementation of network database.
+*  File:                nw_api.c
+*  Desc:                Implementation of network database common API.
 *
 */
 
@@ -42,14 +42,14 @@
 #include <string.h>
 #include <byteswap.h>
 #include <arpa/inet.h>
-#include <EZapiTCAM.h>
-#include "log.h"
+#include <linux/rtnetlink.h>
 
-#include <EZapiStat.h>
-#include "nw_db.h"
+#include "log.h"
+#include "nw_api.h"
 #include "sqlite3.h"
 #include "defs.h"
 #include "infrastructure.h"
+#include "nw_search_defs.h"
 
 /* Global pointer to the DB */
 sqlite3 *nw_db;
@@ -87,10 +87,10 @@ char *nw_inet_ntoa(in_addr_t ip)
  *
  * \param[in]   none
  *
- * \return      NW_DB_INTERNAL_ERROR - Failed to create internal DB
- *              NW_DB_OK             - Created successfully
+ * \return      NW_API_DB_ERROR - Failed to create internal DB
+ *              NW_API_OK             - Created successfully
  */
-enum nw_db_rc nw_db_init(void)
+enum nw_api_rc nw_api_init_db(void)
 {
 	int rc;
 	char *sql;
@@ -104,7 +104,7 @@ enum nw_db_rc nw_db_init(void)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "Can't open database: %s",
 			  sqlite3_errmsg(nw_db));
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	write_log(LOG_DEBUG, "NW_DB: Opened database successfully");
@@ -135,12 +135,12 @@ enum nw_db_rc nw_db_init(void)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	fib_entry_count = 0;
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -150,7 +150,7 @@ enum nw_db_rc nw_db_init(void)
  *
  * \return      none
  */
-void nw_db_destroy(void)
+void nw_api_destroy_db(void)
 {
 	/* Close the DB file */
 	sqlite3_close(nw_db);
@@ -162,10 +162,10 @@ void nw_db_destroy(void)
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - Add to internal DB succeed
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
+ * \return      NW_API_OK - Add to internal DB succeed
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_db_rc internal_db_add_fib_entry(struct nw_db_fib_entry *fib_entry)
+enum nw_api_rc internal_db_add_fib_entry(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -181,10 +181,10 @@ enum nw_db_rc internal_db_add_fib_entry(struct nw_db_fib_entry *fib_entry)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -192,10 +192,10 @@ enum nw_db_rc internal_db_add_fib_entry(struct nw_db_fib_entry *fib_entry)
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - Modify of internal DB succeed
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
+ * \return      NW_API_OK - Modify of internal DB succeed
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_db_rc internal_db_modify_fib_entry(struct nw_db_fib_entry *fib_entry)
+enum nw_api_rc internal_db_modify_fib_entry(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -211,10 +211,10 @@ enum nw_db_rc internal_db_modify_fib_entry(struct nw_db_fib_entry *fib_entry)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -222,10 +222,10 @@ enum nw_db_rc internal_db_modify_fib_entry(struct nw_db_fib_entry *fib_entry)
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - remove from internal db succeed
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
+ * \return      NW_API_OK - remove from internal db succeed
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_db_rc internal_db_remove_fib_entry(struct nw_db_fib_entry *fib_entry)
+enum nw_api_rc internal_db_remove_fib_entry(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -240,10 +240,10 @@ enum nw_db_rc internal_db_remove_fib_entry(struct nw_db_fib_entry *fib_entry)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		sqlite3_free(zErrMsg);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -251,11 +251,11 @@ enum nw_db_rc internal_db_remove_fib_entry(struct nw_db_fib_entry *fib_entry)
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - FIB entry found
- *              NW_DB_FAILURE - FIB entry not found
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
+ * \return      NW_API_OK - FIB entry found
+ *              NW_API_FAILURE - FIB entry not found
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
+enum nw_api_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -270,7 +270,7 @@ enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	/* Execute SQL statement */
@@ -280,13 +280,13 @@ enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		sqlite3_finalize(statement);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	/* FIB entry not found */
 	if (rc == SQLITE_DONE) {
 		sqlite3_finalize(statement);
-		return NW_DB_FAILURE;
+		return NW_API_FAILURE;
 	}
 
 	/* retrieve fib entry from result,
@@ -298,7 +298,7 @@ enum nw_db_rc internal_db_get_fib_entry(struct nw_db_fib_entry *fib_entry)
 
 	sqlite3_finalize(statement);
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -408,13 +408,12 @@ bool delete_fib_entry_from_nps(struct nw_db_fib_entry *cp_fib_entry)
  *              instead of the moved entry we will move an entry from mask 1 group, and on.. until we have a gap
  *              to insert our new entry
  *
- * \param[in]   fib_entry   - reference to fib entry
+ * \param[in]   new_fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - All entries updated successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
+ * \return      NW_API_OK - All entries updated successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
+enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -438,7 +437,7 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 		if (rc != SQLITE_OK) {
 			write_log(LOG_CRIT, "SQL error: %s",
 				  sqlite3_errmsg(nw_db));
-			return NW_DB_INTERNAL_ERROR;
+			return NW_API_DB_ERROR;
 		}
 
 		/* Execute SQL statement */
@@ -448,7 +447,7 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 		if (rc < SQLITE_ROW) {
 			write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
 			sqlite3_finalize(statement);
-			return NW_DB_INTERNAL_ERROR;
+			return NW_API_DB_ERROR;
 		}
 
 		if (rc == SQLITE_DONE) {
@@ -473,17 +472,17 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 
 			/* Update DBs */
-			if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+			if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_API_DB_ERROR) {
 				/* Internal error */
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
-				return NW_DB_INTERNAL_ERROR;
+				return NW_API_DB_ERROR;
 
 			}
 			if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
-				return NW_DB_NPS_ERROR;
+				return NW_API_DB_ERROR;
 			}
 		}
 
@@ -495,7 +494,7 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
 	/* Take the index from the last updated entry  */
 	new_fib_entry->nps_index = previous_updated_index;
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -505,13 +504,12 @@ enum nw_db_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry)
  *
  * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - All entries updated successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
+ * \return      NW_API_OK - All entries updated successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
 
 
-enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
+enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 {
 	int rc;
 	char sql[256];
@@ -537,7 +535,7 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 		if (rc != SQLITE_OK) {
 			write_log(LOG_CRIT, "SQL error: %s",
 				  sqlite3_errmsg(nw_db));
-			return NW_DB_INTERNAL_ERROR;
+			return NW_API_DB_ERROR;
 		}
 
 		/* Execute SQL statement */
@@ -546,7 +544,7 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 		if (rc < SQLITE_ROW) {
 			write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
 			sqlite3_finalize(statement);
-			return NW_DB_INTERNAL_ERROR;
+			return NW_API_DB_ERROR;
 		}
 
 		if (rc == SQLITE_DONE) {
@@ -567,17 +565,17 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 			/* Update DBs */
-			if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+			if (internal_db_modify_fib_entry(&tmp_fib_entry) == NW_API_DB_ERROR) {
 				/* Internal error */
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
-				return NW_DB_INTERNAL_ERROR;
+				return NW_API_DB_ERROR;
 
 			}
 			if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
-				return NW_DB_NPS_ERROR;
+				return NW_API_DB_ERROR;
 			}
 		}
 
@@ -588,42 +586,37 @@ enum nw_db_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 	/* Update index of current entry to last index for deletion */
 	fib_entry->nps_index = fib_entry_count - 1;
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
  * \brief       Fills fib_entry fields according to route_entry
  *
- * \param[in]   route_entry   - reference to route entry
- *              fib_entry     - reference to fib entry
+ * \param[in]   fib_entry        - reference to fib entry
+ *              db_fib_entry     - reference to new db fib entry
  *
  * \return      none
  */
-void set_fib_params(struct rtnl_route *route_entry, struct nw_db_fib_entry *fib_entry)
+void set_fib_params(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *db_fib_entry)
 {
-	if (rtnl_route_get_type(route_entry) == RTN_UNICAST) {
-		/* Get next hop from route entry */
-		struct nl_addr *next_hop_addr = rtnl_route_nh_get_gateway(rtnl_route_nexthop_n(route_entry, 0));
-
-		if (next_hop_addr == NULL) {
-			fib_entry->result_type = NW_FIB_NEIGHBOR;
+	if (fib_entry->route_type == RTN_UNICAST) {
+		if (fib_entry->next_hop_count == 0) {
+			db_fib_entry->result_type = NW_FIB_NEIGHBOR;
 			write_log(LOG_DEBUG, "FIB entry is NEIGHBOR - no next hop.");
+		} else if (fib_entry->next_hop_count == 1) {
+			/* Take next hop */
+			db_fib_entry->next_hop = fib_entry->next_hop.in.s_addr;
+			db_fib_entry->result_type = NW_FIB_GW;
+			write_log(LOG_DEBUG, "FIB Entry is GW. next hop is %s", nw_inet_ntoa(db_fib_entry->next_hop));
 		} else {
-			if (rtnl_route_get_nnexthops(route_entry) > 1) {
-				/* Drop packet - DP will handle only single hop entries */
-				fib_entry->result_type = NW_FIB_DROP;
-				write_log(LOG_WARNING, "FIB entry (IP=%s, mask length=%d) has multiple hops - marked for drop.",
-					  nw_inet_ntoa(fib_entry->dest_ip), fib_entry->mask_length);
-			} else {
-				/* Take next hop */
-				fib_entry->next_hop = *(uint32_t *)nl_addr_get_binary_addr(next_hop_addr);
-				fib_entry->result_type = NW_FIB_GW;
-				write_log(LOG_DEBUG, "FIB Entry is GW. next hop is %s", nw_inet_ntoa(fib_entry->next_hop));
-			}
+			/* Drop packet - DP will handle only single hop entries */
+			db_fib_entry->result_type = NW_FIB_DROP;
+			write_log(LOG_WARNING, "FIB entry (IP=%s, mask length=%d) has multiple hops - marked for drop.",
+				  nw_inet_ntoa(db_fib_entry->dest_ip), db_fib_entry->mask_length);
 		}
 	} else {
 		/* Drop packet - DP will handle only unicasts */
-		fib_entry->result_type = NW_FIB_DROP;
+		db_fib_entry->result_type = NW_FIB_DROP;
 		write_log(LOG_DEBUG, "FIB Entry is marked for drop.");
 	}
 
@@ -632,132 +625,121 @@ void set_fib_params(struct rtnl_route *route_entry, struct nw_db_fib_entry *fib_
 /**************************************************************************//**
  * \brief       Add a fib_entry to NW DB
  *
- * \param[in]   route_entry   - reference to route entry
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - fib entry added successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
- *              NW_DB_FAILURE - fib entry already exists
+ * \return      NW_API_OK - fib entry added successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry already exists
  */
-enum nw_db_rc nw_db_add_fib_entry(struct rtnl_route *route_entry, bool reorder)
+enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
-	struct nl_addr *dst;
 
 	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
+	cp_fib_entry.mask_length = fib_entry->mask_length;
+	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
 
-	dst = rtnl_route_get_dst(route_entry);
-	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
-	cp_fib_entry.dest_ip = *(uint32_t *)nl_addr_get_binary_addr(dst);
 	write_log(LOG_DEBUG, "Adding FIB entry. (IP=%s, mask length=%d) ",
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 
 	switch (internal_db_get_fib_entry(&cp_fib_entry)) {
-	case NW_DB_OK:
+	case NW_API_OK:
 		/* FIB entry already exists */
 		write_log(LOG_NOTICE, "Can't add FIB entry. Entry (IP=%s, mask length=%d) already exists.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_FAILURE;
-	case NW_DB_INTERNAL_ERROR:
+		return NW_API_FAILURE;
+	case NW_API_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
-		return NW_DB_INTERNAL_ERROR;
-	case NW_DB_FAILURE:
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) doesn't exist in DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		break;
 	default:
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 	/* Check we do not pass the TCAM limit size */
 	if (fib_entry_count == NW_FIB_TCAM_MAX_SIZE) {
 		write_log(LOG_ERR, "Can't add FIB entry (IP=%s, mask length=%d). out of memory.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
-	set_fib_params(route_entry, &cp_fib_entry);
+	set_fib_params(fib_entry, &cp_fib_entry);
 
 	/* Choose where to put FIB entry */
-	if (reorder) {
-		enum nw_db_rc rc = fib_reorder_push_entries_up(&cp_fib_entry);
+	enum nw_api_rc rc = fib_reorder_push_entries_up(&cp_fib_entry);
 
-		if (rc != NW_DB_OK) {
-			write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d).",
-				  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-			return rc;
-		}
-	} else {
-		/* Insert entry at the end (next free entry) */
-		cp_fib_entry.nps_index = fib_entry_count;
+	if (rc != NW_API_OK) {
+		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d).",
+			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
+		return rc;
 	}
 	/* Add new entry to DBs */
-	if (internal_db_add_fib_entry(&cp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+	if (internal_db_add_fib_entry(&cp_fib_entry) == NW_API_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 
 	}
 	if (add_fib_entry_to_nps(&cp_fib_entry) == false) {
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d) to NPS.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_NPS_ERROR;
+		return NW_API_DB_ERROR;
 	}
 	fib_entry_count++;
 
 	write_log(LOG_DEBUG, "FIB entry Added successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d) ",
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type);
 
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
  * \brief       Delete a fib entry from NW DB
  *
- * \param[in]   route_entry   - reference to route entry
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - fib entry deleted successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
- *              NW_DB_FAILURE - fib entry do not exist
+ * \return      NW_API_OK - fib entry deleted successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry does not exist
  */
-enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry)
+enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
-	struct nl_addr *dst;
 
 	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
-	dst = rtnl_route_get_dst(route_entry);
-	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
-	cp_fib_entry.dest_ip = *(uint32_t *)nl_addr_get_binary_addr(dst);
+	cp_fib_entry.mask_length = fib_entry->mask_length;
+	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
 
 	switch (internal_db_get_fib_entry(&cp_fib_entry)) {
-	case NW_DB_OK:
+	case NW_API_OK:
 		/* FIB entry exists */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d, index=%d) found in internal DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 		break;
-	case NW_DB_INTERNAL_ERROR:
+	case NW_API_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
-		return NW_DB_INTERNAL_ERROR;
-	case NW_DB_FAILURE:
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_NOTICE, "Can't delete FIB entry. Entry (IP=%s, mask length=%d) doesn't exist.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_FAILURE;
+		return NW_API_FAILURE;
 	default:
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	/* move entries if needed */
 	if (cp_fib_entry.nps_index != fib_entry_count - 1) {
 		/* not last entry - need to move entries down */
-		enum nw_db_rc rc = fib_reorder_push_entries_down(&cp_fib_entry);
+		enum nw_api_rc rc = fib_reorder_push_entries_down(&cp_fib_entry);
 
-		if (rc != NW_DB_OK) {
+		if (rc != NW_API_OK) {
 			write_log(LOG_CRIT, "Failed to delete FIB entry (IP=%s, mask length=%d).",
 				  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 			return rc;
@@ -770,120 +752,79 @@ enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry)
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 
 	/* Delete last entry from DBs */
-	if (internal_db_remove_fib_entry(&cp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+	if (internal_db_remove_fib_entry(&cp_fib_entry) == NW_API_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to delete FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 
 	}
 	if (delete_fib_entry_from_nps(&cp_fib_entry) == false) {
 		write_log(LOG_CRIT, "Failed to delete FIB entry (IP=%s, mask length=%d) from NPS.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_NPS_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) deleted successfully.",
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
  * \brief       Modify a fib entry in NW DB
  *
- * \param[in]   route_entry   - reference to route entry
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - fib entry modified successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
- *              NW_DB_FAILURE - fib entry do not exist
+ * \return      NW_API_OK - fib entry modified successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry does not exist
  */
-enum nw_db_rc nw_db_modify_fib_entry(struct rtnl_route *route_entry)
+enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
-	struct nl_addr *dst;
 
 	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
-	dst = rtnl_route_get_dst(route_entry);
-	cp_fib_entry.mask_length = (uint32_t)nl_addr_get_prefixlen(dst);
-	cp_fib_entry.dest_ip = *(uint32_t *)nl_addr_get_binary_addr(dst);
+	cp_fib_entry.mask_length = fib_entry->mask_length;
+	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
 
 	switch (internal_db_get_fib_entry(&cp_fib_entry)) {
-	case NW_DB_OK:
+	case NW_API_OK:
 		/* FIB entry exists */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d, index=%d) found in internal DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 		break;
-	case NW_DB_INTERNAL_ERROR:
+	case NW_API_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
-		return NW_DB_INTERNAL_ERROR;
-	case NW_DB_FAILURE:
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_NOTICE, "Can't modify FIB entry. Entry (IP=%s, mask length=%d) doesn't exist.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_FAILURE;
+		return NW_API_FAILURE;
 	default:
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
-	set_fib_params(route_entry, &cp_fib_entry);
+	set_fib_params(fib_entry, &cp_fib_entry);
 
 	/* Modify entry in DBs */
-	if (internal_db_modify_fib_entry(&cp_fib_entry) == NW_DB_INTERNAL_ERROR) {
+	if (internal_db_modify_fib_entry(&cp_fib_entry) == NW_API_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to modify FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_INTERNAL_ERROR;
+		return NW_API_DB_ERROR;
 
 	}
 	if (add_fib_entry_to_nps(&cp_fib_entry) == false) {
 		write_log(LOG_CRIT, "Failed to modify FIB entry (IP=%s, mask length=%d) in NPS.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-		return NW_DB_NPS_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) modified successfully.",
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-	return NW_DB_OK;
-}
-
-
-
-/**************************************************************************//**
- * \brief       print all interfaces statistics
- *
- * \return	NW_DB_OK - - operation succeeded
- *		NW_DB_NPS_ERROR - fail to read statistics
- */
-enum nw_db_rc nw_db_print_all_interfaces_stats(void)
-{
-	uint32_t i;
-
-	/* printing network interface error stats */
-	for (i = 0; i < USER_NW_IF_NUM; i++) {
-		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
-		if (nw_db_print_interface_stats(EMEM_NW_IF_STATS_POSTED_OFFSET + ((USER_NW_BASE_LOGICAL_ID+i) * NW_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, NW_NUM_OF_IF_STATS) != NW_DB_OK) {
-			return NW_DB_NPS_ERROR;
-		}
-	}
-
-	/* printing host error stats */
-	write_log(LOG_INFO, "Statistics of Host Interface");
-	if (nw_db_print_interface_stats(EMEM_HOST_IF_STATS_POSTED_OFFSET + (USER_HOST_LOGICAL_ID * HOST_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, HOST_NUM_OF_IF_STATS) != NW_DB_OK) {
-		return NW_DB_NPS_ERROR;
-	}
-
-	/* printing network interface error stats */
-	for (i = 0; i < USER_REMOTE_IF_NUM; i++) {
-		write_log(LOG_INFO, "Statistics of Remote Interface %d", i);
-		if (nw_db_print_interface_stats(EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ((USER_REMOTE_BASE_LOGICAL_ID+i) * REMOTE_NUM_OF_IF_STATS), remote_if_posted_stats_offsets_names, REMOTE_NUM_OF_IF_STATS) != NW_DB_OK) {
-			return NW_DB_NPS_ERROR;
-		}
-	}
-
-	return NW_DB_OK;
-
+	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -893,17 +834,17 @@ enum nw_db_rc nw_db_print_all_interfaces_stats(void)
  * \param[in]   if_posted_stats_offsets_names  - array of interface posted statistics names
  * \param[in]   num_of_if_stats                - number of interface statistics
  *
- * \return	NW_DB_OK - - operation succeeded
- *		NW_DB_NPS_ERROR - fail to read statistics
+ * \return	NW_API_OK - - operation succeeded
+ *		NW_API_DB_ERROR - fail to read statistics
  */
-enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const char *if_posted_stats_offsets_names[], uint32_t num_of_if_stats)
+enum nw_api_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const char *if_posted_stats_offsets_names[], uint32_t num_of_if_stats)
 {
 	uint32_t error_index;
 	uint64_t temp_sum;
 	uint64_t *interface_counters = (uint64_t *)malloc(num_of_if_stats * sizeof(uint64_t));
 
 	if (interface_counters == NULL) {
-		return NW_DB_NPS_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	memset(interface_counters, 0, num_of_if_stats * sizeof(uint64_t));
@@ -913,7 +854,7 @@ enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const c
 				      interface_counters) == false) {
 		write_log(LOG_CRIT, "Failed to read error statistics counters");
 		free(interface_counters);
-		return NW_DB_NPS_ERROR;
+		return NW_API_DB_ERROR;
 	}
 
 	temp_sum = 0;
@@ -933,6 +874,41 @@ enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const c
 		write_log(LOG_INFO, "    No Errors On Counters");
 	}
 	free(interface_counters);
-	return NW_DB_OK;
+	return NW_API_OK;
 }
 
+/**************************************************************************//**
+ * \brief       print all interfaces statistics
+ *
+ * \return	NW_API_OK - - operation succeeded
+ *		NW_API_DB_ERROR - fail to read statistics
+ */
+enum nw_api_rc nw_api_print_if_stats(void)
+{
+	uint32_t i;
+
+	/* printing network interface error stats */
+	for (i = 0; i < USER_NW_IF_NUM; i++) {
+		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
+		if (nw_db_print_interface_stats(EMEM_NW_IF_STATS_POSTED_OFFSET + ((USER_NW_BASE_LOGICAL_ID+i) * NW_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, NW_NUM_OF_IF_STATS) != NW_API_OK) {
+			return NW_API_DB_ERROR;
+		}
+	}
+
+	/* printing host error stats */
+	write_log(LOG_INFO, "Statistics of Host Interface");
+	if (nw_db_print_interface_stats(EMEM_HOST_IF_STATS_POSTED_OFFSET + (USER_HOST_LOGICAL_ID * HOST_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, HOST_NUM_OF_IF_STATS) != NW_API_OK) {
+		return NW_API_DB_ERROR;
+	}
+
+	/* printing network interface error stats */
+	for (i = 0; i < USER_REMOTE_IF_NUM; i++) {
+		write_log(LOG_INFO, "Statistics of Remote Interface %d", i);
+		if (nw_db_print_interface_stats(EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ((USER_REMOTE_BASE_LOGICAL_ID+i) * REMOTE_NUM_OF_IF_STATS), remote_if_posted_stats_offsets_names, REMOTE_NUM_OF_IF_STATS) != NW_API_OK) {
+			return NW_API_DB_ERROR;
+		}
+	}
+
+	return NW_API_OK;
+
+}

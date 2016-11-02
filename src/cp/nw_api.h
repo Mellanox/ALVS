@@ -30,95 +30,73 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                infrastructure.h
-*  Desc:                Infrastructure API.
+*  File:                nw_api.h
+*  Desc:                Network API.
 *
 */
 
-#ifndef _NW_DB_H_
-#define _NW_DB_H_
+#ifndef _NW_API_H_
+#define _NW_API_H_
 
 #include <stdbool.h>
 #include <netinet/in.h>
-#include <linux/ip_vs.h>
-#include <netlink/route/route.h>
-#include "nw_search_defs.h"
 
-enum nw_db_rc {
-	NW_DB_OK,
-	NW_DB_FAILURE,
-	NW_DB_NOT_SUPPORTED,
-	NW_DB_INTERNAL_ERROR,
-	NW_DB_NPS_ERROR,
-	NW_DB_FATAL_ERROR,
-};
+#include "nw_api_defs.h"
 
 /**************************************************************************//**
  * \brief       Initialize internal DB
  *
  * \return      success, failure or fatal error.
  */
-enum nw_db_rc nw_db_init(void);
+enum nw_api_rc nw_api_init_db(void);
 
 /**************************************************************************//**
  * \brief       Destroy internal DB
  *
- * \return      bool - success or failure
+ * \return      none
  */
-void nw_db_destroy(void);
+void nw_api_destroy_db(void);
 
 /**************************************************************************//**
  * \brief       Add a fib_entry to NW DB
  *
- * \param[in]   route_entry   - reference to route entry
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - fib entry entered successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
+ * \return      NW_API_OK - fib entry added successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry already exists
  */
-enum nw_db_rc nw_db_add_fib_entry(struct rtnl_route *route_entry, bool reorder);
+enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry);
 
 /**************************************************************************//**
- * \brief       Add a fib_entry to internal DB
+ * \brief       Remove fib_entry from NW DB
  *
- * \param[in]   fib_entry   - reference to service
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return      NW_DB_OK - service exists (info is filled with fib entry
- *                           information if it not NULL).
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
+ * \return      NW_API_OK - fib entry removed successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry does not exist
  */
-enum nw_db_rc nw_db_delete_fib_entry(struct rtnl_route *route_entry);
+enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry);
 
 /**************************************************************************//**
- * \brief       print interface statistics
+ * \brief       Modify fib entry in NW DB
  *
- * \param[in]   interface - the interface number that need to print
+ * \param[in]   fib_entry   - reference to fib entry
  *
- * \return	NW_DB_OK - - operation succeeded
- *		NW_DB_NPS_ERROR - fail to read statistics
+ * \return      NW_API_OK - fib entry modified successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - fib entry does not exist
  */
-enum nw_db_rc nw_db_print_interface_stats(ezdp_sum_addr_t if_stats_base, const char *if_posted_stats_offsets_names[], uint32_t num_of_if_stats);
+enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry);
 
 /**************************************************************************//**
  * \brief       print all interfaces statistics
  *
- * \return	NW_DB_OK - - operation succeeded
- *		NW_DB_NPS_ERROR - fail to read statistics
+ * \return	NW_API_OK - - operation succeeded
+ *		NW_API_DB_ERROR - fail to read statistics
  */
-enum nw_db_rc nw_db_print_all_interfaces_stats(void);
-
-/**************************************************************************//**
- * \brief       Modify a fib entry in NW DB
- *
- * \param[in]   route_entry   - reference to route entry
- *
- * \return      NW_DB_OK - fib entry modified successfully
- *              NW_DB_INTERNAL_ERROR - failed to communicate with DB
- *              NW_DB_NPS_ERROR - failed to communicate with NPS
- *              NW_DB_FAILURE - fib entry do not exist
- */
-enum nw_db_rc nw_db_modify_fib_entry(struct rtnl_route *route_entry);
+enum nw_api_rc nw_api_print_if_stats(void);
 
 
-
-#endif /* _NW_DB_H_ */
+#endif /* _NW_API_H_ */

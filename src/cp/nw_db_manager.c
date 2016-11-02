@@ -58,7 +58,7 @@
 #include "nw_search_defs.h"
 #include "nw_db_manager.h"
 #include "infrastructure.h"
-#include "nw_db.h"
+#include "nw_api.h"
 #include "cfg.h"
 
 /* Function Definition */
@@ -129,7 +129,7 @@ void nw_db_manager_init(void)
 	/* Allocate cache manager */
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
 
-	if (nw_db_init() != NW_DB_OK) {
+	if (nw_api_init_db() != NW_API_OK) {
 		write_log(LOG_CRIT, "Failed to create NW SQL DB.");
 		nw_db_manager_exit_with_error();
 	}
@@ -146,7 +146,7 @@ void nw_db_manager_delete(void)
 	if (network_cache_mngr) {
 		nl_cache_mngr_free(network_cache_mngr);
 	}
-	nw_db_destroy();
+	nw_api_destroy_db();
 }
 
 /******************************************************************************
@@ -265,6 +265,47 @@ void nw_db_manager_if_table_init(void)
 }
 
 /******************************************************************************
+ * \brief       Convert route entry to fib entry
+ *
+ * \return      void
+ */
+void nw_db_manager_route_to_fib_entry(struct rtnl_route *route_entry, struct nw_api_fib_entry *fib_entry)
+{
+	struct nl_addr *dst = rtnl_route_get_dst(route_entry);
+
+	memset(fib_entry, 0, sizeof(struct nw_api_fib_entry));
+
+	fib_entry->route_type = rtnl_route_get_type(route_entry);
+	fib_entry->mask_length = nl_addr_get_prefixlen(dst);
+	fib_entry->dest.af = rtnl_route_get_family(route_entry);
+	if (fib_entry->dest.af == AF_INET) {
+		fib_entry->dest.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(dst);
+	} else if (fib_entry->dest.af == AF_INET6) {
+		/* For future support in ipv6 */
+		memcpy((void *)&fib_entry->dest.in6, nl_addr_get_binary_addr(dst), sizeof(struct in6_addr));
+	}
+	if (fib_entry->route_type == RTN_UNICAST) {
+		struct rtnl_nexthop *next_hop = rtnl_route_nexthop_n(route_entry, 0);
+		struct nl_addr *next_hop_addr = rtnl_route_nh_get_gateway(next_hop);
+
+		if (next_hop_addr == NULL) {
+			fib_entry->next_hop_count = 0;
+		} else {
+			/* build next hop */
+			fib_entry->next_hop_count = rtnl_route_get_nnexthops(route_entry);
+			fib_entry->next_hop.af = fib_entry->dest.af;
+			if (fib_entry->next_hop.af == AF_INET) {
+				fib_entry->next_hop.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(next_hop_addr);
+			} else if (fib_entry->next_hop.af == AF_INET6) {
+				/* For future support in ipv6 */
+				memcpy((void *)&fib_entry->next_hop.in6, nl_addr_get_binary_addr(next_hop_addr), sizeof(struct in6_addr));
+			}
+			fib_entry->next_hop_if = rtnl_route_nh_get_ifindex(next_hop);
+		}
+	}
+}
+
+/******************************************************************************
  * \brief       FIB table init.
  *              Registers a callback function for table changes.
  *              Reads current FIB table and writes all entries to NPS FIB table.
@@ -276,6 +317,7 @@ void nw_db_manager_fib_table_init(void)
 	int ret;
 	struct nl_cache *filtered_route_cache;
 	struct nl_cache *route_cache;
+	struct nw_api_fib_entry fib_entry;
 	struct rtnl_route *route_entry = rtnl_route_alloc();
 
 	ret = nl_cache_mngr_add(network_cache_mngr, "route/route", &nw_db_manager_fib_cb, NULL, &route_cache);
@@ -295,11 +337,11 @@ void nw_db_manager_fib_table_init(void)
 	while (route_entry != NULL) {
 		if (valid_route_entry(route_entry)) {
 			/* Add route to FIB table */
-			switch (nw_db_add_fib_entry(route_entry, true)) {
-			case NW_DB_OK:
+			nw_db_manager_route_to_fib_entry(route_entry, &fib_entry);
+			switch (nw_api_add_fib_entry(&fib_entry)) {
+			case NW_API_OK:
 				break;
-			case NW_DB_INTERNAL_ERROR:
-			case NW_DB_NPS_ERROR:
+			case NW_API_DB_ERROR:
 				write_log(LOG_CRIT, "Received fatal error from DBs when adding FIB entry: addr = %s .exiting.", addr_to_str(rtnl_route_get_dst(route_entry)));
 				nw_db_manager_exit_with_error();
 				break;
@@ -358,57 +400,54 @@ void nw_db_manager_arp_table_init(void)
 void nw_db_manager_fib_cb(struct nl_cache __attribute__((__unused__))*cache, struct nl_object *obj, int action, void __attribute__((__unused__))*data)
 {
 	struct rtnl_route *route_entry = (struct rtnl_route *)obj;
-	enum nw_db_rc nw_ret = NW_DB_OK;
-	/* Take only IPv4 entries.
-	 * TODO: when adding IPv6 capabilities, this should be revisited.
-	 */
-	if (rtnl_route_get_family(route_entry) == AF_INET) {
-		switch (action) {
-		case NL_ACT_NEW:
-			write_log(LOG_DEBUG, "FIB ADD entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
-			if (valid_route_entry(route_entry)) {
-				/* Add route to FIB table */
-				nw_ret = nw_db_add_fib_entry(route_entry, true);
-				if (nw_ret != NW_DB_OK) {
+	struct nw_api_fib_entry fib_entry;
+	enum nw_api_rc nw_ret = NW_API_OK;
+
+	if (valid_route_entry(route_entry)) {
+		/* Take only IPv4 entries.
+		 * TODO: when adding IPv6 capabilities, this should be revisited.
+		 */
+		if (rtnl_route_get_family(route_entry) == AF_INET) {
+			nw_db_manager_route_to_fib_entry(route_entry, &fib_entry);
+			switch (action) {
+			case NL_ACT_NEW:
+				write_log(LOG_DEBUG, "FIB ADD entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				nw_ret = nw_api_add_fib_entry(&fib_entry);
+				if (nw_ret != NW_API_OK) {
 					write_log(LOG_NOTICE, "Problem adding FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
 				}
-			}
-			break;
-		case NL_ACT_DEL:
-			write_log(LOG_DEBUG, "FIB DELETE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
-			if (valid_route_entry(route_entry)) {
-				nw_ret = nw_db_delete_fib_entry(route_entry);
-				if (nw_ret != NW_DB_OK) {
+				break;
+			case NL_ACT_DEL:
+				write_log(LOG_DEBUG, "FIB DELETE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				nw_ret = nw_api_remove_fib_entry(&fib_entry);
+				if (nw_ret != NW_API_OK) {
 					write_log(LOG_NOTICE, "Problem deleting FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
 				}
-			}
-			break;
-		case NL_ACT_CHANGE:
-			write_log(LOG_DEBUG, "FIB CHANGE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
-			if (valid_route_entry(route_entry)) {
-				nw_ret = nw_db_modify_fib_entry(route_entry);
-				if (nw_ret != NW_DB_OK) {
+				break;
+			case NL_ACT_CHANGE:
+				write_log(LOG_DEBUG, "FIB CHANGE entry: %s", addr_to_str(rtnl_route_get_dst(route_entry)));
+				nw_ret = nw_api_modify_fib_entry(&fib_entry);
+				if (nw_ret != NW_API_OK) {
 					write_log(LOG_NOTICE, "Problem modifying FIB entry: addr = %s", addr_to_str(rtnl_route_get_dst(route_entry)));
 				}
+				break;
 			}
-			break;
-		}
-		if (nw_ret == NW_DB_INTERNAL_ERROR || nw_ret == NW_DB_NPS_ERROR) {
-			write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
-			nw_db_manager_exit_with_error();
-		}
-
-	} else {
-		switch (action) {
-		case NL_ACT_NEW:
-			write_log(LOG_NOTICE, "info: FIB entry from address family %d was not added. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
-			break;
-		case NL_ACT_DEL:
-			write_log(LOG_NOTICE, "info: FIB entry from address family %d was not deleted. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
-			break;
-		case NL_ACT_CHANGE:
-			write_log(LOG_NOTICE, "info: FIB entry from address family %d has not changed. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
-			break;
+			if (nw_ret == NW_API_DB_ERROR) {
+				write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
+				nw_db_manager_exit_with_error();
+			}
+		} else {
+			switch (action) {
+			case NL_ACT_NEW:
+				write_log(LOG_NOTICE, "info: FIB entry from address family %d was not added. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+				break;
+			case NL_ACT_DEL:
+				write_log(LOG_NOTICE, "info: FIB entry from address family %d was not deleted. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+				break;
+			case NL_ACT_CHANGE:
+				write_log(LOG_NOTICE, "info: FIB entry from address family %d has not changed. Address = %s", rtnl_route_get_family(route_entry), addr_to_str(rtnl_route_get_dst(route_entry)));
+				break;
+			}
 		}
 	}
 }
