@@ -105,12 +105,6 @@ class ezbox_host:
 		self.execute_command_on_host(cmd)
 
 	def update_dp_cpus(self, use_4k_cpus=True):
-		# upfate DP params
-		if use_4k_cpus:
-			self.update_dp_params("--run_cpus 16-4095")
-		else:
-			self.update_dp_params("--run_cpus 16-511")
-		
 		# modify NPS present & posible CPUs
 		self.modify_run_cpus(use_4k_cpus)
 
