@@ -51,7 +51,7 @@ function run_cparser {
 	echo -e "Creating glibc model ...\n" | tee -a $log
 	echo "/swgwork/yohadd/unittestAPI/tools/Cparser/cparser.py -o $output_dir/glibc_model --external_lib /usr/include/stdio.h /usr/include/stdint.h /usr/include/stdlib.h /usr/include/string.h" | tee -a $log
 	/swgwork/yohadd/unittestAPI/tools/Cparser/cparser.py -o $output_dir/glibc_model --external_lib /usr/include/stdio.h /usr/include/stdint.h /usr/include/stdlib.h /usr/include/string.h | tee -a $log
-	if [ "$?" == 1 ]
+	if [ "$?" != 0 ]
 	then
 		echo "ERROR: failed in create glibc model!!!" | tee -a $log
 		return 1
@@ -65,7 +65,7 @@ function run_cparser {
 	cmd+="| tee -a $log"
 	echo -e "\n$cmd"
 	eval $cmd
-	if [ "$?" == 1 ]
+	if [ "$?" != 0 ]
 	then
 		echo "ERROR: failed in creating model files!!!" | tee -a $log
 		return 1
@@ -77,21 +77,21 @@ function run_cparser {
 
 function main {
 
+        set -o pipefail
+
 	set_args $@
 
 	rm -rf $output_dir
 	mkdir -p $output_dir
 
 	print_start_msg
-
 	check_arg $@
-	if [ "$?" == 1 ]
+	if [ "$?" != 0 ]
 	then
 		return 1
 	fi
-
 	run_cparser $@
-	if [ "$?" == 1 ]
+	if [ "$?" != 0 ]
 	then
 		return 1
 	fi
@@ -102,16 +102,16 @@ function main {
 	echo -e "\nCreating mock env of our testing src file: ${src_file}...\n" | tee -a $log
 	echo "/swgwork/yohadd/unittestAPI/tools/generate_mock_env/generate_env.py -o $output_dir/mock -d $output_dir/${1}_def.py" | tee -a $log
 	unbuffer /swgwork/yohadd/unittestAPI/tools/generate_mock_env/generate_env.py -o $output_dir/mock -d $output_dir/${1}_def.py | tee -a $log
-	if [ "$?" == 1 ]
+	if [ "$?" != 0 ]
 	then
 		echo "ERROR: failed in create mock env!!!" | tee -a $log
 		return 1
 	fi
-
+        
 	echo -e "\nPatching environment (WORKAROUND)...\n" | tee -a $log
 	echo "${alvs_root}/verification/venus/dp/scripts/fix_types.sh" | tee -a $log
-	${alvs_root}/verification/venus/dp/scripts/fix_types.sh | tee -a $log
-	if [ "$?" == 1 ]
+	${alvs_root}/verification/venus/dp/scripts/fix_types.sh ${alvs_root}| tee -a $log
+	if [ "$?" != 0 ]
 	then
 		echo "ERROR: failed to patch environment!!!" | tee -a $log
 		return 1

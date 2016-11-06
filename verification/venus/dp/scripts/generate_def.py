@@ -3,23 +3,26 @@
 import sys
 import os
 
-alvs_root = os.path.realpath(os.getcwd() + "/../../../")
+
+alvs_root = os.path.realpath(os.path.dirname(__file__ ) + "/../../../../")
+print "***alvs root dirname " + alvs_root
 output_dir = alvs_root + "/verification/venus/dp/output/" + sys.argv[1]
 def_file = output_dir + "/" + sys.argv[1] + "_def.py"
-f = open(def_file, "w")
-
+try:
+    f = open(def_file, "w")
+except:
+    print 'cannot open', def_file
+    exit(1)
 f.write('#!/usr/bin/env python\n')
 f.write('import os\n\n')
-
 f.write('from dut_definition.dut_def import DutDefinition\n\n')
-
 f.write("dut = DutDefinition(\"alvs_dp\")\n\n")
 
 i = 1
 
 for module_name in sys.argv[1:]:
 	src_file = "%s/src/dp/%s.c" % (alvs_root , module_name)
-	unit_file = output_dir + "/model/UNIT_" + src_file.replace("/", "_").replace(".", "_") + ".unit" 
+	unit_file = output_dir + "/model/UNIT_" + src_file.replace("/", "_").replace(".", "_").replace("-","_") + ".unit" 
 	#print "src_file = %s\n" % src_file
 	#print "output_dir = %s\n" % output_dir
 	#print "unit_file = %s\n" % unit_file

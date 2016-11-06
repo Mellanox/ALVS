@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CASEDEF>
+    <global>
+        <Test>
+            <info> venus </info>
+            <name> venus </name>
+            <tags> alvs_state_sync_master </tags>
+            <owner> anat </owner>
+        </Test>
+        
+        <Case>
+            <tout>  1500 </tout>
+            <wrapper> VENUSWrapper.py </wrapper>
+        </Case>
+    </global>
+    
+    
+    <case>
+        <info> update_net_hdr_len </info>
+        <name> update_net_hdr_len </name>
+        <tags> update_net_hdr_len </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t update_net_hdr_len </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> set_net_hdr </info>
+        <name> set_net_hdr </name>
+        <tags> set_net_hdr </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_net_hdr </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    
+    <case>
+        <info> set_eth_hdr </info>
+        <name> set_eth_hdr </name>
+        <tags> set_eth_hdr </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_eth_hdr </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> update_sync_hdr_len </info>
+        <name> update_sync_hdr_len </name>
+        <tags> update_sync_hdr_len </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t update_sync_hdr_len </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> set_sync_hdr </info>
+        <name> set_sync_hdr </name>
+        <tags> set_sync_hdr </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_sync_hdr </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> set_bounded_sync_conn </info>
+        <name> set_bounded_sync_conn </name>
+        <tags> set_bounded_sync_conn </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_bounded_sync_conn </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> set_unbounded_sync_conn </info>
+        <name> set_unbounded_sync_conn </name>
+        <tags> set_unbounded_sync_conn </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_unbounded_sync_conn </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> set_sync_first </info>
+        <name> set_sync_first </name>
+        <tags> set_sync_first </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t set_sync_first </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_single_successfully </info>
+        <name> send_single_successfully </name>
+        <tags> send_single_successfully </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_single_successfully </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_single_failure </info>
+        <name> send_single_failure </name>
+        <tags> send_single_failure </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_single_failure </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> add_buffer_first_buffer_success </info>
+        <name> add_buffer_first_buffer_success </name>
+        <tags> add_buffer_first_buffer_success </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t add_buffer_first_buffer_success </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> add_buffer_first_buffer_failure </info>
+        <name> add_buffer_first_buffer_failure </name>
+        <tags> add_buffer_first_buffer_failure </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t add_buffer_first_buffer_failure </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> add_buffer_second_buffer_success </info>
+        <name> add_buffer_second_buffer_success </name>
+        <tags> add_buffer_second_buffer_success </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t add_buffer_second_buffer_success </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> add_buffer_second_buffer_failure </info>
+        <name> add_buffer_second_buffer_failure </name>
+        <tags> add_buffer_second_buffer_failure </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t add_buffer_second_buffer_failure </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_no_buffers </info>
+        <name> send_aggr_no_buffers </name>
+        <tags> send_aggr_no_buffers </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_no_buffers </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_success_one_buf_added </info>
+        <name> send_aggr_success_one_buf_added </name>
+        <tags> send_aggr_success_one_buf_added </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_success_one_buf_added </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_success_one_buf_not_added </info>
+        <name> send_aggr_success_one_buf_not_added </name>
+        <tags> send_aggr_success_one_buf_not_added </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_success_one_buf_not_added </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_fail_one_buf_not_added </info>
+        <name> send_aggr_fail_one_buf_not_added </name>
+        <tags> send_aggr_fail_one_buf_not_added </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_fail_one_buf_not_added </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_success_multiple_bufs_conns </info>
+        <name> send_aggr_success_multiple_bufs_conns </name>
+        <tags> send_aggr_success_multiple_bufs_conns </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_success_multiple_bufs_conns </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> send_aggr_fail_first_buffer </info>
+        <name> send_aggr_fail_first_buffer </name>
+        <tags> send_aggr_fail_first_buffer </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t send_aggr_fail_first_buffer </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> sync_aggr_fail_lookup_server_info </info>
+        <name> sync_aggr_fail_lookup_server_info </name>
+        <tags> sync_aggr_fail_lookup_server_info </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t sync_aggr_fail_lookup_server_info </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> sync_aggr_success_no_buffers </info>
+        <name> sync_aggr_success_no_buffers </name>
+        <tags> sync_aggr_success_no_buffers </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t sync_aggr_success_no_buffers </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> sync_aggr_success_same_buffer </info>
+        <name> sync_aggr_success_same_buffer </name>
+        <tags> sync_aggr_success_same_buffer </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t sync_aggr_success_same_buffer </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> sync_aggr_success_another_buffer </info>
+        <name> sync_aggr_success_another_buffer </name>
+        <tags> sync_aggr_success_another_buffer </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -u alvs_state_sync_master.cpp -t sync_aggr_success_another_buffer </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+</CASEDEF>

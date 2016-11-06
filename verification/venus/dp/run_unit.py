@@ -113,10 +113,10 @@ def run_unit_test(unit_test , test_case , run_make_venus, dependencies):
 	rc = os.system("./scripts/run_unit_test.sh " + src_name_without_extention + " " + unit_test + " " + test_case)
 	if rc:
 		print "\nFAIL: ./scripts/run_unit_test.sh " +  src_name_without_extention + " " + unit_test + " " + test_case + "\n"
+		return 1
 	else:
 		print "\nPASS: ./scripts/run_unit_test.sh " +  src_name_without_extention + " " + unit_test + " " + test_case + "\n"
-
-	return rc
+		return 0
 
 
 #===============================================================================
@@ -142,8 +142,7 @@ def main():
 		return run_all(options.dependencies)
 	
 	run_make_venus = True if options.no_make_venus == None else False
-
 	return run_unit_test(options.unit_test , options.test_case , run_make_venus, options.dependencies)
 
-main()
-
+rc = main()
+exit(rc)
