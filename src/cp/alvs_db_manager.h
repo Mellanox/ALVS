@@ -45,15 +45,6 @@
 void alvs_db_manager_main(bool *cancel_application_flag);
 
 /******************************************************************************
- * \brief    Constructor function for all ALVS data bases.
- *           This function is called not from the network thread but from the
- *           main thread on NPS configuration bringup.
- *
- * \return   bool - success or failure
- */
-bool alvs_db_constructor(void);
-
-/******************************************************************************
  * \brief    Raises SIGTERM signal to main thread and exits the thread.
  *           Deletes the DB manager.
  *

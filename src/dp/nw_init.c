@@ -33,7 +33,7 @@
 *  Desc:                init shared cmem
 */
 
-#include "defs.h"
+#include "nw_conf.h"
 #include "global_defs.h"
 #include "application_search_defs.h"
 
@@ -105,25 +105,6 @@ bool init_nw_shared_cmem(void)
 	if (result != 0) {
 		printf("ezdp_validate_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	/* Init application info DB */
-	result = ezdp_init_table_struct_desc(STRUCT_ID_APPLICATION_INFO,
-					     &shared_cmem_nw.app_info_struct_desc,
-					     cmem_wa.nw_wa.app_info_work_area,
-					     sizeof(cmem_wa.nw_wa.app_info_work_area));
-	if (result != 0) {
-		printf("ezdp_init_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_APPLICATION_INFO, result, ezdp_get_err_msg());
-		return false;
-	}
-
-	result = ezdp_validate_table_struct_desc(&shared_cmem_nw.app_info_struct_desc,
-						 sizeof(union application_info_result));
-	if (result != 0) {
-		printf("ezdp_validate_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
-		       STRUCT_ID_APPLICATION_INFO, result, ezdp_get_err_msg());
 		return false;
 	}
 

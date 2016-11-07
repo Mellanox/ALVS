@@ -184,6 +184,25 @@ bool init_alvs_shared_cmem(void)
 		return false;
 	}
 
+	/* Init application info DB */
+	result = ezdp_init_table_struct_desc(STRUCT_ID_APPLICATION_INFO,
+					     &shared_cmem_alvs.app_info_struct_desc,
+					     cmem_wa.alvs_wa.app_info_work_area,
+					     sizeof(cmem_wa.alvs_wa.app_info_work_area));
+	if (result != 0) {
+		printf("ezdp_init_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
+		       STRUCT_ID_APPLICATION_INFO, result, ezdp_get_err_msg());
+		return false;
+	}
+
+	result = ezdp_validate_table_struct_desc(&shared_cmem_alvs.app_info_struct_desc,
+						 sizeof(union application_info_result));
+	if (result != 0) {
+		printf("ezdp_validate_table_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
+		       STRUCT_ID_APPLICATION_INFO, result, ezdp_get_err_msg());
+		return false;
+	}
+
 	return true;
 }
 
@@ -197,7 +216,7 @@ bool init_alvs_private_cmem(void)
 {
 
 	cmem_alvs.conn_spinlock.addr.mem_type = EZDP_EXTERNAL_MS;
-	cmem_alvs.conn_spinlock.addr.msid     = EMEM_SPINLOCK_MSID;
+	cmem_alvs.conn_spinlock.addr.msid     = ALVS_EMEM_DATA_OUT_OF_BAND_MSID;
 	/*init state sync*/
 	cmem_alvs.conn_sync_state.conn_sync_status = ALVS_CONN_SYNC_NO_NEED;
 	cmem_alvs.conn_sync_state.amount_buffers = 0;
@@ -216,7 +235,7 @@ bool init_alvs_emem(void)
 
 	ezdp_mem_set(&addr, 0x0, sizeof(struct ezdp_ext_addr));
 	addr.mem_type = EZDP_EXTERNAL_MS;
-	addr.msid     = EMEM_SPINLOCK_MSID;
+	addr.msid     = ALVS_EMEM_DATA_OUT_OF_BAND_MSID;
 
 	for (id = 0; id < ALVS_CONN_LOCK_ELEMENTS_COUNT; id++) {
 		ezdp_init_spinlock_ext_addr(&conn_spinlock, &addr);

@@ -36,9 +36,19 @@
 #ifndef ALVS_UTILS_H_
 #define ALVS_UTILS_H_
 
-#include "defs.h"
-#include "nw_utils.h"
+#include "anl_log.h"
+#include "alvs_conf.h"
 #include "alvs_search_defs.h"
+
+/******************************************************************************
+ * \brief         perform application info lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t alvs_app_info_lookup(uint32_t key, void __cmem * entry_ptr, uint32_t entry_ptr_size)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_alvs.app_info_struct_desc, key, entry_ptr, entry_ptr_size, 0);
+}
 
 /******************************************************************************
  * \brief         get the amount of aging iterations for alvs connection state.
@@ -68,8 +78,9 @@ int alvs_util_get_conn_iterations(enum alvs_tcp_conn_state alvs_state)
 static __always_inline
 int alvs_util_app_info_lookup(void)
 {
-	return nw_app_info_lookup(ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
-					sizeof(struct alvs_app_info_result));
+	return alvs_app_info_lookup(ALVS_APPLICATION_INFO_INDEX,
+				    &cmem_wa.alvs_wa.alvs_app_info_result,
+				    sizeof(struct alvs_app_info_result));
 }
 
 /******************************************************************************
@@ -138,8 +149,8 @@ static __always_inline
 void alvs_update_discard_statistics(enum alvs_error_stats_offsets error_id)
 {
 	ezdp_sum_addr_t addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-					      EMEM_ALVS_ERROR_STATS_POSTED_MSID,
-					      EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + error_id);
+					      ALVS_POSTED_STATS_MSID,
+					      ALVS_ERROR_STATS_POSTED_OFFSET + error_id);
 
 	ezdp_add_posted_ctr(addr, 1);
 }

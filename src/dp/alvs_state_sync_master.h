@@ -234,7 +234,7 @@ void alvs_state_sync_send_single(in_addr_t source_ip, uint8_t sync_id)
 	}
 
 	anl_write_log(LOG_DEBUG, "send single conn sync frame");
-	nw_mc_handle(&frame, USER_NW_BASE_LOGICAL_ID);
+	nw_mc_handle(&frame, NW_BASE_LOGICAL_ID);
 }
 
 /******************************************************************************
@@ -340,7 +340,7 @@ void alvs_state_sync_send_aggr(void)
 	}
 
 	anl_write_log(LOG_DEBUG, "send aggregated sync MC frame (conn_count = %d)", cmem_alvs.conn_sync_state.conn_count);
-	nw_mc_handle(&frame, USER_NW_BASE_LOGICAL_ID);
+	nw_mc_handle(&frame, NW_BASE_LOGICAL_ID);
 }
 
 /******************************************************************************

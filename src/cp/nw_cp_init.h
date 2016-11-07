@@ -30,23 +30,40 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                application_infra.h
-*  Desc:                application_infra API.
+*  File:                nw_cp_init.h
+*  Desc:                Network initializations API.
 *
 */
 
-
-#ifndef APPLICATION_INFRA_H_
-#define APPLICATION_INFRA_H_
+#ifndef _NW_CP_INIT_H_
+#define _NW_CP_INIT_H_
 
 #include <stdbool.h>
 
+
 /**************************************************************************//**
- * \brief       Create application info table data structure
+ * \brief       Initialize protocol decode profile with my MAC
  *
  * \return      bool - success or failure
  */
+bool nw_initialize_protocol_decode(void);
 
-bool application_info_db_constructor(void);
+/**************************************************************************//**
+ * \brief       Initialize all statistics counter to be zero
+ *
+ * \return      bool - success or failure
+ */
+bool nw_initialize_statistics(void);
 
-#endif /* APPLICATION_INFRA_H_ */
+/******************************************************************************
+ * \brief    Constructor function for all network data bases.
+ *           this function is called not from the network thread but from the
+ *           main thread on NPS configuration bringup.
+ *
+ * \return   bool - success or failure
+ */
+bool nw_db_constructor(void);
+
+
+
+#endif /* _NW_CP_INIT_H_ */

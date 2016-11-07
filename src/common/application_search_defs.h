@@ -35,8 +35,8 @@
 *
 */
 
-#ifndef APPLICATION_SEARCH_DEFS_H_
-#define APPLICATION_SEARCH_DEFS_H_
+#ifndef _APPLICATION_SEARCH_DEFS_H_
+#define _APPLICATION_SEARCH_DEFS_H_
 
 /*********************************
  * includes & defines
@@ -60,27 +60,11 @@ struct application_info_key {
 CASSERT(sizeof(struct application_info_key) == 1);
 
 
-/*result*/
-struct application_info {
-#ifdef NPS_BIG_ENDIAN
-	unsigned	/*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
-	unsigned	/*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned	/*reserved*/ : 4;
-#else
-	unsigned	/*reserved*/ : 4;
-	unsigned	/*reserved*/ : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned	/*reserved*/ : EZDP_LOOKUP_PARITY_BITS_SIZE;
-#endif
-	/*byte1-15*/
-	uint8_t		reserverd[15];
-};
-
 union application_info_result {
 	struct alvs_app_info_result	alvs_app;
-	struct application_info		app_info;
 };
 
 CASSERT(sizeof(union application_info_result) == 16);
 
 
-#endif /* APPLICATION_SEARCH_DEFS_H_ */
+#endif /* _APPLICATION_SEARCH_DEFS_H_ */

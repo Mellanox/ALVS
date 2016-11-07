@@ -44,11 +44,11 @@ const char *nw_if_posted_stats_offsets_names[] = {
 	"UNKNOWN_FIB_RESULT",			/* 11 */
 	"FAIL_STORE_BUF",			/* 12 */
 	"FAIL_GET_MAC_ADDR",			/* 13 */
-	"FAIL_LAG_GROUP_LOOKUP",		/* 14 */
-	"DISABLE_LAG_GROUP_DROPS",		/* 15 */
-	"DISABLE_IF_EGRESS_DROPS",		/* 16 */
-	"DISABLE_IF_INGRESS_DROPS",		/* 17 */
-	"",					/* 18 */
+	"FAIL_SET_ETH_HEADER",			/* 14 */
+	"FAIL_LAG_GROUP_LOOKUP",		/* 15 */
+	"DISABLE_LAG_GROUP_DROPS",		/* 16 */
+	"DISABLE_IF_EGRESS_DROPS",		/* 17 */
+	"DISABLE_IF_INGRESS_DROPS",		/* 18 */
 	"",					/* 19 */
 };
 

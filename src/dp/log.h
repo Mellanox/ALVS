@@ -40,7 +40,7 @@
 #include "syslog.h"
 #include <ezdp.h>
 #include <ezframe.h>
-#include "defs.h"
+#include "alvs_defs.h"
 
 #define MIN(x, y) (((x) <= (y)) ? (x) : (y))
 

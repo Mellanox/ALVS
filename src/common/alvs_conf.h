@@ -1,0 +1,226 @@
+/* Copyright (c) 2016 Mellanox Technologies, Ltd. All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright
+*    notice, this list of conditions and the following disclaimer.
+* 2. Redistributions in binary form must reproduce the above copyright
+*    notice, this list of conditions and the following disclaimer in the
+*    documentation and/or other materials provided with the distribution.
+* 3. Neither the names of the copyright holders nor the names of its
+*    contributors may be used to endorse or promote products derived from
+*    this software without specific prior written permission.
+*
+* Alternatively, this software may be distributed under the terms of the
+* GNU General Public License ("GPL") version 2 as published by the Free
+* Software Foundation.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef _ALVS_CONF_H_
+#define _ALVS_CONF_H_
+
+#include "nw_conf.h"
+
+
+
+/*
+ * External MSIDs
+ */
+enum alvs_external_msid {
+	ALVS_POSTED_STATS_MSID = NW_POSTED_STATS_MSID,
+	ALVS_ON_DEMAND_STATS_MSID = NW_ON_DEMAND_STATS_MSID,
+	ALVS_EMEM_SEARCH_0_MSID = NUM_OF_NW_EXTERNAL_MSIDS,
+	ALVS_EMEM_SEARCH_1_MSID,
+	ALVS_EMEM_SEARCH_2_MSID,
+	ALVS_EMEM_DATA_OUT_OF_BAND_MSID,
+	NUM_OF_ALVS_EXTERNAL_MSIDS
+};
+
+
+
+
+/*
+ * Memory configuration
+ */
+#ifdef CONFIG_ALVS
+#	define ALVS_HALF_CLUSTER_SEARCH_SIZE    0
+#	define ALVS_1_CLUSTER_SEARCH_SIZE       7    /* TODO - Can be reduced */
+#	define ALVS_2_CLUSTER_SEARCH_SIZE       0
+#	define ALVS_4_CLUSTER_SEARCH_SIZE       4    /* TODO - Can be reduced */
+#	define ALVS_16_CLUSTER_SEARCH_SIZE      0
+#	define ALVS_ALL_CLUSTER_SEARCH_SIZE     0
+
+#	define ALVS_HALF_CLUSTER_DATA_SIZE      0
+#	define ALVS_1_CLUSTER_DATA_SIZE         0
+#	define ALVS_2_CLUSTER_DATA_SIZE         0
+#	define ALVS_4_CLUSTER_DATA_SIZE         0
+#	define ALVS_16_CLUSTER_DATA_SIZE        0
+#	define ALVS_ALL_CLUSTER_DATA_SIZE       1
+
+#	define ALVS_EMEM_SEARCH_0_SIZE          3584
+#	define ALVS_EMEM_SEARCH_1_SIZE          3500
+#	define ALVS_EMEM_SEARCH_2_SIZE          1024
+
+#	define ALVS_EMEM_DATA_OUT_OF_BAND_SIZE  256
+#else
+#	define ALVS_HALF_CLUSTER_SEARCH_SIZE    0
+#	define ALVS_1_CLUSTER_SEARCH_SIZE       0
+#	define ALVS_2_CLUSTER_SEARCH_SIZE       0
+#	define ALVS_4_CLUSTER_SEARCH_SIZE       0
+#	define ALVS_16_CLUSTER_SEARCH_SIZE      0
+#	define ALVS_ALL_CLUSTER_SEARCH_SIZE     0
+
+#	define ALVS_HALF_CLUSTER_DATA_SIZE      0
+#	define ALVS_1_CLUSTER_DATA_SIZE         0
+#	define ALVS_2_CLUSTER_DATA_SIZE         0
+#	define ALVS_4_CLUSTER_DATA_SIZE         0
+#	define ALVS_16_CLUSTER_DATA_SIZE        0
+#	define ALVS_ALL_CLUSTER_DATA_SIZE       0
+#endif
+
+
+#define ALVS_CONN_LOCK_ELEMENTS_COUNT (256 * 1024)
+
+/* EMEM out of band offsets */
+#define ALVS_SPINLOCK_OFFSET          0x0
+
+#define ALVS_SERVER_FLAGS_OFFSET      (ALVS_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT)
+#define ALVS_SERVER_FLAGS_OFFSET_CP   (ALVS_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT * 4) /*TODO - change to sizeof()*/
+
+
+
+/*
+ * Statistics configuration
+ */
+
+enum alvs_service_posted_stats_offsets {
+	ALVS_SERVICE_STATS_IN_PKTS_BYTES_OFFSET       = 0,
+	ALVS_SERVICE_STATS_OUT_PKTS_BYTES_OFFSET      = 2,
+	ALVS_SERVICE_STATS_CONN_SCHED_OFFSET          = 4,
+	ALVS_SERVICE_STATS_REFCNT_OFFSET              = 5,
+	ALVS_NUM_OF_SERVICE_STATS                     = 6
+};
+
+enum alvs_server_posted_stats_offsets {
+	ALVS_SERVER_STATS_IN_PKTS_BYTES_OFFSET        = 0,
+	ALVS_SERVER_STATS_OUT_PKTS_BYTES_OFFSET       = 2,
+	ALVS_SERVER_STATS_CONN_SCHED_OFFSET           = 4,
+	ALVS_SERVER_STATS_REFCNT_OFFSET               = 5,
+	ALVS_SERVER_STATS_INACTIVE_CONN_OFFSET        = 6,
+	ALVS_SERVER_STATS_ACTIVE_CONN_OFFSET          = 7,
+	ALVS_NUM_OF_SERVER_STATS                      = 8
+};
+enum alvs_server_on_demand_stats_offsets {
+	ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET = 0,
+	ALVS_NUM_OF_SERVER_ON_DEMAND_STATS
+};
+
+enum alvs_error_stats_offsets {
+	ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO        = 0,
+	ALVS_ERROR_CANT_EXPIRE_CONNECTION          = 1,
+	ALVS_ERROR_CANT_UPDATE_CONNECTION_STATE    = 2,
+	ALVS_ERROR_CONN_INFO_LKUP_FAIL             = 3,
+	ALVS_ERROR_CONN_CLASS_ALLOC_FAIL           = 4,
+	ALVS_ERROR_CONN_INFO_ALLOC_FAIL            = 5,
+	ALVS_ERROR_CONN_INDEX_ALLOC_FAIL           = 6,
+	ALVS_ERROR_SERVICE_CLASS_LKUP_FAIL         = 7,
+	ALVS_ERROR_SCHEDULING_FAIL                 = 8,
+	ALVS_ERROR_SERVER_INFO_LKUP_FAIL           = 9,
+	ALVS_ERROR_SERVER_IS_UNAVAILABLE           = 10,
+	ALVS_ERROR_SERVER_INDEX_LKUP_FAIL          = 11,
+	ALVS_ERROR_CONN_CLASS_LKUP_FAIL            = 12,
+	ALVS_ERROR_SERVICE_INFO_LOOKUP             = 13,
+	ALVS_ERROR_UNSUPPORTED_SCHED_ALGO          = 14,
+	ALVS_ERROR_CANT_MARK_DELETE                = 15,
+	ALVS_ERROR_DEST_SERVER_IS_NOT_AVAIL        = 16,
+	ALVS_ERROR_SEND_FRAME_FAIL                 = 17,
+	ALVS_ERROR_CONN_MARK_TO_DELETE             = 18,
+	ALVS_ERROR_SERVICE_CLASS_LOOKUP            = 19,
+	ALVS_ERROR_UNSUPPORTED_PROTOCOL            = 20,
+	ALVS_ERROR_NO_ACTIVE_SERVERS               = 21,
+	ALVS_ERROR_CREATE_CONN_MEM_ERROR           = 22,
+	ALVS_ERROR_STATE_SYNC                      = 23,
+	ALVS_ERROR_STATE_SYNC_LOOKUP_FAIL          = 24,
+	ALVS_ERROR_STATE_SYNC_BACKUP_DOWN          = 25,
+	ALVS_ERROR_STATE_SYNC_BAD_HEADER_SIZE      = 26,
+	ALVS_ERROR_STATE_SYNC_BACKUP_NOT_MY_SYNCID = 27,
+	ALVS_ERROR_STATE_SYNC_BAD_BUFFER           = 28,
+	ALVS_ERROR_STATE_SYNC_DECODE_CONN          = 29,
+	ALVS_ERROR_STATE_SYNC_BAD_MESSAGE_VERSION  = 30,
+	ALVS_NUM_OF_ALVS_ERROR_STATS               = 40 /* MUST BE EVEN! */
+};
+
+
+/* Posted Statistics offsets */
+#define ALVS_ERROR_STATS_POSTED_OFFSET    NW_POSTED_STATS_LAST_OFFSET
+#define ALVS_SERVICE_STATS_POSTED_OFFSET  (ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS)
+#define ALVS_SERVER_STATS_POSTED_OFFSET   (ALVS_SERVICE_STATS_POSTED_OFFSET + ALVS_SERVICES_MAX_ENTRIES * ALVS_NUM_OF_SERVICE_STATS)
+#ifdef CONFIG_ALVS
+#	define ALVS_TOTAL_POSTED_STATS    (ALVS_NUM_OF_ALVS_ERROR_STATS + ALVS_SERVICES_MAX_ENTRIES * ALVS_NUM_OF_SERVICE_STATS + ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVER_STATS)
+#else
+#	define ALVS_TOTAL_POSTED_STATS    0
+#endif
+
+/* On demand Statistics offsets */
+#define ALVS_SERVER_STATS_ON_DEMAND_OFFSET           NW_ON_DENAMD_STATS_LAST_OFFSET
+#ifdef CONFIG_ALVS
+#	define ALVS_TOTAL_ON_DEMAND_STATS            (ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS)
+#else
+#	define ALVS_TOTAL_ON_DEMAND_STATS            0
+#endif
+
+
+/*
+ * Structures configuration
+ */
+enum alvs_struct_id {
+	STRUCT_ID_ALVS_CONN_CLASSIFICATION     = NUM_OF_NW_STRUCT_IDS,
+	STRUCT_ID_ALVS_CONN_INFO,
+	STRUCT_ID_ALVS_SERVICE_CLASSIFICATION,
+	STRUCT_ID_ALVS_SERVICE_INFO,
+	STRUCT_ID_ALVS_SCHED_INFO,
+	STRUCT_ID_ALVS_SERVER_INFO,
+	STRUCT_ID_ALVS_SERVER_CLASSIFICATION,
+	STRUCT_ID_APPLICATION_INFO,
+	NUM_OF_ALVS_STRUCT_IDS
+};
+
+#define ALVS_SIZE_OF_SCHED_BUCKET   256
+
+#define ALVS_CONN_MAX_ENTRIES       (64*1024*1024)
+#define ALVS_SERVICES_MAX_ENTRIES   256
+#define ALVS_SCHED_MAX_ENTRIES      (ALVS_SERVICES_MAX_ENTRIES * ALVS_SIZE_OF_SCHED_BUCKET)
+#define ALVS_SERVERS_MAX_ENTRIES    (ALVS_SERVICES_MAX_ENTRIES * 1024)
+
+
+
+/* Timer configuration */
+#define ALVS_TIMER_LOGICAL_ID                   96
+#define ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB   128
+#define ALVS_AGING_TIMER_EVENTS_PER_ITERATION   (ALVS_CONN_MAX_ENTRIES / ALVS_AGING_TIMER_SCAN_ENTRIES_PER_JOB)
+
+
+
+/* Index pool configuration */
+enum alvs_index_pool_id {
+	ALVS_CONN_HASH_SIG_PAGE_POOL_ID = 0,
+	ALVS_CONN_HASH_RESULT_POOL_ID,
+	ALVS_CONN_TABLE_POOL_ID,
+	NUM_OF_ALVS_INDEX_POOL_IDS
+};
+
+
+#endif /* _ALVS_CONF_H_ */

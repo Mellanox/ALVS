@@ -49,22 +49,16 @@
 
 #include "log.h"
 #include "infrastructure.h"
-#include "alvs_db_manager.h"
-#include "nw_db_manager.h"
-#include "defs.h"
-#include "user_defs.h"
-#include "application_infra.h"
-#include "alvs_search_defs.h"
-#include "cfg.h"
+#include "nw_cp_init.h"
+#include "alvs_cp_init.h"
 
-extern EZapiChannel_EthIFType port_type;
+#include "alvs_conf.h"
+#include "nw_conf.h"
+
+#include "cfg.h"
 
 EZagtRPCServer host_server;
 
-/* Token bucket */
-#define ALVS_TB_PROFILE_0_CIR_RESOLUTION EZapiStat_TBProfileResolution_1_BYTE
-#define ALVS_TB_PROFILE_0_CIR            0x40000000
-#define ALVS_TB_PROFILE_0_CBS            0x40000000
 
 /* AGT port */
 #define INFRA_AGT_PORT              1234
@@ -105,6 +99,7 @@ EZagtRPCServer host_server;
 #define INFRA_REMOTE_IF_3_SIDE     0
 #define INFRA_REMOTE_IF_3_PORT     36
 
+
 /*! interface configuration parameters possible values. */
 enum infra_interface_params {
 	INFRA_INTERFACE_PARAMS_SIDE             = 0,
@@ -112,50 +107,8 @@ enum infra_interface_params {
 	INFRA_NUM_OF_INTERFACE_PARAMS
 };
 
-/*! IMEM spaces configuration parameters possible values. */
-enum infra_imem_spaces_params {
-	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
-	INFRA_IMEM_SPACES_PARAMS_SIZE               = 1,
-	INFRA_IMEM_SPACES_PARAMS_INDEX              = 2,
-	INFRA_IMEM_SPACES_PARAMS_HEAP               = 3,
-	INFRA_NUM_OF_IMEM_SPACES_PARAMS
-};
-
-/*! EMEM spaces configuration parameters possible values. */
-enum infra_emem_spaces_params {
-	INFRA_EMEM_SPACES_PARAMS_TYPE               = 0,
-	INFRA_EMEM_SPACES_PARAMS_PROTECTION         = 1,
-	INFRA_EMEM_SPACES_PARAMS_SIZE               = 2,
-	INFRA_EMEM_SPACES_PARAMS_MSID               = 3,
-	INFRA_EMEM_SPACES_PARAMS_INDEX              = 4,
-	INFRA_EMEM_SPACES_PARAMS_HEAP               = 5,
-	INFRA_NUM_OF_EMEM_SPACES_PARAMS
-};
-
-/* Memory spaces */
-#define INFRA_X1_CLUSTER_CODE_SIZE          90
-#define INFRA_ALL_CLUSTER_CODE_SIZE         256
-#define INFRA_ALL_CLUSTER_DATA_SIZE         1
-#define INFRA_X1_CLUSTER_SEARCH_SIZE        12    /* can be lower than 12KB, need to test */
-#define INFRA_X4_CLUSTER_SEARCH_SIZE        516
-
-#define INFRA_EMEM_SEARCH_HASH_SIZE         (3584)
-#define INFRA_EMEM_SEARCH_1_TABLE_SIZE      (3500)
-#define INFRA_EMEM_SEARCH_2_TABLE_SIZE      (1*1024)
-
-#define INFRA_EMEM_DATA_OUT_OF_BAND_SIZE    256
-
-#define NUM_OF_INT_MEMORY_SPACES            5
-#define NUM_OF_EXT_MEMORY_SPACES            4
-
-/* Search MSIDs */
-#define EMEM_SEARCH_HASH_MSID              0x0
-#define EMEM_SEARCH_TABLE_MSID             0x1
-#define EMEM_SEARCH_1_TABLE_MSID	   0x7
-#define EMEM_SEARCH_2_TABLE_MSID	   0x8
-
 /* Network Interfaces Array */
-uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
+uint32_t network_interface_params[NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
 		{INFRA_NW_IF_1_SIDE, INFRA_NW_IF_1_PORT},
 		{INFRA_NW_IF_2_SIDE, INFRA_NW_IF_2_PORT},
@@ -163,46 +116,14 @@ uint32_t network_interface_params[USER_NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS]
 };
 
 /* Remote Interfaces Array */
-uint32_t remote_interface_params[USER_REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
+uint32_t remote_interface_params[REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_REMOTE_IF_0_SIDE, INFRA_REMOTE_IF_0_PORT},
 		{INFRA_REMOTE_IF_1_SIDE, INFRA_REMOTE_IF_1_PORT},
 		{INFRA_REMOTE_IF_2_SIDE, INFRA_REMOTE_IF_2_PORT},
 		{INFRA_REMOTE_IF_3_SIDE, INFRA_REMOTE_IF_3_PORT}
 };
 
-uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
-	{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_X1_CLUSTER_CODE_SIZE, 0, INFRA_NOT_VALID_HEAP},
-	{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_X1_CLUSTER_SEARCH_SIZE, 0, INFRA_X1_CLUSTER_SEARCH_HEAP},
-	{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_X4_CLUSTER_SEARCH_SIZE, 0, INFRA_X4_CLUSTER_SEARCH_HEAP},
-	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, 0, INFRA_NOT_VALID_HEAP},
-	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, 0, INFRA_NOT_VALID_HEAP}
-};
 
-uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
-	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_HASH_SIZE, EMEM_SEARCH_HASH_MSID, 0, INFRA_EMEM_SEARCH_HASH_HEAP},
-	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_1_TABLE_SIZE, EMEM_SEARCH_1_TABLE_MSID, 0, INFRA_EMEM_SEARCH_1_TABLE_HEAP},
-	{EZapiChannel_ExtMemSpaceType_SEARCH, 0, INFRA_EMEM_SEARCH_2_TABLE_SIZE, EMEM_SEARCH_2_TABLE_MSID, 0, INFRA_EMEM_SEARCH_2_TABLE_HEAP},
-	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, INFRA_EMEM_DATA_OUT_OF_BAND_SIZE, EMEM_SPINLOCK_MSID, 0, INFRA_NOT_VALID_HEAP}
-};
-
-/**************************************************************************//**
- * \brief       get search memory heap type according to index
- *
- * \param[in]   memory_area       - index of the memory area
-  *
- * \return      bool - external memory true, otherwise false
- */
-bool is_external_search_memory_heap(enum infra_search_mem_heaps memory_area)
-{
-	switch (memory_area) {
-	case INFRA_EMEM_SEARCH_HASH_HEAP:
-	case INFRA_EMEM_SEARCH_1_TABLE_HEAP:
-	case INFRA_EMEM_SEARCH_2_TABLE_HEAP:
-		return true;
-	default:
-		return false;
-	}
-}
 /**************************************************************************//**
  * \brief       Create an interface on <side> and <port> with <type> and
  *              <logical_id>
@@ -293,22 +214,22 @@ bool infra_create_if_mapping(void)
 	uint32_t ind;
 
 	/* Configure network interfaces */
-	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
+	for (ind = 0; ind < NW_IF_NUM; ind++) {
 		if (infra_create_intetface(network_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 				network_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
 				system_cfg_get_port_type(),
-				USER_NW_BASE_LOGICAL_ID + ind) == false) {
+				NW_BASE_LOGICAL_ID + ind) == false) {
 			return false;
 		}
 	}
 
 	if (system_cfg_is_remote_control_en() == true) {
 		/* Configure remote interfaces */
-		for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
+		for (ind = 0; ind < REMOTE_IF_NUM; ind++) {
 			if (infra_create_intetface(remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
-						   remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
-						   system_cfg_get_port_type(),
-						   USER_REMOTE_BASE_LOGICAL_ID + ind) == false) {
+					remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
+					system_cfg_get_port_type(),
+					REMOTE_BASE_LOGICAL_ID + ind) == false) {
 				return false;
 			}
 		}
@@ -318,36 +239,122 @@ bool infra_create_if_mapping(void)
 	if (infra_create_intetface(INFRA_HOST_IF_SIDE,
 			INFRA_HOST_IF_PORT,
 			EZapiChannel_EthIFType_10GE,
-			USER_HOST_LOGICAL_ID) == false) {
+			HOST_LOGICAL_ID) == false) {
 		return false;
 	}
 
 	return true;
 }
 
-/**************************************************************************//**
- * \brief       Allocate the next IMEM index
- *
- * \return      The next available index
- */
-uint32_t get_imem_index(void)
-{
-	static uint32_t index;
 
-	return index++;
+/*! IMEM spaces configuration parameters possible values. */
+enum infra_imem_spaces_params {
+	INFRA_IMEM_SPACES_PARAMS_TYPE               = 0,
+	INFRA_IMEM_SPACES_PARAMS_SIZE               = 1,
+	INFRA_IMEM_SPACES_PARAMS_HEAP               = 2,
+	INFRA_NUM_OF_IMEM_SPACES_PARAMS
+};
+
+/*! EMEM spaces configuration parameters possible values. */
+enum infra_emem_spaces_params {
+	INFRA_EMEM_SPACES_PARAMS_TYPE               = 0,
+	INFRA_EMEM_SPACES_PARAMS_PROTECTION         = 1,
+	INFRA_EMEM_SPACES_PARAMS_SIZE               = 2,
+	INFRA_EMEM_SPACES_PARAMS_MSID               = 3,
+	INFRA_EMEM_SPACES_PARAMS_HEAP               = 4,
+	INFRA_NUM_OF_EMEM_SPACES_PARAMS
+};
+
+
+#define INFRA_HALF_CLUSTER_CODE_SIZE          0
+#define INFRA_1_CLUSTER_CODE_SIZE             90
+#define INFRA_2_CLUSTER_CODE_SIZE             0
+#define INFRA_4_CLUSTER_CODE_SIZE             0
+#define INFRA_16_CLUSTER_CODE_SIZE            0
+#define INFRA_ALL_CLUSTER_CODE_SIZE           256
+
+
+#define NUM_OF_INT_MEMORY_SPACES            18
+#ifdef CONFIG_ALVS
+#	define NUM_OF_EXT_MEMORY_SPACES            5
+#else
+#	define NUM_OF_EXT_MEMORY_SPACES            1
+#endif
+
+#define INFRA_HALF_CLUSTER_SEARCH_SIZE (NW_HALF_CLUSTER_SEARCH_SIZE + ALVS_HALF_CLUSTER_SEARCH_SIZE)
+#define INFRA_1_CLUSTER_SEARCH_SIZE (NW_1_CLUSTER_SEARCH_SIZE + ALVS_1_CLUSTER_SEARCH_SIZE)
+#define INFRA_2_CLUSTER_SEARCH_SIZE (NW_2_CLUSTER_SEARCH_SIZE + ALVS_2_CLUSTER_SEARCH_SIZE)
+#define INFRA_4_CLUSTER_SEARCH_SIZE (NW_4_CLUSTER_SEARCH_SIZE + ALVS_4_CLUSTER_SEARCH_SIZE)
+#define INFRA_16_CLUSTER_SEARCH_SIZE (NW_16_CLUSTER_SEARCH_SIZE + ALVS_16_CLUSTER_SEARCH_SIZE)
+#define INFRA_ALL_CLUSTER_SEARCH_SIZE (NW_ALL_CLUSTER_SEARCH_SIZE + ALVS_ALL_CLUSTER_SEARCH_SIZE)
+
+#define INFRA_HALF_CLUSTER_DATA_SIZE (NW_HALF_CLUSTER_DATA_SIZE + ALVS_HALF_CLUSTER_DATA_SIZE)
+#define INFRA_1_CLUSTER_DATA_SIZE (NW_1_CLUSTER_DATA_SIZE + ALVS_1_CLUSTER_DATA_SIZE)
+#define INFRA_2_CLUSTER_DATA_SIZE (NW_2_CLUSTER_DATA_SIZE + ALVS_2_CLUSTER_DATA_SIZE)
+#define INFRA_4_CLUSTER_DATA_SIZE (NW_4_CLUSTER_DATA_SIZE + ALVS_4_CLUSTER_DATA_SIZE)
+#define INFRA_16_CLUSTER_DATA_SIZE (NW_16_CLUSTER_DATA_SIZE + ALVS_16_CLUSTER_DATA_SIZE)
+#define INFRA_ALL_CLUSTER_DATA_SIZE (NW_ALL_CLUSTER_DATA_SIZE + ALVS_ALL_CLUSTER_DATA_SIZE)
+
+
+uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
+	{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_CODE, INFRA_HALF_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_DATA, INFRA_HALF_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_HALF_CLUSTER_SEARCH, INFRA_HALF_CLUSTER_SEARCH_SIZE, INFRA_HALF_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_CODE, INFRA_1_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_DATA, INFRA_1_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_1_CLUSTER_SEARCH, INFRA_1_CLUSTER_SEARCH_SIZE, INFRA_1_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_2_CLUSTER_CODE, INFRA_2_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_2_CLUSTER_DATA, INFRA_2_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_2_CLUSTER_SEARCH, INFRA_2_CLUSTER_SEARCH_SIZE, INFRA_2_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_4_CLUSTER_CODE, INFRA_4_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_4_CLUSTER_DATA, INFRA_4_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_4_CLUSTER_SEARCH, INFRA_4_CLUSTER_SEARCH_SIZE, INFRA_4_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_16_CLUSTER_CODE, INFRA_16_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_16_CLUSTER_DATA, INFRA_16_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_16_CLUSTER_SEARCH, INFRA_16_CLUSTER_SEARCH_SIZE, INFRA_16_CLUSTER_SEARCH_HEAP},
+	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_CODE, INFRA_ALL_CLUSTER_CODE_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_DATA, INFRA_ALL_CLUSTER_DATA_SIZE, INFRA_NOT_VALID_INTERNAL_HEAP},
+	{EZapiChannel_IntMemSpaceType_ALL_CLUSTER_SEARCH, INFRA_ALL_CLUSTER_SEARCH_SIZE, INFRA_ALL_CLUSTER_SEARCH_HEAP}
+};
+
+
+uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, NW_EMEM_SEARCH_SIZE, NW_EMEM_SEARCH_MSID, NW_EMEM_SEARCH_0_HEAP},
+#ifdef CONFIG_ALVS
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_0_SIZE, ALVS_EMEM_SEARCH_0_MSID, ALVS_EMEM_SEARCH_0_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_1_SIZE, ALVS_EMEM_SEARCH_1_MSID, ALVS_EMEM_SEARCH_1_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_2_SIZE, ALVS_EMEM_SEARCH_2_MSID, ALVS_EMEM_SEARCH_2_HEAP},
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, ALVS_EMEM_DATA_OUT_OF_BAND_SIZE, ALVS_EMEM_DATA_OUT_OF_BAND_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP}
+#endif
+};
+
+
+uint32_t infra_index_of_heap(uint32_t search_mem_heap,
+			     bool is_external)
+{
+	uint32_t ind;
+
+	if (is_external) {
+		for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
+			if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
+				write_log(LOG_DEBUG, "Found index %d for search_mem_heap=%d in EMEM", emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID], search_mem_heap);
+				return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID];
+			}
+		}
+	} else {
+		for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
+			if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
+				write_log(LOG_DEBUG, "Found index %d for search_mem_heap=%d in IMEM", imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE], search_mem_heap);
+				return imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE];
+			}
+		}
+	}
+
+	/* Should not get here */
+	write_log(LOG_CRIT, "Should not get here (with search_mem_heap=%d)", search_mem_heap);
+	return 0;
 }
 
-/**************************************************************************//**
- * \brief       Allocate the next EMEM index
- *
- * \return      The next available index
- */
-uint32_t get_emem_index(void)
-{
-	static uint32_t index;
-
-	return index++;
-}
 
 /**************************************************************************//**
  * \brief       Create memory partition,
@@ -369,8 +376,8 @@ bool infra_create_mem_partition(void)
 		if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_SIZE] > 0) {
 			memset(&int_mem_space_params, 0, sizeof(int_mem_space_params));
 
-			/* Allocate next available index in IMEM */
-			int_mem_space_params.uiIndex = get_imem_index();
+			/* Index is type(=MSID) */
+			int_mem_space_params.uiIndex = imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE];
 
 			/* get default settings for the memory space */
 			ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIntMemSpaceParams, &int_mem_space_params);
@@ -389,9 +396,7 @@ bool infra_create_mem_partition(void)
 				return false;
 			}
 
-			/* Keep index in imem_spaces_params */
-			imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX] = int_mem_space_params.uiIndex;
-			write_log(LOG_DEBUG, "IMEM %d is in index %d size %d", ind, int_mem_space_params.uiIndex, int_mem_space_params.uiSize);
+			write_log(LOG_DEBUG, "IMEM[%d] = {index %d, size %d}", ind, int_mem_space_params.uiIndex, int_mem_space_params.uiSize);
 		}
 	}
 
@@ -401,8 +406,8 @@ bool infra_create_mem_partition(void)
 		if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_SIZE] > 0) {
 			memset(&ext_mem_space_params, 0, sizeof(ext_mem_space_params));
 
-			/* Allocate next available index in IMEM */
-			ext_mem_space_params.uiIndex = get_emem_index();
+			/* Index is MSID */
+			ext_mem_space_params.uiIndex = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID];
 
 			/* get default settings for the memory space */
 			ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetExtMemSpaceParams, &ext_mem_space_params);
@@ -425,62 +430,26 @@ bool infra_create_mem_partition(void)
 				return false;
 			}
 
-			/* Keep index in imem_spaces_params */
-			emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX] = ext_mem_space_params.uiIndex;
-			write_log(LOG_DEBUG, "EMEM %d is in index %d and MSID %d.", ind, ext_mem_space_params.uiIndex, ext_mem_space_params.uiMSID);
+			write_log(LOG_DEBUG, "EMEM[%d] = {msid=%d, size=%d}.", ind, ext_mem_space_params.uiMSID, ext_mem_space_params.uiSize);
 		}
 	}
 
 	return true;
 }
 
-/**************************************************************************//**
- * \brief       Configure protocol decode profile with my MAC
- *
- * \return      bool - success or failure
- */
-bool infra_configure_protocol_decode(void)
-{
-	EZstatus ret_val;
-	struct ether_addr my_mac;
-	EZapiChannel_ProtocolDecoderParams protocol_decoder_params;
 
-	/* Get defaults for profile 0 - this is the default profile used
-	 * by application 0.
-	 */
-	memset(&protocol_decoder_params, 0, sizeof(protocol_decoder_params));
-	protocol_decoder_params.uiProfile = 0;
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetProtocolDecoderParams, &protocol_decoder_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		return false;
-	}
+#if (NW_TOTAL_ON_DEMAND_STATS + ALVS_TOTAL_ON_DEMAND_STATS <= (260*1024))
+#	define TOTAL_ON_DEMAND_STATS  (260*1024)
+#else
+#	error "Num of poster statistics exeeds 260K"
+#endif
 
-	/* Get my MAC */
-	if (infra_get_my_mac(&my_mac) == false) {
-		return false;
-	}
+#if (NW_TOTAL_POSTED_STATS + ALVS_TOTAL_POSTED_STATS <= (7680*1024))
+#	define TOTAL_POSTED_STATS  (7680*1024)
+#else
+#	error "Num of poster statistics exeeds 7680K"
+#endif
 
-	/* Set my MAC in protocol decode profile */
-	protocol_decoder_params.aucDestMACAddressHigh[0] = my_mac.ether_addr_octet[0];
-	protocol_decoder_params.aucDestMACAddressHigh[1] = my_mac.ether_addr_octet[1];
-	protocol_decoder_params.aucDestMACAddressHigh[2] = my_mac.ether_addr_octet[2];
-	protocol_decoder_params.aucDestMACAddressHigh[3] = my_mac.ether_addr_octet[3];
-	protocol_decoder_params.aucDestMACAddressHigh[4] = my_mac.ether_addr_octet[4];
-	protocol_decoder_params.aucDestMACAddressHigh[5] = my_mac.ether_addr_octet[5];
-	protocol_decoder_params.aucDestMACAddressLow[0] = my_mac.ether_addr_octet[0];
-	protocol_decoder_params.aucDestMACAddressLow[1] = my_mac.ether_addr_octet[1];
-	protocol_decoder_params.aucDestMACAddressLow[2] = my_mac.ether_addr_octet[2];
-	protocol_decoder_params.aucDestMACAddressLow[3] = my_mac.ether_addr_octet[3];
-	protocol_decoder_params.aucDestMACAddressLow[4] = my_mac.ether_addr_octet[4];
-	protocol_decoder_params.aucDestMACAddressLow[5] = my_mac.ether_addr_octet[5];
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetProtocolDecoderParams, &protocol_decoder_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		return false;
-	}
-
-	return true;
-}
 
 /**************************************************************************//**
  * \brief       Configure Statistics
@@ -508,10 +477,8 @@ bool infra_create_statistics(void)
 	}
 
 	/* Set MSID */
-	on_demand_partition_params.uiPartition = 0;
 	on_demand_partition_params.bEnable = TRUE;
-	on_demand_partition_params.uiMSID = USER_ON_DEMAND_STATS_MSID;
-	on_demand_partition_params.uiUnitMask = 0xf;
+	on_demand_partition_params.uiMSID = NW_ON_DEMAND_STATS_MSID;
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPartitionParams, &on_demand_partition_params);
 
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -533,7 +500,7 @@ bool infra_create_statistics(void)
 	}
 
 	on_demand_group_params.uiStartCounter = 0;
-	on_demand_group_params.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + 4096; /*TODO - maybe define*/
+	on_demand_group_params.uiNumCounters = TOTAL_ON_DEMAND_STATS;
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &on_demand_group_params);
 
@@ -555,9 +522,7 @@ bool infra_create_statistics(void)
 
 	/* POSTED counters */
 	posted_partition_params.bEnable = true;
-	posted_partition_params.uiMSID = USER_POSTED_STATS_MSID;
-	posted_partition_params.uiUnitMask = 0xf;
-
+	posted_partition_params.uiMSID = NW_POSTED_STATS_MSID;
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedPartitionParams, &posted_partition_params);
 	if (EZrc_IS_ERROR(ret_val)) {
 		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedPartitionParams failed.");
@@ -576,7 +541,7 @@ bool infra_create_statistics(void)
 	}
 
 	/* Set group size and optimized group type */
-	posted_group_params.uiNumCounters = (7680*1024);
+	posted_group_params.uiNumCounters = TOTAL_POSTED_STATS;
 
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedGroupParams, &posted_group_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -586,6 +551,7 @@ bool infra_create_statistics(void)
 
 	return true;
 }
+
 
 /**************************************************************************//**
  * \brief       Create index pools
@@ -597,9 +563,9 @@ bool infra_create_index_pools(void)
 	EZstatus ret_val;
 	EZapiChannel_IndexPoolParams index_pool_params;
 
-	/* configure 4 pools for search */
+	/* configure 2 pools for search */
 	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = 0;
+	index_pool_params.uiPool = ALVS_CONN_HASH_SIG_PAGE_POOL_ID;
 
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -618,7 +584,7 @@ bool infra_create_index_pools(void)
 
 
 	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = 1;
+	index_pool_params.uiPool = ALVS_CONN_HASH_RESULT_POOL_ID;
 
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -636,45 +602,7 @@ bool infra_create_index_pools(void)
 	}
 
 	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = 2;
-
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
-		return false;
-	}
-
-	index_pool_params.bEnable = true;
-	index_pool_params.bSearch = true;
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
-		return false;
-	}
-
-
-	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = 3;
-
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
-		return false;
-	}
-
-	index_pool_params.bEnable = true;
-	index_pool_params.bSearch = true;
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
-		return false;
-	}
-
-
-	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = USER_POOL_ID;
+	index_pool_params.uiPool = ALVS_CONN_TABLE_POOL_ID;
 
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -713,9 +641,9 @@ bool infra_create_timers(void)
 	}
 
 	pmu_timer_params.bEnable = true;
-	pmu_timer_params.uiLogicalID = USER_TIMER_LOGICAL_ID;
+	pmu_timer_params.uiLogicalID = ALVS_TIMER_LOGICAL_ID;
 	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
-	pmu_timer_params.uiNumJobs = ALVS_AGING_TIMER_EVENTS_PER_ITERATION * ALVS_TCP_CONN_ITER_ESTABLISHED; /* 30*1024*1024; */
+	pmu_timer_params.uiNumJobs = 30*1024*1024;    /* TODO - define */
 	pmu_timer_params.uiNanoSecPeriod = 0;
 	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
 
@@ -727,6 +655,7 @@ bool infra_create_timers(void)
 
 	return true;
 }
+
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
@@ -749,13 +678,7 @@ bool infra_created(void)
 
 	/* create statistics */
 	if (infra_create_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_create_statistics failed.");
-		return false;
-	}
-
-	/* configure protocol decode */
-	if (infra_configure_protocol_decode() == false) {
-		write_log(LOG_CRIT, "setup_chip: infra_configure_protocol_decode failed.");
+		write_log(LOG_CRIT, "setup_chip: infra_create_mem_partition failed.");
 		return false;
 	}
 
@@ -765,129 +688,21 @@ bool infra_created(void)
 		return false;
 	}
 
-	/* create index pools */
+	/* create timers */
 	if (infra_create_timers() == false) {
 		write_log(LOG_CRIT, "setup_chip: infra_create_timers failed.");
 		return false;
 	}
 
-	return true;
-}
-
-
-/**************************************************************************//**
- * \brief       Initialize all statistics counter to be zero
- *
- * \return      bool - success or failure
- */
-bool infra_initialize_statistics(void)
-{
-	EZstatus ret_val;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-	EZapiStat_LongCounterConfig long_counter_config;
-	EZapiStat_TBProfile token_bucket_profile;
-	EZapiStat_TBCounterConfig token_bucket_counter_config;
-
-	memset(&token_bucket_profile, 0, sizeof(token_bucket_profile));
-
-	token_bucket_profile.uiPartition = 0;
-	token_bucket_profile.uiProfile = 0;
-
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetTokenBucketProfile, &token_bucket_profile);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetTokenBucketProfile failed.");
-		return false;
-	}
-
-	token_bucket_profile.uiPartition = 0;
-	token_bucket_profile.uiProfile = 0;
-	token_bucket_profile.uiCIR = ALVS_TB_PROFILE_0_CIR;
-	token_bucket_profile.eCIRResolution = ALVS_TB_PROFILE_0_CIR_RESOLUTION;
-	token_bucket_profile.uiCBS = ALVS_TB_PROFILE_0_CBS;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetTokenBucketProfile, &token_bucket_profile);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetTokenBucketProfile failed.");
-		return false;
-	}
-
-	memset(&token_bucket_counter_config, 0, sizeof(token_bucket_counter_config));
-
-	token_bucket_counter_config.pasCounters = malloc(sizeof(EZapiStat_TBCounter) * 1);
-	if (token_bucket_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: token_bucket_counter_config malloc failed.");
-		return false;
-	}
-	memset(token_bucket_counter_config.pasCounters, 0, sizeof(EZapiStat_TBCounter) * 1);
-	token_bucket_counter_config.uiPartition = 0;
-	token_bucket_counter_config.bRange = TRUE;
-	token_bucket_counter_config.uiStartCounter = EMEM_STATS_ON_DEMAND_TB_OFFSET;
-	token_bucket_counter_config.uiNumCounters = 1;
-	token_bucket_counter_config.pasCounters[0].uiCommitProfile = 0;
-	token_bucket_counter_config.pasCounters[0].eAlgorithm = EZapiStat_TBAlgorithm_SINGLE_BUCKET;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetTokenBucketCounters, &token_bucket_counter_config);
-	free(token_bucket_counter_config.pasCounters);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetTokenBucketProfile failed.");
-		return false;
-	}
-
-	/* Set posted statistics values to be 0 */
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-	long_counter_config.pasCounters = malloc(sizeof(EZapiStat_LongCounter));
-	if (long_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: long_counter_config malloc failed.");
-		return false;
-	}
-	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
-
-	long_counter_config.uiPartition = 0;
-	long_counter_config.bRange = TRUE;
-	long_counter_config.uiStartCounter = 0;
-	long_counter_config.uiNumCounters = ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + EMEM_STATS_ON_DEMAND_COLOR_FLAG_NUM;
-	long_counter_config.uiRangeStep = 1;
-	long_counter_config.pasCounters[0].uiValue = 0;
-	long_counter_config.pasCounters[0].uiValueMSB = 0;
-	long_counter_config.pasCounters[0].bEnableThresholdMsg = FALSE;
-	long_counter_config.pasCounters[0].uiThreshold = 58;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
-	free(long_counter_config.pasCounters);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
-		return false;
-	}
-
-	/* Set posted statistics values to be 0 */
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-	posted_counter_config.pasCounters = malloc(sizeof(EZapiStat_PostedCounter));
-	if (posted_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: EZapiStat_PostedCounter malloc failed.");
-		return false;
-	}
-	memset(posted_counter_config.pasCounters, 0, sizeof(EZapiStat_PostedCounter));
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.bRange = true;
-	posted_counter_config.uiStartCounter = 0;
-	posted_counter_config.uiNumCounters = (7680*1024);
-	posted_counter_config.pasCounters[0].uiByteValue = 0;
-	posted_counter_config.pasCounters[0].uiByteValueMSB = 0;
-	posted_counter_config.pasCounters[0].uiFrameValue = 0;
-	posted_counter_config.pasCounters[0].uiFrameValueMSB = 0;
-
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
-	free(posted_counter_config.pasCounters);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
+	/* initialize protocol decode */
+	if (nw_initialize_protocol_decode() == false) {
+		write_log(LOG_CRIT, "setup_chip: nw_initialize_protocol_decode failed.");
 		return false;
 	}
 
 	return true;
 }
+
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at initialized state
@@ -898,23 +713,17 @@ bool infra_initialized(void)
 {
 	EZstatus ez_ret_val;
 
-	/* Launch application info DB constructor */
-	if (application_info_db_constructor() == false) {
-		write_log(LOG_CRIT, "infra_initialized: application_info_db_constructor failed.");
-		return false;
-	}
-
-	/* Launch NW DB constructor */
+	/* Launch DB constructor */
 	if (nw_db_constructor() == false) {
 		write_log(LOG_CRIT, "infra_initialized: nw_db_constructor failed.");
 		return false;
 	}
-
-	/* Launch ALVS DB constructor */
+#ifdef CONFIG_ALVS
 	if (alvs_db_constructor() == false) {
 		write_log(LOG_CRIT, "infra_initialized: alvs_db_constructor failed.");
 		return false;
 	}
+#endif
 
 	/* Load partition */
 	write_log(LOG_DEBUG, "Load partition...");
@@ -925,10 +734,16 @@ bool infra_initialized(void)
 	}
 
 	/* Initialize statistics counters */
-	if (infra_initialize_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: initialize_statistics failed.");
+	if (nw_initialize_statistics() == false) {
+		write_log(LOG_CRIT, "setup_chip: nw_infra_initialize_statistics failed.");
 		return false;
 	}
+#ifdef CONFIG_ALVS
+	if (alvs_initialize_statistics() == false) {
+		write_log(LOG_CRIT, "setup_chip: alvs_infra_initialize_statistics failed.");
+		return false;
+	}
+#endif
 
 	return true;
 }
@@ -963,526 +778,6 @@ bool infra_finalized(void)
 bool infra_running(void)
 {
 	/* Do nothing */
-	return true;
-}
-uint32_t infra_from_msid_to_index(bool external_memory, uint32_t emem_msid)
-{
-	uint32_t ind;
-
-	if (external_memory) {
-		/* Find the memory type in emem_spaces_params */
-		for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
-			if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID] == emem_msid) {
-				return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
-			}
-		}
-	}
-	/* Should not get here */
-	write_log(LOG_CRIT, "Should not get here (with emem_msid=%d)", emem_msid);
-	return 0;
-}
-/**************************************************************************//**
- * \brief       Find the index of the required memory heap
- *
- * \return      bool - success or failure
- */
-uint32_t index_of(enum infra_search_mem_heaps search_mem_heap)
-{
-	uint32_t ind;
-
-	/* Find the memory type in emem_spaces_params or imem_spaces_params */
-	for (ind = 0; ind < NUM_OF_EXT_MEMORY_SPACES; ind++) {
-		if (emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
-			return emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_INDEX];
-		}
-	}
-	for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
-		if (imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_HEAP] == search_mem_heap) {
-			return imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_INDEX];
-		}
-	}
-
-	/* Should not get here */
-	write_log(LOG_CRIT, "Should not get here (with search_mem_heap=%d)", search_mem_heap);
-	return 0;
-}
-
-/**************************************************************************//**
- * \brief       Create hash data structure
- *
- * \param[in]   struct_id       - structure id of the hash
- * \param[in]   params          - parameters of the hash (size of key & result,
- *                                max number of entries and update mode)
- *
- * \return      bool - success or failure
- */
-bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
-{
-	EZstatus ez_ret_val;
-	EZapiStruct_StructParams struct_params;
-	EZapiStruct_HashParams hash_params;
-	EZapiStruct_HashMemMngParams hash_mem_mng_params;
-
-	/* Get defaults of the structure */
-	memset(&struct_params, 0, sizeof(struct_params));
-
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetStructParams, &struct_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Set structure to be hash with key size, result size, max number of entries and memory area. */
-	struct_params.bEnable = true;
-	struct_params.eStructType = EZapiStruct_StructType_HASH;
-	struct_params.uiKeySize = params->key_size;
-	struct_params.uiResultSize = params->result_size;
-	struct_params.uiMaxEntries = params->max_num_of_entries;
-	struct_params.sChannelMap.bSingleDest = true;
-	struct_params.sChannelMap.uDest.uiChannel = 0;
-
-	if (is_external_search_memory_heap(params->main_table_search_mem_heap) == true) {
-		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
-	} else {
-		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
-	}
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-
-	/* Get defaults of the hash parameters */
-	memset(&hash_params, 0, sizeof(hash_params));
-
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashParams, &hash_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* set single cycle and update mode */
-	hash_params.bSingleCycle = true;
-	if (params->updated_from_dp == true) {
-		hash_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
-		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
-	} else {
-		hash_params.eUpdateMode = EZapiStruct_UpdateMode_CP;
-		hash_params.eCacheMode = EZapiStruct_CacheMode_FULL;
-		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
-	}
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashParams, &hash_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-
-	/* Get defaults of the hash memory management */
-	memset(&hash_mem_mng_params, 0, sizeof(hash_mem_mng_params));
-
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashMemMngParams, &hash_mem_mng_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Set index of the memory heap */
-	if (params->hash_size > 0) {
-		hash_mem_mng_params.uiHashSize = params->hash_size;
-	}
-
-	if (params->updated_from_dp == true) {
-		hash_mem_mng_params.uiResultIndexPool = params->result_pool_id;
-		hash_mem_mng_params.uiSigIndexPool = params->sig_pool_id;
-	}
-	hash_mem_mng_params.uiMainTableSpaceIndex = index_of(params->main_table_search_mem_heap);
-	hash_mem_mng_params.uiSigSpaceIndex = index_of(params->sig_table_search_mem_heap);
-	hash_mem_mng_params.uiResSpaceIndex = index_of(params->res_table_search_mem_heap);
-
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Create TCAM data structure
- *
- * \param[in]   params          - parameters of the tcam
- *
- * \return      bool - success or failure
- */
-bool infra_create_tcam(struct infra_tcam_params *params)
-{
-	EZstatus retVal = EZok;
-	EZapiTCAM_IntTCAMLookupTable sIntTCAMLookupTable;
-	EZapiTCAM_IntTCAMLookupProfile sIntTCAMLookupProfile;
-	unsigned int i;
-
-	/* Configure table */
-	memset(&sIntTCAMLookupTable, 0, sizeof(sIntTCAMLookupTable));
-	sIntTCAMLookupTable.uiSide = params->side;
-	sIntTCAMLookupTable.uiTable = params->table;
-	retVal = EZapiTCAM_Status(0, EZapiTCAM_StatCmd_GetIntTCAMLookupTable, &sIntTCAMLookupTable);
-	if (EZrc_IS_ERROR(retVal)) {
-		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_StatCmd_GetIntTCAMLookupTable failed, channel Id %u", 0);
-		return false;
-	}
-
-	/*
-	 * There is a CP bug in which we cannot configure an internal TCAM table with params->max_num_of_entries
-	 * the following is a workaround that configures 8K entries. (maximal table size for key size = 10Byte)
-	 * This workaround allows us to configure only one internal TCAM structure per side.
-	 */
-	sIntTCAMLookupTable.uiNumIndexes = 0xFFFFFFFF;
-	sIntTCAMLookupTable.uiStartBank = 0;
-	sIntTCAMLookupTable.uiNumBanks = 4;
-	sIntTCAMLookupTable.uiStartRow = 0;
-	sIntTCAMLookupTable.uiNumRows = 2048;
-	/* End of workaround */
-
-	sIntTCAMLookupTable.bAssociatedData = TRUE;
-	sIntTCAMLookupTable.uiAssociatedDataSize = params->result_size;
-	sIntTCAMLookupTable.uiKeySize = params->key_size;
-	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_SetIntTCAMLookupTable, &sIntTCAMLookupTable);
-	if (EZrc_IS_ERROR(retVal)) {
-		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_ConfigCmd_SetIntTCAMLookupTable failed, channel Id %u", 0);
-		return false;
-	}
-
-	/* Configure profile for table */
-	memset(&sIntTCAMLookupProfile, 0, sizeof(sIntTCAMLookupProfile));
-	sIntTCAMLookupProfile.uiSide = params->side;
-	sIntTCAMLookupProfile.uiProfile = params->profile;
-	retVal = EZapiTCAM_Status(0, EZapiTCAM_StatCmd_GetIntTCAMLookupProfile, &sIntTCAMLookupProfile);
-	if (EZrc_IS_ERROR(retVal)) {
-		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_StatCmd_GetIntTCAMLookupProfile failed, channel Id %u", 0);
-		return false;
-	}
-
-	for (i = 0; i < params->lookup_table_count; i++) {
-		sIntTCAMLookupProfile.auiLookupTable[i] = params->profile;
-	}
-	sIntTCAMLookupProfile.bSequentialLookup = TRUE;
-	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_SetIntTCAMLookupProfile, &sIntTCAMLookupProfile);
-	if (EZrc_IS_ERROR(retVal)) {
-		write_log(LOG_CRIT, "ZapiTCAM_Status: EZapiTCAM_ConfigCmd_SetIntTCAMLookupProfile failed, channel Id %u", 0);
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Create table data structure
- *
- * \param[in]   struct_id       - structure id of the table
- * \param[in]   params          - parameters of the table (size of key & result
- *                                and max number of entries)
- *
- * \return      bool - success or failure
- */
-bool infra_create_table(uint32_t struct_id, struct infra_table_params *params)
-{
-	EZstatus ez_ret_val;
-	EZapiStruct_StructParams struct_params;
-	EZapiStruct_TableParams table_params;
-	EZapiStruct_TableMemMngParams table_mem_mng_params;
-
-	/* Get defaults of the structure */
-	memset(&struct_params, 0, sizeof(struct_params));
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetStructParams, &struct_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Set structure to be table with key size, result size, max number of entries and memory area. */
-	struct_params.bEnable = true;
-	struct_params.eStructType = EZapiStruct_StructType_TABLE;
-	struct_params.uiKeySize = params->key_size;
-	struct_params.uiResultSize = params->result_size;
-	struct_params.uiMaxEntries = params->max_num_of_entries;
-	struct_params.sChannelMap.bSingleDest = true;
-	struct_params.sChannelMap.uDest.uiChannel = 0;
-	if (is_external_search_memory_heap(params->search_mem_heap) == true) {
-		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_EXTERNAL;
-	} else {
-		struct_params.eStructMemoryArea = EZapiStruct_MemoryArea_INTERNAL;
-	}
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-
-	/* Get defaults of the table parameters */
-	memset(&table_params, 0, sizeof(table_params));
-
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetTableParams, &table_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* set single cycle and update mode */
-	if (params->updated_from_dp == true) {
-		table_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
-		table_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;
-	} else {
-		table_params.eUpdateMode = EZapiStruct_UpdateMode_CP;
-		table_params.eCacheMode = EZapiStruct_CacheMode_FULL;
-		table_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_IDENTICAL;
-	}
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetTableParams, &table_params);
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-
-	/* Get defaults of the table memory management */
-	memset(&table_mem_mng_params, 0, sizeof(table_mem_mng_params));
-
-	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetTableMemMngParams, &table_mem_mng_params);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	/* Set index of the memory heap */
-	table_mem_mng_params.uiSpaceIndex = index_of(params->search_mem_heap);
-
-	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetTableMemMngParams, &table_mem_mng_params);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Add an entry to a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
-{
-	EZstatus ez_ret_val;
-	EZapiEntry entry;
-
-	/* Set entry with key and result to add */
-	memset(&entry, 0, sizeof(entry));
-	entry.uiKeySize = key_size;
-	entry.pucKey = key;
-	entry.uiResultSize = result_size;
-	entry.pucResult = result;
-
-	/* Add the entry */
-	ez_ret_val = EZapiStruct_AddEntry(struct_id, NULL, &entry, NULL);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Modify an entry in a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
-{
-	EZstatus ez_ret_val;
-	EZapiEntry entry;
-
-	/* Set entry with key and result to add */
-	memset(&entry, 0, sizeof(entry));
-	entry.uiKeySize = key_size;
-	entry.pucKey = key;
-	entry.uiResultSize = result_size;
-	entry.pucResult = result;
-
-	/* Add the entry */
-	ez_ret_val = EZapiStruct_UpdateEntry(struct_id, NULL, &entry, NULL);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Delete an entry from a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
-{
-	EZstatus ez_ret_val;
-	EZapiEntry entry;
-
-	/* Set entry with key to delete */
-	memset(&entry, 0, sizeof(entry));
-	entry.uiKeySize = key_size;
-	entry.pucKey = key;
-
-	/* Delete the entry */
-	ez_ret_val = EZapiStruct_DeleteEntry(struct_id, NULL, &entry, NULL);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-/**************************************************************************//**
- * \brief       Add an entry to a TCAM data structure
- *
- * \param[in]   side            - side of TCAM table (0/1)
- * \param[in]   table           - table number
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   mask            - reference to mask
- * \param[in]   index           - index in table
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_add_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
-			  void *mask, uint32_t index, void *result, uint32_t result_size)
-{
-	EZstatus retVal = EZok;
-	EZapiTCAM_IntTCAMDataParams sIntTCAMDataParams;
-
-	memset(&sIntTCAMDataParams, 0, sizeof(sIntTCAMDataParams));
-	sIntTCAMDataParams.uiSide = side;
-	sIntTCAMDataParams.uiTable = table;
-	sIntTCAMDataParams.uiIndex = index;
-	sIntTCAMDataParams.bValid = true;
-	sIntTCAMDataParams.uiKeySize = key_size;
-	sIntTCAMDataParams.pucKey = key;
-	sIntTCAMDataParams.pucMask = mask;
-	sIntTCAMDataParams.uiAssociatedDataSize = result_size;
-	sIntTCAMDataParams.pucAssociatedData = result;
-
-	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_WriteIntTCAMData, &sIntTCAMDataParams);
-
-	if (EZrc_IS_ERROR(retVal)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Delete an entry from a TCAM data structure
- *
- * \param[in]   side            - side of TCAM table (0/1)
- * \param[in]   table           - table number
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   mask            - reference to mask
- * \param[in]   index           - index in table
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_delete_tcam_entry(uint32_t side, uint32_t table,  void *key, uint32_t key_size,
-				  void *mask, uint32_t index, void *result, uint32_t result_size)
-{
-	EZstatus retVal = EZok;
-	EZapiTCAM_IntTCAMDataParams sIntTCAMDataParams;
-
-	memset(&sIntTCAMDataParams, 0, sizeof(sIntTCAMDataParams));
-	sIntTCAMDataParams.uiSide = side;
-	sIntTCAMDataParams.uiTable = table;
-	sIntTCAMDataParams.uiIndex = index;
-	sIntTCAMDataParams.bValid = false;
-	sIntTCAMDataParams.uiKeySize = key_size;
-	sIntTCAMDataParams.pucKey = key;
-	sIntTCAMDataParams.pucMask = mask;
-	sIntTCAMDataParams.uiAssociatedDataSize = result_size;
-	sIntTCAMDataParams.pucAssociatedData = result;
-
-	retVal = EZapiTCAM_Config(0, EZapiTCAM_ConfigCmd_WriteIntTCAMData, &sIntTCAMDataParams);
-	if (EZrc_IS_ERROR(retVal)) {
-		return false;
-	}
-
-	return true;
-}
-
-bool infra_delete_all_entries(uint32_t struct_id)
-{
-	EZstatus ez_ret_val;
-
-	/* Delete all entries */
-	ez_ret_val = EZapiStruct_DeleteAllEntries(struct_id, NULL, NULL);
-
-	if (EZrc_IS_ERROR(ez_ret_val)) {
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Get my MAC
- *
- * \param[out]  my_mac - reference to ethernet address type
- *
- * \return      true - success
- *              false - can't find tap interface file
- */
-bool infra_get_my_mac(struct ether_addr *my_mac)
-{
-	FILE *fd;
-	uint fscanf_res;
-	/* open address file from sys/class/net folder */
-	fd = fopen("/sys/class/net/eth0/address", "r");
-
-	if (fd == NULL) {
-		return false;
-	}
-
-	/* read my MAC from file */
-	fscanf_res = fscanf(fd, "%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx%*c%2hhx",
-	       &my_mac->ether_addr_octet[0], &my_mac->ether_addr_octet[1],
-	       &my_mac->ether_addr_octet[2], &my_mac->ether_addr_octet[3],
-	       &my_mac->ether_addr_octet[4], &my_mac->ether_addr_octet[5]);
-
-	if (fscanf_res != ETH_ALEN) {
-		fclose(fd);
-		return false;
-	}
-
-	fclose(fd);
-
 	return true;
 }
 
@@ -1541,178 +836,4 @@ void infra_disable_agt(void)
 
 	/* Destroy server */
 	EZagtRPC_ServerDestroy(host_server);
-}
-
-/**************************************************************************//**
- * \brief       Read Long Counters Values
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
- * \return      bool
- *
- */
-bool infra_get_long_counters(uint32_t counter_index,
-			     uint32_t num_of_counters,
-			     uint64_t *counters_value)
-{
-	union {
-		uint64_t raw_data;
-		struct {
-			uint32_t value_lsb;
-			uint32_t value_msb;
-		};
-	} value;
-
-	uint32_t i;
-	EZstatus ret_val;
-	EZapiStat_LongCounter *long_counter;
-	EZapiStat_LongCounterConfig long_counter_config;
-
-	long_counter = (EZapiStat_LongCounter *)malloc(sizeof(EZapiStat_LongCounter) * num_of_counters);
-	if (long_counter == NULL) {
-		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
-		return false;
-	}
-	memset(long_counter, 0, sizeof(EZapiStat_LongCounter) * num_of_counters);
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-
-	long_counter_config.pasCounters = long_counter;
-	long_counter_config.uiStartCounter = counter_index;
-	long_counter_config.uiNumCounters = num_of_counters;
-	long_counter_config.bRange = TRUE;
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetLongCounters, &long_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetLongCounters failed.");
-		free(long_counter);
-		return false;
-	}
-
-	for (i = 0; i < num_of_counters; i++) {
-		value.value_lsb = long_counter[i].uiValue;
-		value.value_msb = long_counter[i].uiValueMSB;
-		counters_value[i] = value.raw_data;
-	}
-
-	free(long_counter);
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Get posted counters value (read several counters num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
- * \return      bool
- */
-bool infra_get_posted_counters(uint32_t counter_index,
-			       uint32_t num_of_counters,
-			       uint64_t *counters_value)
-{
-	union {
-		uint64_t raw_data;
-		struct {
-			uint32_t value_lsb;
-			uint32_t value_msb;
-		};
-	} value;
-
-	uint32_t i;
-	EZstatus ret_val;
-	EZapiStat_PostedCounter *posted_counter;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-
-	posted_counter = (EZapiStat_PostedCounter *)malloc(sizeof(EZapiStat_PostedCounter) * num_of_counters);
-	if (posted_counter == NULL) {
-		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
-		return false;
-	}
-	memset(posted_counter, 0, sizeof(EZapiStat_PostedCounter) * num_of_counters);
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.pasCounters = posted_counter;
-	posted_counter_config.bRange = true;
-	posted_counter_config.uiStartCounter = counter_index;
-	posted_counter_config.uiNumCounters = num_of_counters;
-	posted_counter_config.bDoubleOperation = false;
-	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetPostedCounters,
-					&posted_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_StatCmd_GetPostedCounters failed.");
-		free(posted_counter);
-		return false;
-	}
-
-	for (i = 0; i < num_of_counters; i++) {
-		value.value_lsb = posted_counter[i].uiByteValue;
-		value.value_msb = posted_counter[i].uiByteValueMSB;
-		counters_value[i] = value.raw_data;
-	}
-
-	free(posted_counter);
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Set posted counters values - set to a several counters (num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- * \return      bool
- */
-bool infra_clear_posted_counters(uint32_t counter_index,
-				 uint32_t num_of_counters)
-{
-	EZstatus ret_val;
-	EZapiStat_PostedCounter posted_counter;
-	EZapiStat_PostedCounterConfig posted_counter_config;
-
-	memset(&posted_counter_config, 0, sizeof(posted_counter_config));
-	memset(&posted_counter, 0, sizeof(posted_counter));
-
-	posted_counter_config.uiPartition = 0;
-	posted_counter_config.pasCounters = &posted_counter;
-	posted_counter_config.bRange = true;
-	posted_counter_config.uiStartCounter = counter_index;
-	posted_counter_config.uiNumCounters = num_of_counters;
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetPostedCounters, &posted_counter_config);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetPostedCounters failed.");
-		return false;
-	}
-
-	return true;
-}
-
-/**************************************************************************//**
- * \brief       Set long counters values - set to a several counters (num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- * \return      bool
- */
-bool infra_clear_long_counters(uint32_t counter_index,
-			       uint32_t num_of_counters)
-{
-	EZstatus ret_val;
-	EZapiStat_LongCounterConfig long_counter_config;
-	EZapiStat_LongCounter long_counter;
-
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-	memset(&long_counter, 0, sizeof(long_counter));
-
-	long_counter_config.uiPartition = 0;
-	long_counter_config.bRange = true;
-	long_counter_config.uiStartCounter = counter_index;
-	long_counter_config.uiNumCounters = num_of_counters;
-	long_counter_config.pasCounters = &long_counter;
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounterValues, &long_counter_config);
-
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
-		return false;
-	}
-
-	return true;
 }

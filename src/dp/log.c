@@ -1039,11 +1039,11 @@ static uint32_t token_bucket(void  __cmem * syslog_wa)
 	/*not network control, only syslog messages - as every message comes via DDR and bug can cause */
 	/* chip stuck */
 	/*TODO - define*/
-	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, EMEM_SERVER_STATS_ON_DEMAND_MSID, EMEM_STATS_ON_DEMAND_TB_OFFSET);
+	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, NW_ON_DEMAND_STATS_MSID, SYSLOG_TB_STATS_ON_DEMAND_OFFSET);
 	ezdp_read_tb_ctr(addr, LOG_MSG_SIZE_FOR_TB, EZDP_GREEN_TRAFFIC,
 			 &((struct syslog_wa_info *)syslog_wa)->tb_ctr_result);
 	tb_color = ((struct syslog_wa_info *)syslog_wa)->tb_ctr_result.color;
-	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, EMEM_SERVER_STATS_ON_DEMAND_MSID, EMEM_STATS_ON_DEMAND_COLOR_FLAG_OFFSET);
+	addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS, NW_ON_DEMAND_STATS_MSID, SYSLOG_COLOR_FLAG_STATS_ON_DEMAND_OFFSET);
 	if (tb_color == EZDP_GREEN_TRAFFIC) {
 		ezdp_read_and_reset_single_ctr(addr,
 					       &((struct syslog_wa_info *)syslog_wa)->tb_color_flag_counter);

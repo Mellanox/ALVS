@@ -59,22 +59,6 @@ void system_configuration(int argc, char **argv);
 void system_cfg_print(void);
 
 /**************************************************************************//**
- * \brief       Check if ALVS application enable
- *
- * \return      true - if ALVS application enable
- *              false - otherwise
- */
-bool system_cfg_is_alvs_app_en(void);
-
-/**************************************************************************//**
- * \brief       Check if TC application enable
- *
- * \return      true - if TC application enable
- *              false - otherwise
- */
-bool system_cfg_is_tc_app_en(void);
-
-/**************************************************************************//**
  * \brief       Check if ROUTING application enable
  *
  * \return      true - if ROUTING application enable

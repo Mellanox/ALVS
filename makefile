@@ -1,26 +1,23 @@
 ifdef DEBUG
     export CP_DEBUG=yes
     export DP_DEBUG=yes
-    SUFFIX := _debug
-else
-    SUFFIX :=
 endif
 
 # All Target
-all: dp cp
+all: alvs
 
-dp:
-	mkdir -p build/src/dp
-	mkdir -p build/src/common
+alvs: alvs_dp alvs_cp
+
+alvs_dp:
+	mkdir -p build/alvs/src/dp
 	mkdir -p bin
-	make -f dp.mk make_dp
+	make CONFIG_ALVS=1 -f dp.mk make_dp
 
 
-cp:
-	mkdir -p build/src/cp
-	mkdir -p build/src/common
+alvs_cp:
+	mkdir -p build/alvs/src/cp
 	mkdir -p bin
-	make -f cp.mk make_cp
+	make CONFIG_ALVS=1 -f cp.mk make_cp
 
 
 dp-clean:

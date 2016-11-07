@@ -54,8 +54,8 @@ void alvs_handle_aging_event(uint32_t event_id)
 
 	/*set hard coded the stat base for logical ID 96 in cmem.ingress_if_result to use later in case of drop*/
 	cmem_nw.ingress_if_result.stats_base = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							       EMEM_IF_STATS_POSTED_MSID,
-							       EMEM_NW_IF_STATS_POSTED_OFFSET + ALVS_AGING_TIMER_LOGICAL_ID * NW_NUM_OF_IF_STATS);
+							      NW_POSTED_STATS_MSID,
+							      NW_IF_STATS_POSTED_OFFSET + ALVS_TIMER_LOGICAL_ID * NW_NUM_OF_IF_STATS);
 
 
 	/*discard timer job now, to be able to send sync state frame during this part*/

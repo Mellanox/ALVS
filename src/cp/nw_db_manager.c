@@ -54,10 +54,11 @@
 
 /* Project includes */
 #include "log.h"
-#include "defs.h"
+#include "nw_conf.h"
 #include "nw_search_defs.h"
 #include "nw_db_manager.h"
 #include "infrastructure.h"
+#include "infrastructure_utils.h"
 #include "nw_api.h"
 #include "cfg.h"
 
@@ -202,8 +203,12 @@ void nw_db_manager_poll(void)
  */
 static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
 {
-	nw_if_apps->alvs_en = (system_cfg_is_alvs_app_en() == true) ? 1 : 0;
-	nw_if_apps->tc_en = (system_cfg_is_tc_app_en() == true) ? 1 : 0;
+	nw_if_apps->tc_en = 0;
+	nw_if_apps->alvs_en = 0;
+#ifdef CONFIG_ALVS
+	nw_if_apps->alvs_en = 1;
+#endif
+
 	nw_if_apps->routing_en = (system_cfg_is_routing_app_en() == true) ? 1 : 0;
 	nw_if_apps->qos_en = (system_cfg_is_qos_app_en() == true) ? 1 : 0;
 	nw_if_apps->firewall_en = (system_cfg_is_firewall_app_en() == true) ? 1 : 0;
@@ -213,7 +218,7 @@ static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
 /******************************************************************************
  * \brief       Interface table init.
  *
- * \return      void
+ * \return      bool
  */
 bool nw_db_manager_if_table_init_host(struct ether_addr  *mac_address,
 				      bool               sft_en,
@@ -228,7 +233,7 @@ bool nw_db_manager_if_table_init_host(struct ether_addr  *mac_address,
 	/************************************************/
 
 	/* set key */
-	if_key.logical_id    = USER_HOST_LOGICAL_ID;
+	if_key.logical_id    = HOST_LOGICAL_ID;
 
 	/* set result */
 	if_result.sft_en = sft_en;
@@ -236,10 +241,10 @@ bool nw_db_manager_if_table_init_host(struct ether_addr  *mac_address,
 	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
 	if_result.path_type  = DP_PATH_FROM_HOST_PATH;
 	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-						       EMEM_IF_STATS_POSTED_MSID,
-						       EMEM_HOST_IF_STATS_POSTED_OFFSET));
+						       NW_POSTED_STATS_MSID,
+						       HOST_IF_STATS_POSTED_OFFSET));
 	if_result.output_channel       = 24 | (1 << 7);
-	if_result.direct_output_if     = USER_NW_BASE_LOGICAL_ID;
+	if_result.direct_output_if     = NW_BASE_LOGICAL_ID;
 	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
 	if_result.admin_state = true;
 
@@ -268,7 +273,7 @@ bool nw_db_manager_if_table_init_host(struct ether_addr  *mac_address,
 /******************************************************************************
  * \brief       Interface table init.
  *
- * \return      void
+ * \return      bool
  */
 bool nw_db_manager_if_table_init_nw(struct ether_addr  *mac_address,
 				    bool               sft_en,
@@ -287,22 +292,21 @@ bool nw_db_manager_if_table_init_nw(struct ether_addr  *mac_address,
 	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 
-
-	for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
+	for (ind = 0; ind < NW_IF_NUM; ind++) {
 
 		/************************************************/
 		/* Add DP entry                                 */
 		/************************************************/
 
 		/* set key */
-		if_key.logical_id = USER_NW_BASE_LOGICAL_ID + ind;
+		if_key.logical_id = NW_BASE_LOGICAL_ID + ind;
 
 		/* set result */
 		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							       EMEM_IF_STATS_POSTED_MSID,
-							       EMEM_NW_IF_STATS_POSTED_OFFSET + ind * NW_NUM_OF_IF_STATS));
+							       NW_POSTED_STATS_MSID,
+							       NW_IF_STATS_POSTED_OFFSET + ind * NW_NUM_OF_IF_STATS));
 		if_result.output_channel       = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		if_result.direct_output_if     = (system_cfg_is_lag_en() == true) ? USER_HOST_LOGICAL_ID : (ind + USER_REMOTE_BASE_LOGICAL_ID);
+		if_result.direct_output_if     = (system_cfg_is_lag_en() == true) ? HOST_LOGICAL_ID : (ind + REMOTE_BASE_LOGICAL_ID);
 		if_result.is_direct_output_lag = false;
 		if_result.admin_state          = true;
 
@@ -373,28 +377,28 @@ bool nw_db_manager_if_table_init_remote(struct ether_addr  *mac_address,
 	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
 	if_result.path_type = DP_PATH_FROM_REMOTE_PATH;
 
-	for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
+	for (ind = 0; ind < REMOTE_IF_NUM; ind++) {
 
 		/************************************************/
 		/* Add DP entry                                 */
 		/************************************************/
 
 		/* set key */
-		if_key.logical_id = USER_REMOTE_BASE_LOGICAL_ID + ind;
+		if_key.logical_id = REMOTE_BASE_LOGICAL_ID + ind;
 
 		/* set result */
 		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							       EMEM_IF_STATS_POSTED_MSID,
-							       EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ind * REMOTE_NUM_OF_IF_STATS));
+							       NW_POSTED_STATS_MSID,
+							       REMOTE_IF_STATS_POSTED_OFFSET + ind * REMOTE_NUM_OF_IF_STATS));
 
 		if_result.output_channel   = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		if_result.direct_output_if = ind + USER_NW_BASE_LOGICAL_ID;
+		if_result.direct_output_if = ind + NW_BASE_LOGICAL_ID;
 
 		if (system_cfg_is_lag_en() == true) {
-			if_result.direct_output_if     = USER_NW_BASE_LOGICAL_ID;
+			if_result.direct_output_if     = NW_BASE_LOGICAL_ID;
 			if_result.is_direct_output_lag = true;
 		} else {
-			if_result.direct_output_if     =  + ind;
+			if_result.direct_output_if     =  ind;
 			if_result.is_direct_output_lag = false;
 		}
 
@@ -472,7 +476,7 @@ void nw_db_manager_if_table_init(void)
 			nw_db_manager_exit_with_error();
 		}
 
-		for (ind = 0; ind < USER_NW_IF_NUM; ind++) {
+		for (ind = 0; ind < NW_IF_NUM; ind++) {
 			if (nw_api_add_port_to_lag_group(0, ind) != NW_API_OK) {
 				write_log(LOG_CRIT, "Failed to add port %d to main lag group", ind);
 				nw_db_manager_exit_with_error();
@@ -750,77 +754,6 @@ bool valid_neighbor(struct rtnl_neigh *neighbor)
 
 	return (!(state & NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE) && state != NUD_NONE);
 
-}
-/******************************************************************************
- * \brief    Constructor function for all network data bases.
- *           this function is called not from the network thread but from the
- *           main thread on NPS configuration bringup.
- *
- * \return   void
- */
-bool nw_db_constructor(void)
-{
-	struct infra_hash_params hash_params;
-	struct infra_table_params table_params;
-	struct infra_tcam_params tcam_params;
-
-	write_log(LOG_DEBUG, "Creating ARP table.");
-
-	hash_params.key_size = sizeof(struct nw_arp_key);
-	hash_params.result_size = sizeof(struct nw_arp_result);
-	hash_params.max_num_of_entries = NW_ARP_TABLE_MAX_ENTRIES;
-	hash_params.hash_size = 0;
-	hash_params.updated_from_dp = false;
-	hash_params.main_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
-	hash_params.sig_table_search_mem_heap = INFRA_EMEM_SEARCH_HASH_HEAP;
-	hash_params.res_table_search_mem_heap = INFRA_EMEM_SEARCH_1_TABLE_HEAP;
-	if (infra_create_hash(STRUCT_ID_NW_ARP,
-			      &hash_params) == false) {
-		write_log(LOG_CRIT, "Error - Failed creating ARP table.");
-		return false;
-	}
-
-	write_log(LOG_DEBUG, "Creating FIB table.");
-
-	tcam_params.key_size = sizeof(struct nw_fib_key);
-	tcam_params.max_num_of_entries = NW_FIB_TCAM_MAX_SIZE;
-	tcam_params.profile = NW_FIB_TCAM_PROFILE;
-	tcam_params.result_size = sizeof(struct nw_fib_result);
-	tcam_params.side = NW_FIB_TCAM_SIDE;
-	tcam_params.lookup_table_count = NW_FIB_TCAM_LOOKUP_TABLE_COUNT;
-	tcam_params.table = NW_FIB_TCAM_TABLE;
-
-	if (infra_create_tcam(&tcam_params) == false) {
-		write_log(LOG_CRIT, "Error - Failed creating FIB TCAM.");
-		return false;
-	}
-
-	write_log(LOG_DEBUG, "Creating interface table.");
-
-	table_params.key_size = sizeof(struct nw_if_key);
-	table_params.result_size = sizeof(struct nw_if_result);
-	table_params.max_num_of_entries = NW_INTERFACES_TABLE_MAX_ENTRIES;
-	table_params.updated_from_dp = false;
-	table_params.search_mem_heap = INFRA_X1_CLUSTER_SEARCH_HEAP;
-	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
-			       &table_params) == false) {
-		write_log(LOG_CRIT, "Error - Failed creating interface table.");
-		return false;
-	}
-
-	write_log(LOG_DEBUG, "Creating Lag Group table.");
-
-	table_params.key_size = sizeof(struct nw_lag_group_key);
-	table_params.result_size = sizeof(struct nw_lag_group_result);
-	table_params.max_num_of_entries = NW_LAG_GROUPS_TABLE_MAX_ENTRIES;
-	table_params.updated_from_dp = false;
-	table_params.search_mem_heap = INFRA_X1_CLUSTER_SEARCH_HEAP;
-	if (infra_create_table(STRUCT_ID_NW_LAG_GROUPS,
-			       &table_params) == false) {
-
-	}
-
-	return true;
 }
 
 /******************************************************************************

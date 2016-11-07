@@ -49,9 +49,11 @@
 #include <EZapiStat.h>
 #include <EZapiPrm.h>
 #include "alvs_db.h"
+
+#include "alvs_cp_init.h"
 #include "sqlite3.h"
-#include "defs.h"
-#include "infrastructure.h"
+#include "alvs_conf.h"
+#include "infrastructure_utils.h"
 #include "application_search_defs.h"
 #include "index_pool.h"
 
@@ -433,25 +435,22 @@ enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_s
 		  cp_server->server_flags_dp_base.raw_data,
 		  (cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET,
 		  (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
-		  (uint32_t)(EMEM_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags)));
-
-	write_log(LOG_DEBUG, "from_msid %d to index %d", (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
-		  infra_from_msid_to_index(1, (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET));
+		  (uint32_t)(ALVS_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags)));
 
 	ret_val =  EZapiPrm_WriteMem(0, /*uiChannelId*/
-				   (((cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET) == EZDP_EXTERNAL_MS) ? EZapiPrm_MemId_EXT_MEM : EZapiPrm_MemId_INT_MEM, /*eMemId*/
-				    infra_from_msid_to_index(1, (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET),
-				    EMEM_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags),
-				    0, /* uiMSBAddress */
-				    0, /* bRange */
-				    0, /* uiRangeSize */
-				    0, /* uiRangeStep */
-				    0, /* bSingleCopy */
-				    0, /* bGCICopy */
-				    0, /* uiCopyIndex */
-				    sizeof(server_flags),
-				    (EZuc8 *)&server_flags,   /*pucData*/
-				    0                /* pSpecialParams */);
+				     ((((cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET) == EZDP_EXTERNAL_MS) ? EZapiPrm_MemId_EXT_MEM : EZapiPrm_MemId_INT_MEM), /*eMemId*/
+				     (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
+				     ALVS_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags),
+				     0, /* uiMSBAddress */
+				     0, /* bRange */
+				     0, /* uiRangeSize */
+				     0, /* uiRangeStep */
+				     0, /* bSingleCopy */
+				     0, /* bGCICopy */
+				     0, /* uiCopyIndex */
+				     sizeof(server_flags),
+				     (EZuc8 *)&server_flags,   /*pucData*/
+				     0 /* pSpecialParams */);
 
 	if (EZrc_IS_ERROR(ret_val)) {
 		write_log(LOG_CRIT, "alvs_db_clean_alloc_memory: EZapiPrm_WriteMem failed.");
@@ -640,7 +639,7 @@ enum alvs_db_rc alvs_db_get_service_counters(uint32_t service_index, struct alvs
 
 	uint64_t service_counters[ALVS_NUM_OF_SERVICE_STATS] = {0};
 
-	if (infra_get_posted_counters(EMEM_SERVICE_STATS_POSTED_OFFSET + (service_index * ALVS_NUM_OF_SERVICE_STATS),
+	if (infra_get_posted_counters(ALVS_SERVICE_STATS_POSTED_OFFSET + (service_index * ALVS_NUM_OF_SERVICE_STATS),
 				      ALVS_NUM_OF_SERVICE_STATS,
 				      service_counters) == false) {
 		write_log(LOG_CRIT, "Failed to read error statistics counters");
@@ -873,7 +872,7 @@ enum alvs_db_rc alvs_db_get_server_counters(uint32_t server_index,
 
 	uint64_t server_counter[ALVS_NUM_OF_SERVER_STATS] = {0};
 
-	if (infra_get_posted_counters(EMEM_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS),
+	if (infra_get_posted_counters(ALVS_SERVER_STATS_POSTED_OFFSET + (server_index * ALVS_NUM_OF_SERVER_STATS),
 				      ALVS_NUM_OF_SERVER_STATS,
 				      server_counter) == false) {
 		write_log(LOG_CRIT, "Failed to read error statistics counters");
@@ -889,7 +888,7 @@ enum alvs_db_rc alvs_db_get_server_counters(uint32_t server_index,
 	server_stats->inactive_connection = server_counter[ALVS_SERVER_STATS_INACTIVE_CONN_OFFSET];
 
 	if (read_connection_total == true) {
-		if (infra_get_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS,
+		if (infra_get_long_counters(ALVS_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS,
 					    1,
 					    &server_stats->connection_total) == false) {
 			write_log(LOG_ERR, "Fail to read server total connections statistics");
@@ -1583,7 +1582,7 @@ enum alvs_db_rc alvs_db_recalculate_scheduling_info(struct alvs_db_service *serv
  */
 enum alvs_db_rc alvs_db_get_num_conn_total(uint32_t server_index, uint64_t *conn_total)
 {
-	if (infra_get_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
+	if (infra_get_long_counters(ALVS_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS + ALVS_SERVER_STATS_CONNECTION_TOTAL_OFFSET,
 				    1,
 				    conn_total) == false) {
 		return ALVS_DB_NPS_ERROR;
@@ -1603,12 +1602,12 @@ enum alvs_db_rc alvs_db_get_num_conn_total(uint32_t server_index, uint64_t *conn
 enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
 {
 
-	if (infra_clear_long_counters(EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS,
-				      ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS) == false) {
+	if (infra_clear_long_counters(ALVS_SERVER_STATS_ON_DEMAND_OFFSET + server_index * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS,
+				      ALVS_NUM_OF_SERVER_ON_DEMAND_STATS) == false) {
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	if (infra_clear_posted_counters(EMEM_SERVER_STATS_POSTED_OFFSET + server_index * ALVS_NUM_OF_SERVER_STATS,
+	if (infra_clear_posted_counters(ALVS_SERVER_STATS_POSTED_OFFSET + server_index * ALVS_NUM_OF_SERVER_STATS,
 					ALVS_NUM_OF_SERVER_STATS) == false) {
 		return ALVS_DB_NPS_ERROR;
 	}
@@ -1627,7 +1626,7 @@ enum alvs_db_rc alvs_db_clean_server_stats(uint32_t server_index)
 enum alvs_db_rc alvs_db_clean_error_stats(void)
 {
 
-	if (infra_clear_posted_counters(EMEM_ALVS_ERROR_STATS_POSTED_OFFSET,
+	if (infra_clear_posted_counters(ALVS_ERROR_STATS_POSTED_OFFSET,
 					ALVS_NUM_OF_ALVS_ERROR_STATS) == false) {
 		return ALVS_DB_NPS_ERROR;
 	}
@@ -1646,17 +1645,17 @@ enum alvs_db_rc alvs_db_clean_error_stats(void)
  */
 enum alvs_db_rc alvs_db_clean_interface_stats(void)
 {
-	if (infra_clear_posted_counters(EMEM_NW_IF_STATS_POSTED_OFFSET,
-					NW_NUM_OF_IF_STATS * USER_NW_IF_NUM) == false) {/* nw interface */
+	if (infra_clear_posted_counters(NW_IF_STATS_POSTED_OFFSET,
+					NW_NUM_OF_IF_STATS * NW_IF_NUM) == false) {/* nw interface */
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	if (infra_clear_posted_counters(EMEM_REMOTE_IF_STATS_POSTED_OFFSET,
-					REMOTE_NUM_OF_IF_STATS * USER_REMOTE_IF_NUM) == false) {/* remote interface */
+	if (infra_clear_posted_counters(REMOTE_IF_STATS_POSTED_OFFSET,
+					REMOTE_NUM_OF_IF_STATS * REMOTE_IF_NUM) == false) {/* remote interface */
 		return ALVS_DB_NPS_ERROR;
 	}
 
-	if (infra_clear_posted_counters(EMEM_HOST_IF_STATS_POSTED_OFFSET,
+	if (infra_clear_posted_counters(HOST_IF_STATS_POSTED_OFFSET,
 					HOST_NUM_OF_IF_STATS) == false) {/* host interfaces */
 		return ALVS_DB_NPS_ERROR;
 	}
@@ -1674,7 +1673,7 @@ enum alvs_db_rc alvs_db_clean_interface_stats(void)
  */
 enum alvs_db_rc alvs_db_clean_service_stats(uint32_t service_index)
 {
-	if (infra_clear_posted_counters(EMEM_SERVICE_STATS_POSTED_OFFSET + service_index * ALVS_NUM_OF_SERVICE_STATS,
+	if (infra_clear_posted_counters(ALVS_SERVICE_STATS_POSTED_OFFSET + service_index * ALVS_NUM_OF_SERVICE_STATS,
 						     ALVS_NUM_OF_SERVICE_STATS) == false) {
 		return ALVS_DB_NPS_ERROR;
 	}
@@ -2063,8 +2062,8 @@ enum alvs_db_rc alvs_db_add_service(struct ip_vs_service_user *ip_vs_service)
 	cp_service.flags = ip_vs_service->flags;
 	cp_service.sched_entries_count = 0;
 	cp_service.stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							EMEM_SERVICE_STATS_POSTED_MSID,
-							EMEM_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS);
+							ALVS_POSTED_STATS_MSID,
+							ALVS_SERVICE_STATS_POSTED_OFFSET + cp_service.nps_index * ALVS_NUM_OF_SERVICE_STATS);
 
 	write_log(LOG_DEBUG, "Service info: alg=%d, flags=%d",
 		  cp_service.sched_alg, cp_service.flags);
@@ -2505,15 +2504,15 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 		cp_server.u_thresh = ip_vs_dest->u_threshold;
 		cp_server.l_thresh = ip_vs_dest->l_threshold;
 		cp_server.server_stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-								      EMEM_SERVER_STATS_POSTED_MSID,
-								      EMEM_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS);
+								      ALVS_POSTED_STATS_MSID,
+								      ALVS_SERVER_STATS_POSTED_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_STATS);
 		cp_server.service_stats_base.raw_data = cp_service.stats_base.raw_data;
 		cp_server.server_on_demand_stats_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-										EMEM_SERVER_STATS_ON_DEMAND_MSID,
-										EMEM_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS);
+										ALVS_ON_DEMAND_STATS_MSID,
+										ALVS_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS);
 		cp_server.server_flags_dp_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-									 EMEM_SERVER_FLAGS_MSID,
-									 EMEM_SERVER_FLAGS_OFFSET + cp_server.nps_index);
+									 ALVS_EMEM_DATA_OUT_OF_BAND_MSID,
+									 ALVS_SERVER_FLAGS_OFFSET + cp_server.nps_index);
 
 		write_log(LOG_DEBUG, "Server info: conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
 			  cp_server.conn_flags,
@@ -3790,9 +3789,9 @@ enum alvs_db_rc alvs_db_print_global_error_stats(void)
 
 	/* printing general error stats */
 	write_log(LOG_INFO, "Statistics of global errors");
-	if (infra_get_posted_counters(EMEM_ALVS_ERROR_STATS_POSTED_OFFSET,
-					ALVS_NUM_OF_ALVS_ERROR_STATS,
-					global_error_counters) == false) {
+	if (infra_get_posted_counters(ALVS_ERROR_STATS_POSTED_OFFSET,
+				      ALVS_NUM_OF_ALVS_ERROR_STATS,
+				      global_error_counters) == false) {
 		write_log(LOG_CRIT, "Failed to read error statistics counters");
 		return ALVS_DB_NPS_ERROR;
 	}

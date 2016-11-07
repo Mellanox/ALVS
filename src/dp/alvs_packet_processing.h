@@ -38,7 +38,7 @@
 
 #include <linux/ip.h>
 #include <linux/tcp.h>
-#include "defs.h"
+#include "alvs_defs.h"
 #include "global_defs.h"
 #include "alvs_service.h"
 #include "nw_routing.h"

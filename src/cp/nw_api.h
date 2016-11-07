@@ -44,7 +44,6 @@
 #include <arpa/inet.h>
 
 #include "nw_api_defs.h"
-#include "user_defs.h"
 #include "nw_search_defs.h"
 
 enum internal_db_table_name {

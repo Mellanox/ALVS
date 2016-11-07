@@ -44,18 +44,11 @@
  * General definitions
  ***************************************************************/
 
-#define LOG2(x) (x == 2 ? 1 : x == 4 ? 2 : x == 8 ? 3 : x == 16 ? 4 : x == 32 ? 5 : \
-				x == 64 ? 6 : x == 128 ? 7 : x == 256 ? 8 : x == 512 ? 9 : x == 1024 ? 10 : x == 2048 ? 11 : \
-				x == 4096 ? 12 : x == 8192 ? 13 : x == 16384 ? 14 : x == 32768 ? 15 : x == 65536 ? 16 : \
-				x == 131072 ? 17 : x == 262144 ? 18 : 0)
-
 /*prototypes*/
 bool init_alvs_shared_cmem(void);
 bool init_alvs_private_cmem(void);
 bool init_alvs_emem(void);
 
-
-#define MAX_DECODE_SIZE 28
 
 enum alvs_service_output_result {
 	ALVS_SERVICE_DATA_PATH_IGNORE           = 0, /* Frame is dropped or send to host */
@@ -66,10 +59,6 @@ enum alvs_service_output_result {
 /****************************************************************
  * ALVS definitions
  ***************************************************************/
-#define ALVS_HOST_LOGICAL_ID            USER_HOST_LOGICAL_ID
-#define ALVS_AGING_TIMER_LOGICAL_ID     USER_TIMER_LOGICAL_ID
-#define ALVS_CONN_INDEX_POOL_ID	        USER_POOL_ID
-
 #define ALVS_TIMER_INTERVAL_SEC 16
 
 #define ALVS_SCHED_RR_RETRIES 10
@@ -107,15 +96,9 @@ enum alvs_sched_server_result {
 #define ALVS_CONN_LOCK_ELEMENTS_MASK  (ALVS_CONN_LOCK_ELEMENTS_COUNT - 1)
 
 
-/* Number of lag members is hard coded and depended on compilation flag. */
-/* in case user wants to disable LAG functionality need to set this flag. */
-#define DEFAULT_NW_BASE_LOGICAL_ID           0
-#define NUM_OF_LAG_MEMBERS                   4
-
 /*************************************************************
  * SEARCH defs
  ************************************************************/
-
 
 /***************** global CMEM data *************************/
 /***********************************************************************//**
@@ -156,6 +139,7 @@ union alvs_workarea {
 	char service_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct alvs_service_classification_result), sizeof(struct alvs_service_classification_key))];
 	char conn_info_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct alvs_conn_info_result))];
 	char table_struct_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(ezdp_table_struct_desc_t))];
+	char app_info_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(union application_info_result))];
 	uint64_t counter_work_area;
 	struct alvs_app_info_result alvs_app_info_result;
 	/**< application info class result */
@@ -174,6 +158,7 @@ struct alvs_shared_cmem {
 	ezdp_hash_struct_desc_t     server_class_struct_desc;
 	ezdp_table_struct_desc_t    service_info_struct_desc;
 	ezdp_table_struct_desc_t    sched_info_struct_desc;
+	ezdp_table_struct_desc_t    app_info_struct_desc;
 } __packed;
 
 /*************************************************************

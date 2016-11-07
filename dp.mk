@@ -6,21 +6,36 @@ PATH := $(PATH):$(abspath $(EZDK_BASE)ldk/toolchain/bin)
 
 DP_INC := -Isrc/common -Isrc/dp -I$(EZDK_BASE)dpe/dp/include -I$(EZDK_BASE)dpe/frame/include
 
-DP_C_SRCS = src/dp/alvs_init.c \
-			src/dp/alvs_packet_processing.c \
-			src/dp/anl_log.c \
+DP_C_SRCS = src/dp/anl_log.c \
 			src/dp/log.c \
 			src/dp/main.c \
 			src/dp/nw_init.c
-DP_OBJS = $(patsubst %.c,build/%.o,$(DP_C_SRCS)) 
-DP_C_DEPS = $(patsubst %.c,build/%.d,$(DP_C_SRCS))
+ifdef CONFIG_ALVS
+DP_C_SRCS += src/dp/alvs_init.c \
+			 src/dp/alvs_packet_processing.c
+endif
+
+ifdef CONFIG_ALVS
+	APP_NAME := alvs
+else
+	APP_NAME := nw
+endif
+
+DP_OBJS = $(patsubst %.c,build/$(APP_NAME)/%.o,$(DP_C_SRCS)) 
+DP_C_DEPS = $(patsubst %.c,build/$(APP_NAME)/%.d,$(DP_C_SRCS))
 
 DP_C_FLAGS := -DNPS_BIG_ENDIAN -Werror -Wall -Wextra
 
 ifdef DP_DEBUG
-DP_C_FLAGS += -O1 -g3 -ftree-ter  -gdwarf-2
+DP_C_FLAGS += -O1 -g3 -ftree-ter -gdwarf-2
+SUFFIX := _debug
 else
 DP_C_FLAGS += -DNDEBUG -O2
+SUFFIX := 
+endif
+
+ifdef CONFIG_ALVS
+	DP_C_FLAGS += -DCONFIG_ALVS
 endif
 
 ifdef SIM
@@ -31,19 +46,11 @@ DP_LIBS := -l:ezdp_linux_arc.a -l:ezframe_linux_arc.a
 endif
 
 # set bin path/name
+DP_BIN := bin/$(APP_NAME)_dp
 ifdef SIM
-    ifdef DP_DEBUG
-        DP_BIN := bin/alvs_dp_sim_debug
-    else
-        DP_BIN := bin/alvs_dp_sim
-    endif
-else
-    ifdef DP_DEBUG
-        DP_BIN := bin/alvs_dp_debug
-    else
-        DP_BIN := bin/alvs_dp
-    endif
+	DP_BIN := $(DP_BIN)_sim
 endif
+DP_BIN := $(DP_BIN)$(SUFFIX)
 
 # Tool invocations
 make_dp: $(DP_OBJS) 
@@ -55,7 +62,7 @@ make_dp: $(DP_OBJS)
 	-print_memory_usage.sh $(DP_BIN)
 #	$(MAKE) --no-print-directory post-build
 
-build/%.o: %.c
+build/$(APP_NAME)/%.o: %.c
 	@echo 'EZDK path $(EZDK_BASE) '
 	@echo 'Building file: $<'
 	@echo 'Invoking: ARC GNU C Compiler'

@@ -46,7 +46,9 @@
 
 /*internal includes*/
 #include "nw_recieve.h"
+#ifdef CONFIG_ALVS
 #include "alvs_aging.h"
+#endif
 #include "version.h"
 
 /* We need this dummy because otherwise EMEM will not be initialized.
@@ -58,8 +60,11 @@ uint16_t dummy __emem_var;
 /******************************************************************************
  * CMEM variables
  *****************************************************************************/
+#ifdef CONFIG_ALVS
 struct alvs_cmem         cmem_alvs __cmem_var;
 struct alvs_shared_cmem  shared_cmem_alvs __cmem_shared_var;
+#endif
+
 union cmem_workarea      cmem_wa __cmem_var;
 ezframe_t                frame __cmem_var;
 uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;
@@ -326,13 +331,21 @@ void add_run_cpus(const char *processors_str)
 bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __unused)
 {
 	switch (data_ms_type) {
+#ifdef CONFIG_ALVS
 	case EZDP_CMEM_DATA:
 		return init_alvs_private_cmem();
+#endif
 	case EZDP_SHARED_CMEM_DATA:
 		anl_open_log();
+#ifdef CONFIG_ALVS
 		return init_nw_shared_cmem() & init_alvs_shared_cmem();
+#else
+		return init_nw_shared_cmem();
+#endif
+#ifdef CONFIG_ALVS
 	case EZDP_EMEM_DATA:
 		return init_alvs_emem();
+#endif
 	default:
 		return true;
 	}
@@ -375,14 +388,16 @@ void parse_arguments(int argc, char **argv, uint32_t *num_cpus_set_p)
 *
 * \return               void
 */
-void alvs_print_info(void)
+void print_app_info(void)
 {
 	struct ezdp_mem_section_info mem_info;
 
+#ifdef CONFIG_ALVS
 	anl_write_log(LOG_INFO, "starting ALVS DP application.");
+#endif
 	anl_write_log(LOG_INFO, "num CPUs:            %d", num_cpus);
 	anl_write_log(LOG_INFO, "Application version: %s.", version);
-	anl_write_log(LOG_DEBUG, "ALVS MEMORY:");
+	anl_write_log(LOG_DEBUG, "Memory layout:");
 
 	/* print memory section info */
 	ezdp_get_mem_section_info(&mem_info, 0);
@@ -465,7 +480,7 @@ void packet_processing(void)
 	int32_t port_id;
 
 	if (ezdp_get_cpu_id() == run_cpus[0]) {
-		alvs_print_info();
+		print_app_info();
 	}
 
 	while (true) {
@@ -477,7 +492,8 @@ void packet_processing(void)
 			exit(0);
 		}
 
-		if (port_id == ALVS_AGING_TIMER_LOGICAL_ID) {
+#ifdef CONFIG_ALVS
+		if (port_id == ALVS_TIMER_LOGICAL_ID) {
 			alvs_handle_aging_event(frame.job_desc.rx_info.timer_info.event_id);
 			/*frame is discarded by aging event handler*/
 		} else {
@@ -485,6 +501,11 @@ void packet_processing(void)
 						   frame_data,
 						   port_id);
 		}
+#else
+		nw_recieve_and_parse_frame(&frame,
+					   frame_data,
+					   port_id);
+#endif
 	} /* while (true) */
 }
 

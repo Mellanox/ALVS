@@ -105,7 +105,7 @@ int anl_send(ezframe_t  __cmem * frame)
 	/*fill ethernet TYPE*/
 	eth_p->ether_type = ETHERTYPE_IP;
 
-	nw_local_host_route(frame, frame_base, orig_length, USER_HOST_LOGICAL_ID);
+	nw_local_host_route(frame, frame_base, orig_length, HOST_LOGICAL_ID);
 
 	return 0;
 }

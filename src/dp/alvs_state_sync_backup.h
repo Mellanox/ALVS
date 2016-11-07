@@ -279,7 +279,7 @@ void alvs_state_sync_backup(ezframe_t __cmem * frame, uint8_t *buffer, uint32_t 
 	uint8_t conn_count;
 	uint8_t b_syncid;
 
-	rc = ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc,
+	rc = ezdp_lookup_table_entry(&shared_cmem_alvs.app_info_struct_desc,
 					ALVS_APPLICATION_INFO_INDEX, &cmem_wa.alvs_wa.alvs_app_info_result,
 					sizeof(struct alvs_app_info_result), 0);
 	if (unlikely(rc != 0)) {

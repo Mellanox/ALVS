@@ -47,8 +47,6 @@
 #define CFG_BUF_MAX_LENGTH 256
 
 struct cfg_applications {
-	int alvs_en;
-	int tc_en;
 	int routing_en;
 	int qos_en;
 	int firewall_en;
@@ -75,8 +73,6 @@ void system_configuration(int argc, char **argv)
 		{ "agt_enabled", no_argument, (int *)(&system_cfg.agt), true },
 		{ "statistics", no_argument, (int *)(&system_cfg.stats), true },
 		{ "remote_control", no_argument, (int *)(&system_cfg.remote_cntrl), true },
-		{ "alvs_app", no_argument, (int *)(&system_cfg.applications.alvs_en), true },
-		{ "tc_app", no_argument, (int *)(&system_cfg.applications.tc_en), true },
 		{ "routing_app", no_argument, (int *)(&system_cfg.applications.routing_en), true },
 		{ "QoS_app", no_argument, (int *)(&system_cfg.applications.qos_en), true },
 		{ "firewall_app", no_argument, (int *)(&system_cfg.applications.firewall_en), true },
@@ -145,9 +141,7 @@ void system_cfg_print(void)
 		  (system_cfg.agt ? "True" : "False"),
 		  (system_cfg.stats ? "True" : "False"));
 
-	write_log(LOG_INFO, "Available Applications  %s %s %s %s %s",
-		  (system_cfg.applications.alvs_en ? "ALVS_APP" : ""),
-		  (system_cfg.applications.tc_en ? "TC_APP" : ""),
+	write_log(LOG_INFO, "Available Applications  %s %s %s",
 		  (system_cfg.applications.routing_en  ? "ROUTING_APP" : ""),
 		  (system_cfg.applications.qos_en  ? "QoS_APP" : ""),
 		  (system_cfg.applications.firewall_en  ? "FIREWALL_APP" : ""));
@@ -161,16 +155,6 @@ void system_cfg_print(void)
 
 	write_log(LOG_INFO, "DP binary  %s",
 		  (system_cfg.dp_bin_file));
-}
-
-bool system_cfg_is_alvs_app_en(void)
-{
-	return system_cfg.applications.alvs_en;
-}
-
-bool system_cfg_is_tc_app_en(void)
-{
-	return system_cfg.applications.tc_en;
 }
 
 bool system_cfg_is_routing_app_en(void)

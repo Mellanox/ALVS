@@ -36,7 +36,7 @@
 #ifndef ALVS_CONN_H_
 #define ALVS_CONN_H_
 
-#include "defs.h"
+#include "alvs_defs.h"
 #include "alvs_server.h"
 #include "alvs_utils.h"
 #include "alvs_state_sync_master.h"
@@ -83,9 +83,9 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 	uint32_t rc;
 
 	/*allocate new index*/
-	conn_index = ezdp_alloc_index(ALVS_CONN_INDEX_POOL_ID);
+	conn_index = ezdp_alloc_index(ALVS_CONN_TABLE_POOL_ID);
 	if (conn_index == EZDP_NULL_INDEX) {
-		anl_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server, ezdp_read_free_indexes(ALVS_CONN_INDEX_POOL_ID));
+		anl_write_log(LOG_CRIT, "error alloc index from pool server_index = %d, free indexes = %d", server, ezdp_read_free_indexes(ALVS_CONN_TABLE_POOL_ID));
 		alvs_server_overload_on_delete_conn(server);
 
 		/*drop frame*/
@@ -146,7 +146,7 @@ enum alvs_service_output_result alvs_conn_create_new_entry(bool bound, uint32_t 
 					    sizeof(cmem_wa.alvs_wa.conn_info_table_wa));
 
 		alvs_server_overload_on_delete_conn(server);
-		ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
+		ezdp_free_index(ALVS_CONN_TABLE_POOL_ID, conn_index);
 		alvs_discard_and_stats(ALVS_ERROR_CONN_CLASS_ALLOC_FAIL);
 		return ALVS_SERVICE_DATA_PATH_IGNORE;
 	}
@@ -322,7 +322,7 @@ void alvs_conn_delete_without_lock(uint32_t conn_index)
 		alvs_server_overload_on_delete_conn(cmem_alvs.conn_info_result.server_index);
 	}
 
-	ezdp_free_index(ALVS_CONN_INDEX_POOL_ID, conn_index);
+	ezdp_free_index(ALVS_CONN_TABLE_POOL_ID, conn_index);
 }
 
 /******************************************************************************

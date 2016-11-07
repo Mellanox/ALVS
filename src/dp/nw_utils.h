@@ -41,16 +41,6 @@
 #include "nw_search_defs.h"
 
 /******************************************************************************
- * \brief         perform application info lookup
- * \return        lookup result
- */
-static __always_inline
-uint32_t nw_app_info_lookup(uint32_t key, void __cmem * entry_ptr, uint32_t entry_ptr_size)
-{
-	return ezdp_lookup_table_entry(&shared_cmem_nw.app_info_struct_desc, key, entry_ptr, entry_ptr_size, 0);
-}
-
-/******************************************************************************
  * \brief         update interface stat counter - special couters for nw
  * \return        void
  */

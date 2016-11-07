@@ -42,8 +42,6 @@
 /* dp includes */
 #include <ezdp_search_defs.h>
 
-/* cp includes */
-#include "user_defs.h"
 
 /*********************************
  * Interfaces DB defs

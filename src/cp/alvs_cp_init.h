@@ -30,40 +30,49 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                application_infra.c
-*  Desc:                Implementation of application infrastructure API.
+*  File:                alvs_cp_init.h
+*  Desc:                ALVS application initialization API.
 *
 */
 
-#include "log.h"
-#include "application_infra.h"
-#include "application_search_defs.h"
-#include "infrastructure.h"
-#include "defs.h"
+#ifndef _ALVS_CP_INIT_H_
+#define _ALVS_CP_INIT_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
+
+
+
+/**************************************************************************//**
+ * \brief       Create index pools
+ *
+ * \return      bool - success or failure
+ */
+bool alvs_create_index_pools(void);
+
+/**************************************************************************//**
+ * \brief       Create timers
+ *
+ * \return      bool - success or failure
+ */
+bool alvs_create_timers(void);
+
+/**************************************************************************//**
+ * \brief       Initialize all statistics counter to be zero
+ *
+ * \return      bool - success or failure
+ */
+bool alvs_initialize_statistics(void);
 
 /******************************************************************************
- * \brief    Constructor function for application info DB.
- *           application info DB is a direct table contains 16 entries, exists on X1-IMEM
+ * \brief    Constructor function for all ALVS data bases.
+ *           This function is called not from the network thread but from the
+ *           main thread on NPS configuration bringup.
  *
- * \return   true/false
+ * \return   bool - success or failure
  */
-bool application_info_db_constructor(void)
-{
-	struct infra_table_params table_params;
-	bool retcode;
+bool alvs_db_constructor(void);
 
-	write_log(LOG_DEBUG, "Creating application info table.");
-	table_params.key_size = sizeof(struct application_info_key);
-	table_params.result_size = sizeof(union application_info_result);
-	table_params.max_num_of_entries = APPLICATION_INFO_MAX_ENTRIES;
-	table_params.updated_from_dp = false;
-	table_params.search_mem_heap = INFRA_X1_CLUSTER_SEARCH_HEAP;
-	retcode = infra_create_table(STRUCT_ID_APPLICATION_INFO, &table_params);
-	if (retcode == false) {
-		write_log(LOG_CRIT, "Failed to create application info table.");
-		return false;
-	}
-	return true;
-}
 
+#endif /* _ALVS_CP_INIT_H_ */

@@ -28,18 +28,18 @@ ALVSdir = os.path.dirname(parentdir)
 #===============================================================================
 # Struct IDs
 #===============================================================================
-STRUCT_ID_NW_INTERFACES                = 0
-STRUCT_ID_NW_LAG_GROUPS                = 1
-STRUCT_ID_ALVS_CONN_CLASSIFICATION     = 2
-STRUCT_ID_ALVS_CONN_INFO               = 3
-STRUCT_ID_ALVS_SERVICE_CLASSIFICATION  = 4
-STRUCT_ID_ALVS_SERVICE_INFO            = 5
-STRUCT_ID_ALVS_SCHED_INFO              = 6
-STRUCT_ID_ALVS_SERVER_INFO             = 7
-STRUCT_ID_NW_FIB                       = 8
-STRUCT_ID_NW_ARP                       = 9
-STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10
-STRUCT_ID_APPLICATION_INFO             = 11
+STRUCT_ID_NW_INTERFACES						= 0
+STRUCT_ID_NW_LAG_GROUPS						= 1 
+STRUCT_ID_NW_FIB							= 2
+STRUCT_ID_NW_ARP							= 3
+STRUCT_ID_ALVS_CONN_CLASSIFICATION			= 4
+STRUCT_ID_ALVS_CONN_INFO 					= 5
+STRUCT_ID_ALVS_SERVICE_CLASSIFICATION		= 6
+STRUCT_ID_ALVS_SERVICE_INFO					= 7
+STRUCT_ID_ALVS_SCHED_INFO					= 8
+STRUCT_ID_ALVS_SERVER_INFO					= 9
+STRUCT_ID_ALVS_SERVER_CLASSIFICATION		= 10
+STRUCT_ID_APPLICATION_INFO					= 11
 
 #===============================================================================
 # STATS DEFINES
@@ -48,18 +48,24 @@ ALVS_SERVICES_MAX_ENTRIES	 = 256
 ALVS_SERVERS_MAX_ENTRIES	 = ALVS_SERVICES_MAX_ENTRIES*1024
 ALVS_NUM_OF_SERVICE_STATS	 = 6
 ALVS_NUM_OF_SERVER_STATS	 = 8
-NUM_OF_INTERFACES			 = 5
+NUM_OF_NW_INTERFACES		 = 4
+NUM_OF_REMOTE_INTERFACES	 = 4
 ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS = 1
 NW_NUM_OF_IF_STATS			 = 20
 ALVS_NUM_OF_ALVS_ERROR_STATS = 40
 
-EMEM_ALVS_ERROR_STATS_POSTED_OFFSET = 0
-EMEM_SERVICE_STATS_POSTED_OFFSET = EMEM_ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS
-EMEM_SERVER_STATS_POSTED_OFFSET  = EMEM_SERVICE_STATS_POSTED_OFFSET + ALVS_SERVICES_MAX_ENTRIES * ALVS_NUM_OF_SERVICE_STATS
-EMEM_IF_STATS_POSTED_OFFSET	  = EMEM_SERVER_STATS_POSTED_OFFSET + ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVER_STATS
-EMEM_END_OF_STATS_POSTED		  = EMEM_IF_STATS_POSTED_OFFSET + NW_NUM_OF_IF_STATS*NUM_OF_INTERFACES
 
-EMEM_SERVER_STATS_ON_DEMAND_OFFSET = 0
+NW_IF_STATS_POSTED_OFFSET = 0
+REMOTE_IF_STATS_POSTED_OFFSET = (NW_IF_STATS_POSTED_OFFSET + (NUM_OF_NW_INTERFACES * NW_NUM_OF_IF_STATS))
+HOST_IF_STATS_POSTED_OFFSET = (REMOTE_IF_STATS_POSTED_OFFSET + (NUM_OF_REMOTE_INTERFACES * NW_NUM_OF_IF_STATS))
+
+
+ALVS_ERROR_STATS_POSTED_OFFSET = (HOST_IF_STATS_POSTED_OFFSET + (1 * NW_NUM_OF_IF_STATS))
+ALVS_SERVICE_STATS_POSTED_OFFSET = (ALVS_ERROR_STATS_POSTED_OFFSET + ALVS_NUM_OF_ALVS_ERROR_STATS)
+ALVS_SERVER_STATS_POSTED_OFFSET = (ALVS_SERVICE_STATS_POSTED_OFFSET + ALVS_SERVICES_MAX_ENTRIES * ALVS_NUM_OF_SERVICE_STATS)
+ALVS_END_OF_STATS_POSTED = (ALVS_SERVER_STATS_POSTED_OFFSET + ALVS_SERVERS_MAX_ENTRIES * ALVS_NUM_OF_SERVER_STATS)
+
+ALVS_SERVER_STATS_ON_DEMAND_OFFSET = 2
 
 CLOSE_WAIT_DELETE_TIME = 16 #todo need to change it back to 16 after a fix to aging time.. 
 
@@ -801,10 +807,10 @@ class ezbox_host:
 #		 logging.log(logging.DEBUG, output)
 	
 	def clear_stats(self):
-		error_stats = self.cpe.cp.stat.set_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False, clear=True)
+		error_stats = self.cpe.cp.stat.set_posted_counters(channel_id=0, partition=0, range=True, start_counter=ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False, clear=True)
 		
 	def get_error_stats(self):
-		error_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=EMEM_ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False).result['posted_counter_config']['counters']
+		error_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, partition=0, range=True, start_counter=ALVS_ERROR_STATS_POSTED_OFFSET, num_counters=ALVS_NUM_OF_ALVS_ERROR_STATS, double_operation=False).result['posted_counter_config']['counters']
 		
 		stats_dict = {'ALVS_ERROR_UNSUPPORTED_ROUTING_ALGO':error_stats[0]['byte_value'],
 					  'ALVS_ERROR_CANT_EXPIRE_CONNECTION':error_stats[1]['byte_value'],
@@ -837,7 +843,7 @@ class ezbox_host:
 		if service_id < 0 or service_id > ALVS_SERVICES_MAX_ENTRIES:
 			return -1
 		
-		counter_offset = EMEM_SERVICE_STATS_POSTED_OFFSET + service_id*ALVS_NUM_OF_SERVICE_STATS
+		counter_offset = ALVS_SERVICE_STATS_POSTED_OFFSET + service_id*ALVS_NUM_OF_SERVICE_STATS
 		
 		# return only the lsb (small amount of packets on tests)
 		service_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 
@@ -867,7 +873,7 @@ class ezbox_host:
 		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
 			return -1
 		
-		counter_offset = EMEM_SERVER_STATS_POSTED_OFFSET + server_id*ALVS_NUM_OF_SERVER_STATS
+		counter_offset = ALVS_SERVER_STATS_POSTED_OFFSET + server_id*ALVS_NUM_OF_SERVER_STATS
 		
 		# return only the lsb (small amount of packets on tests)
 		server_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 
@@ -895,7 +901,7 @@ class ezbox_host:
 		if server_id < 0 or server_id > ALVS_SERVERS_MAX_ENTRIES:
 			return -1
 		
-		counter_offset = EMEM_SERVER_STATS_ON_DEMAND_OFFSET + server_id * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS
+		counter_offset = ALVS_SERVER_STATS_ON_DEMAND_OFFSET + server_id * ALVS_NUM_OF_SERVERS_ON_DEMAND_STATS
 		sched_connections_on_server =  self.cpe.cp.stat.get_long_counter_values(channel_id=0, 
 																				partition=0, 
 																				range=1, 
@@ -911,7 +917,7 @@ class ezbox_host:
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:
 			return -1
 		
-		counter_offset = EMEM_IF_STATS_POSTED_OFFSET + interface_id*NW_NUM_OF_IF_STATS
+		counter_offset = IF_STATS_POSTED_OFFSET + interface_id*NW_NUM_OF_IF_STATS
 		
 		# return only the lsb (small amount of packets on tests)
 		interface_stats = self.cpe.cp.stat.get_posted_counters(channel_id=0, 

@@ -37,7 +37,11 @@
 #ifndef NW_RECIEVE_H_
 #define NW_RECIEVE_H_
 
+#include "anl_log.h"
+#include "nw_routing.h"
+#ifdef CONFIG_ALVS
 #include "alvs_packet_processing.h"
+#endif
 
 /******************************************************************************
  * \brief         Parse and validate frame
@@ -78,7 +82,6 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 	}
 
 	if (cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_NW_PATH) {
-
 		ezdp_mem_set(&cmem_wa.nw_wa.ezdp_decode_result, 0, sizeof(struct ezdp_decode_result));
 		/* decode mac to ensure it is valid */
 		ezdp_decode_mac(frame_base, MAX_DECODE_SIZE,
@@ -134,8 +137,15 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			      &cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.next_protocol,
 			      sizeof(struct ezdp_decode_ip_next_protocol));
 
+#ifdef CONFIG_ALVS
 		/*frame is OK, let's start alvs IF_STATS processing*/
-		alvs_packet_processing(frame, frame_base);
+		if (cmem_nw.ingress_if_result.app_bitmap.alvs_en == true) {
+			alvs_packet_processing(frame, frame_base);
+		} else
+#endif
+		{
+			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
+		}
 
 	} else if (cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_HOST_PATH || cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_REMOTE_PATH) {
 

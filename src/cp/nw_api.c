@@ -51,11 +51,10 @@
 #include "log.h"
 #include "nw_api.h"
 #include "sqlite3.h"
-#include "infrastructure.h"
+#include "nw_conf.h"
+#include "infrastructure_utils.h"
 #include "nw_search_defs.h"
 #include "cfg.h"
-
-#include "defs.h"
 
 /* Global pointer to the DB */
 sqlite3 *nw_db;
@@ -645,7 +644,7 @@ void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key, 
 	if (result) {
 		memcpy(result->dest_mac_addr.ether_addr_octet, nl_addr_get_binary_addr(rtnl_neigh_get_lladdr(neighbor)), 6);
 
-		result->output_index.output_interface = USER_NW_BASE_LOGICAL_ID; /* todo will be changed in the future, to take the real port id */
+		result->output_index.output_interface = NW_BASE_LOGICAL_ID; /* todo will be changed in the future, to take the real port id */
 	}
 }
 
@@ -2388,23 +2387,23 @@ enum nw_api_rc nw_api_print_if_stats(void)
 	uint32_t i;
 
 	/* printing network interface error stats */
-	for (i = 0; i < USER_NW_IF_NUM; i++) {
+	for (i = 0; i < NW_IF_NUM; i++) {
 		write_log(LOG_INFO, "Statistics of Network Interface %d", i);
-		if (nw_db_print_interface_stats(EMEM_NW_IF_STATS_POSTED_OFFSET + ((USER_NW_BASE_LOGICAL_ID+i) * NW_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, NW_NUM_OF_IF_STATS) != NW_API_OK) {
+		if (nw_db_print_interface_stats(NW_IF_STATS_POSTED_OFFSET + ((NW_BASE_LOGICAL_ID+i) * NW_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, NW_NUM_OF_IF_STATS) != NW_API_OK) {
 			return NW_API_DB_ERROR;
 		}
 	}
 
 	/* printing host error stats */
 	write_log(LOG_INFO, "Statistics of Host Interface");
-	if (nw_db_print_interface_stats(EMEM_HOST_IF_STATS_POSTED_OFFSET + (USER_HOST_LOGICAL_ID * HOST_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, HOST_NUM_OF_IF_STATS) != NW_API_OK) {
+	if (nw_db_print_interface_stats(HOST_IF_STATS_POSTED_OFFSET + (HOST_LOGICAL_ID * HOST_NUM_OF_IF_STATS), nw_if_posted_stats_offsets_names, HOST_NUM_OF_IF_STATS) != NW_API_OK) {
 		return NW_API_DB_ERROR;
 	}
 
 	/* printing network interface error stats */
-	for (i = 0; i < USER_REMOTE_IF_NUM; i++) {
+	for (i = 0; i < REMOTE_IF_NUM; i++) {
 		write_log(LOG_INFO, "Statistics of Remote Interface %d", i);
-		if (nw_db_print_interface_stats(EMEM_REMOTE_IF_STATS_POSTED_OFFSET + ((USER_REMOTE_BASE_LOGICAL_ID+i) * REMOTE_NUM_OF_IF_STATS), remote_if_posted_stats_offsets_names, REMOTE_NUM_OF_IF_STATS) != NW_API_OK) {
+		if (nw_db_print_interface_stats(REMOTE_IF_STATS_POSTED_OFFSET + ((REMOTE_BASE_LOGICAL_ID + i) * REMOTE_NUM_OF_IF_STATS), remote_if_posted_stats_offsets_names, REMOTE_NUM_OF_IF_STATS) != NW_API_OK) {
 			return NW_API_DB_ERROR;
 		}
 	}

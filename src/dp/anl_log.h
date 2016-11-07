@@ -40,6 +40,7 @@
 #include <ezdp.h>
 #include <ezframe.h>
 #include "log.h"
+#include "global_defs.h"
 
 
 #ifndef NDEBUG

@@ -47,7 +47,8 @@
 #include "cfg.h"
 #include "nw_db_manager.h"
 #include "alvs_db_manager.h"
-#include "defs.h"
+#include "alvs_conf.h"
+
 
 /******************************************************************************/
 #define WAIT_FOR_NPS 500
@@ -157,6 +158,7 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_nw_db_manager] = true;
 
+#ifdef CONFIG_ALVS
 	/************************************************/
 	/* Start ALVS DB manager main thread            */
 	/************************************************/
@@ -169,7 +171,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	is_object_allocated[object_type_alvs_db_manager] = true;
-
+#endif
 
 
 	/************************************************/
@@ -321,7 +323,7 @@ bool nps_bringup(void)
 	write_log(LOG_DEBUG, "Initialize channel...");
 	ez_ret_val = EZapiChannel_Initialize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Initialize returned an error.");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Initialize returned an error (0x%08x).", ez_ret_val);
 		return false;
 	}
 
@@ -462,9 +464,11 @@ void signal_terminate_handler(int signum)
 		if (self == nw_db_manager_thread) {
 			nw_db_manager_exit_with_error();
 		}
+#ifdef CONFIG_ALVS
 		if (self == alvs_db_manager_thread) {
 			alvs_db_manager_exit_with_error();
 		}
+#endif
 		if (self == dp_load_thread) {
 			dp_load_exit_with_error();
 		}

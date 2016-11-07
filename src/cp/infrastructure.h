@@ -42,62 +42,27 @@
 #include <stdint.h>
 #include <net/ethernet.h>
 
+
 /*! Search memory heaps possible values. */
-enum infra_search_mem_heaps {
-	INFRA_X1_CLUSTER_SEARCH_HEAP,
-	INFRA_X4_CLUSTER_SEARCH_HEAP,
-	INFRA_EMEM_SEARCH_HASH_HEAP,
-	INFRA_EMEM_SEARCH_1_TABLE_HEAP,
-	INFRA_EMEM_SEARCH_2_TABLE_HEAP,
-	INFRA_NOT_VALID_HEAP
+enum infra_internal_search_mem_heaps {
+	INFRA_HALF_CLUSTER_SEARCH_HEAP,
+	INFRA_1_CLUSTER_SEARCH_HEAP,
+	INFRA_2_CLUSTER_SEARCH_HEAP,
+	INFRA_4_CLUSTER_SEARCH_HEAP,
+	INFRA_16_CLUSTER_SEARCH_HEAP,
+	INFRA_ALL_CLUSTER_SEARCH_HEAP,
+	INFRA_NOT_VALID_INTERNAL_HEAP
 };
 
-/*! Sig pool index possible values. */
-enum sig_pool_index {
-	CONNECTION_CLASSIFICATION_SIG_POOL_INDEX = 0,
-	SERVER_CLASSIFICATION_SIG_POOL_INDEX = 2
+/*! Search memory heaps possible values. */
+enum infra_external_search_mem_heaps {
+	NW_EMEM_SEARCH_0_HEAP,
+	ALVS_EMEM_SEARCH_0_HEAP,
+	ALVS_EMEM_SEARCH_1_HEAP,
+	ALVS_EMEM_SEARCH_2_HEAP,
+	INFRA_NOT_VALID_EXTERNAL_HEAP
 };
 
-/*! Sig pool index possible values. */
-enum result_pool_index {
-	CONNECTION_CLASSIFICATION_RES_POOL_INDEX = 1,
-	SERVER_CLASSIFICATION_RES_POOL_INDEX = 3
-};
-
-/*! Required parameters for hash creation data structure  */
-struct infra_hash_params {
-	uint32_t key_size;
-	uint32_t result_size;
-	uint32_t max_num_of_entries;
-	uint32_t hash_size;
-	bool updated_from_dp;
-	enum sig_pool_index sig_pool_id;
-	enum result_pool_index result_pool_id;
-	enum infra_search_mem_heaps main_table_search_mem_heap;
-	enum infra_search_mem_heaps sig_table_search_mem_heap;
-	enum infra_search_mem_heaps res_table_search_mem_heap;
-
-};
-
-/*! Required parameters for table creation data structure  */
-struct infra_table_params {
-	uint32_t key_size;
-	uint32_t result_size;
-	uint32_t max_num_of_entries;
-	bool updated_from_dp;
-	enum infra_search_mem_heaps search_mem_heap;
-};
-
-/*! Required parameters for tcam creation data structure  */
-struct infra_tcam_params {
-	uint32_t side;
-	uint32_t profile;
-	uint32_t lookup_table_count;
-	uint32_t table;
-	uint32_t key_size;
-	uint32_t result_size;
-	uint32_t max_num_of_entries;
-};
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
@@ -147,183 +112,13 @@ bool infra_enable_agt(void);
  */
 void infra_disable_agt(void);
 
-/**************************************************************************//**
- * \brief       Get my MAC
- *
- * \param[out]  my_mac - reference to ethernet address type
- *
- * \return      true - success
- *              false - can't find tap interface file
- */
-bool infra_get_my_mac(struct ether_addr *my_mac);
 
 /**************************************************************************//**
- * \brief       Create TCAM data structure
- *
- * \param[in]   params          - parameters of the tcam
+ * \brief       Find the index of the required memory heap
  *
  * \return      bool - success or failure
  */
-bool infra_create_tcam(struct infra_tcam_params *params);
-
-/**************************************************************************//**
- * \brief       Create hash data structure
- *
- * \param[in]   struct_id       - structure id of the hash
- * \param[in]   params          - parameters of the hash (size of key & result,
- *                                max number of entries and update mode)
- *
- * \return      bool - success or failure
- */
-bool infra_create_hash(uint32_t struct_id,
-		       struct infra_hash_params *params);
-
-/**************************************************************************//**
- * \brief       Create table data structure
- *
- * \param[in]   struct_id       - structure id of the table
- * \param[in]   params          - parameters of the table (size of key & result
- *                                and max number of entries)
- *
- * \return      bool - success or failure
- */
-bool infra_create_table(uint32_t struct_id,
-			struct infra_table_params *params);
-
-/**************************************************************************//**
- * \brief       Add an entry to a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_add_entry(uint32_t struct_id, void *key, uint32_t key_size,
-		     void *result, uint32_t result_size);
-
-/**************************************************************************//**
- * \brief       Modify an entry in a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size,
-			void *result, uint32_t result_size);
-
-/**************************************************************************//**
- * \brief       Delete an entry from a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
-
-/**************************************************************************//**
- * \brief       Add an entry to a TCAM data structure
- *
- * \param[in]   side            - side of TCAM table (0/1)
- * \param[in]   table           - table number
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   mask            - reference to mask
- * \param[in]   index           - index in table
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_add_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
-			  void *mask, uint32_t index, void *result, uint32_t result_size);
-
-/**************************************************************************//**
- * \brief       Delete an entry from a TCAM data structure
- *
- * \param[in]   side            - side of TCAM table (0/1)
- * \param[in]   table           - table number
- * \param[in]   key             - reference to key
- * \param[in]   key_size        - size of the key in bytes
- * \param[in]   mask            - reference to mask
- * \param[in]   index           - index in table
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
- *
- * \return      bool - success or failure
- */
-bool infra_delete_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
-				  void *mask, uint32_t index, void *result, uint32_t result_size);
-
-/**************************************************************************//**
- * \brief       Delete all entries from a data structure
- *
- * \param[in]   struct_id       - structure id of the search structure
- *
- * \return      bool - success or failure
- */
-bool infra_delete_all_entries(uint32_t struct_id);
-
-/**************************************************************************//**
- * \brief       translate msid to msid_select
- *
- * \param[in]   external_memory       - bool if this msid external
- *		Note - now this function is only for external memory
- *		emem_msid	- emem_msid - msid for translation
- * \return      msid_select
- */
-uint32_t infra_from_msid_to_index(bool external_memory, uint32_t emem_msid);
-
-/**************************************************************************//**
- * \brief       Read Long Counters Values, read several counters (num_of_counters)
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
- * \return      bool
- *
- */
-bool infra_get_long_counters(uint32_t counter_index,
-			     uint32_t num_of_counters,
-			     uint64_t *counters_value);
-
-/**************************************************************************//**
- * \brief       Get posted counters value, read several counters (num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
- * \return      bool
- */
-bool infra_get_posted_counters(uint32_t counter_index,
-			       uint32_t num_of_counters,
-			       uint64_t *counters_value);
-
-/**************************************************************************//**
- * \brief       Set posted counters values - set to a several counters (num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- * \return      bool
- */
-bool infra_clear_posted_counters(uint32_t counter_index,
-				 uint32_t num_of_counters);
-
-/**************************************************************************//**
- * \brief       Set long counters values - set to a several counters (num_of_counters)
- *
- * \param[in]   counter_index   - index of starting counter
- *		num_of_counters - number of counters from the starting counter
- * \return      bool
- */
-bool infra_clear_long_counters(uint32_t counter_index,
-			       uint32_t num_of_counters);
+uint32_t infra_index_of_heap(uint32_t search_mem_heap,
+			     bool is_external);
 
 #endif /* _INFRASTRUCTURE_H_ */

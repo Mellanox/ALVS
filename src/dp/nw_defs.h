@@ -38,9 +38,26 @@
 #ifndef NW_DEFS_H_
 #define NW_DEFS_H_
 
-#include "defs.h"
+#include <ezdp.h>
+#include "nw_conf.h"
 #include "nw_search_defs.h"
 #include "application_search_defs.h"
+
+
+#ifdef NDEBUG
+#define __fast_path_code __imem_1_cluster_func
+#else
+#define __fast_path_code __imem_all_cluster_func
+#endif
+#define __slow_path_code __imem_all_cluster_func
+
+
+/* Number of lag members is hard coded and depended on compilation flag. */
+/* in case user wants to disable LAG functionality need to set this flag. */
+#define NUM_OF_LAG_MEMBERS                   4
+
+#define MAX_DECODE_SIZE 28
+
 
 /*prototypes*/
 void packet_processing(void) __fast_path_code;
@@ -92,7 +109,6 @@ struct ezdp_decode_result {
 union nw_workarea {
 	char                                 arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
 	char                                 table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
-	char			             app_info_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(union application_info_result))];
 	/**< working areas */
 
 	struct ezdp_decode_result            ezdp_decode_result;
@@ -113,7 +129,6 @@ union nw_workarea {
 struct shared_cmem_network {
 	ezdp_table_struct_desc_t    interface_struct_desc;
 	ezdp_table_struct_desc_t    lag_group_info_struct_desc;
-	ezdp_table_struct_desc_t    app_info_struct_desc;
 	ezdp_hash_struct_desc_t	    arp_struct_desc;
 } __packed;
 
