@@ -47,8 +47,8 @@ def main():
 				msg = MIMEText('You allocated setup number: ' +line[:-1] + '  since ' + curr_setup_inf.partition(' ')[2])
 				msg['Subject'] = 'Setup allocation status report'
 				msg['From'] = 'automation@mellanox.com'
-				msg['To'] = curr_setup_inf.split('\t')[0] + '@mellanox.com'
-				
+				msg['To'] = curr_setup_inf.split(' ')[0] + '@mellanox.com'
+				print "send message to " + msg['To']
 				s = smtplib.SMTP('localhost')
 				s.sendmail(msg['From'],[msg['To']],msg.as_string())
 				s.quit()

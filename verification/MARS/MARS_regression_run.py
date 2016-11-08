@@ -36,8 +36,8 @@ def main():
     command_line = 'python2.7 '\
                    '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
                    '--cmd start '\
-                   '--setup ALVS' + options.setup_num + \
-                   ' --conf alvs_'+ options.setup_num +'.setup '\
+                   '--setup solution_setup' + options.setup_num + \
+                   ' --conf alvs_sys.setup '\
                    '--meinfo_tests_src_path='\
                    
                    
