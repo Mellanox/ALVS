@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import time
 import urllib2
 import sys
 import os
@@ -34,11 +34,20 @@ def init_ezbox(ezbox, use_4k_cpus,file_name):
 	
 	if file_name == "None":
 		file_name = None
+
+	ezbox.alvs_service_stop()
 	# Install alvs service
 	ezbox.copy_and_install_alvs(file_name)
 	# Validate chip is up
 	ezbox.alvs_service_start()
 	# Set CP, DP params
+	index=0
+	result = False
+	while result == False and index < 100:
+		result, output = ezbox.execute_command_on_host("ping -c1 -w10 alvs_nps > /dev/null 2>&1")
+	if result == False:
+		raise Exception('Error: no ping to NPS')
+	time.sleep(3)
 	ezbox.update_dp_cpus(use_4k_cpus)
 	if use_4k_cpus:
 		ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled --port_type=%s "%(ezbox.setup['nps_port_type']))
