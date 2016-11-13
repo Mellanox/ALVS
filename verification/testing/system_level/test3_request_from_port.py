@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-from tester_class import Tester
+from system_tester_class import System_Tester
 
 
 # pythons modules 
@@ -27,7 +27,7 @@ from e2e_infra import *
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-class Test3(Tester):
+class Test3(System_Tester):
 	
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"

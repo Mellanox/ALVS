@@ -54,16 +54,13 @@ class Tester():
                        'install_file'    : None,
                        'copy_binaries'   : True,
                        'use_director'    : True,
+                       'stats'           : False,
                        'start_ezbox'     : False,
                        'stop_ezbox'      : False}
         
         self.gen_rc = False
         self.user_rc = False
-        
-    @abc.abstractmethod
-    def user_init(self, setup_num):
-        """User initialization - must be implemented"""
-        pass
+        self.test_rc = 1
     
     @abc.abstractmethod
     def run_user_test(self):
@@ -71,29 +68,19 @@ class Tester():
         pass
     
     @abc.abstractmethod
-    def run_user_checker(self, log_dir):
-        """Run user specific checker - must be implemented"""
-        pass 
-    
+    def user_init(self, setup_num):
+        """User initialization - must be implemented"""
+        pass
+       
+    @abc.abstractmethod
+    def start_test(self, setup_num):
+        """User initialization - must be implemented"""
+        pass
+       
+    @abc.abstractmethod
     def get_test_rc(self):
-        if self.gen_rc and self.user_rc:
-            return 0
-        else:
-            return 1
-        
-    def print_test_result(self):
-        if self.gen_rc and self.user_rc:
-            print 'Test passed !!!'
-        else:
-            print 'Test failed !!!'
-            
-    def deep_copy_server_list(self):
-        """Refresh ssh objects before deep copying,
-           in order to avoid data corruption"""
-        for s in self.test_resources['server_list']:
-            if s.ssh.connection_established:
-                s.ssh.recreate_ssh_object()
-        return copy.deepcopy(self.test_resources['server_list'])
+        """Get test result - must be implemented"""
+        pass
     
     def signal_handler(self, signum, frame):
         #Ignore termination signals while executing clean up
@@ -112,28 +99,14 @@ class Tester():
             
             self.handle_term_signals()
             
-            self.config = fill_default_config(generic_main())
-            
-            self.user_init(self.config['setup_num'])
-            
-            init_players(self.test_resources, self.config)
-            
-            self.run_user_test()
-            
-            log_dir = collect_logs(self.test_resources)
-            
-            self.gen_rc = general_checker(self.test_resources)
-            
-            self.user_rc = self.run_user_checker(log_dir)
-            
-            self.print_test_result()
+            self.start_test()
         
         except KeyboardInterrupt:
             print "The test has been terminated, Good Bye"
         
         except Exception as error:
             logging.exception(error)
-            
+    
         finally:
             clean_players(self.test_resources, True, self.config['stop_ezbox'])
             exit(self.get_test_rc())

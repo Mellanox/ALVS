@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-from tester_class import Tester
+from system_tester_class import System_Tester
 
 
 # pythons modules 
@@ -37,7 +37,7 @@ service_count = 1
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-class Test2(Tester):
+class Test2(System_Tester):
 	
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"

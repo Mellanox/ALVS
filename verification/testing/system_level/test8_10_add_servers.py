@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-from tester_class import Tester
+from system_tester_class import System_Tester
 
 
 # pythons modules 
@@ -48,7 +48,7 @@ g_sched_alg_opt  = None
 #
 # Brief:
 #===============================================================================
-class Test8_10(Tester):
+class Test8_10(System_Tester):
 	
 	def __init__(self, test_no):
 		self.set_user_params(test_no)

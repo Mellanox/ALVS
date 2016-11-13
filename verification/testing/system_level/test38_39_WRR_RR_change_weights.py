@@ -14,7 +14,7 @@ import sys
 import inspect
 from multiprocessing import Process
 import copy
-from tester_class import Tester
+from system_tester_class import System_Tester
 
 # pythons modules 
 # local
@@ -36,7 +36,7 @@ service_count = 1
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-class Test38_39(Tester):
+class Test38_39(System_Tester):
 	
 	def __init__(self, sched_alg):
 		self.sched_alg = sched_alg
