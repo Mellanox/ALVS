@@ -56,7 +56,7 @@
 
 bool nps_init(void);
 bool nps_bringup(void);
-void dp_load_and_run(void);
+void dp_load(void);
 void main_thread_graceful_stop(void);
 void signal_terminate_handler(int signum);
 
@@ -67,6 +67,7 @@ enum object_type {
 	object_type_agt,
 	object_type_nw_db_manager,
 	object_type_alvs_db_manager,
+	object_type_dp_load_thread,
 	object_type_count
 };
 
@@ -74,7 +75,7 @@ enum object_type {
 pthread_t main_thread;
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
-pthread_t dp_run_thread;
+pthread_t dp_load_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 int fd = -1;
@@ -133,13 +134,14 @@ int main(int argc, char **argv)
 	/* Start DP load and run thread                 */
 	/************************************************/
 	write_log(LOG_DEBUG, "Start DP load and run thread...");
-	rc = pthread_create(&dp_run_thread, NULL,
-			   (void * (*)(void *))dp_load_and_run, NULL);
+	rc = pthread_create(&dp_load_thread, NULL,
+			   (void * (*)(void *))dp_load, NULL);
 	if (rc != 0) {
-		write_log(LOG_CRIT, "Cannot start dp_run_thread: pthread_create failed for dp load and run");
+		write_log(LOG_CRIT, "Cannot start dp_load_thread: pthread_create failed for dp load and run");
 		main_thread_graceful_stop();
 		exit(1);
 	}
+	is_object_allocated[object_type_dp_load_thread] = true;
 
 	/************************************************/
 	/* Start network DB manager main thread         */
@@ -188,19 +190,36 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+/******************************************************************************
+ * \brief    Raises SIGTERM signal to main thread and exits the thread.
+ *
+ * \return   void
+ */
+void dp_load_exit_with_error(void)
+{
+	cancel_application_flag = true;
+	kill(getpid(), SIGTERM);
+	pthread_exit(NULL);
+}
+
 /************************************************************************
- * \brief      function for dp_run_thread - check connectivity to nps,
+ * \brief      function for dp_load_thread - check connectivity to nps,
  *             upload and run the dp bin file
  * \return     void
  */
-void dp_load_and_run(void)
+void dp_load(void)
 {
 	int rc, i;
 	char temp[256];
+	sigset_t sigs_to_block;
+	/* Mask SIGTERM signal for this thread. */
+	sigemptyset(&sigs_to_block);
+	sigaddset(&sigs_to_block, SIGTERM);
+	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
 	/* check connection to NPS */
 	write_log(LOG_INFO, "Waiting for Connection to NPS");
-	for (i = 0; i < WAIT_FOR_NPS; i++) {
+	for (i = 0; i < WAIT_FOR_NPS || cancel_application_flag; i++) {
 		rc = system("ping -c1 -w10 alvs_nps > /dev/null 2>&1");
 		if (rc == 0) {
 			write_log(LOG_INFO, "Connection to NPS Succeed");
@@ -210,15 +229,14 @@ void dp_load_and_run(void)
 	}
 	if (i == WAIT_FOR_NPS) {
 		write_log(LOG_ERR, "Connection to NPS failed");
-		main_thread_graceful_stop();
-		exit(1);
+		dp_load_exit_with_error();
 	}
 
-	sleep(10);
+	sleep(3);
 
 	/* copy dp bin file to nps */
 	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", system_cfg_get_dp_bin_file());
-	for (i = 0; i < FTP_RETRIES; i++) {
+	for (i = 0; i < FTP_RETRIES || cancel_application_flag; i++) {
 		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n alvs_nps;", system_cfg_get_dp_bin_file());
 		rc = system(temp);
 		if (rc == 0) {
@@ -229,13 +247,11 @@ void dp_load_and_run(void)
 	}
 	if (i == FTP_RETRIES) {
 		write_log(LOG_ERR, "FTP Upload to NPS failed");
-		main_thread_graceful_stop();
-		exit(1);
+		dp_load_exit_with_error();
 	}
 
-
 	/* run dp bin */
-	for (i = 0; i < DP_RUN_RETRIES; i++) {
+	for (i = 0; i < DP_RUN_RETRIES || cancel_application_flag; i++) {
 		if (strcmp(system_cfg_get_run_cpus(), "not_used") == 0) {
 			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp &\"; sleep 10;} | telnet alvs_nps &");
 		} else {
@@ -250,8 +266,7 @@ void dp_load_and_run(void)
 	}
 	if (i == DP_RUN_RETRIES) {
 		write_log(LOG_ERR, "DP Bin run failed");
-		main_thread_graceful_stop();
-		exit(1);
+		dp_load_exit_with_error();
 	}
 }
 
@@ -450,6 +465,9 @@ void signal_terminate_handler(int signum)
 		if (self == alvs_db_manager_thread) {
 			alvs_db_manager_exit_with_error();
 		}
+		if (self == dp_load_thread) {
+			dp_load_exit_with_error();
+		}
 
 		kill(getpid(), SIGTERM);
 		pthread_exit(NULL);
@@ -475,6 +493,9 @@ void main_thread_graceful_stop(void)
 	}
 
 	cancel_application_flag = true;
+	if (is_object_allocated[object_type_dp_load_thread]) {
+		pthread_join(dp_load_thread, NULL);
+	}
 	if (is_object_allocated[object_type_nw_db_manager]) {
 		pthread_join(nw_db_manager_thread, NULL);
 	}
