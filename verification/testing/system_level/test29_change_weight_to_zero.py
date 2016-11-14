@@ -73,7 +73,7 @@ class Test29(System_Tester):
 		server_list = self.test_resources['server_list']
 		client_list = self.test_resources['client_list']
 		vip        = self.test_resources['vip_list'][0]
-		port       = 80
+		port       = '80'
 		new_weight = 0
 	
 		
