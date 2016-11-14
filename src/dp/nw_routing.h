@@ -133,15 +133,16 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 
 		/*copy dst mac*/
 		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
-		/*copy src mac*/
-		/*
-		 * TODO nw_calc_egress_if(frame, frame_base, arp_res_ptr->base_logical_id, arp_res_ptr->is_lag);
-		*/
-		if (unlikely(nw_calc_egress_if(frame_base, arp_res_ptr->base_logical_id, true) == false)) {
+
+		/*Calc egress if*/
+		if (unlikely(nw_calc_egress_if(frame_base, arp_res_ptr->output_index.output_interface, arp_res_ptr->is_lag) == false)) {
+			anl_write_log(LOG_DEBUG, "Interface admin state is disabled, dropping packet on ingress");
 			nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 			nw_discard_frame();
 			return;
 		}
+
+		/*copy src mac*/
 		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
 		/* Store modified segment data */

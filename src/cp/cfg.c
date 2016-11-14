@@ -47,18 +47,18 @@
 #define CFG_BUF_MAX_LENGTH 256
 
 struct cfg_applications {
-	bool alvs_en;
-	bool tc_en;
-	bool routing_en;
-	bool qos_en;
-	bool firewall_en;
+	int alvs_en;
+	int tc_en;
+	int routing_en;
+	int qos_en;
+	int firewall_en;
 };
 
 struct system_cfg {
-	bool agt;
-	bool stats;
-	bool remote_cntrl;
-	bool lag_en;
+	int agt;
+	int stats;
+	int remote_cntrl;
+	int lag_en;
 	struct cfg_applications applications;
 	EZapiChannel_EthIFType port_type;
 	char dp_bin_file[CFG_BUF_MAX_LENGTH];
@@ -74,7 +74,6 @@ void system_configuration(int argc, char **argv)
 	struct option long_options[] = {
 		{ "agt_enabled", no_argument, (int *)(&system_cfg.agt), true },
 		{ "statistics", no_argument, (int *)(&system_cfg.stats), true },
-		{ "port_type", required_argument, 0, 'p' },
 		{ "remote_control", no_argument, (int *)(&system_cfg.remote_cntrl), true },
 		{ "alvs_app", no_argument, (int *)(&system_cfg.applications.alvs_en), true },
 		{ "tc_app", no_argument, (int *)(&system_cfg.applications.tc_en), true },
@@ -82,6 +81,7 @@ void system_configuration(int argc, char **argv)
 		{ "QoS_app", no_argument, (int *)(&system_cfg.applications.qos_en), true },
 		{ "firewall_app", no_argument, (int *)(&system_cfg.applications.firewall_en), true },
 		{ "no_lag", no_argument, (int *)(&system_cfg.lag_en), false },
+		{ "port_type", required_argument, 0, 'p' },
 		{ "dp_bin_file", required_argument, 0, 'b'},
 		{ "run_cpus", required_argument, 0, 'r'},
 		{0, 0, 0, 0} };

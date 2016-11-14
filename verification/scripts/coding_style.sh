@@ -11,7 +11,7 @@ function create_log_folder()
 }
 
 create_log_folder
-find ./src/ -type f ! -name 'sql*.*' -exec ./verification/scripts/checkpatch.pl -terse -file -no-tree {} \; | grep -v 'line over 80 characters' | grep -v 'externs should be avoided in .c files' | grep -v 'braces {} are not necessary for single statement blocks' | grep -v 'quoted string split across lines' | grep -v 'braces {} are not necessary for any arm of this statement' | grep -v 'lines checked' | grep -v 'CVS style keyword markers, these will _not_ be updated' > logs/coding_style.log
+find ./src/ -type f ! -name 'sql*.*' -exec ./verification/scripts/checkpatch.pl -terse -file -no-tree {} \; | grep -v 'Prefer ether_addr_copy() over memcpy() if the Ethernet addresses are __aligned(2)' | grep -v 'line over 80 characters' | grep -v 'externs should be avoided in .c files' | grep -v 'braces {} are not necessary for single statement blocks' | grep -v 'quoted string split across lines' | grep -v 'braces {} are not necessary for any arm of this statement' | grep -v 'lines checked' | grep -v 'CVS style keyword markers, these will _not_ be updated' > logs/coding_style.log
 rc=$(cat logs/coding_style.log | wc -l)
 if [ $rc -ne 0 ]; then
     echo 'Coding style script failed, please refer to logs/coding_style.log'

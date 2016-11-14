@@ -133,8 +133,8 @@ enum infra_emem_spaces_params {
 };
 
 /* Memory spaces */
-#define INFRA_X1_CLUSTER_CODE_SIZE          160
-#define INFRA_ALL_CLUSTER_CODE_SIZE         128
+#define INFRA_X1_CLUSTER_CODE_SIZE          90
+#define INFRA_ALL_CLUSTER_CODE_SIZE         256
 #define INFRA_ALL_CLUSTER_DATA_SIZE         1
 #define INFRA_X1_CLUSTER_SEARCH_SIZE        12    /* can be lower than 12KB, need to test */
 #define INFRA_X4_CLUSTER_SEARCH_SIZE        516
@@ -219,17 +219,28 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 	EZstatus ret_val;
 	EZapiChannel_EthIFParams eth_if_params;
 	EZapiChannel_EthRXChannelParams eth_rx_channel_params;
+	int ports_on_engine;
+
+	if (type == EZapiChannel_EthIFType_10GE) {
+		ports_on_engine = 12;
+	} else if (type == EZapiChannel_EthIFType_40GE) {
+		ports_on_engine = 3;
+	} else {
+		write_log(LOG_ERR, "Unsupported interface type, supports only 40GE or 10GE");
+		return false;
+	}
 
 	/* set key values */
 	/* port = engine*12 + if_number */
 	eth_if_params.uiSide = side;
 	eth_if_params.uiIFEngine = port_number / 12;
 	eth_if_params.eEthIFType = type;
-	eth_if_params.uiIFNumber = port_number % 12;
+	eth_if_params.uiIFNumber = port_number % ports_on_engine;
 
 	/* get default settings of the interface */
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthIFParams, &eth_if_params);
 	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_StatCmd_GetEthIFParams failed");
 		return false;
 	}
 
@@ -240,6 +251,7 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthIFParams, &eth_if_params);
 	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_ConfigCmd_SetEthIFParams failed");
 		return false;
 	}
 
@@ -249,12 +261,13 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 	eth_rx_channel_params.uiSide = side;
 	eth_rx_channel_params.uiIFEngine  = port_number / 12;
 	eth_rx_channel_params.eEthIFType  = type;
-	eth_rx_channel_params.uiIFNumber  = port_number % 12;
+	eth_rx_channel_params.uiIFNumber  = port_number % ports_on_engine;
 	eth_rx_channel_params.uiRXChannel  = 0;
 
 	/* get default settings of the interface RX channel */
 	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetEthRXChannelParams, &eth_rx_channel_params);
 	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_StatCmd_GetEthRXChannelParams failed");
 		return false;
 	}
 
@@ -263,6 +276,7 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_ConfigCmd_SetEthRXChannelParams failed");
 		return false;
 	}
 
@@ -288,13 +302,15 @@ bool infra_create_if_mapping(void)
 		}
 	}
 
-	/* Configure remote interfaces */
-	for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
-		if (infra_create_intetface(remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
-				remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
-				system_cfg_get_port_type(),
-				USER_REMOTE_BASE_LOGICAL_ID + ind) == false) {
-			return false;
+	if (system_cfg_is_remote_control_en() == true) {
+		/* Configure remote interfaces */
+		for (ind = 0; ind < USER_REMOTE_IF_NUM; ind++) {
+			if (infra_create_intetface(remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
+						   remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
+						   system_cfg_get_port_type(),
+						   USER_REMOTE_BASE_LOGICAL_ID + ind) == false) {
+				return false;
+			}
 		}
 	}
 

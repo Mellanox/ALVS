@@ -43,14 +43,13 @@ const char *nw_if_posted_stats_offsets_names[] = {
 	"REJECT_BY_FIB",			/* 10 */
 	"UNKNOWN_FIB_RESULT",			/* 11 */
 	"FAIL_STORE_BUF",			/* 12 */
-	"",					/* 13 */
-	"",					/* 14 */
-	"",					/* 15 */
-	"",					/* 16 */
-	"",					/* 17 */
+	"FAIL_GET_MAC_ADDR",			/* 13 */
+	"FAIL_LAG_GROUP_LOOKUP",		/* 14 */
+	"DISABLE_LAG_GROUP_DROPS",		/* 15 */
+	"DISABLE_IF_EGRESS_DROPS",		/* 16 */
+	"DISABLE_IF_INGRESS_DROPS",		/* 17 */
 	"",					/* 18 */
 	"",					/* 19 */
-	"",					/* 20 */
 };
 
 const char *remote_if_posted_stats_offsets_names[] = {

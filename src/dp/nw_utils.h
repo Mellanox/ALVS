@@ -97,6 +97,21 @@ uint32_t nw_if_egress_lookup(int8_t logical_id)
 				       sizeof(struct nw_if_result), 0);
 }
 
+
+/******************************************************************************
+ * \brief         LAG table lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t nw_lag_group_lookup(int8_t lag_groupl_id)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_nw.lag_group_info_struct_desc,
+				       lag_groupl_id,
+				       &cmem_nw.lag_group_result,
+				       sizeof(struct nw_lag_group_result), 0);
+}
+
+
 /******************************************************************************
  * \brief         calculate & update egress interface
  * \return        bool - true for success, false for fail
@@ -104,24 +119,61 @@ uint32_t nw_if_egress_lookup(int8_t logical_id)
 static __always_inline
 bool nw_calc_egress_if(uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
-	uint32_t hash_value = 0;
+	uint32_t  hash_value = 0;
+	uint32_t  member_idx;
 
-	if (is_lag == 1) {
+	if (is_lag == true) {
+		/* Get Lag group entry */
+		if (unlikely(nw_lag_group_lookup(out_if) != 0)) {
+			anl_write_log(LOG_ERR, "lookup failed for network LAG group ID %d ", out_if);
+			/* drop frame!! */
+			nw_interface_inc_counter(NW_IF_STATS_FAIL_LAG_GROUP_LOOKUP);
+			nw_discard_frame();
+			return false;
+		}
+
+		/* check LAG admin state */
+		if (unlikely(cmem_nw.lag_group_result.admin_state == 0)) {
+			anl_write_log(LOG_DEBUG, "Target lag group ID %d admin state is down. drop packet", out_if);
+			/* drop frame!! */
+			nw_interface_inc_counter(NW_IF_STATS_DISABLE_LAG_GROUP_DROPS);
+			nw_discard_frame();
+			return false;
+		}
+
 		/*do hash on destination mac - for lag calculation*/
 		hash_value = ezdp_hash(((uint32_t *)frame_base)[0],
 				       ((uint32_t *)frame_base)[1],
-				       LOG2(NUM_OF_LAG_MEMBERS),
+				       16, /* MAX result size for better probability distribution */
 				       sizeof(struct ether_addr),
 				       0,
 				       EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
 				       EZDP_HASH_PERMUTATION_0);
+
+		member_idx = ezdp_mod(hash_value, cmem_nw.lag_group_result.members_count, 0, 0);
+		/* get out interface */
+		out_if = cmem_nw.lag_group_result.lag_member[member_idx];
 	}
 
-	if (unlikely(nw_if_egress_lookup(out_if + hash_value) != 0)) {
-		anl_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if + hash_value);
+
+	if (unlikely(nw_if_egress_lookup(out_if) != 0)) {
+		anl_write_log(LOG_ERR, "network egress interface = %d lookup fail", out_if);
+		/* drop frame!! */
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
+		nw_discard_frame();
 		return false;
 	}
+
+	if (unlikely(cmem_nw.egress_if_result.admin_state == false)) {
+		/* drop frame!! */
+		anl_write_log(LOG_DEBUG, "Packet dropped on egress due to disabled admin state on interface %d", out_if);
+		nw_interface_inc_counter(NW_IF_STATS_DISABLE_IF_EGRESS_DROPS);
+		nw_discard_frame();
+		return false;
+	}
+
 	return true;
+
 }
 
 /******************************************************************************

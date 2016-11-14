@@ -57,6 +57,15 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		return;
 	}
 
+	/* check nw interface admin state */
+	if (unlikely(cmem_nw.ingress_if_result.admin_state == false)) {
+		/* drop frame!! */
+		anl_write_log(LOG_DEBUG, "Interface admin state is disabled, dropping packet on ingress");
+		nw_interface_inc_counter(NW_IF_STATS_DISABLE_IF_INGRESS_DROPS);
+		nw_discard_frame();
+		return;
+	}
+
 	/* === Load Data of first frame buffer === */
 	frame_base = ezframe_load_buf(frame, frame_data, 0, 0);
 

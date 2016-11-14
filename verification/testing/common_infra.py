@@ -28,18 +28,18 @@ ALVSdir = os.path.dirname(parentdir)
 #===============================================================================
 # Struct IDs
 #===============================================================================
-STRUCT_ID_NW_INTERFACES				   = 0
-STRUCT_ID_NW_LAG					   = 1
-STRUCT_ID_ALVS_CONN_CLASSIFICATION	   = 2
-STRUCT_ID_ALVS_CONN_INFO			   = 3
+STRUCT_ID_NW_INTERFACES                = 0
+STRUCT_ID_NW_LAG_GROUPS                = 1
+STRUCT_ID_ALVS_CONN_CLASSIFICATION     = 2
+STRUCT_ID_ALVS_CONN_INFO               = 3
 STRUCT_ID_ALVS_SERVICE_CLASSIFICATION  = 4
-STRUCT_ID_ALVS_SERVICE_INFO			   = 5
-STRUCT_ID_ALVS_SCHED_INFO			   = 6
-STRUCT_ID_ALVS_SERVER_INFO			   = 7
-STRUCT_ID_NW_FIB					   = 8
-STRUCT_ID_NW_ARP					   = 9
+STRUCT_ID_ALVS_SERVICE_INFO            = 5
+STRUCT_ID_ALVS_SCHED_INFO              = 6
+STRUCT_ID_ALVS_SERVER_INFO             = 7
+STRUCT_ID_NW_FIB                       = 8
+STRUCT_ID_NW_ARP                       = 9
 STRUCT_ID_ALVS_SERVER_CLASSIFICATION   = 10
-STRUCT_ID_APPLICATION_INFO			   = 11
+STRUCT_ID_APPLICATION_INFO             = 11
 
 #===============================================================================
 # STATS DEFINES
@@ -546,6 +546,41 @@ class ezbox_host:
 
 		return conn
 
+	def get_interface(self, lid):
+		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_INTERFACES, 0, {'key' : "%02x" % lid}).result["params"]["entry"]["result"]).split(' ')
+		interface = {'admin_state' : (int(res[0], 16) >> 3) & 0x1,
+					 'path_type' : (int(res[0], 16) >> 1) & 0x3,
+					 'is_direct_output_lag' : int(res[0], 16) & 0x1,
+					 'direct_output_if' : int(res[1], 16),
+					 'add_bitmap' : int(''.join(res[2:4]), 16),
+					 'mac_address' : ':'.join(res[4:10]),
+					 'output_channel' : int(res[10], 16),
+					 'sft_en' : int(res[11], 16),
+					 'stats_base' : int(''.join(res[12:16]), 16),
+					 }
+		
+		return interface
+
+	def get_arp_entry(self, ip):
+		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_ARP, 0, {'key' : "%08x" % ip}).result["params"]["entry"]["result"]).split(' ')
+		arp_entry = {
+					 'is_lag' : int(res[0], 16) & 0x1,
+					 'output_index' : int(''.join(res[1]), 16),
+					 'mac_address' : ':'.join(res[2:8]),
+					 }
+		
+		return arp_entry
+	
+	def get_lag_group(self, lag_group_id):
+		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_LAG_GROUPS, 0, {'key' : "%02x" % lag_group_id}).result["params"]["entry"]["result"]).split(' ')
+		lag_group = {
+					 'admin_state' : (int(res[0], 16) >> 3) & 0x1,
+					 'members_count' : int(''.join(res[1]), 16),
+					 'lag_members' : '|'.join([str(int(x,16)) for x in res[2:10]]),
+					 }
+		
+		return lag_group
+	
 	def get_all_arp_entries(self):
 		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_NW_ARP, { 'channel_id': 0 })).result['iterator_params']
 		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_NW_ARP, channel_id = 0)).result['num_entries']['number_of_entries']
@@ -937,6 +972,24 @@ class ezbox_host:
 					print "Interface %d stats (%s): %d"%(i,key,value)
 					logging.log(logging.INFO,"Interface %d stats (%s): %d"%(i,key,value))			
 		print
+		
+	def add_arp_entry(self, ip_address, mac_address):
+		mac_address = str(mac_address).upper()
+		cmd = "arp -s " + ip_address + " " + mac_address
+		result,output = self.execute_command_on_host(cmd)
+		return [result,output]
+	
+	def change_arp_entry_state(self, ip_address, new_state, check_if_state_changed = False, old_state = None):
+		cmd ="ip neigh change " + ip_address + " dev eth0 nud " + new_state
+		if check_if_state_changed == True:
+			cmd = cmd + " && ip neigh show nud " + new_state + " | grep " + ip_address
+		result,output = self.execute_command_on_host(cmd)
+		return [result,output]
+	
+	def verify_arp_state(self, ip_address, entry_state):
+		cmd ="ip neigh show nud " + entry_state + " | grep " + ip_address
+		result,output = self.execute_command_on_host(cmd)
+		return [result,output]
 		
 	def add_fib_entry(self, ip, mask, gateway=None, drop=None):
 		

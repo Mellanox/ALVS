@@ -42,6 +42,9 @@
 /* dp includes */
 #include <ezdp_search_defs.h>
 
+/* cp includes */
+#include "user_defs.h"
+
 /*********************************
  * Interfaces DB defs
  *********************************/
@@ -57,12 +60,9 @@ enum dp_path_type {
 	DP_PATH_NOT_VALID           = 3
 };
 
-/*key*/
-struct nw_if_key {
-	uint8_t	logical_id;
-};
-
-CASSERT(sizeof(struct nw_if_key) == 1);
+#define NW_LAG_GROUPS_TABLE_MAX_ENTRIES 256
+#define NW_INTERFACES_TABLE_MAX_ENTRIES 256
+#define NW_ARP_TABLE_MAX_ENTRIES        65536
 
 struct nw_if_apps {
 #ifdef NPS_BIG_ENDIAN
@@ -85,6 +85,11 @@ struct nw_if_apps {
 
 CASSERT(sizeof(struct nw_if_apps) == 2);
 
+/*key*/
+struct nw_if_key {
+	uint8_t	logical_id;
+};
+CASSERT(sizeof(struct nw_if_key) == 1);
 
 /*result*/
 struct nw_if_result {
@@ -93,13 +98,13 @@ struct nw_if_result {
 	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 
-	unsigned           oper_status   : 1;
+	unsigned           admin_state   : 1;
 	enum dp_path_type  path_type     : 2;
 	unsigned           is_direct_output_lag       : 1;
 #else
 	unsigned           is_direct_output_lag       : 1;
 	enum dp_path_type  path_type     : 2;
-	unsigned           oper_status   : 1;
+	unsigned           admin_state   : 1;
 
 	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
@@ -127,10 +132,49 @@ struct nw_if_result {
 
 	/*byte12-15*/
 	ezdp_sum_addr_t      stats_base;
-};
+} __packed;
 
 CASSERT(sizeof(struct nw_if_result) == 16);
 
+
+/*********************************
+ * LAG DB defs
+ *********************************/
+#define LAG_GROUP_MAX_MEMBERS       8
+
+/*key*/
+struct nw_lag_group_key {
+	uint8_t	lag_group_id;
+};
+CASSERT(sizeof(struct nw_lag_group_key) == 1);
+
+
+/*result*/
+struct nw_lag_group_result {
+	/*byte0*/
+#ifdef NPS_BIG_ENDIAN
+	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+
+	unsigned           admin_state   : 1;
+	unsigned           /*reserved*/  : 2;
+	unsigned           /*reserved*/  : 1;
+#else
+	unsigned           /*reserved*/  : 1;
+	unsigned           /*reserved*/  : 2;
+	unsigned           admin_state   : 1;
+
+	unsigned           /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned           /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1*/
+	uint8_t              members_count;
+	/*byte2-9*/
+	uint8_t              lag_member[LAG_GROUP_MAX_MEMBERS];
+	/*byte10-15*/
+	uint8_t              reserved[6];
+};
+CASSERT(sizeof(struct nw_lag_group_result) == 16);
 
 /*********************************
  * arp DB defs
@@ -143,24 +187,29 @@ struct nw_arp_key {
 
 CASSERT(sizeof(struct nw_arp_key) == 4);
 
+
 /*result*/
 struct nw_arp_result {
 	/*byte0*/
 #ifdef NPS_BIG_ENDIAN
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
-	unsigned             /*reserved*/  : 4;
+	unsigned             /*reserved*/  : 3;
+	unsigned             is_lag        : 1;
 #else
-	unsigned             /*reserved*/  : 4;
+	unsigned             is_lag        : 1;
+	unsigned             /*reserved*/  : 3;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
 	unsigned             /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
 #endif
 	/*byte1*/
-	uint8_t              base_logical_id;
+	union {
+		uint8_t              lag_index;
+		uint8_t              output_interface;
+	} output_index;
 	/*byte2-7*/
 	struct ether_addr    dest_mac_addr;
 };
-
 CASSERT(sizeof(struct nw_arp_result) == 8);
 
 /*********************************
@@ -194,7 +243,6 @@ struct nw_fib_key {
 	/* bytes 6-9 */
 	in_addr_t            dest_ip;
 } __packed;
-
 CASSERT(sizeof(struct nw_fib_key) == 10);
 
 /*result*/

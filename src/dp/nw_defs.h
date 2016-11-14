@@ -75,6 +75,8 @@ struct cmem_nw_info {
 		struct  nw_if_result		     egress_if_result;
 		/**< interface result */
 	};
+	/**< LAG group result */
+	struct  nw_lag_group_result	     lag_group_result;
 };
 
 struct ezdp_decode_result {
@@ -110,6 +112,7 @@ union nw_workarea {
 
 struct shared_cmem_network {
 	ezdp_table_struct_desc_t    interface_struct_desc;
+	ezdp_table_struct_desc_t    lag_group_info_struct_desc;
 	ezdp_table_struct_desc_t    app_info_struct_desc;
 	ezdp_hash_struct_desc_t	    arp_struct_desc;
 } __packed;

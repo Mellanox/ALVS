@@ -35,8 +35,12 @@
 #include "user_defs.h"
 #include <ezdp_defs.h>
 
-
+#ifdef NDEBUG
 #define __fast_path_code __imem_1_cluster_func
+#else
+#define __fast_path_code __imem_all_cluster_func
+#endif
+
 #define __slow_path_code __imem_all_cluster_func
 
 #define BUILD_SUM_ADDR(mem_space_type, msid, element_index) (((mem_space_type) << EZDP_SUM_ADDR_MEM_TYPE_OFFSET) | ((msid) << EZDP_SUM_ADDR_MSID_OFFSET) | ((element_index) << EZDP_SUM_ADDR_ELEMENT_INDEX_OFFSET))
@@ -87,13 +91,17 @@ enum nw_if_posted_stats_offsets {
 	NW_IF_STATS_FAIL_STORE_BUF          = 12,
 	NW_IF_STATS_FAIL_GET_MAC_ADDR       = 13,
 	NW_IF_STATS_FAIL_SET_ETH_HEADER     = 14,
+	NW_IF_STATS_FAIL_LAG_GROUP_LOOKUP   = 15,
+	NW_IF_STATS_DISABLE_LAG_GROUP_DROPS  = 16,
+	NW_IF_STATS_DISABLE_IF_EGRESS_DROPS  = 17,
+	NW_IF_STATS_DISABLE_IF_INGRESS_DROPS = 18,
 
 
 	/*
 	 * Note: 1. The following define must be at the end.
 	 *       2. The following define must be even
 	 */
-	NW_NUM_OF_IF_STATS                  = 20
+	NW_NUM_OF_IF_STATS                   = 20
 };
 
 #define HOST_NUM_OF_IF_STATS                NW_NUM_OF_IF_STATS
@@ -197,7 +205,7 @@ enum alvs_error_stats_offsets {
 
 enum struct_id {
 	STRUCT_ID_NW_INTERFACES                = 0,
-	STRUCT_ID_NW_LAG                       = 1,
+	STRUCT_ID_NW_LAG_GROUPS                = 1,
 	STRUCT_ID_ALVS_CONN_CLASSIFICATION     = 2,
 	STRUCT_ID_ALVS_CONN_INFO               = 3,
 	STRUCT_ID_ALVS_SERVICE_CLASSIFICATION  = 4,
