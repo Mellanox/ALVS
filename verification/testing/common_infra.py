@@ -255,8 +255,8 @@ class ezbox_host:
 				split_line = line.split(' ')
 				vip_if = split_line[0]
 				if interface != vip_if:
-					index = (vip_if.split(':'))[1]
-					if index != '0':
+					name = (vip_if.split(':'))[1]
+					if name != 'alvs_nps':
 						self.execute_command_on_host("ifconfig %s down"%(vip_if))
 
 	def connect(self):
