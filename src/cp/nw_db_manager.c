@@ -306,8 +306,8 @@ bool nw_db_manager_if_table_init_nw(struct ether_addr  *mac_address,
 							       NW_POSTED_STATS_MSID,
 							       NW_IF_STATS_POSTED_OFFSET + ind * NW_NUM_OF_IF_STATS));
 		if_result.output_channel       = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		if_result.direct_output_if     = (system_cfg_is_lag_en() == true) ? HOST_LOGICAL_ID : (ind + REMOTE_BASE_LOGICAL_ID);
-		if_result.is_direct_output_lag = false;
+		if_result.direct_output_if     = (system_cfg_is_remote_control_en() == true) ? (ind + REMOTE_BASE_LOGICAL_ID) : HOST_LOGICAL_ID;
+		if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
 		if_result.admin_state          = true;
 
 		/* add entry in DP */
@@ -393,14 +393,8 @@ bool nw_db_manager_if_table_init_remote(struct ether_addr  *mac_address,
 
 		if_result.output_channel   = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
 		if_result.direct_output_if = ind + NW_BASE_LOGICAL_ID;
-
-		if (system_cfg_is_lag_en() == true) {
-			if_result.direct_output_if     = NW_BASE_LOGICAL_ID;
-			if_result.is_direct_output_lag = true;
-		} else {
-			if_result.direct_output_if     =  ind;
-			if_result.is_direct_output_lag = false;
-		}
+		if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
+		if_result.admin_state = true;
 
 		rc = infra_add_entry(STRUCT_ID_NW_INTERFACES,
 				     &if_key,
@@ -464,10 +458,12 @@ void nw_db_manager_if_table_init(void)
 	}
 
 	/* Adding Remote Interfaces */
-	rc = nw_db_manager_if_table_init_remote(&mac_address, sft_en, &app_bitmap);
-	if (rc == false) {
-		write_log(LOG_CRIT, "nw_db_manager_if_table_init_remote failed");
-		nw_db_manager_exit_with_error();
+	if (system_cfg_is_remote_control_en() == true) {
+		rc = nw_db_manager_if_table_init_remote(&mac_address, sft_en, &app_bitmap);
+		if (rc == false) {
+			write_log(LOG_CRIT, "nw_db_manager_if_table_init_remote failed");
+			nw_db_manager_exit_with_error();
+		}
 	}
 
 	if (system_cfg_is_lag_en() == true) {

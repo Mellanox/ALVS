@@ -89,7 +89,9 @@ void system_configuration(int argc, char **argv)
 	strcpy(system_cfg.dp_bin_file, "/usr/lib/alvs/alvs_dp");
 	strcpy(system_cfg.run_cpus, "not_used");
 	system_cfg.port_type = EZapiChannel_EthIFType_40GE;
-	system_cfg.lag_en = true;
+
+	/* TODO - [Roee] Need to change the default to 'true' once no_lag flag will be used in testing */
+	system_cfg.lag_en = false;
 
 	while (true) {
 		rc = getopt_long(argc, argv, "", long_options, &option_index);
