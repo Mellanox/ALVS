@@ -30,16 +30,15 @@ from multiprocessing import Process
 def generic_main():
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, --start, --stop, --remote_control]"
+	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, -n, --start, --stop, --remote_control]"
 	parser = OptionParser(usage=usage, version="%prog 1.0")
 	
 	bool_choices = ['true', 'false', 'True', 'False']
+	cpus_choices=['32','64','128','256','512','1024','2048','4096']
 	parser.add_option("-s", "--setup_num", dest="setup_num",
 					  help="Setup number. range (1..7)					(Mandatory parameter)", type="int")
 	parser.add_option("-m", "--modify_run_cpus", dest="modify_run_cpus", choices=bool_choices,
 					  help="modify run CPUs configuration before running the test. 		(default=True)")
-	parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus", choices=bool_choices,
-					  help="true = use 4k cpu. false = use 512 cpus (default=False).  in case modify_run_cpus is false, use_4k_cpus ignored. (default=False)")
 	parser.add_option("-i", "--install_package", dest="install_package", choices=bool_choices,
 					  help="Use ALVS package file (alvs_<version>.deb")
 	parser.add_option("-f", "--install_file", dest="install_file",
@@ -54,6 +53,8 @@ def generic_main():
 					  help="Stop the alvs service at the end of the test 		(defualt=False)")
 	parser.add_option("--remote_control", "--remote_control", dest="remote_control", choices=bool_choices,
 					  help="Run in remote control mode					 		(defualt=False)")
+	parser.add_option("-c", "--number_of_cpus", dest="num_of_cpus",choices=cpus_choices,
+					  help="Number of CPUs. power of 2 between 32-4096	(Mandatory parameter)")
 	(options, args) = parser.parse_args()
 
 	# validate options
@@ -66,8 +67,6 @@ def generic_main():
 	config = {}
 	if options.modify_run_cpus:
 		config['modify_run_cpus'] = bool_str_to_bool(options.modify_run_cpus)
-	if options.use_4k_cpus:
-		config['use_4k_cpus']     = bool_str_to_bool(options.use_4k_cpus)
 	if options.install_package:
 		config['install_package'] = bool_str_to_bool(options.install_package)
 	if options.install_file:
@@ -82,6 +81,9 @@ def generic_main():
 		config['stop_ezbox']    = bool_str_to_bool(options.stop_ezbox)
 	if options.remote_control:
 		config['remote_control']    = bool_str_to_bool(options.remote_control)
+	if options.num_of_cpus:
+		config['num_of_cpus'] = options.num_of_cpus
+		
 
 	config['setup_num'] = options.setup_num
 	
@@ -169,6 +171,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 	# start ALVS daemon and DP
 	ezbox.connect()
 	if test_config['start_ezbox']:
+		cpus_range = "16-" + str(int(test_config['num_of_cpus']) - 1)
 		if test_config['install_package']:
 			ezbox.copy_and_install_alvs(test_config['install_file'])
 		else:
@@ -186,17 +189,11 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 		else:
 			remote_control = ''
 
-		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
-		
 		if test_config['modify_run_cpus']:
-			# validate chip is up
 			ezbox.alvs_service_start()
-			ezbox.update_dp_cpus(test_config['use_4k_cpus'])
-			if test_config['use_4k_cpus']:
-				ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
- 			else:
- 				ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled %s %s --port_type=%s "%(stats, remote_control, ezbox.setup['nps_port_type']))
- 				
+	 		ezbox.modify_run_cpus(cpus_range)
+		
+		ezbox.update_cp_params("--run_cpus %s --agt_enabled %s %s --port_type=%s " % (cpus_range, stats, remote_control, ezbox.setup['nps_port_type']))
 		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
@@ -206,6 +203,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 		# wait for DP app
 		ezbox.wait_for_dp_app()	
 		time.sleep(6)
+		
 	else:
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()
@@ -237,7 +235,8 @@ def fill_default_config(test_config):
 					  'stats'           : False,
 					  'start_ezbox'		: False,
 					  'stop_ezbox'		: False,
-					  'remote_control'	: False}
+					  'remote_control'	: False,
+					  'num_of_cpus': "512" }# 
 	
 	# Check user configuration
 	for key in test_config:

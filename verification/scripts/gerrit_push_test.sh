@@ -150,7 +150,7 @@ function exec_regression()
     cp -r * /.autodirect/swgwork/nps_solutions/workspace/mars_push_regression/ALVS
 
     # run regression
-    $scripts_path"../MARS/MARS_regression_run.py" -s $setup_num -t basic -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS
+    $scripts_path"../MARS/MARS_regression_run.py" -s $setup_num -t basic -c 512 -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS
     rc=$?
     if [ $rc -ne 0 ]; then
         echo 'ERROR: Regression failed'

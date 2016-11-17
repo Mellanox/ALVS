@@ -49,7 +49,7 @@ class Tester():
         # define default configuration 
         self.config = {'setup_num'       : None,  # supply by user
                        'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored
-                       'use_4k_cpus'     : False,
+                       'num_of_cpus': "32",
                        'install_package' : True,  # in case install_package is true, copy_binaries ignored
                        'install_file'    : None,
                        'copy_binaries'   : True,

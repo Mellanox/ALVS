@@ -25,8 +25,9 @@ def parse_topology(topo_file):
 	print "Setup num " + setup_num 
 	return setup_num
 
-def init_ezbox(ezbox, use_4k_cpus,file_name):
+def init_ezbox(ezbox, cpus_count,file_name):
 	print "init EZbox: " + ezbox.setup['name']
+	print "CPUs count is " + cpus_count
 	ezbox.connect()
 
 	install_folder = os.getcwd() + '/../../'
@@ -38,27 +39,19 @@ def init_ezbox(ezbox, use_4k_cpus,file_name):
 	ezbox.alvs_service_stop()
 	# Install alvs service
 	ezbox.copy_and_install_alvs(file_name)
+	cpus_range = "16-" + str(int(cpus_count) - 1)
 	# Validate chip is up
 	ezbox.alvs_service_start()
-	# Set CP, DP params
-	index=0
-	result = False
-	while result == False and index < 100:
-		result, output = ezbox.execute_command_on_host("ping -c1 -w10 alvs_nps > /dev/null 2>&1")
-	if result == False:
-		raise Exception('Error: no ping to NPS')
-	time.sleep(3)
-	ezbox.update_dp_cpus(use_4k_cpus)
-	if use_4k_cpus:
-		ezbox.update_cp_params("--run_cpus 16-4095 --agt_enabled --port_type=%s "%(ezbox.setup['nps_port_type']))
-	else:
-		ezbox.update_cp_params("--run_cpus 16-511 --agt_enabled --port_type=%s "%(ezbox.setup['nps_port_type']))
+
+	#setting CPUs count
+	ezbox.modify_run_cpus(cpus_range)
+	ezbox.update_cp_params("--run_cpus %s --agt_enabled --port_type=%s " % (cpus_range, ezbox.setup['nps_port_type']))
 	ezbox.alvs_service_stop()
-	# Start the service
 	ezbox.alvs_service_start()
 	# Wait for CP & DP
 	ezbox.wait_for_cp_app()
 	return ezbox.wait_for_dp_app()
+
 	
 ################################################################################
 # Function: Main
@@ -67,22 +60,21 @@ def main():
     global ezbox
     usage = "usage: %prog [-f, -c]"
     parser = OptionParser(usage=usage, version="%prog 1.0")
-    parser.add_option("-c", "--use_4k_cpus", dest="use_4k_cpus",
-                      help="use 4k cpus true/false")
+    parser.add_option("-c", "--cpus_count", dest="cpus_count",
+                      help="number of cpus")
     parser.add_option("-f", "--file_name", dest="file_name",
                       help="Installation file name (.deb)")
     parser.add_option("--topo_file", dest="topo_file",
                       help="test topology script")
     (options, args) = parser.parse_args()
     setup_num = int(parse_topology(options.topo_file))
-    if options.use_4k_cpus.lower() not in ['true', 'false']:
-        print "Bad param: use_4k_cpus = %s !! Should be true/false" %options.use_4k_cpus
-        return 1
     ezbox = ezbox_host(setup_num)
-    if init_ezbox(ezbox, bool_str_to_bool(options.use_4k_cpus), options.file_name):
+    if init_ezbox(ezbox, options.cpus_count, options.file_name):
         return 0
     else:
         return 1
+
+
 
 ################################################################################
 # Script start point

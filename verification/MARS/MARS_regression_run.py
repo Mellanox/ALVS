@@ -15,9 +15,11 @@ ALVSdir = os.path.dirname(parentdir)
 ################################################################################
 def main():
     
-    usage = "usage: %prog [-s, -p, -t, -f]"
-    parser = OptionParser(usage=usage, version="%prog 1.0")
+    usage = "usage: %prog [-s, -p, -t, -f ,-c]"
     
+
+    parser = OptionParser(usage=usage, version="%prog 1.0")
+    cpus_choices=['32','64','128','256','512','1024','2048','4096']
     parser.add_option("-s", "--setup_num", dest="setup_num",
                       help="Setup number. range (1..7)					(Mandatory parameter)")
     parser.add_option("-p", "--path", dest="path",
@@ -26,6 +28,8 @@ def main():
                       help="Filter by tags								(Optional parameter. Few tags:  -t tagA -t tagB)")
     parser.add_option("-f", "--file_name", dest="file_name",
                       help="Installation file name  (.deb)")
+    parser.add_option("-c", "--cpu_count", dest="cpu_count",choices=cpus_choices,
+                      help="number of CPUs, must be power of 2 between 32-4096")
     (options, args) = parser.parse_args()
     
     # validate options
@@ -56,6 +60,10 @@ def main():
     if options.file_name:
         command_line += ' --meinfo_file_name='
         command_line += options.file_name
+        
+    if options.cpu_count:
+        command_line += ' --meinfo_cpu_count='
+        command_line += options.cpu_count
     
     rc = 1
     s = pxssh.pxssh()

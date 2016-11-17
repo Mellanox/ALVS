@@ -42,7 +42,7 @@ def main():
     test_to_run = tests_path + options.test_script
     print "Test to run: %s" %test_to_run
     setup_num = parse_topology(options.topo_file)
-    cmd = test_to_run + ' -s ' + setup_num + ' -c False -m False -i False -f False -b False'
+    cmd = test_to_run + ' -s ' + setup_num
     print "*** CMD: " + cmd
     retval = os.system(cmd)
     return retval

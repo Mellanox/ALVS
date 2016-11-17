@@ -65,8 +65,9 @@ def main():
     global fd_of_curr_setup
     
     usage = "usage: %prog [-hold, -s, -r, -f, -p, -t]"
+    cpus_choices=['32','64','128','256','512','1024','2048','4096']
     parser = OptionParser(usage=usage, version="%prog 1.0")
-
+    
     parser.add_option("--hold", dest="hold", default="False",
                       help="Hold setup until released by user")
     parser.add_option("-s", "--setup_num", dest="setup_num",
@@ -79,6 +80,9 @@ def main():
                       help="Set path to ALVS directory (default is your current directory). in case run_regression is true")
     parser.add_option("-t", "--tag", action="append", dest="tag", default = [],
                       help="Filter tests by tags (Optional parameter. Few tags:  -t tagA -t tagB ). in case run_regressin is true")
+    parser.add_option("-c", "--number_of_cpus", dest="num_of_cpus",choices=cpus_choices,
+                      help="Number of CPUs. power of 2 between 32-4096")
+    
     (options, args) = parser.parse_args()
 
 
@@ -141,17 +145,22 @@ def main():
             path = ''
             tags = ''
             file_name = ''
+            num_of_cpus=''
             currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            VERdir = os.path.dirname(currentdir)
+            VERdir ='python2.7 '+ os.path.dirname(currentdir)
             if options.path:
                 path = ' -p '+options.path
             if options.tag:
                 for tag in options.tag:
                     tags += ' -t '+tag
             if options.file_name:
-                file_name += ' -f' + options.file_name
+                file_name += ' -f ' + options.file_name
+            if options.num_of_cpus:
+                num_of_cpus=' -c ' + options.num_of_cpus
+                
+                
             setup_num = line[:-1]
-            os.system(VERdir + '/MARS/MARS_regression_run.py -s '+ setup_num + path + tags + file_name)
+            os.system(VERdir + '/MARS/MARS_regression_run.py -s '+ setup_num + num_of_cpus + path + tags + file_name)
         #####   hold setup
         if options.hold.lower() == "true" and still_hold == False:
             raw_input("Press Enter to release setup...")    

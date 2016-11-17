@@ -95,24 +95,18 @@ class ezbox_host:
 	def execute_command_on_chip(self, chip_cmd):
 		return self.ssh_object.execute_chip_command(chip_cmd)
 		
-	def modify_run_cpus(self, use_4k_cpus=True):
-		if use_4k_cpus:
-			cpus = "0,16-4095"
-			print "Config CPUs: %s" %cpus
-		else:
-			cpus = "0,16-511"
-			print "Config CPUs: %s" %cpus
-
+	def modify_run_cpus(self, cpus_range):
+		cpus="0,"+cpus_range
 		self.execute_command_on_chip("fw_setenv krn_possible_cpus %s" %cpus)
 		self.execute_command_on_chip("fw_setenv krn_present_cpus %s" %cpus)
 
 	def update_dp_params(self, params=None):
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_DP_ARGS | xargs sed -i '/ALVS_DP_ARGS=/c\ALVS_DP_ARGS=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
-
-	def update_dp_cpus(self, use_4k_cpus=True):
-		# modify NPS present & posible CPUs
-		self.modify_run_cpus(use_4k_cpus)
+    
+	def update_dp_cpus(self, cpus_range):
+		self.modify_run_cpus(cpus_range)
+    
 
 	def update_cp_params(self, params=None):
 		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
@@ -356,7 +350,7 @@ class ezbox_host:
 
 	def alvs_service(self, cmd):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"
-		self.run_app_ssh.execute_command("/etc/init.d/alvs " + cmd)
+		self.run_app_ssh.execute_command("service alvs " + cmd)
 
 	def alvs_service_start(self):
 		self.run_app_ssh.execute_command("cat /dev/null > /var/log/syslog")
@@ -1267,12 +1261,35 @@ class SshConnect:
 		exit_code       = None
 		try:
 			# telnet chip
+			print "Waiting for a ping respone from nps"
 			cmd = "telnet %s" %nps_internal_ip
-			self.ssh_object.sendline(cmd)
-			self.ssh_object.expect(' #')
+			for i in range(100):
+				self.ssh_object.sendline('ping -c1 -w10 alvs_nps > /dev/null 2>&1')
+				exit_code = self.get_execute_command_exit_code(False)
+				if exit_code==0:
+					break
+			
+			if(exit_code!=0):
+				raise Exception('commmand failed')
+			
+			
+			print "Trying to telnet nps"
+			for i in range(15):
+				self.ssh_object.sendline(cmd)
+				index=self.ssh_object.expect([' #',pexpect.TIMEOUT],timeout=10)
+				if index==0:
+					break
+				else:
+					print "Got timeout or connection refused, Trying again"
+			
+			if(index!=0):
+				raise Exception('commmand failed')		
+			
 			exit_code = self.get_execute_command_exit_code(True)
  			if (exit_code != 0):
  				raise Exception('commmand failed')
+			
+			
 			
 			# excute command
 			self.ssh_object.sendline(chip_cmd)
@@ -1282,12 +1299,16 @@ class SshConnect:
  			if (exit_code != 0):
  				raise Exception('commmand failed')
 			
+		
+			
 			# Exit telnet
 			self.ssh_object.sendline('exit')
 			self.ssh_object.prompt(timeout=120)
 			exit_code = self.get_execute_command_exit_code(False)
  			if (exit_code != 1):
  				raise Exception('commmand failed')
+			
+			
 			
 			return [True, output]
 		except:

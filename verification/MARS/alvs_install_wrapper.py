@@ -16,7 +16,7 @@ class alvs_install_wrapper(StandaloneWrapper):
     def configure_parser(self):
         super(alvs_install_wrapper, self).configure_parser()
         self.add_cmd_argument('-f',  help='Installation file name ')
-        self.add_cmd_argument('-c',  help='use 4k cpus true / false')
+        self.add_cmd_argument('-c',  help='number of CPUs')
         self.add_test_attribute_argument('--topo_file', 'topo_file', separator=' ') 
 
 if __name__ == "__main__":
