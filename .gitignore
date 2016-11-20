@@ -13,10 +13,11 @@ test_logs_*
 verification/venus/dp/output
 # packaging:
 *.deb
-*.changes
-package/debian/alvs
-package/debian/files
+package/*.changes
+package/alvs/debian/alvs
+package/alvs/debian/files
 package/build-stamp
+#misc
 log/
 logs/
 verification/testing/dp/pcap_files/

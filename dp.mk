@@ -28,10 +28,10 @@ DP_C_FLAGS := -DNPS_BIG_ENDIAN -Werror -Wall -Wextra
 
 ifdef DP_DEBUG
 DP_C_FLAGS += -O1 -g3 -ftree-ter -gdwarf-2
-SUFFIX := _debug
+PREFIX := debug/
 else
 DP_C_FLAGS += -DNDEBUG -O2
-SUFFIX := 
+PREFIX := 
 endif
 
 ifdef CONFIG_ALVS
@@ -46,11 +46,10 @@ DP_LIBS := -l:ezdp_linux_arc.a -l:ezframe_linux_arc.a
 endif
 
 # set bin path/name
-DP_BIN := bin/$(APP_NAME)_dp
+DP_BIN := bin/$(PREFIX)$(APP_NAME)_dp
 ifdef SIM
 	DP_BIN := $(DP_BIN)_sim
 endif
-DP_BIN := $(DP_BIN)$(SUFFIX)
 
 # Tool invocations
 make_dp: $(DP_OBJS) 

@@ -1,25 +1,13 @@
 #!/bin/sh
 
-# alvs       Manages ALVS daemon
-#
-### BEGIN INIT INFO
-# Provides:          ALVS
-# Required-Start:    $network
-# Required-Stop:     $network
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Description: Starts ALVS daemon
-# short-description: ALVS daemon
-### END INIT INFO
-
 #includes lsb functions
 . /lib/lsb/init-functions
 
-ALVS_CONFIG="/etc/default/alvs"
+APP_CONFIG="/etc/default/${LC_APP_NAME}"
 
-ALVS_FOLDER="/usr/share/alvs"
+APP_FOLDER="/usr/share/${LC_APP_NAME}"
 
-DAEMON_NAME="alvs_daemon"
+DAEMON_NAME="${LC_APP_NAME}_daemon"
 DAEMON="/usr/sbin/$DAEMON_NAME"
 PIDFILE="/var/run/$DAEMON_NAME.pid"
 
@@ -79,7 +67,7 @@ power_off_nps() {
 }
 
 start_daemon () {
-    log_action_begin_msg "Start ALVS daemon"
+    log_action_begin_msg "Start ${UC_APP_NAME} daemon"
     do_start_daemon
     case "$?" in
         0) log_action_end_msg 0 
@@ -93,7 +81,7 @@ start_daemon () {
 }
 
 stop_daemon () {
-    log_action_begin_msg "Stop ALVS daemon"
+    log_action_begin_msg "Stop ${UC_APP_NAME} daemon"
     do_stop_daemon
     case "$?" in
         0) log_action_end_msg 0 
@@ -107,7 +95,7 @@ stop_daemon () {
 }
 
 start_network() {
-    log_action_begin_msg "Start ALVS internal network"
+    log_action_begin_msg "Start NPS internal network"
     ifconfig $NETWORK_IF_NAME:alvs_nps 169.254.42.41 netmask 255.255.255.248 up
     case "$?" in
         0) log_action_end_msg 0 
@@ -118,7 +106,7 @@ start_network() {
 }
 
 stop_network() {
-    log_action_begin_msg "Stop ALVS internal network"
+    log_action_begin_msg "Stop NPS internal network"
     ifconfig $NETWORK_IF_NAME:alvs_nps down > /dev/null 2>&1
     case "$?" in
         0) log_action_end_msg 0 
@@ -148,8 +136,8 @@ if [ ! -x $DAEMON ]; then
     exit 1
 fi
 
-if [ -f $ALVS_CONFIG ]; then
-    . $ALVS_CONFIG
+if [ -f $APP_CONFIG ]; then
+    . $APP_CONFIG
 fi
 
 case "$1" in
@@ -172,7 +160,7 @@ esac
 
 rc=$?
 
-#if something failed, stop network and ALVS daemon
+#if something failed, stop network and daemon
 [ $rc != 0 ] && stop_network
 [ $rc != 0 ] && do_stop_daemon
 

@@ -311,7 +311,7 @@ class ezbox_host:
 		print "FUNCTION %s: called with %s" %(func_name, alvs_package)
 		
 		try:
-			cmd = "echo 'N' | dpkg -i %s/%s" %(self.install_path, alvs_package)
+			cmd = "echo 'N' | DEBIAN_FRONTEND=noninteractive dpkg --force-confold -i %s/%s" %(self.install_path, alvs_package)
 			self.ssh_object.ssh_object.sendline(cmd)
 			time.sleep(15) #TODO what to do with "Reading database..." that messing with expect?
 			self.ssh_object.ssh_object.prompt(60)

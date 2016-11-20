@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -e
+#######################################################################################
+#
+#                   Copyright by Mellanox Technologies, 2016
+#
+#  Project:         All NPS_SOLUTION git projects
+#
+#  Description:    This script is used by the debconf frontend
+#		   in order to ask the user for configuration parameters 
+#
+#  Notes:          Note that the config script is run before the package is unpacked. 
+#		   It shouldn't actually edit files on the system, or affect it in 
+#		   any other way.
+#
+#######################################################################################
+ 
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+db_input high cp_args/configuration || true
+db_go
+
+# In case of customized configuration
+# ask user for run parameters
+db_get cp_args/configuration
+if [ "$RET" = "Custom" ]; then
+	# Ask questions.
+	db_input high cp_args/run_cpus || true
+	db_input high cp_args/statistics || true
+	db_input high cp_args/port_type || true
+	db_input high cp_args/agt_enabled || true
+	db_go || true
+fi
+

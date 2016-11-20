@@ -1,0 +1,56 @@
+#!/bin/bash
+# postinst script for alvs
+#
+# see: dh_installdeb(1)
+
+set -e
+# summary of how this script can be called:
+#		* <postinst> `configure' <most-recently-configured-version>
+#		* <old-postinst> `abort-upgrade' <new version>
+#		* <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#		  <new-version>
+#		* <postinst> `abort-remove'
+#		* <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#		  <failed-install-package> <version> `removing'
+#		  <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+CONFIGFILE=/etc/default/alvs
+# Source common multi product functions
+. /usr/share/alvs/common_func
+
+######################################
+# Main
+######################################
+filename=$(basename $0)
+
+rc=0
+case "$1" in
+	configure|abort-upgrade)
+                [ "$?" = 0 ] && set_user_params
+		[ "$?" = 0 ] && configure_service_on_boot alvs
+		[ "$?" = 0 ] && add_nps_host
+		[ "$?" = 0 ] && reload_configuration
+		[ "$?" = 0 ] && start_service alvs
+		rc=$?
+	;;
+
+	abort-remove|abort-deconfigure)
+		echo "WARNING: $filename called with unsupported argument \`$1'" >&2
+	;;
+
+	*)
+		echo "$filename called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+if [ $rc -ne 0 ]; then
+	echo "ERROR: $filename failed"
+fi
+exit $rc
+

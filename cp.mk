@@ -38,10 +38,10 @@ CP_C_FLAGS := -DALVS_LITTLE_ENDIAN -Werror -Wall -Wextra
 
 ifdef CP_DEBUG
 CP_C_FLAGS += -O0 -g3
-SUFFIX := _debug
+PREFIX := debug/
 else
 CP_C_FLAGS += -O3 -DNDEBUG
-SUFFIX := 
+PREFIX := 
 endif
 
 ifdef CONFIG_ALVS
@@ -50,6 +50,7 @@ endif
 
 # set bin path/name
 CP_BIN := bin/
+CP_BIN := $(CP_BIN)$(PREFIX)
 ifdef CONFIG_ALVS
 	CP_BIN := $(CP_BIN)alvs
 else
@@ -60,7 +61,6 @@ ifdef SIM
 	CP_C_FLAGS += -DEZ_SIM
 	CP_BIN := $(CP_BIN)_sim
 endif
-CP_BIN := $(CP_BIN)$(SUFFIX)
 
 # Tool invocations
 make_cp: $(CP_OBJS) $(USER_CP_OBJS)

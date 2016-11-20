@@ -1,0 +1,174 @@
+#!/bin/bash
+
+#######################################################################################
+#
+#                   Copyright by Mellanox Technologies, 2016
+#
+#  Project:         All NPS_SOLUTION projects
+#
+#  Description:     common functions script for multi app packaging
+#
+#  Notes:	    a seperated copy of this file is being copied to
+# 		    to each app package. The file can be sourced only by
+# 		    scripts which run after the package installation(i.e, postinst, 
+# 		    prerm)
+#######################################################################################
+
+######################################
+# Definitions
+######################################
+ALVS_NPS_IP='169.254.42.44'
+ALVS_NPS_HOST='alvs_nps'
+ALVS_CP_ARGS=""
+
+#-------------------------------------------------------------------------------
+configure_service_on_boot()
+{
+	service_name=$1
+	cmd="/etc/init.d/${service_name} start"
+	filename="/etc/rc.local"
+	tmpfile="/etc/rc.local.tmp"
+	
+	if [ -e $filename ]; then
+		# check if command already exits
+		res=$(cat $filename | grep "$cmd" | wc -l)
+		if [ $res -ne 1 ]; then
+			# remove "exit 0" from file
+			cat $filename | grep -v "exit 0" > $tmpfile
+			cat $tmpfile > $filename
+			rm -f $tmpfile
+			
+			# add commnad
+			echo "$cmd" >> $filename
+			
+			# restor "exit 0"
+			echo "exit 0" >> $filename
+		fi	
+	else
+		# add commnad
+		echo "$cmd" > $filename
+		
+		# restore "exit 0"
+		echo "exit 0" >> $filename
+	fi
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+remove_service_from_boot()
+{
+	service_name=$1
+	cmd="/etc/init.d/${service_name} start"
+	filename="/etc/rc.local"
+	
+	remove_line_from_file "$cmd" $filename
+}
+
+#-------------------------------------------------------------------------------
+remove_line_from_file()
+{
+	if [ $# -ne 2 ]; then
+		echo "ERROR: remove_line_from_file: number of args ($#) is wrong. expect <line> <file name>"
+		exit 1
+	fi
+
+	cmd=$1
+	filename=$2
+	tmpfile=$filename".tmp"
+	
+	if [ -e $filename ]; then
+		# remove command from file
+		cat $filename | grep -v "$cmd" > $tmpfile
+		cat $tmpfile > $filename
+		rm -f $tmpfile
+	fi
+}
+
+#-------------------------------------------------------------------------------
+add_nps_host()
+{
+	res=$(cat /etc/hosts | grep $ALVS_NPS_IP | wc -l)
+	if [ $res -ne 1 ]; then
+		echo "$ALVS_NPS_IP   $ALVS_NPS_HOST" >> /etc/hosts
+	fi
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+remove_nps_host()
+{
+	cmd="$ALVS_NPS_IP   $ALVS_NPS_HOST"
+	filename="/etc/hosts"
+	
+	remove_line_from_file "$cmd" $filename
+}
+
+#-------------------------------------------------------------------------------
+reload_configuration()
+{
+	systemctl daemon-reload > /dev/null 2>&1
+	[ "$?" = 0 ] && service rsyslog restart > /dev/null 2>&1
+	[ "$?" = 0 ] && sysctl -p /etc/sysctl.d/alvs.conf > /dev/null 2>&1
+	[ "$?" = 0 ] && service networking restart > /dev/null 2>&1
+	return $?
+}
+
+#-------------------------------------------------------------------------------
+start_service()
+{
+	service_name=$1
+	echo " Starting ${service_name} service"
+	service ${service_name} start
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+stop_service()
+{
+	service_name=$1
+	if [ -x "/etc/init.d/${service_name}" ]; then
+		echo " Stopping ${service_name} service"
+		service ${service_name} stop > /dev/null 2>&1
+	fi
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+parse_user_conf()
+{
+
+	user_conf=()
+
+	db_get cp_args/run_cpus
+	user_conf+=("--run_cpus ${RET}")
+
+	db_get cp_args/statistics
+	if [ "$RET" = true ]; then
+    		user_conf+=("--statistics")
+	fi
+
+	db_get cp_args/port_type
+	user_conf+=("--port_type ${RET}")
+
+	db_get cp_args/agt_enabled
+	if [ "$RET" = true ]; then
+    		user_conf+=("--agt_enabled")
+	fi
+
+	for arg in "${user_conf[@]}"; do
+    		ALVS_CP_ARGS+="${arg} "
+	done
+
+       
+}
+
+#-------------------------------------------------------------------------------
+set_user_params(){
+	cp -a -f $CONFIGFILE $CONFIGFILE.tmp
+	parse_user_conf
+	sed -e "s/^ *ALVS_CP_ARGS=.*/ALVS_CP_ARGS=\"$ALVS_CP_ARGS\"/" < $CONFIGFILE > $CONFIGFILE.tmp
+	mv -f $CONFIGFILE.tmp $CONFIGFILE
+	return 0
+}
+
+

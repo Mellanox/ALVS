@@ -1,9 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 # prerm script for alvs
 #
 # see: dh_installdeb(1)
 
 set -e
+
+# Source common multi product functions
+. /usr/share/alvs/common_func
 
 # summary of how this script can be called:
 #		* <prerm> `remove'
@@ -16,31 +19,26 @@ set -e
 # for details, see https://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-
-#-------------------------------------------------------------------------------
-stop_alvs()
-{
-	if [ -x "/etc/init.d/alvs" ]; then
-		echo " Stopping alvs service"
-		service alvs stop > /dev/null 2>&1
-	fi
-	return 0
-}
-
-#-------------------------------------------------------------------------------
-
-
+######################################
+# Main
+######################################
 filename=$(basename $0)
 
 rc=0
 case "$1" in
 	remove|upgrade|deconfigure)
-		stop_alvs
+		[ "$?" = 0 ] &&stop_service alvs
+		[ "$?" = 0 ] &&remove_service_from_boot alvs
+		[ "$?" = 0 ] &&remove_nps_host
+		[ "$?" = 0 ] &&reload_configuration
 		rc=$?
 	;;
 
 	failed-upgrade)
-		stop_alvs
+		[ "$?" = 0 ] &&stop_alvs
+		[ "$?" = 0 ] &&remove_service_from_boot alvs
+		[ "$?" = 0 ] &&remove_nps_host
+		[ "$?" = 0 ] &&reload_configuration
 		rc=$?
 	;;
 
