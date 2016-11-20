@@ -8,7 +8,7 @@
 		    <pre>
 		           <type> reg_exec_func </type>
 		           <name> run_test_wrapper </name>
-		           <tout> 36000 </tout>
+		           <tout> 1500 </tout>
 		           <params>
 		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
 	                   <wrapper_params> -c [[conf:extra_info.cpu_count:512]] -f [[conf:extra_info.file_name:None]] </wrapper_params>
@@ -17,13 +17,13 @@
 		    </pre>
         </Test>
         <Case>
-            <tout>  36000 </tout>
+            <tout>  1500 </tout>
             <wrapper> ALVSWrapper.py </wrapper>
             <on_failure>
                  <cmd>
                       <type> reg_exec_func </type>
 		              <name> run_test_wrapper </name> 
-		              <tout> 36000 </tout>
+		              <tout> 1000 </tout>
 		              <params>
 		                   <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_clean_wrapper.py </wrapper>
 	                       <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>

@@ -320,14 +320,16 @@ def clean_players(test_resources, use_director = False, stop_ezbox = False):
 	# in adition, recreate ssh object for the new proccess (patch)
 	process_list = []
 	for s in test_resources['server_list']:
-		if s.ssh.connection_established:
-			s.ssh.recreate_ssh_object()
-			process_list.append(Process(target=clean_server, args=(s,)))
+		if not s.ssh.connection_established:
+			s.ssh.connect()
+		s.ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_server, args=(s,)))
 		
 	for c in test_resources['client_list']:
-		if c.ssh.connection_established:
-			c.ssh.recreate_ssh_object()
-			process_list.append(Process(target=clean_client, args=(c,)))
+		if not c.ssh.connection_established:
+			c.ssh.connect()
+		c.ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_client, args=(c,)))
 			
 	if test_resources['ezbox']:
 		test_resources['ezbox'].ssh_object.recreate_ssh_object()
