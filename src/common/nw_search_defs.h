@@ -221,12 +221,14 @@ CASSERT(sizeof(struct nw_arp_result) == 8);
 #define NW_FIB_TCAM_MAX_SIZE	        0x2000
 
 enum nw_fib_type {
-	NW_FIB_NEIGHBOR       = 0,
+	NW_FIB_NEIGHBOR      = 0,
 	/* Destination IP is neighbor. use it for ARP */
-	NW_FIB_GW             = 1,
+	NW_FIB_GW            = 1,
 	/* Destination IP is GW. use result IP */
-	NW_FIB_DROP   = 2
-	/* unknown handling. Drop frame */
+	NW_FIB_DROP          = 2,
+	/* Black hole. Drop frame */
+	NW_FIB_UNSUPPORTED   = 3
+	/* unknown handling.*/
 };
 
 

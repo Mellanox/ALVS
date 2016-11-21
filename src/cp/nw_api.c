@@ -814,15 +814,19 @@ void set_fib_params(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *
 			db_fib_entry->result_type = NW_FIB_GW;
 			write_log(LOG_DEBUG, "FIB Entry is GW. next hop is %s", nw_inet_ntoa(db_fib_entry->next_hop));
 		} else {
-			/* Drop packet - DP will handle only single hop entries */
-			db_fib_entry->result_type = NW_FIB_DROP;
-			write_log(LOG_WARNING, "FIB entry (IP=%s, mask length=%d) has multiple hops - marked for drop.",
+			/* Unsupported number of hop entries - DP will handle it according to the application */
+			db_fib_entry->result_type = NW_FIB_UNSUPPORTED;
+			write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) has multiple hops - marked as unsupported.",
 				  nw_inet_ntoa(db_fib_entry->dest_ip), db_fib_entry->mask_length);
 		}
-	} else {
-		/* Drop packet - DP will handle only unicasts */
+	} else if (fib_entry->route_type == RTN_BLACKHOLE) {
+		/* Drop packet */
 		db_fib_entry->result_type = NW_FIB_DROP;
 		write_log(LOG_DEBUG, "FIB Entry is marked for drop.");
+	} else {
+		/* Unsupported route type - DP will handle it according to the application */
+		db_fib_entry->result_type = NW_FIB_UNSUPPORTED;
+		write_log(LOG_DEBUG, "Unsupported route type - DP will handle it according to the application.");
 	}
 
 }

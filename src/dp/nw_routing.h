@@ -54,14 +54,19 @@ void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint
 }
 
 /******************************************************************************
- * \brief         perform FIB lookup and get dest_ip for transmission
- * \return        dest IP or 0 for host frame
+ * \brief       perform FIB lookup and get dest_ip for transmission
+ *
+ * \param[in]   dest_ip	         - destination IP
+ * \param[out]  route_entry      - reference to a route entry result
+ *
+ * \return      bool             - true for a successful FIB processing
+ *                                 false means the frame will be dropped, either for
+ *                                 drop route type or critical errors.
  */
 static __always_inline
-uint32_t nw_fib_processing(in_addr_t dest_ip)
+bool nw_fib_processing(in_addr_t dest_ip, struct route_entry_result *route_entry)
 {
-	enum nw_fib_type     result_type;
-	uint32_t             res_dest_ip;
+	uint32_t res_dest_ip;
 	struct ezdp_lookup_int_tcam_retval tcam_retval;
 
 	/* read iTCAM */
@@ -78,38 +83,46 @@ uint32_t nw_fib_processing(in_addr_t dest_ip)
 	if (unlikely(tcam_retval.assoc_data.match == 0)) {
 		anl_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
-		return 0;
+		return false;
 	}
-	result_type = cmem_wa.nw_wa.fib_result.result_type;
+	route_entry->fib_route_type = cmem_wa.nw_wa.fib_result.result_type;
 	res_dest_ip = cmem_wa.nw_wa.fib_result.dest_ip;
 
 	/* get dest_ip */
-	if (likely(result_type == NW_FIB_NEIGHBOR)) {
+	if (likely(route_entry->fib_route_type == NW_FIB_NEIGHBOR)) {
 		/* Destination IP is neighbor. use it for ARP */
 		anl_write_log(LOG_DEBUG, "NW_FIB_NEIGHBOR: using origin dest IP 0x%08x", dest_ip);
-		return dest_ip;
-	} else if (result_type == NW_FIB_GW) {
+		route_entry->fib_dest_ip = dest_ip;
+		return true;
+	} else if (route_entry->fib_route_type == NW_FIB_GW) {
 		/* Destination IP is GW. use result IP */
 		anl_write_log(LOG_DEBUG, "NW_FIB_GW: using result IP 0x%08x", res_dest_ip);
-		return res_dest_ip;
-	} else if (result_type == NW_FIB_DROP) {
+		route_entry->fib_dest_ip = res_dest_ip;
+		return true;
+	} else if (route_entry->fib_route_type == NW_FIB_DROP) {
 		anl_write_log(LOG_DEBUG, "NW_FIB_DROP: Drop frame.");
 		nw_interface_inc_counter(NW_IF_STATS_REJECT_BY_FIB);
-		return 0;
+		return false;
+	} else if (route_entry->fib_route_type == NW_FIB_UNSUPPORTED) {
+		anl_write_log(LOG_DEBUG, "NW_FIB_UNSUPPORTED: application will handle the frame.");
+		return true;
 	}
 
 	/* Unknown result type.*/
-	anl_write_log(LOG_ERR, "Unsupported FIB result type. dropping packet");
+	anl_write_log(LOG_ERR, "Unknown FIB result type. dropping packet");
 	nw_interface_inc_counter(NW_IF_STATS_UNKNOWN_FIB_RESULT);
-	return 0;
+	return false;
 }
 
 /******************************************************************************
  * \brief         perform arp lookup and modify l2 header before transmission
- * \return        void
+ *
+ * \return        NW_ARP_OK            - ARP processing finished successfully
+ *                NW_ARP_CRITICAL_ERR  - ARP processing had critical error
+ *                NW_ARP_LOOKUP_FAIL   - ARP processing had ARP lookup fail
  */
 static __always_inline
-void nw_arp_processing(ezframe_t __cmem * frame,
+enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 		       uint8_t __cmem * frame_base,
 		       in_addr_t dest_ip,
 		       uint32_t	frame_buff_size)
@@ -138,8 +151,7 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 		if (unlikely(nw_calc_egress_if(frame_base, arp_res_ptr->output_index.output_interface, arp_res_ptr->is_lag) == false)) {
 			anl_write_log(LOG_DEBUG, "Interface admin state is disabled, dropping packet on ingress");
 			nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
-			nw_discard_frame();
-			return;
+			return NW_ARP_CRITICAL_ERR;
 		}
 
 		/*copy src mac*/
@@ -154,38 +166,56 @@ void nw_arp_processing(ezframe_t __cmem * frame,
 		if (rc != 0) {
 			anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
 			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
-			nw_discard_frame();
-			return;
+			return NW_ARP_CRITICAL_ERR;
 		}
 
 		ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
+		return NW_ARP_OK;
 
-	} else {
-		anl_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
-		nw_discard_frame();
-		return;
 	}
+	anl_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", dest_ip);
+	nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
+	return NW_ARP_LOOKUP_FAIL;
+
 }
 
 /******************************************************************************
  * \brief         perform nw route
- * \return        void
+ * \return        bool, true:  frame was handled either by send_to_if or discard
+ *                      false: the application will handle this frame.
  */
 static __always_inline
-void nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
+bool nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
 		in_addr_t dest_ip, uint32_t frame_buff_size)
 {
-	uint32_t fib_dest_ip;
+	struct route_entry_result route_entry;
+	enum nw_arp_processing_result arp_rc;
 
-	fib_dest_ip = nw_fib_processing(dest_ip);
-	if (fib_dest_ip == 0) {
-		/* Drop frame */
+	if (unlikely(nw_fib_processing(dest_ip, &route_entry) == false)) {
+		/* Critical error while fib_processing. Drop frame */
 		nw_discard_frame();
-		return;
+		return true;
 	}
 
-	nw_arp_processing(frame, frame_base, fib_dest_ip, frame_buff_size);
+	if (unlikely(route_entry.fib_route_type == NW_FIB_UNSUPPORTED)) {
+		/* Unsupported route type; can't decide what to do. application will handle this frame */
+		return false;
+	}
+
+	/* FIB route type either NEIGHBOR or GW */
+	arp_rc = nw_arp_processing(frame, frame_base, route_entry.fib_dest_ip, frame_buff_size);
+	if (likely(arp_rc == NW_ARP_OK)) {
+		return true;
+	} else if (arp_rc == NW_ARP_CRITICAL_ERR) {
+		nw_discard_frame();
+		return true;
+	} else if (arp_rc == NW_ARP_LOOKUP_FAIL) {
+		return false;
+	}
+
+	/* we should not get here*/
+	anl_write_log(LOG_ERR, "Unsupported nw_arp_processing_result: %d", arp_rc);
+	return false;
 }
 
 /******************************************************************************

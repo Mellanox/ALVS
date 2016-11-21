@@ -160,6 +160,7 @@ enum alvs_error_stats_offsets {
 	ALVS_ERROR_STATE_SYNC_BAD_BUFFER           = 28,
 	ALVS_ERROR_STATE_SYNC_DECODE_CONN          = 29,
 	ALVS_ERROR_STATE_SYNC_BAD_MESSAGE_VERSION  = 30,
+	ALVS_ERROR_DO_ROUTE                        = 31,
 	ALVS_NUM_OF_ALVS_ERROR_STATS               = 40 /* MUST BE EVEN! */
 };
 

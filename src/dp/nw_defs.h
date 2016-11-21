@@ -105,6 +105,20 @@ struct ezdp_decode_result {
 	};
 } __packed;
 
+struct route_entry_result {
+	enum nw_fib_type	fib_route_type;
+	uint32_t		fib_dest_ip;
+} __packed;
+
+enum nw_arp_processing_result {
+	NW_ARP_OK		= 0,
+	/* ARP processing finished successfully */
+	NW_ARP_CRITICAL_ERR	= 1,
+	/* ARP processing had critical error */
+	NW_ARP_LOOKUP_FAIL	= 2
+	/* ARP processing had ARP lookup fail */
+};
+
 /*temp workarea*/
 union nw_workarea {
 	char                                 arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];

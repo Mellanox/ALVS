@@ -491,18 +491,26 @@ uint32_t alvs_conn_age_out(uint32_t conn_index, uint8_t iteration_num)
 static __always_inline
 void alvs_conn_do_route(uint8_t *frame_base)
 {
+	bool rc;
+
 	/*transmit packet according to routing method*/
 	if (likely((cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK) == IP_VS_CONN_F_DROUTE)) {
 		if (cmem_alvs.conn_info_result.bound == true) {
-			nw_do_route(&frame,
+			rc = nw_do_route(&frame,
 				    frame_base,
 				    cmem_alvs.server_info_result.server_ip,
 				    ezframe_get_buf_len(&frame));
 		} else {
-			nw_do_route(&frame,
+			rc = nw_do_route(&frame,
 				    frame_base,
 				    cmem_alvs.conn_info_result.server_addr,
 				    ezframe_get_buf_len(&frame));
+		}
+		/* frame with unsupported route type will be dropped */
+		if (rc == false) {
+			anl_write_log(LOG_INFO, "do_route didn't handle the frame. ALVS will discard it");
+			alvs_discard_and_stats(ALVS_ERROR_DO_ROUTE);
+			return;
 		}
 	} else {
 		anl_write_log(LOG_ERR, "got unsupported routing algo = %d alvs_conn_do_route", cmem_alvs.server_info_result.conn_flags & IP_VS_CONN_F_FWD_MASK);

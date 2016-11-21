@@ -48,8 +48,8 @@ class Fib_Testing(Unit_Tester):
 		packets_received1 = server_list[0].stop_capture()
 		packets_received2 = server_list[1].stop_capture()
 		 
-		print "packets received in server 1 %d"%packets_received1
-		print "packets received in server 2 %d"%packets_received2
+		print "Number of packets received in server1 - %d"%packets_received1
+		print "Number of packets received in server2 - %d"%packets_received2
 		 
 		# check if packet was dropped
 	 	if packets_received2 != expected_packets[1] or packets_received1 != expected_packets[0]:
@@ -80,7 +80,7 @@ class Fib_Testing(Unit_Tester):
 		
 		ezbox.add_server(server_list[0].vip, port, server_list[0].ip, port)
 		ezbox.execute_command_on_host("arp -s %s %s"%(server_list[0].ip, server_list[0].mac_address))
-	# 	 
+
 		# create packet
 		data_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
 		                         mac_sa=client_list[0].mac_address.replace(':',' '),
@@ -164,7 +164,7 @@ class Fib_Testing(Unit_Tester):
 					print output
 					exit(1)
 		
-				time.sleep(1)
+				time.sleep(2)
 				
 				self.send_packet_and_check_servers(ezbox,
 								  service_vip=vip_list[0], 
