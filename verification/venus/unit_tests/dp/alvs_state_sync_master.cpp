@@ -1,4 +1,4 @@
-#include "../output/alvs_packet_processing/mock/dut_mock.h"
+#include "../../output/dp/alvs_packet_processing/mock/dut_mock.h"
 
 #include <stdio.h>
 #include <gtest/gtest.h>
