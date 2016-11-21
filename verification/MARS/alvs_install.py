@@ -45,7 +45,7 @@ def init_ezbox(ezbox, cpus_count,file_name):
 
 	#setting CPUs count
 	ezbox.modify_run_cpus(cpus_range)
-	ezbox.update_cp_params("--run_cpus %s --agt_enabled --port_type=%s " % (cpus_range, ezbox.setup['nps_port_type']))
+	ezbox.update_cp_params("--run_cpus %s --agt_enabled --lag_enable --port_type=%s " % (cpus_range, ezbox.setup['nps_port_type']))
 	ezbox.alvs_service_stop()
 	ezbox.alvs_service_start()
 	# Wait for CP & DP

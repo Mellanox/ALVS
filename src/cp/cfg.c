@@ -76,7 +76,7 @@ void system_configuration(int argc, char **argv)
 		{ "routing_app", no_argument, (int *)(&system_cfg.applications.routing_en), true },
 		{ "QoS_app", no_argument, (int *)(&system_cfg.applications.qos_en), true },
 		{ "firewall_app", no_argument, (int *)(&system_cfg.applications.firewall_en), true },
-		{ "no_lag", no_argument, (int *)(&system_cfg.lag_en), false },
+		{ "lag_enable", no_argument, (int *)(&system_cfg.lag_en), true },
 		{ "port_type", required_argument, 0, 'p' },
 		{ "dp_bin_file", required_argument, 0, 'b'},
 		{ "run_cpus", required_argument, 0, 'r'},
@@ -89,8 +89,6 @@ void system_configuration(int argc, char **argv)
 	strcpy(system_cfg.dp_bin_file, "/usr/lib/alvs/alvs_dp");
 	strcpy(system_cfg.run_cpus, "not_used");
 	system_cfg.port_type = EZapiChannel_EthIFType_40GE;
-
-	/* TODO - [Roee] Need to change the default to 'true' once no_lag flag will be used in testing */
 	system_cfg.lag_en = false;
 
 	while (true) {

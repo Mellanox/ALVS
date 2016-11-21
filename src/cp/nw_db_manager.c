@@ -55,11 +55,10 @@
 /* Project includes */
 #include "log.h"
 #include "nw_conf.h"
-#include "nw_search_defs.h"
-#include "nw_db_manager.h"
-#include "infrastructure.h"
 #include "infrastructure_utils.h"
 #include "nw_api.h"
+#include "nw_db.h"
+#include "nw_db_manager.h"
 #include "cfg.h"
 
 /* Function Definition */
@@ -75,8 +74,6 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj,
 void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj,
 			  int action, void *data);
 
-void neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_arp_key *key,
-			   struct nw_arp_result *result);
 bool valid_neighbor(struct rtnl_neigh *neighbor);
 bool valid_route_entry(struct rtnl_route *route_entry);
 
@@ -144,7 +141,7 @@ void nw_db_manager_init(void)
 	/* Allocate cache manager */
 	nl_cache_mngr_alloc(NULL, NETLINK_ROUTE, 0, &network_cache_mngr);
 
-	if (nw_api_init_db() != NW_API_OK) {
+	if (nw_db_init() != true) {
 		write_log(LOG_CRIT, "Failed to create NW SQL DB.");
 		nw_db_manager_exit_with_error();
 	}
@@ -161,7 +158,7 @@ void nw_db_manager_delete(void)
 	if (network_cache_mngr) {
 		nl_cache_mngr_free(network_cache_mngr);
 	}
-	nw_api_destroy_db();
+	nw_db_destroy();
 }
 
 /******************************************************************************
@@ -187,236 +184,78 @@ void nw_db_manager_table_init(void)
 void nw_db_manager_poll(void)
 {
 	while (*nw_db_manager_cancel_application_flag == false) {
-		/* Get waiting updates received since previous cache read */
-		nl_cache_mngr_data_ready(network_cache_mngr);
 		/* Poll on cache updates */
 		nl_cache_mngr_poll(network_cache_mngr, 0x1000);
 	}
 }
 
+
+
 /******************************************************************************
- * \brief       Build application bitmap.
- *
- * \param[out]  nw_if_apps - reference to application bitmap
+ * \brief       Host interface table init.
  *
  * \return      void
  */
-static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
+void nw_db_manager_if_table_init_host(struct ether_addr  *mac_address)
 {
-	nw_if_apps->tc_en = 0;
-	nw_if_apps->alvs_en = 0;
-#ifdef CONFIG_ALVS
-	nw_if_apps->alvs_en = 1;
-#endif
+	struct nw_api_if_entry if_entry;
+	enum nw_api_rc nw_api_rc;
 
-	nw_if_apps->routing_en = (system_cfg_is_routing_app_en() == true) ? 1 : 0;
-	nw_if_apps->qos_en = (system_cfg_is_qos_app_en() == true) ? 1 : 0;
-	nw_if_apps->firewall_en = (system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-}
-
-
-/******************************************************************************
- * \brief       Interface table init.
- *
- * \return      bool
- */
-bool nw_db_manager_if_table_init_host(struct ether_addr  *mac_address,
-				      bool               sft_en,
-				      struct nw_if_apps  *app_bitmap)
-{
-	struct nw_if_key           if_key;
-	struct nw_if_result        if_result;
-	bool                       rc;
-
-	/************************************************/
-	/* Add DP entry                                 */
-	/************************************************/
-
-	/* set key */
-	if_key.logical_id    = HOST_LOGICAL_ID;
-
-	/* set result */
-	if_result.sft_en = sft_en;
-	memcpy(&if_result.app_bitmap,  app_bitmap,  sizeof(if_result.app_bitmap));
-	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
-	if_result.path_type  = DP_PATH_FROM_HOST_PATH;
-	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-						       NW_POSTED_STATS_MSID,
-						       HOST_IF_STATS_POSTED_OFFSET));
-	if_result.output_channel       = 24 | (1 << 7);
-	if_result.direct_output_if     = NW_BASE_LOGICAL_ID;
-	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
-	if_result.admin_state = true;
-
-	/* add entry */
-	rc = infra_add_entry(STRUCT_ID_NW_INTERFACES,
-			     &if_key,
-			     sizeof(if_key),
-			     &if_result,
-			     sizeof(if_result));
-	if (rc == false) {
-		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding host if entry to if DB failed.");
-		return false;
+	if_entry.if_index = 0;
+	memcpy(&if_entry.mac_addr, mac_address, sizeof(if_entry.mac_addr));
+	nw_api_rc = nw_api_add_host_if_entry(&if_entry);
+	if (nw_api_rc == NW_API_DB_ERROR) {
+		write_log(LOG_CRIT, "nw_db_manager_if_table_init_host: Add host interface to DB has failed. DB Error.");
+		nw_db_manager_exit_with_error();
 	}
-
-
-
-
-	/************************************************/
-	/* Add CP entry (SQL)                      todo */
-	/************************************************/
-
-	/* finish successfully */
-	return true;
 }
 
 /******************************************************************************
- * \brief       Interface table init.
+ * \brief       NW interface table init.
  *
- * \return      bool
+ * \return      void
  */
-bool nw_db_manager_if_table_init_nw(struct ether_addr  *mac_address,
-				    bool               sft_en,
-				    struct nw_if_apps  *app_bitmap)
+void nw_db_manager_if_table_init_nw(struct ether_addr  *mac_address)
 {
-	struct nw_db_nw_interface  interface_data;
-	struct nw_if_key           if_key;
-	struct nw_if_result        if_result;
-	uint32_t                   ind;
-	bool                       rc;
-	enum nw_api_rc             nw_api_rc;
+	struct nw_api_if_entry  interface_entry;
+	uint32_t ind;
+	enum nw_api_rc nw_api_rc;
 
-	/* set common result */
-	if_result.sft_en = sft_en;
-	memcpy(&if_result.app_bitmap,  app_bitmap,  sizeof(if_result.app_bitmap));
-	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
-	if_result.path_type = DP_PATH_FROM_NW_PATH;
+	memcpy(&interface_entry.mac_addr, mac_address, sizeof(interface_entry.mac_addr));
 
 	for (ind = 0; ind < NW_IF_NUM; ind++) {
-
-		/************************************************/
-		/* Add DP entry                                 */
-		/************************************************/
-
-		/* set key */
-		if_key.logical_id = NW_BASE_LOGICAL_ID + ind;
-
-		/* set result */
-		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							       NW_POSTED_STATS_MSID,
-							       NW_IF_STATS_POSTED_OFFSET + ind * NW_NUM_OF_IF_STATS));
-		if_result.output_channel       = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		if_result.direct_output_if     = (system_cfg_is_remote_control_en() == true) ? (ind + REMOTE_BASE_LOGICAL_ID) : HOST_LOGICAL_ID;
-		if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
-		if_result.admin_state          = true;
-
-		/* add entry in DP */
-		rc = infra_add_entry(STRUCT_ID_NW_INTERFACES,
-				     &if_key,
-				     sizeof(if_key),
-				     &if_result,
-				     sizeof(if_result));
-		if (rc == false) {
-			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding NW if (%d) entry to if DB failed.", ind);
-			return false;
-		}
-
-		/************************************************/
-		/* Add CP entry (SQL)                           */
-		/************************************************/
-		memset(&interface_data, 0, sizeof(interface_data));
-		interface_data.interface_id = ind;
-		interface_data.is_lag       = false; /* will be update when ading interface to LAG group */
-		interface_data.lag_group_id = LAG_GROUP_NULL;     /* N/A - will be update when ading interface to LAG group */
-		interface_data.admin_state  = true;
-		memcpy(&interface_data.mac_address.ether_addr_octet, &if_result.mac_address.ether_addr_octet, ETH_ALEN);
-		interface_data.app_bitmap = if_result.app_bitmap;
-		interface_data.direct_output_if = if_result.direct_output_if;
-		interface_data.is_direct_output_lag = if_result.is_direct_output_lag;
-		interface_data.output_channel = if_result.output_channel;
-		interface_data.path_type = if_result.path_type;
-		interface_data.sft_en = if_result.sft_en;
-		interface_data.stats_base = if_result.stats_base;
-
-		/* add to internal db */
-		nw_api_rc = internal_db_add_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-		if (nw_api_rc != NW_API_OK) {
-			write_log(LOG_ERR, "add interface id %d on internal table was failed, failure on internal db", interface_data.interface_id);
-			return false;
+		interface_entry.if_index = ind;
+		/* add IF entry */
+		nw_api_rc = nw_api_add_nw_if_entry(&interface_entry);
+		if (nw_api_rc == NW_API_DB_ERROR) {
+			write_log(LOG_CRIT, "nw_db_manager_if_table_init_nw: Add interface id %d to DB has failed. DB Error.", interface_entry.if_index);
+			nw_db_manager_exit_with_error();
 		}
 	}
-
-
-	/* finish successfully */
-	return true;
 }
 
 /******************************************************************************
- * \brief       Interface table init.
+ * \brief       Remote interface table init.
  *
  * \return      void
  */
-bool nw_db_manager_if_table_init_remote(struct ether_addr  *mac_address,
-					bool               sft_en,
-					struct nw_if_apps  *app_bitmap)
+void nw_db_manager_if_table_init_remote(struct ether_addr  *mac_address)
 {
-	struct nw_if_key           if_key;
-	struct nw_if_result        if_result;
-	uint32_t                   ind;
-	bool                       rc;
+	struct nw_api_if_entry  interface_entry;
+	uint32_t ind;
+	enum nw_api_rc nw_api_rc;
 
-	if (system_cfg_is_remote_control_en() != true) {
-		/* Remote IF is not enabled - do nothing */
-		return true;
-	}
-
-
-	/* set common result */
-	if_result.sft_en = sft_en;
-	memcpy(&if_result.app_bitmap,  app_bitmap,  sizeof(if_result.app_bitmap));
-	memcpy(&if_result.mac_address, mac_address, sizeof(if_result.mac_address));
-	if_result.path_type = DP_PATH_FROM_REMOTE_PATH;
+	memcpy(&interface_entry.mac_addr, mac_address, sizeof(interface_entry.mac_addr));
 
 	for (ind = 0; ind < REMOTE_IF_NUM; ind++) {
-
-		/************************************************/
-		/* Add DP entry                                 */
-		/************************************************/
-
-		/* set key */
-		if_key.logical_id = REMOTE_BASE_LOGICAL_ID + ind;
-
-		/* set result */
-		if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-							       NW_POSTED_STATS_MSID,
-							       REMOTE_IF_STATS_POSTED_OFFSET + ind * REMOTE_NUM_OF_IF_STATS));
-
-		if_result.output_channel   = ((ind % 2) * 12) | (ind < 2 ? 0 : (1 << 7));
-		if_result.direct_output_if = ind + NW_BASE_LOGICAL_ID;
-		if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
-		if_result.admin_state = true;
-
-		rc = infra_add_entry(STRUCT_ID_NW_INTERFACES,
-				     &if_key,
-				     sizeof(if_key),
-				     &if_result,
-				     sizeof(if_result));
-		if (rc == false) {
-			write_log(LOG_CRIT, "nw_db_manager_if_table_init: Adding remote if (%d) entry to if DB failed.", ind);
-			return false;
+		interface_entry.if_index = ind;
+		/* add IF entry */
+		nw_api_rc = nw_api_add_remote_if_entry(&interface_entry);
+		if (nw_api_rc == NW_API_DB_ERROR) {
+			write_log(LOG_CRIT, "nw_db_manager_if_table_init_remote: Add remote interface id %d to DB has failed. DB Error.", interface_entry.if_index);
+			nw_db_manager_exit_with_error();
 		}
-
-
-		/************************************************/
-		/* Add CP entry (SQL)                           */
-		/************************************************/
-		/* TODO: implement */
-
 	}
-
-
-	/* finish successfully */
-	return true;
 }
 
 /******************************************************************************
@@ -426,11 +265,8 @@ bool nw_db_manager_if_table_init_remote(struct ether_addr  *mac_address,
  */
 void nw_db_manager_if_table_init(void)
 {
-	struct ether_addr  mac_address;
-	struct nw_if_apps  app_bitmap;
-	bool               sft_en;
-	bool               rc;
-	int ind = 0;
+	struct ether_addr mac_address;
+	bool rc;
 
 	/* initialize common fields for all interfaces */
 	/* initialize my MAC in interface result */
@@ -439,52 +275,45 @@ void nw_db_manager_if_table_init(void)
 		write_log(LOG_CRIT, "nw_db_manager_if_table_init: Retrieving my MAC failed.");
 		nw_db_manager_exit_with_error();
 	}
-	sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-	build_nw_if_apps(&app_bitmap);
-
 
 	/* Adding Host Interface */
-	rc = nw_db_manager_if_table_init_host(&mac_address, sft_en, &app_bitmap);
-	if (rc == false) {
-		write_log(LOG_CRIT, "nw_db_manager_if_table_init_host failed");
-		nw_db_manager_exit_with_error();
-	}
+	nw_db_manager_if_table_init_host(&mac_address);
 
 	/* Adding Network Interfaces */
-	rc = nw_db_manager_if_table_init_nw(&mac_address, sft_en, &app_bitmap);
-	if (rc == false) {
-		write_log(LOG_CRIT, "nw_db_manager_if_table_init_nw failed");
-		nw_db_manager_exit_with_error();
-	}
+	nw_db_manager_if_table_init_nw(&mac_address);
 
 	/* Adding Remote Interfaces */
 	if (system_cfg_is_remote_control_en() == true) {
-		rc = nw_db_manager_if_table_init_remote(&mac_address, sft_en, &app_bitmap);
-		if (rc == false) {
-			write_log(LOG_CRIT, "nw_db_manager_if_table_init_remote failed");
-			nw_db_manager_exit_with_error();
-		}
+		nw_db_manager_if_table_init_remote(&mac_address);
 	}
-
-	if (system_cfg_is_lag_en() == true) {
-		if (nw_api_add_lag_group_entry(0) != NW_API_OK) {
-			write_log(LOG_CRIT, "Failed to create main lag group");
-			nw_db_manager_exit_with_error();
-		}
-
-		for (ind = 0; ind < NW_IF_NUM; ind++) {
-			if (nw_api_add_port_to_lag_group(0, ind) != NW_API_OK) {
-				write_log(LOG_CRIT, "Failed to add port %d to main lag group", ind);
-				nw_db_manager_exit_with_error();
-			}
-
-		}
-	}
-
 }
 
 /******************************************************************************
- * \brief       Convert route entry to fib entry
+ * \brief    Convert Linux neighbor entry to nw api arp entry
+ *
+ * \return   void
+ */
+void nw_db_manager_neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_api_arp_entry *arp_entry)
+{
+	struct nl_addr *dst = rtnl_neigh_get_dst(neighbor);
+	struct nl_addr *mac = rtnl_neigh_get_lladdr(neighbor);
+
+	memset(arp_entry, 0, sizeof(struct nw_api_arp_entry));
+
+	arp_entry->if_index = rtnl_neigh_get_ifindex(neighbor);
+	arp_entry->ip_addr.af = rtnl_neigh_get_family(neighbor);
+	if (arp_entry->ip_addr.af == AF_INET) {
+		arp_entry->ip_addr.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(dst);
+	} else if (arp_entry->ip_addr.af == AF_INET6) {
+		memcpy((void *)&arp_entry->ip_addr.in6, nl_addr_get_binary_addr(dst), sizeof(struct in6_addr));
+	}
+	if (mac != NULL) {
+		memcpy(arp_entry->mac_addr.ether_addr_octet, nl_addr_get_binary_addr(mac), ETH_ALEN);
+	}
+}
+
+/******************************************************************************
+ * \brief       Convert route entry to nw api fib entry
  *
  * \return      void
  */
@@ -585,6 +414,7 @@ void nw_db_manager_arp_table_init(void)
 	struct nl_cache *neighbor_cache;
 	struct rtnl_neigh *neighbor = rtnl_neigh_alloc();
 	struct nl_cache *filtered_neighbor_cache;
+	struct nw_api_arp_entry arp_entry;
 
 	/* Allocate neighbor (ARP) cache */
 	ret = nl_cache_mngr_add(network_cache_mngr, "route/neigh", &nw_db_manager_arp_cb, NULL, &neighbor_cache);
@@ -603,8 +433,10 @@ void nw_db_manager_arp_table_init(void)
 	for (i = 0; neighbor != NULL; i++) {
 		if (valid_neighbor(neighbor)) {
 			/* Add neighbor to table */
-			if (nw_db_add_arp_entry(neighbor) != NW_API_OK) {
-				write_log(LOG_NOTICE, "Problem adding ARP entry: addr = %s", addr_to_str(rtnl_neigh_get_dst(neighbor)));
+			nw_db_manager_neighbor_to_arp_entry(neighbor, &arp_entry);
+			if (nw_api_add_arp_entry(&arp_entry) == NW_API_DB_ERROR) {
+				write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
+				nw_db_manager_exit_with_error();
 			}
 		}
 		/* Next neighbor */
@@ -680,49 +512,31 @@ void nw_db_manager_fib_cb(struct nl_cache __attribute__((__unused__))*cache, str
  */
 void nw_db_manager_arp_cb(struct nl_cache __attribute__((__unused__))*cache, struct nl_object *obj, int action, void __attribute__((__unused__))*data)
 {
-	enum nw_api_rc nw_ret = NW_API_OK;
 	struct rtnl_neigh *neighbor = (struct rtnl_neigh *)obj;
+	struct nw_api_arp_entry arp_entry;
+	enum nw_api_rc rc = NW_API_OK;
 	/* Take only IPv4 entries.
 	 * TODO: when adding IPv6 capabilities, this should be revisited.
 	 */
 	if (rtnl_neigh_get_family(neighbor) == AF_INET) {
+		nw_db_manager_neighbor_to_arp_entry(neighbor, &arp_entry);
 		switch (action) {
 		case NL_ACT_NEW:
 			if (valid_neighbor(neighbor)) {
-				nw_ret = nw_db_add_arp_entry(neighbor);
-				if (nw_ret != NW_API_OK) {
-					write_log(LOG_NOTICE, "Problem adding ARP entry: addr = %s", addr_to_str(rtnl_neigh_get_dst(neighbor)));
-				}
+				rc = nw_api_add_arp_entry(&arp_entry);
 			}
 			break;
 		case NL_ACT_DEL:
-			nw_ret = nw_db_remove_arp_entry(neighbor);
-			if (nw_ret != NW_API_OK) {
-				write_log(LOG_NOTICE, "Problem deleting ARP entry: addr = %s", addr_to_str(rtnl_neigh_get_dst(neighbor)));
-			}
+			rc = nw_api_remove_arp_entry(&arp_entry);
 			break;
 		case NL_ACT_CHANGE:
 			if (valid_neighbor(neighbor)) {
-				nw_ret = nw_db_modify_arp_entry(neighbor);
-				if (nw_ret != NW_API_OK) {
-					write_log(LOG_NOTICE, "Problem modifying ARP entry: addr = %s", addr_to_str(rtnl_neigh_get_dst(neighbor)));
-				}
+				rc = nw_api_modify_arp_entry(&arp_entry);
 			} else {
-				write_log(LOG_DEBUG, "Changing entry to invalid state - removing ARP entry");
-				nw_ret = nw_db_remove_arp_entry(neighbor);
-				if (nw_ret == NW_API_DB_ERROR) {
-					write_log(LOG_NOTICE, "Problem removing ARP entry: addr = %s", addr_to_str(rtnl_neigh_get_dst(neighbor)));
-				}
+				rc = nw_api_remove_arp_entry(&arp_entry);
 			}
 			break;
-		default:
-			write_log(LOG_NOTICE, "Unknown action of netlink rtnl neighbour");
 		}
-		if (nw_ret == NW_API_DB_ERROR) {
-			write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
-			nw_db_manager_exit_with_error();
-		}
-
 	} else {
 		switch (action) {
 		case NL_ACT_NEW:
@@ -736,8 +550,11 @@ void nw_db_manager_arp_cb(struct nl_cache __attribute__((__unused__))*cache, str
 			break;
 		}
 	}
+	if (rc == NW_API_DB_ERROR) {
+		write_log(LOG_CRIT, "Received fatal error from NW DBs. exiting.");
+		nw_db_manager_exit_with_error();
+	}
 }
-
 
 bool valid_route_entry(struct rtnl_route *route_entry)
 {
@@ -765,3 +582,4 @@ void nw_db_manager_exit_with_error(void)
 	kill(getpid(), SIGTERM);
 	pthread_exit(NULL);
 }
+

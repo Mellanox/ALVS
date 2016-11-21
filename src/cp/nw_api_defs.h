@@ -40,6 +40,7 @@
 
 #include <stdbool.h>
 #include <netinet/in.h>
+#include <net/ethernet.h>
 
 enum nw_api_rc {
 	NW_API_OK,
@@ -73,5 +74,20 @@ struct nw_api_fib_entry {
 	/* Next hop interface  */
 };
 
+struct nw_api_arp_entry {
+	uint8_t if_index;
+	/* Interface index */
+	struct nw_api_inet_addr ip_addr;
+	/* IP address */
+	struct ether_addr mac_addr;
+	/* MAC address */
+};
+
+struct nw_api_if_entry {
+	uint8_t if_index;
+	/* Interface index */
+	struct ether_addr mac_addr;
+	/* MAC address */
+};
 
 #endif /* _NW_API_DEFS_H_ */

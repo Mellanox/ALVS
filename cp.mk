@@ -9,6 +9,7 @@ CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/incl
 CP_C_SRCS = src/cp/error_names.c \
 			src/cp/log.c \
 			src/cp/nw_api.c \
+			src/cp/nw_db.c \
 			src/cp/sqlite3.c \
 			src/cp/cfg.c \
 			src/cp/infrastructure.c \
