@@ -57,21 +57,7 @@ function unset_global_vars {
 
 function run_coverity_cp {
 
-	#FP1: cp/alvs_db.c:3528: uninit_use_in_call: Using uninitialized value "service". Field "service.flags" is uninitialized when calling "internal_db_save_service_stats".
-	#FP2: cp/alvs_db.c:3701: uninit_use: Using uninitialized value "value".
-	ALVS_ACCEPTED_FP_CP=2
-	
-	#####FP1: Error: BUFFER_SIZE_WARNING:
-	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/alvs_db_manager.c:1106:
-	#buffer_size_warning: Calling strncpy with a maximum size argument of 16 bytes on destination array "(ret_daemon + i).mcast_ifn" of size 16 bytes might leave the destination string unterminated.
-	
-	#####FP2:Error: INTEGER_OVERFLOW:
-	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/cp/nw_db.c:544:
-	#overflow_const: Decrement (--) operation overflows on operand "tmp_fib_entry.nps_index", whose value is an unsigned constant, 0.
-	
-	#####FP3: Error: PW.DECLARED_BUT_NOT_REFERENCED:
-	#/.autodirect/swgwork/basims/sandbox3/ALVS/src/common/version.h:46:
-	#declared_but_not_referenced: variable "version" was declared but never referenced
+	ALVS_ACCEPTED_FP_CP=0
 	
 	echo "Creating $ALVS_COVERITY_RES_DIR_CP for CP Coverity intermidiate and results directory..." | tee -a $LOG_FILE
 	mkdir $ALVS_COVERITY_RES_DIR_CP &>> $LOG_FILE
@@ -81,21 +67,36 @@ function run_coverity_cp {
 
 	echo "Creating compiler configuraion for CP..." | tee -a $LOG_FILE
 	cov-configure --config $CP_CONFIG_DIR/cp_config.xml --gcc &>> $LOG_FILE
+	if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-configure failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
 
 	DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	makefile_dir="$DIR/../../"
 
-	echo "Running CP clean project..." | tee -a $LOG_FILE
-	make -C $makefile_dir cp-clean &>> $LOG_FILE
+	echo "Running clean project..." | tee -a $LOG_FILE
+	make -C $makefile_dir clean &>> $LOG_FILE
 
 	echo "Build CP under Coverity..." | tee -a $LOG_FILE
-	cov-build --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP make -C $makefile_dir cp &>> $LOG_FILE
-
+	cov-build --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP make -C $makefile_dir alvs_cp &>> $LOG_FILE
+	if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-build failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
+	
 	echo "Running CP Coverity Analysis..." | tee -a $LOG_FILE
 	cov-analyze --config $CP_CONFIG_DIR/cp_config.xml --dir $ALVS_COVERITY_RES_DIR_CP --all --aggressiveness-level high -j $JOBS_NUM &>> $LOG_FILE
-
+	if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-analyze failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
+	
 	echo -e "\n******************************* Generating CP Coverity static error report *********\n" | tee -a $LOG_FILE
-	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS" --exclude-files 'sqlite3\.c' --functionsort | tee -a $LOG_FILE)	
+	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_CP --emacs-style --file "ALVS" --exclude-files 'sqlite3\.c' --functionsort | tee -a $LOG_FILE)
 	if [ "$res" == "" ]
 	then
 		echo -e "\n\n******************************* CP Coverity Result is PASS ***********************\n"
@@ -132,19 +133,34 @@ function run_coverity_dp {
 
 	echo "Creating compiler configuraion for DP..." | tee -a $LOG_FILE
 	cov-configure  --config $DP_CONFIG_DIR/dp_config.xml -co /auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/ldk/toolchain/bin/arceb-linux-gcc -- -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape &>> $LOG_FILE
-
+	if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-configure failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
+	
 	DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	makefile_dir="$DIR/../../"
 
-	echo "Running DP clean project..." | tee -a $LOG_FILE
-	make -C $makefile_dir dp-clean &>> $LOG_FILE
+	echo "Running clean project..." | tee -a $LOG_FILE
+	make -C $makefile_dir clean &>> $LOG_FILE
 
 	echo "Build DP under Coverity..." | tee -a $LOG_FILE
-	cov-build --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP make -C $makefile_dir dp &>> $LOG_FILE
+	cov-build --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP make -C $makefile_dir alvs_dp &>> $LOG_FILE
+	if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-build failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
 
 	echo "Running DP Coverity Analysis..." | tee -a $LOG_FILE
 	cov-analyze --config $DP_CONFIG_DIR/dp_config.xml --dir $ALVS_COVERITY_RES_DIR_DP --all --aggressiveness-level high -j $JOBS_NUM  &>> $LOG_FILE
-
+		if [ "$?" != 0 ]
+	then
+		echo "ERROR: cov-analyze failed!!!" | tee -a $LOG_FILE
+		return 1
+	fi
+	
 	echo -e "\n******************************* Generating DP Coverity static error report *********\n" | tee -a $LOG_FILE
 	res=$(cov-format-errors --dir $ALVS_COVERITY_RES_DIR_DP --emacs-style --file "ALVS"  --functionsort | tee -a $LOG_FILE)	
 	if [ "$res" == "" ]
