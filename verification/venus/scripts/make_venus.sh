@@ -208,7 +208,7 @@ function main {
 	then
 		echo -e "\nPatching environment (WORKAROUND)...\n" |& tee -a $log
 		echo "$testing_dir/scripts/dp_fix_types.sh" |& tee -a $log
-		$testing_dir/scripts/dp_fix_types.sh |& tee -a $log
+		$testing_dir/scripts/dp_fix_types.sh ${alvs_root}|& tee -a $log
 		if [ "$?" != 0 ]
 		then
 			echo "ERROR: failed to patch environment!!!" |& tee -a $log

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CASEDEF>
+    <global>
+        <Test>
+            <info> alvs_cp </info>
+            <name> alvs_cp </name>
+            <tags> alvs_cp </tags>
+            <owner> anat </owner>
+            <pre>
+                 <type> reg_exec_cmd </type>
+                 <name> make_venus </name>
+                 <tout> 1500 </tout>
+                 <params>
+                    <exec> [[run_time:remote_src_path]]/ALVS/verification/venus/scripts/make_venus.sh </exec>
+                    <static_args> ALVS cp alvs_db_manager main </static_args>
+                 </params>
+            </pre>
+        </Test>
+        
+        <Case>
+            <tout>  1000 </tout>
+            <wrapper> VENUSWrapper.py </wrapper>
+        </Case>
+    </global>
+    
+    
+    <case>
+        <info> get_daemon_without_internal_error </info>
+        <name> get_daemon_without_internal_error </name>
+        <tags> alvs_db_manager_example </tags>
+        <tags> get_daemon_without_internal_error </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -a ALVS -u cp/alvs_db_manager_example.cpp -t get_daemon_without_internal_error </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> get_daemon_with_internal_error </info>
+        <name> get_daemon_with_internal_error </name>
+        <tags> alvs_db_manager_example </tags>
+        <tags> get_daemon_with_internal_error </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -a ALVS -u cp/alvs_db_manager_example.cpp -t get_daemon_with_internal_error </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    
+    <case>
+        <info> new_daemon_with_parse_daemon_error </info>
+        <name> new_daemon_with_parse_daemon_error </name>
+        <tags> alvs_db_manager_example </tags>
+        <tags> new_daemon_with_parse_daemon_error </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -a ALVS -u cp/alvs_db_manager_example.cpp -t new_daemon_with_parse_daemon_error </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> new_daemon_with_start_daemon_error </info>
+        <name> new_daemon_with_start_daemon_error </name>
+        <tags> alvs_db_manager_example </tags>
+        <tags> new_daemon_with_start_daemon_error </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -a ALVS -u cp/alvs_db_manager_example.cpp -t new_daemon_with_start_daemon_error </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    <case>
+        <info> new_daemon_with_stop_daemon </info>
+        <name> new_daemon_with_stop_daemon </name>
+        <tags> alvs_db_manager_example </tags>
+        <tags> new_daemon_with_stop_daemon </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -a ALVS -u cp/alvs_db_manager_example.cpp -t new_daemon_with_stop_daemon </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+</CASEDEF>

@@ -127,6 +127,7 @@ def run_unit_test(unit_test , test_case , run_make_venus, dependencies, app):
 		for d in dependencies:
 			make_venus_args += d + " "
 
+	
 	if run_make_venus:	
 		rc = os.system("./scripts/make_venus.sh " + make_venus_args)
 		if rc:
@@ -138,10 +139,11 @@ def run_unit_test(unit_test , test_case , run_make_venus, dependencies, app):
 	rc = os.system("./scripts/run_unit_test.sh " + cp_or_dp + " " + src_name_without_extension + " " + unit_test + " " + test_case)
 	if rc:
 		print "\nFAIL: ./scripts/run_unit_test.sh " + cp_or_dp + " " +  src_name_without_extension + " " + unit_test + " " + test_case + "\n"
+		return 1
 	else:
 		print "\nPASS: ./scripts/run_unit_test.sh " + cp_or_dp + " " +  src_name_without_extension + " " + unit_test + " " + test_case + "\n"
+		return 0
 
-	return rc
 
 
 #===============================================================================

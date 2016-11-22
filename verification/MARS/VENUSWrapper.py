@@ -17,6 +17,7 @@ class VENUSWrapper(StandaloneWrapper):
         super(VENUSWrapper, self).configure_parser()
         self.add_cmd_argument('-t', help='case to run')
         self.add_cmd_argument('-u', help='unit test')
+        self.add_cmd_argument('-a', help='application name')
         self.add_test_attribute_argument('--topo_file', 'topo_file', separator=' ') 
 
 if __name__ == "__main__":

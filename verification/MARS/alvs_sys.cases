@@ -2,8 +2,8 @@
 <CASEDEF>
     <global>
         <Test>
-            <info> Regression </info>
-            <name> Regression </name>
+            <info> alvs_system </info>
+            <name> alvs_system </name>
             <owner> anat </owner>
 		    <pre>
 		           <type> reg_exec_func </type>
@@ -35,8 +35,8 @@
     
     
     <case>
-        <info> test1 </info>
-        <name> test_1 </name>
+        <info> test1_request_wo_ser </info>
+        <name> test1_request_wo_ser </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> fail </tags>
@@ -51,8 +51,8 @@
     
     
     <case>
-        <info> test2 </info>
-        <name> test_2 </name>
+        <info> test2_request_wo_ser2 </info>
+        <name> test2_request_wo_ser2 </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> fail </tags>
@@ -67,8 +67,8 @@
     
     
     <case>
-        <info> test3 </info>
-        <name> test_3 </name>
+        <info> test3_request_from_port </info>
+        <name> test3_request_from_port </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -83,8 +83,8 @@
     
     
     <case>
-        <info> test4 </info>
-        <name> test_4 </name>
+        <info> test4_sh_wo_port </info>
+        <name> test4_sh_wo_port </name>
         <tags> Functional </tags>
         <tags> basic </tags>
         <tags> SH </tags>
@@ -99,8 +99,8 @@
     
     
     <case>
-        <info> test5 </info>
-        <name> test_5 </name>
+        <info> test5_sh_w_port </info>
+        <name> test5_sh_w_port </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -115,8 +115,8 @@
     
     
     <case>
-        <info> test6 </info>
-        <name> test_6 </name>
+        <info> test6_sh_w_port_2_services </info>
+        <name> test6_sh_w_port_2_services </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> SH </tags>
@@ -131,8 +131,8 @@
     
     
     <case>
-        <info> test7 </info>
-        <name> test_7 </name>
+        <info> test7_change_sh_alg </info>
+        <name> test7_change_sh_alg </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -147,8 +147,8 @@
     
     
     <case>
-        <info> test8 </info>
-        <name> test_8 </name>
+        <info> test8_add_servers </info>
+        <name> test8_add_servers </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -163,8 +163,8 @@
     
     
     <case>
-        <info> test9 </info>
-        <name> test_9 </name>
+        <info> test9_add_servers </info>
+        <name> test9_add_servers </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -179,8 +179,8 @@
     
     
     <case>
-        <info> test10 </info>
-        <name> test_10 </name>
+        <info> test10_add_servers </info>
+        <name> test10_add_servers </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> SH </tags>
@@ -195,8 +195,8 @@
     
     
     <case>
-        <info> test11 </info>
-        <name> test_11 </name>
+        <info> test11_delete_reAdd_server </info>
+        <name> test11_delete_reAdd_server </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -211,8 +211,8 @@
     
     
     <case>
-        <info> test12 </info>
-        <name> test_12 </name>
+        <info> test12_delete_server_w_connection </info>
+        <name> test12_delete_server_w_connection </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -228,8 +228,8 @@
     
     
     <case>
-        <info> test13 </info>
-        <name> test_13 </name>
+        <info> test13_delete_server_wo_connection </info>
+        <name> test13_delete_server_wo_connection </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> SH </tags>
@@ -244,8 +244,8 @@
     
     
     <case>
-        <info> test14 </info>
-        <name> test_14 </name>
+        <info> test14_delete_reAdd_server </info>
+        <name> test14_delete_reAdd_server </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -262,8 +262,8 @@
     
     <case>
         <ignore> <bug> 878689 </bug> </ignore>
-        <info> test15 </info>
-        <name> test_15 </name>
+        <info> test15_disable_server </info>
+        <name> test15_disable_server </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -280,8 +280,8 @@
     
     <case>
         <ignore> <bug> 878689 </bug> </ignore>
-        <info> test16 </info>
-        <name> test_16 </name>
+        <info> test16_disable_multiple_servers </info>
+        <name> test16_disable_multiple_servers </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> SH </tags>
@@ -297,8 +297,8 @@
     
     
     <case>
-        <info> test17 </info>
-        <name> test_17 </name>
+        <info> test17_replace_servers </info>
+        <name> test17_replace_servers </name>
         <tags> Functional </tags>
         <tags> basic </tags>
         <tags> SH </tags>
@@ -313,8 +313,8 @@
     
 <!--
     <case>
-        <info> test19 </info>
-        <name> test_19 </name>
+        <info> test19_client_fails </info>
+        <name> test19_client_fails </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -330,8 +330,8 @@
     
     
     <case>
-        <info> test21 </info>
-        <name> test_21 </name>
+        <info> test21_enable_server_using_server_lo </info>
+        <name> test21_enable_server_using_server_lo </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -347,8 +347,8 @@
 -->
     
     <case>
-        <info> test22 </info>
-        <name> test_22 </name>
+        <info> test22_add_del_add_service </info>
+        <name> test22_add_del_add_service </name>
         <tags> Functional </tags>
         <tags> basic </tags>
         <tags> SH </tags>
@@ -364,8 +364,8 @@
     
     
     <case>
-        <info> test23 </info>
-        <name> test_23 </name>
+        <info> test23_add_del_add_services </info>
+        <name> test23_add_del_add_services </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> SH </tags>
@@ -381,8 +381,8 @@
     
     
     <case>
-        <info> test24 </info>
-        <name> test_24 </name>
+        <info> test24_different_weight </info>
+        <name> test24_different_weight </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -397,8 +397,8 @@
     
     
     <case>
-        <info> test26 </info>
-        <name> test_26 </name>
+        <info> test26_change_weight </info>
+        <name> test26_change_weight </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -413,8 +413,8 @@
     
     
     <case>
-        <info> test28 </info>
-        <name> test_28 </name>
+        <info> test28_change_weight_down </info>
+        <name> test28_change_weight_down </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> SH </tags>
@@ -429,8 +429,8 @@
     
     
     <case>
-        <info> test29 </info>
-        <name> test_29 </name>
+        <info> test29_change_weight_to_zero </info>
+        <name> test29_change_weight_to_zero </name>
         <tags> Functional </tags>
         <tags> basic </tags>
         <tags> SH </tags>
@@ -445,8 +445,8 @@
     </case>
     
 <!--    <case>
-        <info> test30 </info>
-        <name> test_30 </name>
+        <info> test30_unsupported_alg </info>
+        <name> test30_unsupported_alg </name>
         <tags> Functional </tags>
         <tags> advaced </tags>
         <tags> unsupported </tags>
@@ -460,8 +460,8 @@
     </case>
     -->
     <case>
-        <info> test33 </info>
-        <name> test_33 </name>
+        <info> test33_basic_RR </info>
+        <name> test33_basic_RR </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> RR </tags>
@@ -476,8 +476,8 @@
     
     
     <case>
-        <info> test34 </info>
-        <name> test_34 </name>
+        <info> test34_basic_WRR </info>
+        <name> test34_basic_WRR </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> WRR </tags>
@@ -492,8 +492,8 @@
     
     
     <case>
-        <info> test35 </info>
-        <name> test_35 </name>
+        <info> test35_RR_multiple_services </info>
+        <name> test35_RR_multiple_services </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> RR </tags>
@@ -508,8 +508,8 @@
     
     
     <case>
-        <info> test36 </info>
-        <name> test_36 </name>
+        <info> test36_WRR_multiple_services </info>
+        <name> test36_WRR_multiple_services </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> WRR </tags>
@@ -524,8 +524,8 @@
     
     
     <case>
-        <info> test37 </info>
-        <name> test_37 </name>
+        <info> test37_change_supported_alg </info>
+        <name> test37_change_supported_alg </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> RR </tags>
@@ -542,8 +542,8 @@
     
     
     <case>
-        <info> test38 </info>
-        <name> test_38 </name>
+        <info> test38_WRR_change_weights </info>
+        <name> test38_WRR_change_weights </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> WRR </tags>
@@ -558,8 +558,8 @@
     
     
     <case>
-        <info> test39 </info>
-        <name> test_39 </name>
+        <info> test39_RR_change_weights </info>
+        <name> test39_RR_change_weights </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> RR </tags>
@@ -574,8 +574,8 @@
     
     
     <case>
-        <info> test40 </info>
-        <name> test_40 </name>
+        <info> test40_services_diff_sched_alg </info>
+        <name> test40_services_diff_sched_alg </name>
         <tags> Functional </tags>
         <tags> advanced </tags>
         <tags> RR </tags>
@@ -592,8 +592,8 @@
     
     
     <case>
-        <info> test41 </info>
-        <name> test_41 </name>
+        <info> test41_WRR_delete_server </info>
+        <name> test41_WRR_delete_server </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> WRR </tags>
@@ -608,8 +608,8 @@
     
     
     <case>
-        <info> test42 </info>
-        <name> test_42 </name>
+        <info> test42_WRR_add_server </info>
+        <name> test42_WRR_add_server </name>
         <tags> Functional </tags>
         <tags> normal </tags>
         <tags> WRR </tags>
