@@ -14,13 +14,13 @@ alvs: alvs_dp alvs_cp
 alvs_dp:
 	mkdir -p build/alvs/src/dp
 	mkdir -p bin$(PREFIX)
-	make CONFIG_ALVS=1 -f dp.mk make_dp
+	CONFIG_ALVS=1 make -f dp.mk make_dp
 
 
 alvs_cp:
 	mkdir -p build/alvs/src/cp
 	mkdir -p bin$(PREFIX)
-	make CONFIG_ALVS=1 -f cp.mk make_cp
+	CONFIG_ALVS=1 make -f cp.mk make_cp
 
 
 dp-clean:
