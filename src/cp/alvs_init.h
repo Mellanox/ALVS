@@ -30,40 +30,49 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                nw_cp_init.h
-*  Desc:                Network initializations API.
+*  File:                alvs_init.h
+*  Desc:                ALVS application initialization API.
 *
 */
 
-#ifndef _NW_CP_INIT_H_
-#define _NW_CP_INIT_H_
+#ifndef _ALVS_INIT_H_
+#define _ALVS_INIT_H_
 
 #include <stdbool.h>
+#include <stdint.h>
+
+
 
 
 /**************************************************************************//**
- * \brief       Initialize protocol decode profile with my MAC
+ * \brief       Create index pools
  *
  * \return      bool - success or failure
  */
-bool nw_initialize_protocol_decode(void);
+bool alvs_create_index_pools(void);
+
+/**************************************************************************//**
+ * \brief       Create timers
+ *
+ * \return      bool - success or failure
+ */
+bool alvs_create_timers(void);
 
 /**************************************************************************//**
  * \brief       Initialize all statistics counter to be zero
  *
  * \return      bool - success or failure
  */
-bool nw_initialize_statistics(void);
+bool alvs_initialize_statistics(void);
 
 /******************************************************************************
- * \brief    Constructor function for all network data bases.
- *           this function is called not from the network thread but from the
+ * \brief    Constructor function for all ALVS data bases.
+ *           This function is called not from the network thread but from the
  *           main thread on NPS configuration bringup.
  *
  * \return   bool - success or failure
  */
-bool nw_db_constructor(void);
+bool alvs_db_constructor(void);
 
 
-
-#endif /* _NW_CP_INIT_H_ */
+#endif /* _ALVS_INIT_H_ */

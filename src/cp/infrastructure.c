@@ -49,13 +49,12 @@
 
 #include "log.h"
 #include "infrastructure.h"
-#include "nw_cp_init.h"
-#include "alvs_cp_init.h"
-
 #include "alvs_conf.h"
+#include "alvs_init.h"
 #include "nw_conf.h"
 
 #include "cfg.h"
+#include "nw_init.h"
 
 EZagtRPCServer host_server;
 

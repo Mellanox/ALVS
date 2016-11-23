@@ -50,9 +50,9 @@
 #include <EZapiPrm.h>
 #include "alvs_db.h"
 
-#include "alvs_cp_init.h"
 #include "sqlite3.h"
 #include "alvs_conf.h"
+#include "alvs_init.h"
 #include "infrastructure_utils.h"
 #include "application_search_defs.h"
 #include "index_pool.h"

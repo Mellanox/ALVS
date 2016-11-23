@@ -30,12 +30,12 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                alvs_cp_init.c
+*  File:                alvs_init.c
 *  Desc:                Implementation of ALVS initialization API.
 *
 */
 
-#include "alvs_cp_init.h"
+#include "alvs_init.h"
 
 #include <EZapiStat.h>
 

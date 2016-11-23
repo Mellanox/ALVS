@@ -14,13 +14,13 @@ CP_C_SRCS = src/cp/error_names.c \
 			src/cp/cfg.c \
 			src/cp/infrastructure.c \
 			src/cp/infrastructure_utils.c \
-			src/cp/nw_cp_init.c \
+			src/cp/nw_init.c \
 			src/cp/main.c \
 			src/cp/nw_db_manager.c
 ifdef CONFIG_ALVS
 CP_C_SRCS += src/cp/alvs_db.c \
 			 src/cp/alvs_db_manager.c \
-			 src/cp/alvs_cp_init.c
+			 src/cp/alvs_init.c
 endif
 
 ifdef CONFIG_ALVS

@@ -30,12 +30,12 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                nw_cp_init.c
+*  File:                nw_init.c
 *  Desc:                Implementation of NW initializations API.
 *
 */
 
-#include "nw_cp_init.h"
+#include "nw_init.h"
 
 #include <EZapiChannel.h>
 #include <EZapiStat.h>
