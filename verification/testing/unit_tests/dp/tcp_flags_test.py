@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("verification/testing")
-sys.path.append("verification/testing/unit_tests")
-from test_infra import * 
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *
@@ -40,31 +44,6 @@ class Tcp_Flags_Test(Unit_Tester):
 		ezbox.add_service(vip_list[0], port,'sh', sched_algorithm)
 		
 		ezbox.add_server(server_list[0].vip, port, server_list[0].ip, port)
-	
-	
-	# ezbox,args = init_test(test_arguments=sys.argv)
-	
-	# each setup can use differen VMs
-	# ip_list = get_setup_list(args['setup_num'])
-	
-	# each setup can use different the virtual ip 
-	# virtual_ip_address_1 = get_setup_vip(args['setup_num'], 0)
-	# virtual_ip_address_2 = get_setup_vip(args['setup_num'], 1)
-	
-	# create servers
-	# server1 = real_server(management_ip=ip_list[0]['hostname'], data_ip=ip_list[0]['ip'])
-	# server2 = real_server(management_ip=ip_list[1]['hostname'], data_ip=ip_list[1]['ip'])
-	# server3 = real_server(management_ip=ip_list[2]['hostname'], data_ip=ip_list[2]['ip'])
-	#  
-	# # create client
-	# client_object = client(management_ip=ip_list[3]['hostname'], data_ip=ip_list[3]['ip'])
-	
-	# create services on ezbox
-	# first_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_1, port='80', schedule_algorithm = 'source_hash')
-	# first_service.add_server(server1, weight='1')
-	# 
-	# second_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_2, port='80', schedule_algorithm = 'source_hash')
-	# second_service.add_server(server1, weight='1')
 	
 		# create packet
 		reset_packet = tcp_packet(mac_da=ezbox.setup['mac_address'],
@@ -114,14 +93,14 @@ class Tcp_Flags_Test(Unit_Tester):
 	
 	
 	
-		reset_fin_data_packets = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet,data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet1.pcap')
-		reset_data_fin_packets = create_pcap_file(packets_list=[reset_packet.packet,data_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet2.pcap')
-		fin_reset_data_packets = create_pcap_file(packets_list=[fin_packet.packet,reset_packet.packet,data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet3.pcap')
-		fin_data_reset_packets = create_pcap_file(packets_list=[fin_packet.packet,data_packet.packet,reset_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet4.pcap')
-		data_fin_reset_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet,reset_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet5.pcap')
-		data_reset_fin_packets = create_pcap_file(packets_list=[data_packet.packet,reset_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet6.pcap')
-		fin_data_packets = create_pcap_file(packets_list=[fin_packet.packet, data_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet7.pcap')
-		data_fin_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet8.pcap')
+		reset_fin_data_packets = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet,data_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet1.pcap')
+		reset_data_fin_packets = create_pcap_file(packets_list=[reset_packet.packet,data_packet.packet,fin_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet2.pcap')
+		fin_reset_data_packets = create_pcap_file(packets_list=[fin_packet.packet,reset_packet.packet,data_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet3.pcap')
+		fin_data_reset_packets = create_pcap_file(packets_list=[fin_packet.packet,data_packet.packet,reset_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet4.pcap')
+		data_fin_reset_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet,reset_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet5.pcap')
+		data_reset_fin_packets = create_pcap_file(packets_list=[data_packet.packet,reset_packet.packet,fin_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet6.pcap')
+		fin_data_packets = create_pcap_file(packets_list=[fin_packet.packet, data_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet7.pcap')
+		data_fin_packets = create_pcap_file(packets_list=[data_packet.packet,fin_packet.packet], output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet8.pcap')
 		
 		pcaps_with_reset = [reset_fin_packet.pcap_file_name, reset_fin_data_packets, reset_data_fin_packets, fin_reset_data_packets, fin_data_reset_packets, data_fin_reset_packets, data_reset_fin_packets]
 		

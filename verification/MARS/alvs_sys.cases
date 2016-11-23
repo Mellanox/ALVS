@@ -19,6 +19,7 @@
         <Case>
             <tout>  1500 </tout>
             <wrapper> ALVSWrapper.py </wrapper>
+            <params> <env>/testing/system_level/</env> </params>
             <on_failure>
                  <cmd>
                       <type> reg_exec_func </type>

@@ -18,7 +18,6 @@ from common_infra import *
 #===============================================================================
 # Classes
 #===============================================================================
-# 
 
 class HttpClient(player):
 	def __init__(self, ip, hostname,
@@ -45,14 +44,19 @@ class HttpClient(player):
 		
 	def send_packet_to_nps(self, pcap_file):
 		logging.log(logging.DEBUG,"Send packet to NPS") 
-		local_dir = os.getcwd()
-		cmd = "tcpreplay --intf1=ens6 " + local_dir + "/" + pcap_file
+		cmd = "mkdir -p %s" %self.exe_path
+		self.execute_command(cmd)
+		self.copy_file_to_player(pcap_file, self.exe_path)
+		pcap_file_name = pcap_file[pcap_file.rfind("/")+1:]
+		cmd = "tcpreplay --intf1=ens6 " + self.exe_path + pcap_file_name
 		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
 		result, output = self.execute_command(cmd)
 		if result == False:
 			print "Error while sending a packet to NPS"
 			print output
 			exit(1)
+		cmd = "rm -f " + self.exe_path + "/" + pcap_file_name
+		self.execute_command(cmd)
 
 	def clean_client(self):
 		self.remove_exec_script()

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CASEDEF>
+    <global>
+        <Test>
+            <info> Regression </info>
+            <name> Regression </name>
+            <tags> dp </tags>
+            <tags> unit_tests </tags>
+            <owner> anat </owner>
+		    <pre>
+		           <type> reg_exec_func </type>
+		           <name> run_test_wrapper </name>
+		           <tout> 1500 </tout>
+		           <params>
+		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
+	                   <wrapper_params> -c False -f [[conf:extra_info.file_name:None]] </wrapper_params>
+	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		           </params>
+		    </pre>
+        </Test>
+        <Case>
+            <tout>  1500 </tout>
+            <wrapper> ALVSWrapper.py </wrapper>
+            <params> <env> /testing/unit_tests/cp/ </env> </params>
+            <on_failure>
+                 <cmd>
+                      <type> reg_exec_func </type>
+		              <name> run_test_wrapper </name> 
+		              <tout> 1000 </tout>
+		              <params>
+		                   <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_clean_wrapper.py </wrapper>
+	                       <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		              </params>
+		          </cmd>
+            </on_failure>
+        </Case>
+    </global>
+    
+     <case>
+        <info> ipvs_stats_test </info>
+        <name> ipvs_stats_test </name>
+        <tags> ipvs_stats_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t ipvs_stats_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> fib_testing </info>
+        <name> fib_testing </name>
+        <tags> fib_testing </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t fib_testing.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> state_sync_control_test </info>
+        <name> state_sync_control_test </name>
+        <tags> state_sync_control_test </tags>
+        <tags> to_check </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t state_sync_control_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> state_sync_test </info>
+        <name> state_sync_test </name>
+        <tags> state_sync_test </tags>
+        <tags> to_check </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t state_sync_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <ignore> <bug> 879542 </bug> </ignore>
+        <info> sched_info_test </info>
+        <name> sched_info_test </name>
+        <tags> sched_info_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t sched_info_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+</CASEDEF>    

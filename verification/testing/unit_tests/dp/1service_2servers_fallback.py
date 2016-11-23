@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append('verification/testing')
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *
@@ -78,7 +83,7 @@ class One_service_2Servers_Fallback(Unit_Tester):
 		    
 		    src_port_list_part_1.append(int(random_source_port.replace(' ',''),16))
 		     
-		pcap_to_send_1 = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/1serv_2serv_fallback_1.pcap')
+		pcap_to_send_1 = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/1serv_2serv_fallback_1.pcap')
 		
 		time.sleep(5) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -122,6 +127,21 @@ class One_service_2Servers_Fallback(Unit_Tester):
 		expected_packets_received_1 = num_of_packets_1 - expected_packets_received_2
 		expected_packets_receieved = num_of_packets_1
 		expected_num_of_errors = 0
+		
+		print "part1 packets_received_1", packets_received_1
+		print "part1 expected_packets_received_1", expected_packets_received_1
+		print "part1 packets_received_2", packets_received_2
+		print "part1 expected_packets_received_2", expected_packets_received_2
+		print "part1 expected_packets_receieved", expected_packets_receieved
+		print "part1 sched_connections_on_server_1", sched_connections_on_server_1
+		print "part1 sched_connections_on_server_2", sched_connections_on_server_2
+		print "part1 error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']", error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
+		print "part1 expected_num_of_errors", expected_num_of_errors
+		print "part1 created_connections", created_connections
+		print "part1 expected_packets_receieved", expected_packets_receieved
+		print "part1 server_is_unavailable_error", server_is_unavailable_error
+		print "part1 expected_num_of_errors", expected_num_of_errors
+		
 		if (packets_received_1 == expected_packets_received_1 and
 		    packets_received_2 == expected_packets_received_2 and
 		    packets_received_1 + packets_received_2 == expected_packets_receieved and 
@@ -163,7 +183,7 @@ class One_service_2Servers_Fallback(Unit_Tester):
 		    
 		    src_port_list_part_2.append(int(random_source_port.replace(' ',''),16))
 		     
-		pcap_to_send_2 = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/1serv_2serv_fallback_2.pcap')
+		pcap_to_send_2 = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/1serv_2serv_fallback_2.pcap')
 		
 		time.sleep(5) 
 		server_list[0].capture_packets_from_service(vip_list[0])

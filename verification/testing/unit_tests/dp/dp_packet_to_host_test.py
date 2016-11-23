@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 import sys
-sys.path.append("verification/testing/")
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 from common_infra import *
 from client_infra import *
 from e2e_infra import *
@@ -48,7 +53,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		temp_str = mac_da + mac_sa + ether_type + data
 	
 		packets_to_send_list = [temp_str] * 50
-		pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name= ALVSdir + '/verification/testing/dp/pcap_files/temp_packet.pcap')
 		# capture packets on host
 		ezbox.capture_packets()
 		
@@ -100,11 +105,11 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		ether_type = ' 08 00' # ip packet type
 		data = ' 45 00 00 2e 00 00 40 00 40 11 34 BA 01 01 01 01 02 02 02 02 00 00 00 00 00 1A F9 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 '
 		temp_str = mac_da + ' ' + mac_sa + ether_type + data
-		pcap_file = 'verification/testing/dp/pcap_files/udp_packet.pcap'
+		pcap_file = ALVSdir + '/verification/testing/dp/pcap_files/udp_packet.pcap'
 		string_to_pcap_file(temp_str, pcap_file)
 	
 		packets_to_send_list = [temp_str] * 500
-		pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name='verification/testing/dp/pcap_files/500_udp_packets.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packets_to_send_list, output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/500_udp_packets.pcap')
 	
 		# gather stats before
 		stats_before = 0
@@ -147,7 +152,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		ether_type = ' 08 00 ' # ip packet type
 		data = '45 00 00 2e 00 00 40 00 40 06 2e bc 0a 07 7c 05 0a 07 7c 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 '
 		temp_str = mac_da + ' ' + mac_sa + ether_type + data
-		pcap_file = 'verification/testing/dp/pcap_files/ip_checksum_error.pcap'
+		pcap_file = ALVSdir +  '/verification/testing/dp/pcap_files/ip_checksum_error.pcap'
 		string_to_pcap_file(temp_str, pcap_file)
 		
 		# gather statistics before
@@ -189,7 +194,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		ether_type = ' 86 DD ' # ipv6 packet type
 		data = '60 00 00 00 00 46 06 7F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'
 		temp_str = mac_da + ' ' + mac_sa + ether_type + data
-		pcap_file = 'verification/testing/dp/pcap_files/ipv6_packet.pcap'
+		pcap_file = ALVSdir + '/verification/testing/dp/pcap_files/ipv6_packet.pcap'
 		string_to_pcap_file(temp_str, pcap_file)
 	
 		# gather stats before
@@ -231,7 +236,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		ether_type = ' 08 00 ' # ip packet type
 		data = '45 00 00 2e 00 00 40 00 40 06 2e bc 0a 07 7c 05 0a 07 7c 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 '
 		temp_str = mac_da + ' ' + mac_sa + ether_type + data
-		pcap_file = 'verification/testing/dp/pcap_files/1_packet.pcap'
+		pcap_file = ALVSdir + '/verification/testing/dp/pcap_files/1_packet.pcap'
 		string_to_pcap_file(temp_str, pcap_file) 
 	
 		# gather stats before

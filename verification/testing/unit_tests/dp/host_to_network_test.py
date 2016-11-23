@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("verification/testing")
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *

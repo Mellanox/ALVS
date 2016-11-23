@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CASEDEF>
+    <global>
+        <Test>
+            <info> Regression </info>
+            <name> Regression </name>
+            <tags> dp </tags>
+            <tags> unit_tests </tags>
+            <owner> anat </owner>
+		    <pre>
+		           <type> reg_exec_func </type>
+		           <name> run_test_wrapper </name>
+		           <tout> 1500 </tout>
+		           <params>
+		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
+	                   <wrapper_params> -c False -f [[conf:extra_info.file_name:None]] </wrapper_params>
+	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		           </params>
+		    </pre>
+        </Test>
+        <Case>
+            <tout>  1500 </tout>
+            <wrapper> ALVSWrapper.py </wrapper>
+            <params> <env> /testing/unit_tests/dp/ </env> </params>
+            <on_failure>
+                 <cmd>
+                      <type> reg_exec_func </type>
+		              <name> run_test_wrapper </name> 
+		              <tout> 1000 </tout>
+		              <params>
+		                   <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_clean_wrapper.py </wrapper>
+	                       <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
+		              </params>
+		          </cmd>
+            </on_failure>
+        </Case>
+    </global>
+
+    <case>
+        <info> 1service_1server_overloaded_flag </info>
+        <name> 1service_1server_overloaded_flag </name>
+        <tags> 1service_1server_overloaded_flag </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t 1service_1server_overloaded_flag.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> 1service_2servers_fallback </info>
+        <name> 1service_2servers_fallback </name>
+        <tags> 1service_2servers_fallback </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t 1service_2servers_fallback.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> 1sevice_1server_overloaded_flag_fallback </info>
+        <name> 1sevice_1server_overloaded_flag_fallback </name>
+        <tags> 1sevice_1server_overloaded_flag_fallback </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t 1sevice_1server_overloaded_flag_fallback.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> connection_established_delete_test </info>
+        <name> connection_established_delete_test </name>
+        <tags> connection_established_delete_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t connection_established_delete_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> dp_packet_to_host_test </info>
+        <name> dp_packet_to_host_test </name>
+        <tags> dp_packet_to_host_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t dp_packet_to_host_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> host_to_network_test </info>
+        <name> host_to_network_test </name>
+        <tags> host_to_network_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t host_to_network_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> lag_test </info>
+        <name> lag_test </name>
+        <tags> lag_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t lag_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> server_fail_test </info>
+        <name> server_fail_test </name>
+        <tags> server_fail_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t server_fail_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <ignore> <bug> 898503 </bug> </ignore>
+        <info> source_hash_test </info>
+        <name> source_hash_test </name>
+        <tags> source_hash_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t source_hash_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <info> state_sync_test </info>
+        <name> state_sync_test </name>
+        <tags> state_sync_test </tags>
+        <tags> to_check </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t state_sync_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    <case>
+        <ignore> <bug> 887667 </bug> </ignore>
+        <info> tcp_flags_test </info>
+        <name> tcp_flags_test </name>
+        <tags> tcp_flags_test </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t tcp_flags_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+</CASEDEF>

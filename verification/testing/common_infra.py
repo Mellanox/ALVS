@@ -20,8 +20,11 @@ import pexpect
 from ftplib import FTP
 
 # pythons modules 
-from test_infra import *
+# from test_infra import *
 from cmd import Cmd
+cp_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../EZdk/tools/EZcpPyLib/lib"
+sys.path.append(cp_dir)
+from ezpy_cp import EZpyCP
 
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALVSdir = os.path.dirname(parentdir)
@@ -1375,8 +1378,8 @@ class player(object):
 		return self.ssh.execute_command(cmd)
 		
 	def copy_file_to_player(self, filename, dest):
-
-		rc =  os.system("sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest)
+		cmd = "sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest
+		rc =  os.system(cmd)
 		if rc:
 			print "ERROR: failed to copy %s to %s" %(filename, dest)
 		
@@ -1405,7 +1408,7 @@ class tcp_packet:
 		self.tcp_sync_flag = tcp_sync_flag
 		self.packet_length = packet_length
 		self.packet = ''
-		self.pcap_file_name = 'verification/testing/dp/pcap_files/packet' + str(self.packets_counter) + '.pcap'
+		self.pcap_file_name = ALVSdir + '/verification/testing/dp/pcap_files/packet' + str(self.packets_counter) + '.pcap'
 		tcp_packet.packets_counter += 1
 	
 	def generate_packet(self):
@@ -1439,9 +1442,8 @@ class tcp_packet:
 		zero_padding_length = self.packet_length - temp_length
 		for i in range(zero_padding_length):
 			packet = packet + ' 00'
-			
+		
 		self.packet = packet[:]
-		print self.packet
 		string_to_pcap_file(self.packet, self.pcap_file_name)
 		
 		return self.packet
@@ -1609,41 +1611,39 @@ def check_packets_on_pcap(pcap_file_name, ssh_object=None):
 			print "output: " + output
 			return -1
 		
-pcap_counter = 0		
-def create_pcap_file(packets_list, output_pcap_file_name=None):
+def create_pcap_file(packets_list, output_pcap_file_name):
 	# create a temp pcap directory for pcap files
-	if not os.path.exists("verification/testing/dp/pcap_files"):
-		os.makedirs("verification/testing/dp/pcap_files")
+	if not os.path.exists(os.path.dirname(output_pcap_file_name)):
+		os.makedirs(os.path.dirname(output_pcap_file_name))
+	else:
+		os.system("rm -f "+ output_pcap_file_name)
 
-	if output_pcap_file_name == None:
-		global pcap_counter
-		output_pcap_file_name = 'verification/testing/dp/pcap_files/temp_pcap_%d.pcap'%pcap_counter
-		pcap_counter += 1
-	
 	# create temp text file
-	os.system("rm -f "+ output_pcap_file_name)
+	tmp_file_name = 'temp.txt'
+	os.system("touch "+ tmp_file_name)
 	
 	for packet_str in packets_list:
-		cmd = "echo 0000	" + packet_str + " >> verification/testing/dp/temp.txt"
+		cmd = "echo 0000	" + packet_str + " >> " + tmp_file_name
 		os.system(cmd)
 
-	os.system("echo 0000 >> verification/testing/dp/temp.txt")
+	os.system("echo 0000 >> " + tmp_file_name)
 	
-	cmd = "text2pcap " + "verification/testing/dp/temp.txt " + output_pcap_file_name + ' &> /dev/null'
+	cmd = "text2pcap " + tmp_file_name + " " + output_pcap_file_name + ' &> /dev/null'
 	os.system(cmd)
-	os.system("rm -f verification/testing/dp/temp.txt")
+	os.system("rm -f " + tmp_file_name)
 	
 	return output_pcap_file_name
 
 def string_to_pcap_file(packet_string, output_pcap_file):
 	# create a temp pcap directory for pcap files
-	if not os.path.exists("verification/testing/dp/pcap_files"):
-		os.makedirs("verification/testing/dp/pcap_files")
+	if not os.path.exists(os.path.dirname(output_pcap_file)):
+		os.makedirs(os.path.dirname(output_pcap_file))
 		
 	os.system("rm -f " + output_pcap_file)
 	cmd = "echo 0000	" + packet_string + " > tmp.txt"   
 	os.system(cmd)
-	cmd = "text2pcap " + "tmp.txt " + output_pcap_file + ' &> /dev/null'
+# 	cmd = "text2pcap " + "tmp.txt " + output_pcap_file + ' &> /dev/null'
+	cmd = "text2pcap " + "tmp.txt " + output_pcap_file
 	os.system(cmd)
 	os.system("rm -f tmp.txt")
 
@@ -1651,6 +1651,25 @@ def ip_to_hex_display(ip):
 	splitted_ip = ip.split('.')
 	return '%02x %02x %02x %02x'%(int(splitted_ip[0]), int(splitted_ip[1]), int(splitted_ip[2]), int(splitted_ip[3]))
 	
+def int2ip(addr):
+	return socket.inet_ntoa(struct.pack("!I", addr)) 
+
+def mac2int(addr):
+	temp = addr.replace(':','')
+	return int(temp,16)
+
+def int2mac(addr):
+	mac = hex(addr)
+	mac = mac[2:]
+	mac = '0'*(12-len(mac)) + mac
+	temp = mac[0:2] + ":" + mac[2:4] + ":" + mac[4:6] + ":" + mac[6:8] + ":" + mac[8:10] + ":" + mac[10:12]
+	return temp
+
+def add2ip(addr,num):
+	temp = ip2int(addr)
+	temp = temp + num
+	return int2ip(temp)
+
 def add2mac(addr,num):
 	temp = mac2int(addr)
 	temp = temp + num

@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("verification/testing")
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *
@@ -67,7 +72,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		    
 		    src_port_list.append(int(random_source_port.replace(' ',''),16))
 		     
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -76,7 +81,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		time.sleep(5)
 		print "Send packets"
 		client_list[0].send_packet_to_nps(pcap_to_send)
-		  
+		
 		time.sleep(60)
 		print "capture from server"
 		packets_received_1 = server_list[0].stop_capture()
@@ -117,6 +122,17 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		error_stats = ezbox.get_error_stats()     
 		print "created_connections %d"%created_connections
 		print "uncreated_connections %d"%server_is_unavailable_error
+		
+		print "part1 packets_received_1", packets_received_1
+		print "part1 expected_packets_receieved", expected_packets_receieved
+		print "part1 sched_connections_on_server", sched_connections_on_server
+		print "part1 expected_sched_connections_on_server", expected_sched_connections_on_server
+		print "part1 error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']", error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
+		print "part1 expected_num_of_errors", expected_num_of_errors
+		print "part1 created_connections", created_connections
+		print "part1 expected_sched_connections_on_server", expected_sched_connections_on_server
+		print "part1 server_is_unavailable_error", server_is_unavailable_error
+		print "part1 expected_num_of_errors", expected_num_of_errors
 		
 		if (packets_received_1 == expected_packets_receieved and 
 		    sched_connections_on_server == expected_sched_connections_on_server and 
@@ -227,7 +243,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
 		
-		pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		    
 		    # send packet
 		time.sleep(5)
@@ -313,7 +329,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		                         packet_length=packet_size)
 		fin_packet.generate_packet()   
 		    
-		pcap_to_send = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=[reset_packet.packet,fin_packet.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		  
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -392,7 +408,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
 		
-		pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send_part3 = create_pcap_file(packets_list=[data_packet.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		    
 		    # send packet
 		time.sleep(5)
@@ -482,7 +498,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		                         packet_length=packet_size)
 		fin_packet_d_2.generate_packet()   
 		    
-		pcap_to_send = create_pcap_file(packets_list=[reset_packet_d.packet,fin_packet_d_1.packet,fin_packet_d_2.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=[reset_packet_d.packet,fin_packet_d_1.packet,fin_packet_d_2.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		  
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -535,7 +551,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		print "PART 3 - E - send %d frames to create new connections "%(num_of_packets_e)
 		print "New connections should be created up to  u_thresh = %d "%u_thresh
 		
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -592,7 +608,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		
 		ezbox.modify_server(server_list[0].vip, port, server_list[0].ip, port, weight=1, u_thresh=u_thresh, l_thresh=l_thresh)
 		
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -649,7 +665,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		print "PART 5 A - remove connection to be at sched_conns*3 > u_thresh*4"
 		ezbox.modify_server(server_list[0].vip, port, server_list[0].ip, port, weight=1, u_thresh=u_thresh, l_thresh=l_thresh)
 		
-		pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_2.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_2.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -698,7 +714,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 	
 		print "PART 5 B - try to create new connections - should fail - as OVERLOADED flag is still set"
 		num_of_packets_5_b = 1
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -750,7 +766,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		print "PART 5 C - remove connection to be below sched_conns*3 > u_thresh*4"
 		num_of_packets_5_c = 1
 		
-		pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_1.packet], output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=[fin_packet_d_1.packet], output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])
@@ -797,7 +813,7 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		    exit(1)
 	
 		print "PART 5 D - try to create new connections - should PASS - as OVERLOADED flag is off"
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
 		
 		time.sleep(2) 
 		server_list[0].capture_packets_from_service(vip_list[0])

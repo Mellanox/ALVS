@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("verification/testing")
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *
@@ -75,7 +80,7 @@ class Source_Hash_Test(Unit_Tester):
 			
 			packet_list_to_send.append(data_packet.packet)
 			
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet.pcap')
 		
 		# try to capture max 10 times (capture is not stable on all VMs)
 		for i in range(10):
@@ -143,7 +148,7 @@ class Source_Hash_Test(Unit_Tester):
 			
 			packet_list_to_send.append(data_packet.packet)
 			
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet.pcap')
 	
 		# try to capture max 10 times (capture is not stable on all VMs)
 		for i in range(10):
@@ -211,7 +216,7 @@ class Source_Hash_Test(Unit_Tester):
 			
 			packet_list_to_send.append(data_packet.packet)
 			
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name='verification/testing/dp/pcap_files/temp_packet.pcap')
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=ALVSdir + '/verification/testing/dp/pcap_files/temp_packet.pcap')
 	
 		# try to capture max 10 times (capture is not stable on all VMs)
 		for i in range(10):

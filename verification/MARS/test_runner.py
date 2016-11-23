@@ -32,14 +32,15 @@ def parse_topology(topo_file):
 def main():
     usage = "usage: %prog [-t]"
     parser = OptionParser(usage=usage, version="%prog 1.0")
+    parser.add_option("-e", "--env", dest="test_environment", help="test environment (path)")
     parser.add_option("-t", "--test", dest="test_script", help="test script to run")
     parser.add_option("--topo_file", dest="topo_file", help="test topology script")
     (options, args) = parser.parse_args()
-    if not options.test_script:
-        print 'test script to run is not given'
-        return False
-    tests_path = parentdir+'/testing/system_level/'
-    test_to_run = tests_path + options.test_script
+    if (not options.test_script or not options.test_environment):
+        print 'test script to run or test environment is not given'
+        return 1
+    
+    test_to_run = parentdir +options.test_environment + options.test_script
     print "Test to run: %s" %test_to_run
     setup_num = parse_topology(options.topo_file)
     cmd = test_to_run + ' -s ' + setup_num

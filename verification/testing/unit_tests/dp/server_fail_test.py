@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("verification/testing")
-sys.path.append("verification/testing/unit_tests")
+import os
+import inspect
+my_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+my_parentdir = os.path.dirname(my_currentdir)
+my_grandparentdir =  os.path.dirname(my_parentdir)
+sys.path.append(my_grandparentdir)
+sys.path.append(my_parentdir)
 import random
 from common_infra import *
 from e2e_infra import *
@@ -315,9 +320,7 @@ class Server_Fail_Test(Unit_Tester):
 		# create the service again
 		ezbox.add_service(vip_list[2], port, sched_alg=sched_algorithm, sched_alg_opt='')
 		ezbox.add_server(server_list[2].vip, port, server_list[2].ip, port)
-	# 	third_service = service(ezbox=ezbox, virtual_ip=virtual_ip_address_3, port='80', schedule_algorithm = 'source_hash')
-	# 	third_service.add_server(server1, weight='1')
-		  
+		
 		# save stats before packet
 		stats_before = ezbox.get_services_stats(service_id=2)
 		server_stats_before = ezbox.get_servers_stats(server_id=2)

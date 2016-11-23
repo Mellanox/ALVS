@@ -17,7 +17,6 @@ from os.path import isfile, join
 from common_infra import *
 from server_infra import *
 from client_infra import *
-from test_infra import *
 
 from multiprocessing import Process
 
