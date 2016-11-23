@@ -38,6 +38,7 @@
 #include "alvs_init.h"
 
 #include <EZapiStat.h>
+#include <EZapiChannel.h>
 
 #include "log.h"
 #include "infrastructure_utils.h"
@@ -46,11 +47,102 @@
 #include "alvs_conf.h"
 
 
-/**************************************************************************//**
- * \brief       Initialize all statistics counter to be zero
- *
- * \return      bool - success or failure
- */
+
+bool alvs_create_index_pools(void)
+{
+	EZstatus ret_val;
+	EZapiChannel_IndexPoolParams index_pool_params;
+
+	/* configure 2 pools for search */
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = ALVS_CONN_HASH_SIG_PAGE_POOL_ID;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = ALVS_CONN_HASH_RESULT_POOL_ID;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.bSearch = true;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+	memset(&index_pool_params, 0, sizeof(index_pool_params));
+	index_pool_params.uiPool = ALVS_CONN_TABLE_POOL_ID;
+
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+		return false;
+	}
+
+	index_pool_params.bEnable = true;
+	index_pool_params.uiNumIndexes = ALVS_CONN_MAX_ENTRIES;
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool alvs_create_timers(void)
+{
+	EZstatus ret_val;
+	EZapiChannel_PMUTimerParams pmu_timer_params;
+
+	pmu_timer_params.uiSide = 0;
+	pmu_timer_params.uiTimer = 0;
+	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetPMUTimerParams, &pmu_timer_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetPMUTimerParams failed.");
+		return false;
+	}
+
+	pmu_timer_params.bEnable = true;
+	pmu_timer_params.uiLogicalID = ALVS_TIMER_LOGICAL_ID;
+	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
+	pmu_timer_params.uiNumJobs = 30*1024*1024;    /* TODO - define */
+	pmu_timer_params.uiNanoSecPeriod = 0;
+	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
+
+	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetPMUTimerParams, &pmu_timer_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetPMUTimerParams failed.");
+		return false;
+	}
+
+	return true;
+}
+
+
 bool alvs_initialize_statistics(void)
 {
 	EZstatus ret_val;
@@ -110,13 +202,6 @@ bool alvs_initialize_statistics(void)
 	return true;
 }
 
-/******************************************************************************
- * \brief    Constructor function for all ALVS data bases.
- *           This function is called not from the network thread but from the
- *           main thread on NPS configuration bringup.
- *
- * \return   bool
- */
 bool alvs_db_constructor(void)
 {
 	struct infra_hash_params hash_params;

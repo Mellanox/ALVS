@@ -559,64 +559,12 @@ bool infra_create_statistics(void)
  */
 bool infra_create_index_pools(void)
 {
-	EZstatus ret_val;
-	EZapiChannel_IndexPoolParams index_pool_params;
-
-	/* configure 2 pools for search */
-	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = ALVS_CONN_HASH_SIG_PAGE_POOL_ID;
-
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
+#ifdef CONFIG_ALVS
+	if (alvs_create_index_pools() == false) {
+		write_log(LOG_CRIT, "infra_create_index_pools: alvs_create_index_pools failed.");
 		return false;
 	}
-
-	index_pool_params.bEnable = true;
-	index_pool_params.bSearch = true;
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
-		return false;
-	}
-
-
-	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = ALVS_CONN_HASH_RESULT_POOL_ID;
-
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
-		return false;
-	}
-
-	index_pool_params.bEnable = true;
-	index_pool_params.bSearch = true;
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
-		return false;
-	}
-
-	memset(&index_pool_params, 0, sizeof(index_pool_params));
-	index_pool_params.uiPool = ALVS_CONN_TABLE_POOL_ID;
-
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetIndexPoolParams failed.");
-		return false;
-	}
-
-	index_pool_params.bEnable = true;
-	index_pool_params.uiNumIndexes = ALVS_CONN_MAX_ENTRIES;
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIndexPoolParams, &index_pool_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_ConfigCmd_SetIndexPoolParams failed.");
-		return false;
-	}
+#endif
 
 	return true;
 }
@@ -628,29 +576,12 @@ bool infra_create_index_pools(void)
  */
 bool infra_create_timers(void)
 {
-	EZstatus ret_val;
-	EZapiChannel_PMUTimerParams pmu_timer_params;
-
-	pmu_timer_params.uiSide = 0;
-	pmu_timer_params.uiTimer = 0;
-	ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetPMUTimerParams, &pmu_timer_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Status: EZapiChannel_StatCmd_GetPMUTimerParams failed.");
+#ifdef CONFIG_ALVS
+	if (alvs_create_timers() == false) {
+		write_log(LOG_CRIT, "infra_create_timers: alvs_create_timers failed.");
 		return false;
 	}
-
-	pmu_timer_params.bEnable = true;
-	pmu_timer_params.uiLogicalID = ALVS_TIMER_LOGICAL_ID;
-	pmu_timer_params.uiPMUQueue = 0;   /* TODO - need a dedicated queue for timers */
-	pmu_timer_params.uiNumJobs = 30*1024*1024;    /* TODO - define */
-	pmu_timer_params.uiNanoSecPeriod = 0;
-	pmu_timer_params.uiSecPeriod = 960;  /* TODO - define */
-
-	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetPMUTimerParams, &pmu_timer_params);
-	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiChannel_Config: EZapiChannel_ConfigCmd_SetPMUTimerParams failed.");
-		return false;
-	}
+#endif
 
 	return true;
 }
