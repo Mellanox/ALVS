@@ -1,4 +1,9 @@
 eclipse.preferences.version=1
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1378846129/DEBUG/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1378846129/DEBUG/operation=append
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1378846129/DEBUG/value=TRUE
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1378846129/append=true
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1378846129/appendContributed=true
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1658881624/DEBUG/delimiter=\:
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1658881624/DEBUG/operation=append
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1658881624/DEBUG/value=TRUE
@@ -25,6 +30,11 @@ environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431/SIM/value=TRUE
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431/append=true
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431/appendContributed=true
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996/DEBUG/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996/DEBUG/operation=append
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996/DEBUG/value=TRUE
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996/append=true
+environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996/appendContributed=true
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646/DEBUG/delimiter=\:
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646/DEBUG/operation=append
 environment/project/cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646/DEBUG/value=TRUE
