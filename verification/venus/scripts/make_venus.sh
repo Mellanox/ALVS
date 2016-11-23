@@ -101,7 +101,7 @@ function cp_run_cparser {
 	then
 		app_flag="-DCONFIG_ALVS=1"
 	fi
-	cmd="python2.7 /swgwork/yohadd/unittestAPI/tools/Cparser/cparser.py -o $output_dir/model -p \"-w -Dasm= '-Dvolatile(...)=' -Dmain=my_main -nostartfiles -nodefaultlibs -nostdlib -DALVS_LITTLE_ENDIAN $app_flag -DNDEBUG -O0 -I/usr/include/libnl3 -I${alvs_root}/src/common -I${alvs_root}/src/cp -I/mswg/release/nps/EZdk/EZdk-17.0300/dpe/dp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/env/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/dev/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt-cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt/include\" "
+	cmd="python2.7 /swgwork/yohadd/unittestAPI/tools/Cparser/cparser.py -o $output_dir/model -p \"-w -Dasm= '-Dvolatile(...)=' -Dmain=my_main -nostartfiles -nodefaultlibs -nostdlib -DNPS_LITTLE_ENDIAN $app_flag -DNDEBUG -O0 -I/usr/include/libnl3 -I${alvs_root}/src/common -I${alvs_root}/src/cp -I/mswg/release/nps/EZdk/EZdk-17.0300/dpe/dp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/env/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/dev/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt-cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt/include\" "
 	for src in $@; do
 		cmd+="${alvs_root}/src/cp/${src}.c "
 	done

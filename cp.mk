@@ -34,7 +34,7 @@ CP_C_DEPS = $(patsubst %.c,build/$(APP_NAME)/%.d,$(CP_C_SRCS))
 
 CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a -ldl
 
-CP_C_FLAGS := -DALVS_LITTLE_ENDIAN -Werror -Wall -Wextra
+CP_C_FLAGS := -DNPS_LITTLE_ENDIAN -Werror -Wall -Wextra
 
 ifdef CP_DEBUG
 CP_C_FLAGS += -O0 -g3

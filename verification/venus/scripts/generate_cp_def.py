@@ -35,7 +35,7 @@ app_flag = ""
 if sys.argv[1] == "ALVS":
 	app_flag = "-DCONFIG_ALVS=1"
 
-cmd = "gcc -fno-inline -D__inline= -Dalways_inline= -D__always_inline__=__noinline__ -nostartfiles -nodefaultlibs -nostdlib -fdump-rtl-expand -fpack-struct -gdwarf-2 -g3 -ggdb -w -Dasm= '-Dvolatile(...)=' -Dmain=my_main -DALVS_LITTLE_ENDIAN %s -DNDEBUG -O0 -I/usr/include/libnl3 -I%s/src/common -I%s/src/cp -I/mswg/release/nps/EZdk/EZdk-17.0300/dpe/dp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/env/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/dev/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt-cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt/include -Wl,--warn-unresolved-symbols -c "  %(app_flag, alvs_root, alvs_root)
+cmd = "gcc -fno-inline -D__inline= -Dalways_inline= -D__always_inline__=__noinline__ -nostartfiles -nodefaultlibs -nostdlib -fdump-rtl-expand -fpack-struct -gdwarf-2 -g3 -ggdb -w -Dasm= '-Dvolatile(...)=' -Dmain=my_main -DNPS_LITTLE_ENDIAN %s -DNDEBUG -O0 -I/usr/include/libnl3 -I%s/src/common -I%s/src/cp -I/mswg/release/nps/EZdk/EZdk-17.0300/dpe/dp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/env/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/dev/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt-cp/include -I/mswg/release/nps/EZdk/EZdk-17.0300/cpe/agt/agt/include -Wl,--warn-unresolved-symbols -c "  %(app_flag, alvs_root, alvs_root)
 for module_name in sys.argv[3:]:
 	cmd += "[[SRC:DUT_%02d]] " %i
 	i += 1
