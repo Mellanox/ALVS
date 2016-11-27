@@ -120,19 +120,6 @@ class One_Service_1Server_Overloaded_Flag_Fallback(Unit_Tester):
 		    else:
 		        server_is_unavailable_error +=1
 		error_stats = ezbox.get_error_stats()     
-		print "created_connections %d"%created_connections
-		print "uncreated_connections %d"%server_is_unavailable_error
-		
-		print "part1 packets_received_1", packets_received_1
-		print "part1 expected_packets_receieved", expected_packets_receieved
-		print "part1 sched_connections_on_server", sched_connections_on_server
-		print "part1 expected_sched_connections_on_server", expected_sched_connections_on_server
-		print "part1 error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']", error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
-		print "part1 expected_num_of_errors", expected_num_of_errors
-		print "part1 created_connections", created_connections
-		print "part1 expected_sched_connections_on_server", expected_sched_connections_on_server
-		print "part1 server_is_unavailable_error", server_is_unavailable_error
-		print "part1 expected_num_of_errors", expected_num_of_errors
 		
 		if (packets_received_1 == expected_packets_receieved and 
 		    sched_connections_on_server == expected_sched_connections_on_server and 

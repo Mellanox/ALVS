@@ -13,7 +13,7 @@
 		           <tout> 1500 </tout>
 		           <params>
 		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
-	                   <wrapper_params> -c False -f [[conf:extra_info.file_name:None]] </wrapper_params>
+		               <wrapper_params> -c [[conf:extra_info.cpu_count:32]] -f [[conf:extra_info.file_name:None]] </wrapper_params>
 	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
 		           </params>
 		    </pre>
@@ -66,7 +66,6 @@
         <info> state_sync_control_test </info>
         <name> state_sync_control_test </name>
         <tags> state_sync_control_test </tags>
-        <tags> to_check </tags>
         <pre> </pre>
         <cmd>
              <params>

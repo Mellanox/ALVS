@@ -128,20 +128,6 @@ class One_service_2Servers_Fallback(Unit_Tester):
 		expected_packets_receieved = num_of_packets_1
 		expected_num_of_errors = 0
 		
-		print "part1 packets_received_1", packets_received_1
-		print "part1 expected_packets_received_1", expected_packets_received_1
-		print "part1 packets_received_2", packets_received_2
-		print "part1 expected_packets_received_2", expected_packets_received_2
-		print "part1 expected_packets_receieved", expected_packets_receieved
-		print "part1 sched_connections_on_server_1", sched_connections_on_server_1
-		print "part1 sched_connections_on_server_2", sched_connections_on_server_2
-		print "part1 error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']", error_stats['ALVS_ERROR_SERVER_IS_UNAVAILABLE']
-		print "part1 expected_num_of_errors", expected_num_of_errors
-		print "part1 created_connections", created_connections
-		print "part1 expected_packets_receieved", expected_packets_receieved
-		print "part1 server_is_unavailable_error", server_is_unavailable_error
-		print "part1 expected_num_of_errors", expected_num_of_errors
-		
 		if (packets_received_1 == expected_packets_received_1 and
 		    packets_received_2 == expected_packets_received_2 and
 		    packets_received_1 + packets_received_2 == expected_packets_receieved and 
