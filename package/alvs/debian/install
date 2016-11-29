@@ -1,5 +1,5 @@
-../common/cfg/rsyslog.d/alvs.conf      etc/rsyslog.d/
-../common/cfg/sysctl.d/alvs.conf       etc/sysctl.d/
+../common/cfg/rsyslog.d/anl.conf       etc/rsyslog.d/
+../common/cfg/sysctl.d/anl.conf        etc/sysctl.d/
 ../common/cfg/interfaces.d/alvs.conf   etc/network/interfaces.d/
 ../common/common_func                  usr/share/alvs/
 ../common/service.init                 usr/share/alvs/

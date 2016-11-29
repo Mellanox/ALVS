@@ -19,18 +19,7 @@ set -e
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
-db_input high cp_args/configuration || true
-db_go
-
-# In case of customized configuration
 # ask user for run parameters
-db_get cp_args/configuration
-if [ "$RET" = "Custom" ]; then
-	# Ask questions.
-	db_input high cp_args/run_cpus || true
-	db_input high cp_args/statistics || true
-	db_input high cp_args/port_type || true
-	db_input high cp_args/agt_enabled || true
-	db_go || true
-fi
-
+db_input high cp_args/port_type || true
+db_input high cp_args/net_if_name || true
+db_go || true

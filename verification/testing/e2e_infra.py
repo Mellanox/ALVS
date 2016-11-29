@@ -179,25 +179,18 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 			if test_config['copy_binaries']:
 				ezbox.alvs_service_stop()
 				ezbox.copy_binaries('bin/alvs_daemon','bin/alvs_dp')
-		if test_config['lag_enable']:
-			lag = '--lag_enable'
-		else:
-			lag = ''
+
 		if test_config['stats']:
 			stats = '--statistics'
 		else:
 			stats = ''
-		
-		if test_config['remote_control']:
-			remote_control = '--remote_control'
-		else:
-			remote_control = ''
 
 		if test_config['modify_run_cpus']:
 			ezbox.alvs_service_start()
-	 		ezbox.modify_run_cpus(cpus_range)
+			ezbox.modify_run_cpus(cpus_range)
 		
-		ezbox.update_cp_params("--run_cpus %s --agt_enabled %s %s %s --port_type=%s " % (cpus_range, stats, remote_control, lag, ezbox.setup['nps_port_type']))
+		ezbox.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
+		ezbox.update_port_type("--port_type=%s " % (ezbox.setup['nps_port_type']))
 		ezbox.alvs_service_stop()
 		ezbox.config_vips(vip_list)
 		ezbox.flush_ipvs()

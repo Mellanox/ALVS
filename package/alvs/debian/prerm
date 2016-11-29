@@ -3,8 +3,6 @@
 #
 # see: dh_installdeb(1)
 
-set -e
-
 # Source common multi product functions
 . /usr/share/alvs/common_func
 
@@ -35,7 +33,7 @@ case "$1" in
 	;;
 
 	failed-upgrade)
-		[ "$?" = 0 ] &&stop_alvs
+		[ "$?" = 0 ] &&stop_service alvs
 		[ "$?" = 0 ] &&remove_service_from_boot alvs
 		[ "$?" = 0 ] &&remove_nps_host
 		[ "$?" = 0 ] &&reload_configuration

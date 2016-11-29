@@ -129,9 +129,12 @@ class ezbox_host:
 	def update_dp_cpus(self, cpus_range):
 		self.modify_run_cpus(cpus_range)
     
-
-	def update_cp_params(self, params=None):
-		cmd = "find /etc/default/alvs | xargs grep -l ALVS_CP_ARGS | xargs sed -i '/ALVS_CP_ARGS=/c\ALVS_CP_ARGS=\"%s\"' " %params
+	def update_debug_params(self, params=None):
+		cmd = "find /etc/default/alvs | xargs grep -l DEBUG | xargs sed -i '/DEBUG=/c\DEBUG=\"%s\"' " %params
+		self.execute_command_on_host(cmd)
+		
+	def update_port_type(self, params=None):
+		cmd = "find /etc/default/alvs | xargs grep -l PORT_TYPE | xargs sed -i '/PORT_TYPE=/c\PORT_TYPE=\"%s\"' " %params
 		self.execute_command_on_host(cmd)
 
 	def clean(self, use_director=False, stop_ezbox=False):
@@ -272,7 +275,7 @@ class ezbox_host:
 				vip_if = split_line[0]
 				if interface != vip_if:
 					name = (vip_if.split(':'))[1]
-					if name != 'alvs_nps':
+					if name != 'nps_if':
 						self.execute_command_on_host("ifconfig %s down"%(vip_if))
 
 	def connect(self):
@@ -1390,7 +1393,7 @@ class SshConnect:
 			print "Waiting for a ping respone from nps"
 			cmd = "telnet %s" %nps_internal_ip
 			for i in range(100):
-				self.ssh_object.sendline('ping -c1 -w10 alvs_nps > /dev/null 2>&1')
+				self.ssh_object.sendline('ping -c1 -w10 nps_if > /dev/null 2>&1')
 				exit_code = self.get_execute_command_exit_code(False)
 				if exit_code==0:
 					break

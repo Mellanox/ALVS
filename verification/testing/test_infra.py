@@ -629,13 +629,14 @@ def init_test(test_arguments, agt_enable=True, wait_for_dp=True, add_to_cp_param
 	time.sleep(5)
 	
 	if agt_enable==True:
-		params = "--statistics --agt_enabled --port_type=%s"%ezbox.setup['nps_port_type']
+		params = "--statistics --agt_enabled"
 	else:
-		params = "--port_type=%s"%ezbox.setup['nps_port_type']
+		params = ""
 	
 	if add_to_cp_params != None:
-		params += (" " + add_to_cp_params)
-	ezbox.update_cp_params(params)
+		params += (" " + add_to_cp_params)		
+	ezbox.update_debug_params(params)
+	ezbox.update_port_type("--port_type=%s " % (ezbox.setup['nps_port_type']))
 	time.sleep(2)
 	ezbox.alvs_service_start()
 	ezbox.wait_for_cp_app()

@@ -1,13 +1,25 @@
 # alvs
 
-##########################
-# ALVS network arguments #
-##########################
+#####################
+# Network arguments #
+#####################
 
 # host network interface (to add vlan 1, for examlpe, use: eth0.1)
-NETWORK_IF_NAME=eth0
+NETWORK_IF_NAME="eth0"
+
+PORT_TYPE="--port_type=40GE"
+
+###################
+# Debug arguments #
+###################
+DEBUG=""
+
+###########################
+# ALVS specific arguments #
+###########################
+APP_FLAGS="--lag_enable"
 
 #########################
 # ALVS daemon arguments #
 #########################
-ALVS_CP_ARGS="--run_cpus=16-511"
+CP_ARGS="${PORT_TYPE} ${DEBUG} ${APP_FLAGS}"

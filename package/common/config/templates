@@ -3,25 +3,13 @@ Type: select
 Choices: Default, Custom
 Description: Which type of configuration do you want?
 
-Template: cp_args/run_cpus
-Type: select
-Choices: 16-31, 16-63, 16-127, 16-255, 16-511, 16-1023, 16-2047, 16-4095
-Default: 16-255
-Description: Num of run CPUs?
- long description
-
-Template: cp_args/statistics
-Type: boolean
-Default: false
-Description: Print statistics to syslog?
-
 Template: cp_args/port_type
 Type: select
 Choices: 10GE, 40GE, 100GE
-Default: 10GE
+Default: 40GE
 Description: Please choose a port type.
 
-Template: cp_args/agt_enabled
-Type: boolean
-Default: true
-Description: Do you want to enable agt?
+Template: cp_args/net_if_name
+Type: string
+Default: eth0
+Description: Please specify a network interface.

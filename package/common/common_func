@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 #######################################################################################
 #
@@ -17,10 +17,11 @@
 ######################################
 # Definitions
 ######################################
-ALVS_NPS_IP='169.254.42.44'
-ALVS_NPS_HOST='alvs_nps'
-ALVS_CP_ARGS=""
-
+NPS_IP='169.254.42.44'
+NPS_HOST='nps_if'
+# user configurable arguments
+PORT_TYPE=''
+NETWORK_IF_NAME=''
 #-------------------------------------------------------------------------------
 configure_service_on_boot()
 {
@@ -87,9 +88,10 @@ remove_line_from_file()
 #-------------------------------------------------------------------------------
 add_nps_host()
 {
-	res=$(cat /etc/hosts | grep $ALVS_NPS_IP | wc -l)
+	cmd="$NPS_IP    $NPS_HOST"
+	res=$(cat /etc/hosts | grep "$cmd" | wc -l)
 	if [ $res -ne 1 ]; then
-		echo "$ALVS_NPS_IP   $ALVS_NPS_HOST" >> /etc/hosts
+		echo "$NPS_IP	$NPS_HOST" >> /etc/hosts
 	fi
 	return 0
 }
@@ -97,7 +99,7 @@ add_nps_host()
 #-------------------------------------------------------------------------------
 remove_nps_host()
 {
-	cmd="$ALVS_NPS_IP   $ALVS_NPS_HOST"
+	cmd="$NPS_IP	$NPS_HOST"
 	filename="/etc/hosts"
 	
 	remove_line_from_file "$cmd" $filename
@@ -108,7 +110,7 @@ reload_configuration()
 {
 	systemctl daemon-reload > /dev/null 2>&1
 	[ "$?" = 0 ] && service rsyslog restart > /dev/null 2>&1
-	[ "$?" = 0 ] && sysctl -p /etc/sysctl.d/alvs.conf > /dev/null 2>&1
+	[ "$?" = 0 ] && sysctl -p /etc/sysctl.d/anl.conf > /dev/null 2>&1
 	[ "$?" = 0 ] && service networking restart > /dev/null 2>&1
 	return $?
 }
@@ -137,36 +139,21 @@ stop_service()
 parse_user_conf()
 {
 
-	user_conf=()
-
-	db_get cp_args/run_cpus
-	user_conf+=("--run_cpus ${RET}")
-
-	db_get cp_args/statistics
-	if [ "$RET" = true ]; then
-    		user_conf+=("--statistics")
-	fi
-
 	db_get cp_args/port_type
-	user_conf+=("--port_type ${RET}")
+	PORT_TYPE="--port_type=${RET}"
 
-	db_get cp_args/agt_enabled
-	if [ "$RET" = true ]; then
-    		user_conf+=("--agt_enabled")
-	fi
+	db_get cp_args/net_if_name
+    	NETWORK_IF_NAME="${RET}"
 
-	for arg in "${user_conf[@]}"; do
-    		ALVS_CP_ARGS+="${arg} "
-	done
-
-       
 }
 
 #-------------------------------------------------------------------------------
 set_user_params(){
 	cp -a -f $CONFIGFILE $CONFIGFILE.tmp
 	parse_user_conf
-	sed -e "s/^ *ALVS_CP_ARGS=.*/ALVS_CP_ARGS=\"$ALVS_CP_ARGS\"/" < $CONFIGFILE > $CONFIGFILE.tmp
+	sed -e "s/^ *NETWORK_IF_NAME=.*/NETWORK_IF_NAME=\"${NETWORK_IF_NAME}\"/"\
+	    -e "s/^ *PORT_TYPE=.*/PORT_TYPE=\"${PORT_TYPE}\"/"\
+	     < $CONFIGFILE > $CONFIGFILE.tmp
 	mv -f $CONFIGFILE.tmp $CONFIGFILE
 	return 0
 }

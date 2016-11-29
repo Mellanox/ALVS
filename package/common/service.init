@@ -18,7 +18,7 @@ PIDFILE="/var/run/$DAEMON_NAME.pid"
 #   2 if daemon could not be started
 do_start_daemon() {
    start-stop-daemon --start --quiet --background ${PIDFILE:+--pidfile ${PIDFILE}} --make-pidfile --startas $DAEMON --name $DAEMON_NAME --exec $DAEMON --test > /dev/null || return 1
-   start-stop-daemon --start --quiet --background ${PIDFILE:+--pidfile ${PIDFILE}} --make-pidfile --startas $DAEMON --name $DAEMON_NAME --exec $DAEMON -- $ALVS_CP_ARGS || return 2
+   start-stop-daemon --start --quiet --background ${PIDFILE:+--pidfile ${PIDFILE}} --make-pidfile --startas $DAEMON --name $DAEMON_NAME --exec $DAEMON -- $CP_ARGS || return 2
 }
 
 # Return
@@ -96,7 +96,7 @@ stop_daemon () {
 
 start_network() {
     log_action_begin_msg "Start NPS internal network"
-    ifconfig $NETWORK_IF_NAME:alvs_nps 169.254.42.41 netmask 255.255.255.248 up
+    ifconfig $NETWORK_IF_NAME:nps_if 169.254.42.41 netmask 255.255.255.248 up
     case "$?" in
         0) log_action_end_msg 0 
            return 0 ;;
@@ -107,7 +107,7 @@ start_network() {
 
 stop_network() {
     log_action_begin_msg "Stop NPS internal network"
-    ifconfig $NETWORK_IF_NAME:alvs_nps down > /dev/null 2>&1
+    ifconfig $NETWORK_IF_NAME:nps_if down > /dev/null 2>&1
     case "$?" in
         0) log_action_end_msg 0 
            return 0 ;;
