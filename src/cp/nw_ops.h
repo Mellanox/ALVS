@@ -66,6 +66,13 @@ bool nw_ops_add_if(struct rtnl_link *link);
 bool nw_ops_remove_if(struct rtnl_link *link);
 bool nw_ops_modify_if(struct rtnl_link *link);
 
+/******************************************************************************
+ * \brief    Add\Remove IF address.
+ *           Get libnl rtnl_addr and return false only on fatal error.
+ */
+bool nw_ops_add_if_addr(struct rtnl_addr *addr_entry);
+bool nw_ops_remove_if_addr(struct rtnl_addr *addr_entry);
+
 /*init NW DB manager ops with nw_ops*/
 struct nw_db_manager_ops nw_ops = {
 	.add_fib_entry = &nw_ops_add_fib_entry,
@@ -76,7 +83,9 @@ struct nw_db_manager_ops nw_ops = {
 	.modify_arp_entry = &nw_ops_modify_arp_entry,
 	.add_if = &nw_ops_add_if,
 	.remove_if = &nw_ops_remove_if,
-	.modify_if = &nw_ops_modify_if
+	.modify_if = &nw_ops_modify_if,
+	.add_if_addr = &nw_ops_add_if_addr,
+	.remove_if_addr = &nw_ops_remove_if_addr
 };
 
 #endif /* _NW_OPS_H_ */

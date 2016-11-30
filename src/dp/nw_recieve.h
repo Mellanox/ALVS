@@ -144,11 +144,33 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 		/*frame is OK, let's start alvs IF_STATS processing*/
 		if (cmem_nw.ingress_if_result.app_bitmap.alvs_en == true) {
 			alvs_packet_processing(frame, frame_base);
-		} else
-#endif
-		{
-			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
+			return;
 		}
+#endif
+		if (cmem_nw.ingress_if_result.app_bitmap.routing_en == true) {
+			int32_t interface;
+			bool is_local_ip = false;
+			/* Check if destination IP is local IP. Need to check all NW IF local IPs */
+			for (interface = NW_BASE_LOGICAL_ID; interface < NW_BASE_LOGICAL_ID + NW_IF_NUM; interface++) {
+				if (unlikely(nw_if_ingress_address_lookup(interface) != 0)) {
+					anl_write_log(LOG_DEBUG, "Fail ingress interface address lookup - logical id =%d!", interface);
+					nw_discard_frame();
+					return;
+				}
+				if (ip_ptr->daddr == cmem_nw.ingress_if_addresses_result.local_ip) {
+					is_local_ip = true;
+					break;
+				}
+			}
+			/* If destination is not local IP, perform routing function */
+			if (is_local_ip == false) {
+				if (nw_do_route(frame, frame_base, ip_ptr->daddr, ezframe_get_buf_len(frame)) == true) {
+					return;
+				}
+			}
+		}
+		/* default behavior or in case of nw_do_route fails, we need to send packet to host */
+		nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);
 
 	} else if (cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_HOST_PATH || cmem_nw.ingress_if_result.path_type == DP_PATH_FROM_REMOTE_PATH) {
 

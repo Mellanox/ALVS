@@ -99,6 +99,21 @@ int32_t if_lookup_by_index(int  __attribute__((__unused__))linux_index)
 }
 
 /******************************************************************************
+ * \brief    Convert NL address to NW API address
+ *
+ * \return	None.
+ */
+void nl_addr_to_nw_api_addr(struct nw_api_inet_addr *nw_api_addr, struct nl_addr *nl_addr, int af)
+{
+	nw_api_addr->af = af;
+	if (nw_api_addr->af == AF_INET) {
+		nw_api_addr->in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(nl_addr);
+	} else if (nw_api_addr->af == AF_INET6) {
+		memcpy((void *)&nw_api_addr->in6, nl_addr_get_binary_addr(nl_addr), sizeof(struct in6_addr));
+	}
+}
+
+/******************************************************************************
  * \brief    Convert Linux neighbor entry to nw api arp entry
  *           Check if ARP entry belongs to a relevant IF (valid ARP entry)
  * \return	bool:	true - valid neighbor entry
@@ -106,7 +121,6 @@ int32_t if_lookup_by_index(int  __attribute__((__unused__))linux_index)
  */
 bool neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_api_arp_entry *arp_entry)
 {
-	struct nl_addr *dst = rtnl_neigh_get_dst(neighbor);
 	struct nl_addr *mac = rtnl_neigh_get_lladdr(neighbor);
 	int if_index;
 
@@ -116,12 +130,7 @@ bool neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_api_arp_entry 
 		return false;
 	}
 	arp_entry->if_index = if_index;
-	arp_entry->ip_addr.af = rtnl_neigh_get_family(neighbor);
-	if (arp_entry->ip_addr.af == AF_INET) {
-		arp_entry->ip_addr.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(dst);
-	} else if (arp_entry->ip_addr.af == AF_INET6) {
-		memcpy((void *)&arp_entry->ip_addr.in6, nl_addr_get_binary_addr(dst), sizeof(struct in6_addr));
-	}
+	nl_addr_to_nw_api_addr(&arp_entry->ip_addr, rtnl_neigh_get_dst(neighbor), rtnl_neigh_get_family(neighbor));
 	if (mac != NULL) {
 		memcpy(arp_entry->mac_addr.ether_addr_octet, nl_addr_get_binary_addr(mac), ETH_ALEN);
 	}
@@ -144,13 +153,7 @@ bool route_to_fib_entry(struct rtnl_route *route_entry, struct nw_api_fib_entry 
 
 	fib_entry->route_type = rtnl_route_get_type(route_entry);
 	fib_entry->mask_length = nl_addr_get_prefixlen(dst);
-	fib_entry->dest.af = rtnl_route_get_family(route_entry);
-	if (fib_entry->dest.af == AF_INET) {
-		fib_entry->dest.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(dst);
-	} else if (fib_entry->dest.af == AF_INET6) {
-		/* For future support in ipv6 */
-		memcpy((void *)&fib_entry->dest.in6, nl_addr_get_binary_addr(dst), sizeof(struct in6_addr));
-	}
+	nl_addr_to_nw_api_addr(&fib_entry->dest, dst, rtnl_route_get_family(route_entry));
 	if (fib_entry->route_type == RTN_UNICAST) {
 		struct rtnl_nexthop *next_hop = rtnl_route_nexthop_n(route_entry, 0);
 		/* next hop index in case of neighbor or GW will indicate output interface index */
@@ -167,13 +170,7 @@ bool route_to_fib_entry(struct rtnl_route *route_entry, struct nw_api_fib_entry 
 		} else {
 			/* build next hop */
 			fib_entry->next_hop_count = rtnl_route_get_nnexthops(route_entry);
-			fib_entry->next_hop.af = fib_entry->dest.af;
-			if (fib_entry->next_hop.af == AF_INET) {
-				fib_entry->next_hop.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(next_hop_addr);
-			} else if (fib_entry->next_hop.af == AF_INET6) {
-				/* For future support in ipv6 */
-				memcpy((void *)&fib_entry->next_hop.in6, nl_addr_get_binary_addr(next_hop_addr), sizeof(struct in6_addr));
-			}
+			nl_addr_to_nw_api_addr(&fib_entry->next_hop, next_hop_addr, fib_entry->dest.af);
 		}
 	}
 	return true;
@@ -205,6 +202,26 @@ bool link_to_if_entry(struct rtnl_link *link, struct nw_api_if_entry *if_entry)
 	if (mac != NULL) {
 		memcpy(if_entry->mac_addr.ether_addr_octet, nl_addr_get_binary_addr(mac), ETH_ALEN);
 	}
+	return true;
+}
+
+/******************************************************************************
+ * \brief    Convert Linux addr entry to nw api addr entry
+ *           Check if addr entry belongs to a relevant IF (valid addr entry)
+ * \return	bool:	true - valid addr entry
+ *			false- addr not valid
+ */
+bool addr_to_local_addr_entry(struct rtnl_addr *nl_addr, struct nw_api_local_addr_entry *addr_entry)
+{
+	int if_index;
+
+	if_index = if_lookup_by_name(rtnl_addr_get_label(nl_addr));
+	if (if_index == -1) {
+		return false;
+	}
+	addr_entry->if_index = if_index;
+	nl_addr_to_nw_api_addr(&addr_entry->ip_addr, rtnl_addr_get_local(nl_addr), rtnl_addr_get_family(nl_addr));
+
 	return true;
 }
 
@@ -407,3 +424,49 @@ bool nw_ops_modify_if(struct rtnl_link *link)
 
 	return true;
 }
+
+bool nw_ops_add_if_addr(struct rtnl_addr *addr_entry)
+{
+	struct nw_api_local_addr_entry local_addr_entry;
+	struct nl_addr *addr = rtnl_addr_get_local(addr_entry);
+	enum nw_api_rc nw_ret;
+
+	write_log(LOG_DEBUG, "New Address received: IF %d, IP %s, label %s", rtnl_addr_get_ifindex(addr_entry), nl_addr_to_str(addr), rtnl_addr_get_label(addr_entry));
+	if (addr_to_local_addr_entry(addr_entry, &local_addr_entry) == false) {
+		write_log(LOG_DEBUG, "Address will not be handled");
+		return true;
+	}
+
+	nw_ret = nw_api_add_local_addr_entry(&local_addr_entry);
+	if (nw_ret == NW_API_OK) {
+		write_log(LOG_INFO, "Address was added to IF successfully. IF %d, IP %s", local_addr_entry.if_index, nl_addr_to_str(addr));
+	} else if (nw_ret == NW_API_DB_ERROR) {
+		write_log(LOG_CRIT, "Received fatal error from NW DBs while adding address to IF. IF %d, IP %s", local_addr_entry.if_index, nl_addr_to_str(addr));
+		return false;
+	}
+
+	return true;
+}
+bool nw_ops_remove_if_addr(struct rtnl_addr *addr_entry)
+{
+	struct nw_api_local_addr_entry local_addr_entry;
+	struct nl_addr *addr = rtnl_addr_get_local(addr_entry);
+	enum nw_api_rc nw_ret;
+
+	write_log(LOG_DEBUG, "Remove Address received: IF %d, IP %s, label %s", rtnl_addr_get_ifindex(addr_entry), nl_addr_to_str(addr), rtnl_addr_get_label(addr_entry));
+	if (addr_to_local_addr_entry(addr_entry, &local_addr_entry) == false) {
+		write_log(LOG_DEBUG, "Address will not be handled");
+		return true;
+	}
+
+	nw_ret = nw_api_remove_local_addr_entry(&local_addr_entry);
+	if (nw_ret == NW_API_OK) {
+		write_log(LOG_INFO, "Address was removed from IF successfully. IF %d, IP %s", local_addr_entry.if_index, nl_addr_to_str(addr));
+	} else if (nw_ret == NW_API_DB_ERROR) {
+		write_log(LOG_CRIT, "Received fatal error from NW DBs while removing address from IF. IF %d, IP %s", local_addr_entry.if_index, nl_addr_to_str(addr));
+		return false;
+	}
+
+	return true;
+}
+

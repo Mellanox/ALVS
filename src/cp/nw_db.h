@@ -89,6 +89,7 @@ struct nw_db_nw_interface {
 	uint8_t                    output_channel;
 	uint8_t                    sft_en;
 	ezdp_sum_addr_t            stats_base;
+	in_addr_t                  local_ip_addr;
 };
 
 #define LAG_GROUP_NULL    0xFFFFFFFF

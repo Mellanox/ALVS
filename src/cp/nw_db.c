@@ -127,6 +127,7 @@ bool nw_db_create(void)
 		"sft_en INT NOT NULL,"			/* 10 */
 		"stats_base INT NOT NULL,"		/* 11 */
 		"mac_address BIGINT NOT NULL,"		/* 12 */
+		"local_ip_addr INT NOT NULL,"		/* 13 */
 		"PRIMARY KEY (interface_id, logical_id));";
 
 	/* Execute SQL statement */
@@ -257,8 +258,8 @@ enum nw_db_rc internal_db_add_entry(enum internal_db_table_name table_name, void
 		memcpy(&mac_address_casting, nw_interface->mac_address.ether_addr_octet, ETH_ALEN);
 		sprintf(sql, "INSERT INTO nw_interfaces "
 			"(interface_id, admin_state, lag_group_id, is_lag, mac_address, path_type, "
-			"is_direct_output_lag, direct_output_if, app_bitmap, output_channel, sft_en, stats_base, logical_id) "
-			"VALUES (%d, %d, %d, %d, %ld, %d, %d, %d, %d, %d, %d, %d, %d );",
+			"is_direct_output_lag, direct_output_if, app_bitmap, output_channel, sft_en, stats_base, logical_id, local_ip_addr) "
+			"VALUES (%d, %d, %d, %d, %ld, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
 			nw_interface->interface_id,
 			nw_interface->admin_state,
 			nw_interface->lag_group_id, nw_interface->is_lag,
@@ -270,7 +271,8 @@ enum nw_db_rc internal_db_add_entry(enum internal_db_table_name table_name, void
 			nw_interface->output_channel,
 			nw_interface->sft_en,
 			nw_interface->stats_base,
-			nw_interface->logical_id);
+			nw_interface->logical_id,
+			nw_interface->local_ip_addr);
 
 		break;
 	default:
@@ -344,7 +346,7 @@ enum nw_db_rc internal_db_modify_entry(enum internal_db_table_name table_name, v
 		sprintf(sql, "UPDATE nw_interfaces "
 			"SET admin_state=%d, lag_group_id=%d, is_lag=%d, "
 			"mac_address=%ld, path_type=%d, is_direct_output_lag=%d,"
-			"direct_output_if=%d, app_bitmap=%d, output_channel=%d, sft_en=%d, stats_base=%d "
+			"direct_output_if=%d, app_bitmap=%d, output_channel=%d, sft_en=%d, stats_base=%d, local_ip_addr=%d "
 			"WHERE interface_id=%d AND logical_id=%d ;",
 			nw_interface->admin_state,
 			nw_interface->lag_group_id,
@@ -357,6 +359,7 @@ enum nw_db_rc internal_db_modify_entry(enum internal_db_table_name table_name, v
 			nw_interface->output_channel,
 			nw_interface->sft_en,
 			nw_interface->stats_base,
+			nw_interface->local_ip_addr,
 			nw_interface->interface_id,
 			nw_interface->logical_id);
 		break;
@@ -541,6 +544,7 @@ enum nw_db_rc internal_db_get_entry(enum internal_db_table_name table_name, void
 		nw_interface->stats_base = sqlite3_column_int(statement, 11);
 		mac_address_casting = sqlite3_column_int64(statement, 12);
 		memcpy(nw_interface->mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
+		nw_interface->local_ip_addr = sqlite3_column_int(statement, 13);
 		break;
 	}
 	/* finalize SQL statement and return */

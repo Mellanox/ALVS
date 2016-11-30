@@ -130,10 +130,41 @@ struct nw_if_result {
 
 	/*byte12-15*/
 	ezdp_sum_addr_t    stats_base;
+
 } __packed;
 
 CASSERT(sizeof(struct nw_if_result) == 16);
 
+/*********************************
+ * Interfaces addresses DB defs
+ *********************************/
+/*result*/
+struct nw_if_addresses_result {
+	/*byte0*/
+#ifdef NPS_BIG_ENDIAN
+	unsigned   /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+	unsigned   /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned   /*reserved*/  : 4;
+#else
+	unsigned   /*reserved*/  : 4;
+	unsigned   /*reserved*/  : EZDP_LOOKUP_RESERVED_BITS_SIZE;
+	unsigned   /*reserved*/  : EZDP_LOOKUP_PARITY_BITS_SIZE;
+#endif
+	/*byte1-3*/
+	unsigned           /*reserved*/  : 24;
+
+	/*byte4-7*/
+	in_addr_t          local_ip;
+
+	/*byte8-11*/
+	unsigned           /*reserved*/  : 32;
+
+	/*byte12-15*/
+	unsigned           /*reserved*/  : 32;
+
+} __packed;
+
+CASSERT(sizeof(struct nw_if_addresses_result) == 16);
 
 /*********************************
  * LAG DB defs

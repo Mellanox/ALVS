@@ -75,6 +75,19 @@ uint32_t nw_if_ingress_lookup(int8_t logical_id)
 }
 
 /******************************************************************************
+ * \brief         interface address lookup
+ * \return        lookup result
+ */
+static __always_inline
+uint32_t nw_if_ingress_address_lookup(int8_t logical_id)
+{
+	return ezdp_lookup_table_entry(&shared_cmem_nw.interface_addresses_struct_desc,
+				       logical_id,
+				       &cmem_nw.ingress_if_addresses_result,
+				       sizeof(struct nw_if_addresses_result), 0);
+}
+
+/******************************************************************************
  * \brief         interface lookup
  * \return        lookup result
  */

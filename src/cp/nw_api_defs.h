@@ -90,4 +90,11 @@ struct nw_api_if_entry {
 	/* MAC address */
 };
 
+struct nw_api_local_addr_entry {
+	uint8_t if_index;
+	/* Interface index */
+	struct nw_api_inet_addr ip_addr;
+	/* IP address */
+};
+
 #endif /* _NW_API_DEFS_H_ */

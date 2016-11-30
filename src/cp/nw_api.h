@@ -142,11 +142,34 @@ enum nw_api_rc nw_api_disable_if_entry(struct nw_api_if_entry *if_entry);
 enum nw_api_rc nw_api_modify_if_entry(struct nw_api_if_entry *if_entry);
 
 /**************************************************************************//**
+ * \brief       Add local address entry to NW DB
+ *
+ * \param[in]   local_addr_entry   - reference to local addr entry
+ *
+ * \return      NW_API_OK - addr entry added successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - addr entry does not exist
+ */
+enum nw_api_rc nw_api_add_local_addr_entry(struct nw_api_local_addr_entry *local_addr_entry);
+
+/**************************************************************************//**
+ * \brief       Remove local address entry to NW DB
+ *
+ * \param[in]   local_addr_entry   - reference to local addr entry
+ *
+ * \return      NW_API_OK - addr entry removed successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - addr entry does not exist
+ */
+enum nw_api_rc nw_api_remove_local_addr_entry(struct nw_api_local_addr_entry *local_addr_entry);
+
+/**************************************************************************//**
  * \brief       print all interfaces statistics
  *
  * \return	NW_API_OK - - operation succeeded
  *		NW_API_DB_ERROR - fail to read statistics
  */
+
 enum nw_api_rc nw_api_print_if_stats(void);
 
 #endif /* _NW_API_H_ */

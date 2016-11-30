@@ -1120,6 +1120,22 @@ enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_co
 }
 
 /******************************************************************************
+ * \brief    build the result and key for the DP table of nw_interface_addresses
+ *
+ * \param[out]  if_key              - reference to the key struct.
+ * \param[out]  if_addresses_result - reference to the result struct.
+ *  param[in]   interface_data      - the values to store in the result & key structs
+ *
+ * \return   void
+ */
+void build_nps_nw_interface_addresses_result_and_key(struct nw_if_key *if_key, struct nw_if_addresses_result *if_addresses_result, struct nw_db_nw_interface *interface_data)
+{
+	memset(if_addresses_result, 0, sizeof(struct nw_if_addresses_result));
+	if_key->logical_id = interface_data->logical_id;
+	if_addresses_result->local_ip = interface_data->local_ip_addr;
+}
+
+/******************************************************************************
  * \brief    build the result and key for the DP table of the nw_interface
  *
  * \param[out]  if_result      - reference to the result struct.
@@ -1141,7 +1157,6 @@ void build_nps_nw_interface_result_and_key(struct nw_if_key *if_key, struct nw_i
 	if_result->path_type = (enum dp_path_type)interface_data->path_type;
 	if_result->sft_en = interface_data->sft_en;
 	if_result->stats_base = interface_data->stats_base;
-
 }
 
 /******************************************************************************
@@ -1273,6 +1288,7 @@ enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_en
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
+		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
 		return NW_API_DB_ERROR;
 	}
 
@@ -1282,6 +1298,7 @@ enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_en
 	if (rc < SQLITE_ROW) {
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
+		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
 		sqlite3_finalize(statement);
 		return NW_API_DB_ERROR;
 	}
@@ -1289,6 +1306,7 @@ enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_en
 	/* Entry not found */
 	if (rc == SQLITE_DONE) {
 		sqlite3_finalize(statement);
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_entries[0].interface_id);
 		return NW_API_FAILURE;
 	}
 
@@ -1296,6 +1314,7 @@ enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_en
 		if (*entry_count == LAG_GROUP_MAX_MEMBERS) {
 			write_log(LOG_NOTICE, "Too many members in LAG group %d.", interface_entries[0].lag_group_id);
 			sqlite3_finalize(statement);
+			write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
 			return NW_API_DB_ERROR;
 		}
 		/* retrieve NW IF entry from result */
@@ -1314,6 +1333,7 @@ enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_en
 		interface_entries[*entry_count].stats_base = sqlite3_column_int(statement, 11);
 		mac_address_casting = sqlite3_column_int64(statement, 12);
 		memcpy(interface_entries[*entry_count].mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
+		interface_entries[*entry_count].local_ip_addr = sqlite3_column_int(statement, 13);
 
 		(*entry_count)++;
 		rc = sqlite3_step(statement);
@@ -1354,6 +1374,34 @@ enum nw_api_rc update_if_params(struct nw_db_nw_interface *interface_data)
 }
 
 /**************************************************************************//**
+ * \brief       Change IF addresses in DBs
+ *
+ * \param[in]   interface_data   - reference to IF entry in internal DB
+ *
+ * \return      NW_API_OK - IF entry modified successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc update_if_addresses(struct nw_db_nw_interface *interface_data)
+{
+	struct nw_if_key if_key;
+	struct nw_if_addresses_result if_result;
+
+	/* Update entry in internal DB */
+	if (internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)interface_data) != NW_DB_OK) {
+		write_log(LOG_NOTICE, "Failed to modify IF %d addresses - received error from internal DB", interface_data->interface_id);
+		return NW_API_DB_ERROR;
+	}
+	build_nps_nw_interface_addresses_result_and_key(&if_key, &if_result, interface_data);
+	if (infra_modify_entry(STRUCT_ID_NW_INTERFACE_ADDRESSES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+		write_log(LOG_NOTICE, "Failed to modify IF addresses - received error from NPS");
+		return NW_API_DB_ERROR;
+	}
+	write_log(LOG_DEBUG, "Updated Interface successfully. Logical ID %d local IP %s", if_key.logical_id, nw_inet_ntoa(interface_data->local_ip_addr));
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
  * \brief       Enable IF entry - lag mode
  *
  * \param[in]   if_entry   - reference to IF entry
@@ -1367,20 +1415,11 @@ enum nw_api_rc enable_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
 	struct nw_db_nw_interface lag_interfaces[LAG_GROUP_MAX_MEMBERS];
 	enum nw_api_rc nw_api_rc;
 	uint32_t i, entry_count = 0;
-	/* Find all related phyisical ports */
+	/* Find all related physical ports */
 	lag_interfaces[0].interface_id = if_entry->if_index;
-	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
-	case NW_API_OK:
-		break;
-	case NW_API_DB_ERROR:
-		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
-		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
-		if (entry_count == 0) {
-			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
-			return NW_API_FAILURE;
-		}
-		break;
+	nw_api_rc = get_all_interface_entries(lag_interfaces, &entry_count);
+	if (nw_api_rc != NW_API_OK) {
+		return nw_api_rc;
 	}
 
 	/* For each physical port update admin state in internal & NPS DBs*/
@@ -1423,18 +1462,9 @@ enum nw_api_rc disable_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
 	uint32_t i, entry_count = 0;
 	/* Find all related phyisical ports */
 	lag_interfaces[0].interface_id = if_entry->if_index;
-	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
-	case NW_API_OK:
-		break;
-	case NW_API_DB_ERROR:
-		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
-		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
-		if (entry_count == 0) {
-			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
-			return NW_API_FAILURE;
-		}
-		break;
+	nw_api_rc = get_all_interface_entries(lag_interfaces, &entry_count);
+	if (nw_api_rc != NW_API_OK) {
+		return nw_api_rc;
 	}
 
 	/* Disable LAG group */
@@ -1478,18 +1508,9 @@ enum nw_api_rc modify_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
 	uint32_t i, entry_count = 0;
 	/* Find all related physical ports */
 	lag_interfaces[0].interface_id = if_entry->if_index;
-	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
-	case NW_API_OK:
-		break;
-	case NW_API_DB_ERROR:
-		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
-		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
-		if (entry_count == 0) {
-			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
-			return NW_API_FAILURE;
-		}
-		break;
+	nw_api_rc = get_all_interface_entries(lag_interfaces, &entry_count);
+	if (nw_api_rc != NW_API_OK) {
+		return nw_api_rc;
 	}
 
 	/* For each physical port update params in internal & NPS DBs*/
@@ -1502,6 +1523,39 @@ enum nw_api_rc modify_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
 		/* change IF params */
 		memcpy(lag_interfaces[i].mac_address.ether_addr_octet, if_entry->mac_addr.ether_addr_octet, ETH_ALEN);
 		nw_api_rc = update_if_params(&lag_interfaces[i]);
+		if (nw_api_rc != NW_API_OK) {
+			return nw_api_rc;
+		}
+	}
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Set IP address to IF entry - lag mode
+ *
+ * \param[in]   local_addr_entry   - reference to addr entry
+ *
+ * \return      NW_API_OK - IF entry modified successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc set_ip_to_if_entry_lag_mode(uint8_t if_index, uint32_t ip_addr)
+{
+	struct nw_db_nw_interface lag_interfaces[LAG_GROUP_MAX_MEMBERS];
+	enum nw_api_rc nw_api_rc;
+	uint32_t i, entry_count = 0;
+	/* Find all related physical ports */
+	lag_interfaces[0].interface_id = if_index;
+	nw_api_rc = get_all_interface_entries(lag_interfaces, &entry_count);
+	if (nw_api_rc != NW_API_OK) {
+		return nw_api_rc;
+	}
+	/* For each physical port update params in internal & NPS DBs*/
+	for (i = 0; i < entry_count; i++) {
+		/* change IF params */
+		lag_interfaces[i].local_ip_addr = ip_addr;
+		nw_api_rc = update_if_addresses(&lag_interfaces[i]);
 		if (nw_api_rc != NW_API_OK) {
 			return nw_api_rc;
 		}
@@ -1661,6 +1715,80 @@ enum nw_api_rc nw_api_modify_if_entry(struct nw_api_if_entry *if_entry)
 		}
 	}
 	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Add local address entry to NW DB
+ *
+ * \param[in]   local_addr_entry   - reference to local addr entry
+ *
+ * \return      NW_API_OK - addr entry added successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - addr entry does not exist
+ */
+enum nw_api_rc nw_api_add_local_addr_entry(struct nw_api_local_addr_entry *local_addr_entry)
+{
+	struct nw_db_nw_interface interface_data;
+
+	/* read interface data from internal DB */
+	interface_data.interface_id = local_addr_entry->if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", interface_data.interface_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_data.interface_id);
+		return NW_API_FAILURE;
+	}
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		return set_ip_to_if_entry_lag_mode(local_addr_entry->if_index, local_addr_entry->ip_addr.in.s_addr);
+	}
+	/* change IF address (None LAG mode) */
+	interface_data.local_ip_addr = local_addr_entry->ip_addr.in.s_addr;
+	return update_if_addresses(&interface_data);
+}
+
+/**************************************************************************//**
+ * \brief       Remove local address entry to NW DB
+ *
+ * \param[in]   local_addr_entry   - reference to local addr entry
+ *
+ * \return      NW_API_OK - addr entry removed successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE - addr entry does not exist
+ */
+enum nw_api_rc nw_api_remove_local_addr_entry(struct nw_api_local_addr_entry *local_addr_entry)
+{
+	struct nw_db_nw_interface interface_data;
+
+	/* read interface data from internal DB */
+	interface_data.interface_id = local_addr_entry->if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", interface_data.interface_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_data.interface_id);
+		return NW_API_FAILURE;
+	}
+	if (interface_data.local_ip_addr != local_addr_entry->ip_addr.in.s_addr) {
+		write_log(LOG_DEBUG, "Failed to remove address entry IF = %d IP = %s from internal DB. Address does not exist",
+			  interface_data.interface_id, nw_inet_ntoa(local_addr_entry->ip_addr.in.s_addr));
+		return NW_API_FAILURE;
+	}
+
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		return set_ip_to_if_entry_lag_mode(local_addr_entry->if_index, 0);
+	}
+	/* change IF address (None LAG mode) */
+	interface_data.local_ip_addr = 0;
+	return update_if_addresses(&interface_data);
 }
 
 #if 0

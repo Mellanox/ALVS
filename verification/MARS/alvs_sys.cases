@@ -11,7 +11,7 @@
 		           <tout> 1500 </tout>
 		           <params>
 		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
-	                   <wrapper_params> "-c [[conf:extra_info.cpu_count:512]] -f [[conf:extra_info.file_name:None]]" </wrapper_params>
+	                   <wrapper_params> "-c [[conf:extra_info.cpu_count:512]] -f [[conf:extra_info.file_name:None]] " </wrapper_params>
 	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
 		           </params>
 		    </pre>

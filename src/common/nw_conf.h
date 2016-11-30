@@ -119,7 +119,7 @@ enum nw_external_msid {
  * Memory configuration
  */
 #define NW_HALF_CLUSTER_SEARCH_SIZE    0
-#define NW_1_CLUSTER_SEARCH_SIZE       2 /* need only 1024 bytes */
+#define NW_1_CLUSTER_SEARCH_SIZE       3 /* need only 1.5KB */
 #define NW_2_CLUSTER_SEARCH_SIZE       0
 #define NW_4_CLUSTER_SEARCH_SIZE       0
 #define NW_16_CLUSTER_SEARCH_SIZE      0
@@ -230,6 +230,7 @@ enum nw_struct_id {
 	STRUCT_ID_NW_INTERFACES                = 0,
 	STRUCT_ID_NW_LAG_GROUPS,
 	STRUCT_ID_NW_ARP,
+	STRUCT_ID_NW_INTERFACE_ADDRESSES,
 	NUM_OF_NW_STRUCT_IDS
 };
 

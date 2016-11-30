@@ -129,6 +129,7 @@ bool nw_initialize_if_table(void)
 {
 	struct nw_if_key if_key;
 	struct nw_if_result if_result;
+	struct nw_if_addresses_result if_addresses_result;
 	struct nw_db_nw_interface if_db_entry;
 	uint32_t ind;
 	struct nw_if_apps app_bitmap;
@@ -137,6 +138,7 @@ bool nw_initialize_if_table(void)
 	build_nw_if_apps(&app_bitmap);
 
 	memset(&if_result, 0, sizeof(if_result));
+	memset(&if_addresses_result, 0, sizeof(if_addresses_result));
 	memset(&if_key, 0, sizeof(if_key));
 	/*******************************/
 	/* Adding local host Interface */
@@ -161,6 +163,10 @@ bool nw_initialize_if_table(void)
 	/* Add entry to NPS */
 	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 		write_log(LOG_ERR, "Adding host if entry to NPS IF table failed.");
+		return false;
+	}
+	if (infra_add_entry(STRUCT_ID_NW_INTERFACE_ADDRESSES, &if_key, sizeof(if_key), &if_addresses_result, sizeof(if_addresses_result)) == false) {
+		write_log(LOG_ERR, "Adding host if addresses entry to NPS IF table failed.");
 		return false;
 	}
 
@@ -189,6 +195,10 @@ bool nw_initialize_if_table(void)
 			/* Add entry to NPS */
 			if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
 				write_log(LOG_ERR, "Adding remote host if entry to NPS IF table failed.");
+				return false;
+			}
+			if (infra_add_entry(STRUCT_ID_NW_INTERFACE_ADDRESSES, &if_key, sizeof(if_key), &if_addresses_result, sizeof(if_addresses_result)) == false) {
+				write_log(LOG_ERR, "Adding remote host if addresses entry to NPS IF table failed.");
 				return false;
 			}
 		}
@@ -237,6 +247,10 @@ bool nw_initialize_if_table(void)
 		/* Add to internal db */
 		if (internal_db_add_entry(NW_INTERFACES_INTERNAL_DB, (void *)&if_db_entry) != NW_DB_OK) {
 			write_log(LOG_ERR, "Adding NW if (%d) entry to internal IF table failed.", ind);
+			return false;
+		}
+		if (infra_add_entry(STRUCT_ID_NW_INTERFACE_ADDRESSES, &if_key, sizeof(if_key), &if_addresses_result, sizeof(if_addresses_result)) == false) {
+			write_log(LOG_ERR, "Adding NW if (%d) addresses entry to NPS IF table failed.", ind);
 			return false;
 		}
 	}
@@ -390,6 +404,19 @@ bool nw_constructor(void)
 	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
 			       &table_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating interface table.");
+		return false;
+	}
+
+	write_log(LOG_DEBUG, "Creating interface addresses table.");
+	table_params.key_size = sizeof(struct nw_if_key);
+	table_params.result_size = sizeof(struct nw_if_addresses_result);
+	table_params.max_num_of_entries = NW_INTERFACES_TABLE_MAX_ENTRIES;
+	table_params.updated_from_dp = false;
+	table_params.is_external = false;
+	table_params.search_mem_heap = INFRA_1_CLUSTER_SEARCH_HEAP;
+	if (infra_create_table(STRUCT_ID_NW_INTERFACE_ADDRESSES,
+			       &table_params) == false) {
+		write_log(LOG_CRIT, "Error - Failed creating interface addresses table.");
 		return false;
 	}
 

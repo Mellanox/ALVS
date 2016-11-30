@@ -40,6 +40,7 @@
 #include <netlink/route/route.h>
 #include <netlink/route/neighbour.h>
 #include <netlink/route/link.h>
+#include <netlink/route/addr.h>
 
 /* NW DB manager operations for ARP\FIB\IFC control.
  * Called on netlink changes with libnl structs and should initiate the relevant NW APIs.
@@ -64,6 +65,10 @@ struct nw_db_manager_ops {
 	/*called when interface is disabled*/
 	bool (*modify_if)(struct rtnl_link *link);
 	/*called when interface is modified*/
+	bool (*add_if_addr)(struct rtnl_addr *addr);
+	/*called when address is added*/
+	bool (*remove_if_addr)(struct rtnl_addr *addr);
+	/*called when address is deleted*/
 };
 
 /******************************************************************************

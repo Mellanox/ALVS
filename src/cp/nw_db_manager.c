@@ -64,6 +64,7 @@ void nw_db_manager_delete(void);
 void nw_db_manager_table_init(void);
 void nw_db_manager_poll(void);
 void nw_db_manager_if_table_init(void);
+void nw_db_manager_addr_table_init(void);
 void nw_db_manager_arp_table_init(void);
 void nw_db_manager_fib_table_init(void);
 void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj,
@@ -71,6 +72,8 @@ void nw_db_manager_arp_cb(struct nl_cache *cache, struct nl_object *obj,
 void nw_db_manager_fib_cb(struct nl_cache *cache, struct nl_object *obj,
 			  int action, void *data);
 void nw_db_manager_ifc_cb(struct nl_cache *cache, struct nl_object *obj,
+			  int action, void *data);
+void nw_db_manager_addr_cb(struct nl_cache *cache, struct nl_object *obj,
 			  int action, void *data);
 
 bool valid_neighbor(struct rtnl_neigh *neighbor);
@@ -162,6 +165,7 @@ void nw_db_manager_delete(void)
 void nw_db_manager_table_init(void)
 {
 	nw_db_manager_if_table_init();
+	nw_db_manager_addr_table_init();
 	nw_db_manager_fib_table_init();
 	nw_db_manager_arp_table_init();
 }
@@ -218,6 +222,46 @@ void nw_db_manager_if_table_init(void)
 }
 
 /******************************************************************************
+ * \brief       Address table init.
+ *              Registers a callback function for table changes.
+ *              Reads current address table and writes all entries to NPS
+ *              Interface table.
+ *
+ * \return      void
+ */
+void nw_db_manager_addr_table_init(void)
+{
+	int ret;
+	struct nl_cache *filtered_addr_cache;
+	struct nl_cache *addr_cache;
+	struct rtnl_addr *addr_entry = rtnl_addr_alloc();
+
+	ret = nl_cache_mngr_add(network_cache_mngr, "route/addr", &nw_db_manager_addr_cb, NULL, &addr_cache);
+	if (ret < 0) {
+		write_log(LOG_CRIT, "Unable to add cache route/addr: %s", nl_geterror(ret));
+		nw_db_manager_exit_with_error();
+	}
+
+	/* Take only IPv4 entries.
+	 * TODO: when adding IPv6 capabilities, this should be revisited.
+	 */
+	rtnl_addr_set_family(addr_entry, AF_INET);
+	filtered_addr_cache = nl_cache_subset(addr_cache, (struct nl_object *)addr_entry);
+
+	/* Iterate on addr cache */
+	addr_entry = (struct rtnl_addr *)nl_cache_get_first(filtered_addr_cache);
+	while (addr_entry != NULL) {
+		 /* Add address to IF table */
+		if (nw_db_manager_ops->add_if_addr(addr_entry) == false) {
+			write_log(LOG_CRIT, "Fatal error. exiting.");
+			nw_db_manager_exit_with_error();
+		}
+		/* Next addr */
+		addr_entry = (struct rtnl_addr *)nl_cache_get_next((struct nl_object *)addr_entry);
+	}
+}
+
+/******************************************************************************
  * \brief       FIB table init.
  *              Registers a callback function for table changes.
  *              Reads current FIB table and writes all entries to NPS FIB table.
@@ -233,7 +277,7 @@ void nw_db_manager_fib_table_init(void)
 
 	ret = nl_cache_mngr_add(network_cache_mngr, "route/route", &nw_db_manager_fib_cb, NULL, &route_cache);
 	if (ret < 0) {
-		write_log(LOG_CRIT, "Unable to add cache route/neigh: %s", nl_geterror(ret));
+		write_log(LOG_CRIT, "Unable to add cache route/route: %s", nl_geterror(ret));
 		nw_db_manager_exit_with_error();
 	}
 
@@ -319,6 +363,34 @@ void nw_db_manager_ifc_cb(struct nl_cache __attribute__((__unused__))*cache, str
 	case NL_ACT_CHANGE:
 		rc = nw_db_manager_ops->modify_if(link);
 		break;
+	}
+
+	if (rc == false) {
+		write_log(LOG_CRIT, "Fatal error. exiting.");
+		nw_db_manager_exit_with_error();
+	}
+}
+
+/******************************************************************************
+ * \brief       Address table callback function.
+ *              Updates the NPS IF table according to the received action.
+ *
+ * \return      void
+ */
+void nw_db_manager_addr_cb(struct nl_cache __attribute__((__unused__))*cache, struct nl_object *obj, int action, void __attribute__((__unused__))*data)
+{
+	struct rtnl_addr *addr = (struct rtnl_addr *) obj;
+	bool rc = true;
+
+	if (rtnl_addr_get_family(addr) == AF_INET) {
+		switch (action) {
+		case NL_ACT_NEW:
+			rc = nw_db_manager_ops->add_if_addr(addr);
+			break;
+		case NL_ACT_DEL:
+			rc = nw_db_manager_ops->remove_if_addr(addr);
+			break;
+		}
 	}
 
 	if (rc == false) {
