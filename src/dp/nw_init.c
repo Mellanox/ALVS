@@ -32,7 +32,7 @@
 *  File:                nw.h
 *  Desc:                init shared cmem
 */
-
+#include <stdint.h>
 #include "nw_conf.h"
 #include "global_defs.h"
 #include "application_search_defs.h"

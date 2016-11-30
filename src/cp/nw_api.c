@@ -2358,8 +2358,8 @@ enum nw_api_rc nw_api_add_nw_if_entry(struct nw_api_if_entry *if_entry)
 						       NW_POSTED_STATS_MSID,
 						       NW_IF_STATS_POSTED_OFFSET + if_entry->if_index * NW_NUM_OF_IF_STATS));
 	if_result.output_channel       = ((if_entry->if_index % 2) * 12) | (if_entry->if_index < 2 ? 0 : (1 << 7));
-	if_result.direct_output_if     = (system_cfg_is_remote_control_en() == true) ? (if_entry->if_index + REMOTE_BASE_LOGICAL_ID) : HOST_LOGICAL_ID;
-	if_result.is_direct_output_lag = ((system_cfg_is_remote_control_en() == true) && (system_cfg_is_lag_en() == true)) ? 1 : 0;
+	if_result.direct_output_if     = (system_cfg_is_remote_control_en() == true) ?  (if_entry->if_index + REMOTE_BASE_LOGICAL_ID) : HOST_LOGICAL_ID;
+	if_result.is_direct_output_lag = 0;/*TODO in case we support lag on remote ((system_cfg_is_remote_control_en() == true) && (system_cfg_is_lag_en() == true)) ? 1 : 0;*/
 	if_result.admin_state          = true;
 
 	/* Add entry to NPS DB */
@@ -2428,8 +2428,8 @@ enum nw_api_rc nw_api_add_remote_if_entry(struct nw_api_if_entry *if_entry)
 	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
 						       NW_POSTED_STATS_MSID,
 						       REMOTE_IF_STATS_POSTED_OFFSET + if_entry->if_index * REMOTE_NUM_OF_IF_STATS));
-	if_result.output_channel   = ((if_entry->if_index % 2) * 12) | (if_entry->if_index < 2 ? 0 : (1 << 7));
-	if_result.direct_output_if = if_entry->if_index + NW_BASE_LOGICAL_ID;
+	if_result.output_channel   = remote_interface_params[if_entry->if_index][INFRA_INTERFACE_PARAMS_PORT] | (remote_interface_params[if_entry->if_index][INFRA_INTERFACE_PARAMS_SIDE] << 7);
+	if_result.direct_output_if = (system_cfg_is_lag_en() == true) ? 0 : if_entry->if_index + NW_BASE_LOGICAL_ID;
 	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
 	if_result.admin_state = true;
 

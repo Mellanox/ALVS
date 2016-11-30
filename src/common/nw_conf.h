@@ -43,6 +43,7 @@
 /*
  * Interface configuration
  */
+
 #define NW_IF_NUM                 4
 #define NW_BASE_LOGICAL_ID        0
 #define HOST_LOGICAL_ID           (NW_BASE_LOGICAL_ID + NW_IF_NUM)
@@ -50,6 +51,55 @@
 #define REMOTE_IF_NUM             4
 
 
+/* Local Host interface parameters */
+#define INFRA_HOST_IF_SIDE          1
+#define INFRA_HOST_IF_PORT          24
+
+/* Network interface #0 parameters */
+#define INFRA_NW_IF_0_SIDE          0
+#define INFRA_NW_IF_0_PORT          0
+
+/* Network interface #1 parameters */
+#define INFRA_NW_IF_1_SIDE          0
+#define INFRA_NW_IF_1_PORT          12
+
+/* Network interface #2 parameters */
+#define INFRA_NW_IF_2_SIDE          1
+#define INFRA_NW_IF_2_PORT          0
+
+/* Network interface #3 parameters */
+#define INFRA_NW_IF_3_SIDE          1
+#define INFRA_NW_IF_3_PORT          12
+
+/* Remote interface #0 parameters */
+#define INFRA_REMOTE_IF_0_SIDE      0
+#define INFRA_REMOTE_IF_0_PORT      24
+
+/* Remote interface #1 parameters */
+#define INFRA_REMOTE_IF_1_SIDE      0
+#define INFRA_REMOTE_IF_1_PORT     25
+
+/* Remote interface #2 parameters */
+#define INFRA_REMOTE_IF_2_SIDE     0
+#define INFRA_REMOTE_IF_2_PORT     26
+
+/* Remote interface #3 parameters */
+#define INFRA_REMOTE_IF_3_SIDE     0
+#define INFRA_REMOTE_IF_3_PORT     27
+
+
+/*! interface configuration parameters possible values. */
+enum infra_interface_params {
+	INFRA_INTERFACE_PARAMS_SIDE             = 0,
+	INFRA_INTERFACE_PARAMS_PORT             = 1,
+	INFRA_NUM_OF_INTERFACE_PARAMS
+};
+
+/* Network Interfaces Array */
+extern uint32_t network_interface_params[NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS];
+
+/* Remote Interfaces Array */
+extern uint32_t remote_interface_params[REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS];
 
 /*
  * External MSIDs

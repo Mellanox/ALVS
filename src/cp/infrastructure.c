@@ -62,50 +62,6 @@ EZagtRPCServer host_server;
 /* AGT port */
 #define INFRA_AGT_PORT              1234
 
-/* Local Host interface parameters */
-#define INFRA_HOST_IF_SIDE          1
-#define INFRA_HOST_IF_PORT          24
-
-/* Network interface #0 parameters */
-#define INFRA_NW_IF_0_SIDE          0
-#define INFRA_NW_IF_0_PORT          0
-
-/* Network interface #1 parameters */
-#define INFRA_NW_IF_1_SIDE          0
-#define INFRA_NW_IF_1_PORT          12
-
-/* Network interface #2 parameters */
-#define INFRA_NW_IF_2_SIDE          1
-#define INFRA_NW_IF_2_PORT          0
-
-/* Network interface #3 parameters */
-#define INFRA_NW_IF_3_SIDE          1
-#define INFRA_NW_IF_3_PORT          12
-
-/* Remote interface #0 parameters */
-#define INFRA_REMOTE_IF_0_SIDE      0
-#define INFRA_REMOTE_IF_0_PORT      24
-
-/* Remote interface #1 parameters */
-#define INFRA_REMOTE_IF_1_SIDE      0
-#define INFRA_REMOTE_IF_1_PORT     28
-
-/* Remote interface #2 parameters */
-#define INFRA_REMOTE_IF_2_SIDE     0
-#define INFRA_REMOTE_IF_2_PORT     32
-
-/* Remote interface #3 parameters */
-#define INFRA_REMOTE_IF_3_SIDE     0
-#define INFRA_REMOTE_IF_3_PORT     36
-
-
-/*! interface configuration parameters possible values. */
-enum infra_interface_params {
-	INFRA_INTERFACE_PARAMS_SIDE             = 0,
-	INFRA_INTERFACE_PARAMS_PORT             = 1,
-	INFRA_NUM_OF_INTERFACE_PARAMS
-};
-
 /* Network Interfaces Array */
 uint32_t network_interface_params[NW_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] = {
 		{INFRA_NW_IF_0_SIDE, INFRA_NW_IF_0_PORT},
@@ -121,7 +77,6 @@ uint32_t remote_interface_params[REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PARAMS] =
 		{INFRA_REMOTE_IF_2_SIDE, INFRA_REMOTE_IF_2_PORT},
 		{INFRA_REMOTE_IF_3_SIDE, INFRA_REMOTE_IF_3_PORT}
 };
-
 
 /**************************************************************************//**
  * \brief       Create an interface on <side> and <port> with <type> and
@@ -175,7 +130,6 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 		return false;
 	}
 
-
 	/* set key values */
 	/* port = engine*12 + if_number */
 	eth_rx_channel_params.uiSide = side;
@@ -227,7 +181,7 @@ bool infra_create_if_mapping(void)
 		for (ind = 0; ind < REMOTE_IF_NUM; ind++) {
 			if (infra_create_intetface(remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE],
 					remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT],
-					system_cfg_get_port_type(),
+					EZapiChannel_EthIFType_10GE,
 					REMOTE_BASE_LOGICAL_ID + ind) == false) {
 				return false;
 			}
