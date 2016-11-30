@@ -104,9 +104,9 @@ enum nw_api_rc internal_db_add_entry(enum internal_db_table_name table_name, voi
 	case FIB_ENTRIES_INTERNAL_DB:
 		fib_entry = (struct nw_db_fib_entry *)entry_data;
 		sprintf(sql, "INSERT INTO fib_entries "
-			"(dest_ip, mask_length, result_type, next_hop, nps_index) "
-			"VALUES (%d, %d, %d, %d, %d);",
-			fib_entry->dest_ip, fib_entry->mask_length, fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index);
+			"(dest_ip, mask_length, result_type, next_hop, nps_index, is_lag, output_index) "
+			"VALUES (%d, %d, %d, %d, %d, %d, %d);",
+			fib_entry->dest_ip, fib_entry->mask_length, fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index, fib_entry->is_lag, fib_entry->output_index);
 		break;
 
 	case ARP_ENTRIES_INTERNAL_DB:
@@ -195,21 +195,21 @@ enum nw_api_rc internal_db_modify_entry(enum internal_db_table_name table_name, 
 
 		fib_entry = (struct nw_db_fib_entry *)entry_data;
 		sprintf(sql, "UPDATE fib_entries "
-			"SET result_type=%d, next_hop=%d, nps_index=%d "
+			"SET result_type=%d, next_hop=%d, nps_index=%d, is_lag=%d, output_index=%d "
 			"WHERE dest_ip=%d AND mask_length=%d;",
-			fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index, fib_entry->dest_ip, fib_entry->mask_length);
+			fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index, fib_entry->is_lag, fib_entry->output_index, fib_entry->dest_ip, fib_entry->mask_length);
 		break;
 
 	case ARP_ENTRIES_INTERNAL_DB:
 		arp_entry = (struct nw_db_arp_entry *)entry_data;
 		memcpy(&mac_address_casting, arp_entry->dest_mac_address.ether_addr_octet, ETH_ALEN);
 		sprintf(sql, "UPDATE arp_entries "
-			"SET is_lag=%d, output_index=%d, dest_mac_address=%ld "
-			"WHERE entry_ip=%d;",
-			arp_entry->is_lag,
-			arp_entry->output_index,
+			"SET dest_mac_address=%ld "
+			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
 			mac_address_casting,
-			arp_entry->entry_ip);
+			arp_entry->entry_ip,
+			arp_entry->is_lag,
+			arp_entry->output_index);
 		break;
 
 	case LAG_GROUPS_INTERNAL_DB:
@@ -296,8 +296,8 @@ enum nw_api_rc internal_db_remove_entry(enum internal_db_table_name table_name, 
 	case ARP_ENTRIES_INTERNAL_DB:
 		arp_entry = (struct nw_db_arp_entry *)entry_data;
 		sprintf(sql, "DELETE FROM arp_entries "
-			"WHERE entry_ip=%d;",
-			arp_entry->entry_ip);
+			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
+			arp_entry->entry_ip, arp_entry->is_lag, arp_entry->output_index);
 		break;
 
 	case LAG_GROUPS_INTERNAL_DB:
@@ -363,8 +363,8 @@ enum nw_api_rc internal_db_get_entry(enum internal_db_table_name table_name, voi
 	case ARP_ENTRIES_INTERNAL_DB:
 		arp_entry = (struct nw_db_arp_entry *)entry_data;
 		sprintf(sql, "SELECT * FROM arp_entries "
-			"WHERE entry_ip=%d;",
-			arp_entry->entry_ip);
+			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
+			arp_entry->entry_ip, arp_entry->is_lag, arp_entry->output_index);
 		break;
 
 	case LAG_GROUPS_INTERNAL_DB:
@@ -418,14 +418,14 @@ enum nw_api_rc internal_db_get_entry(enum internal_db_table_name table_name, voi
 		fib_entry->result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
 		fib_entry->next_hop = sqlite3_column_int(statement, 3);
 		fib_entry->nps_index = sqlite3_column_int(statement, 4);
+		fib_entry->is_lag = sqlite3_column_int(statement, 5);
+		fib_entry->output_index = sqlite3_column_int(statement, 6);
 		break;
 
 	case ARP_ENTRIES_INTERNAL_DB:
 		/* retrieve arp entry from result,
 		 * finalize SQL statement and return
 		 */
-		arp_entry->is_lag = (bool)sqlite3_column_int(statement, 1);
-		arp_entry->output_index = sqlite3_column_int(statement, 2);
 		mac_address_casting = sqlite3_column_int64(statement, 3);
 		memcpy(arp_entry->dest_mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
 		break;
@@ -478,7 +478,7 @@ enum nw_api_rc internal_db_get_arp_entries_count(unsigned int *arp_entries_count
 	sqlite3_stmt *statement;
 	char sql[256];
 
-	sprintf(sql, "SELECT COUNT (entry_ip) AS arp_entries_count FROM arp_entries;");
+	sprintf(sql, "SELECT COUNT (*) AS arp_entries_count FROM arp_entries;");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
@@ -507,7 +507,6 @@ enum nw_api_rc internal_db_get_arp_entries_count(unsigned int *arp_entries_count
 	return NW_API_OK;
 }
 
-
 /**************************************************************************//**
  * \brief       build fib key and mask for NPS according to cp_fib_entry
  *
@@ -521,6 +520,9 @@ void build_nps_fib_key_and_mask(struct nw_db_fib_entry *cp_fib_entry,
 				struct nw_fib_key *nps_fib_key,
 				struct nw_fib_key *nps_fib_mask)
 {
+	memset(nps_fib_key, 0, sizeof(struct nw_fib_key));
+	memset(nps_fib_mask, 0, sizeof(struct nw_fib_key));
+
 	/* Mask for TCAM entry */
 	if (cp_fib_entry->mask_length == 0) {
 		nps_fib_mask->dest_ip = 0;
@@ -528,6 +530,7 @@ void build_nps_fib_key_and_mask(struct nw_db_fib_entry *cp_fib_entry,
 		nps_fib_mask->dest_ip = bswap_32(0xFFFFFFFF << (32 - cp_fib_entry->mask_length));
 	}
 
+	/* dest_ip is received in BE, so no bswap is needed */
 	nps_fib_key->dest_ip = cp_fib_entry->dest_ip;
 }
 
@@ -542,8 +545,18 @@ void build_nps_fib_key_and_mask(struct nw_db_fib_entry *cp_fib_entry,
 void build_nps_fib_result(struct nw_db_fib_entry *cp_fib_entry,
 			  struct nw_fib_result *nps_fib_result)
 {
+	memset(nps_fib_result, 0, sizeof(struct nw_fib_result));
+
+	/* next_hop is received in BE, so no bswap is needed */
 	nps_fib_result->dest_ip = cp_fib_entry->next_hop;
 	nps_fib_result->result_type = cp_fib_entry->result_type;
+	nps_fib_result->is_lag = cp_fib_entry->is_lag;
+	if (cp_fib_entry->is_lag == true) {
+		nps_fib_result->lag_index = cp_fib_entry->output_index;
+	} else {
+		nps_fib_result->output_interface = cp_fib_entry->output_index;
+	}
+
 }
 
 /**************************************************************************//**
@@ -560,13 +573,10 @@ bool add_fib_entry_to_nps(struct nw_db_fib_entry *cp_fib_entry)
 	struct nw_fib_key nps_fib_mask;
 	struct nw_fib_result nps_fib_result;
 
-	memset(&nps_fib_key, 0, sizeof(nps_fib_key));
-	memset(&nps_fib_mask, 0, sizeof(nps_fib_mask));
-	memset(&nps_fib_result, 0, sizeof(nps_fib_result));
-
 	/* Add entry to FIB TCAM table based on CP FIB entry */
 	build_nps_fib_key_and_mask(cp_fib_entry, &nps_fib_key, &nps_fib_mask);
 	build_nps_fib_result(cp_fib_entry, &nps_fib_result);
+
 	return infra_add_tcam_entry(NW_FIB_TCAM_SIDE,
 				    NW_FIB_TCAM_TABLE,
 				    &nps_fib_key,
@@ -646,7 +656,6 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 				  sqlite3_errmsg(nw_db));
 			return NW_API_DB_ERROR;
 		}
-
 		/* Execute SQL statement */
 		rc = sqlite3_step(statement);
 
@@ -667,6 +676,8 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 			tmp_fib_entry.mask_length = sqlite3_column_int(statement, 1);
 			tmp_fib_entry.result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
 			tmp_fib_entry.next_hop = sqlite3_column_int(statement, 3);
+			tmp_fib_entry.is_lag = sqlite3_column_int(statement, 5);
+			tmp_fib_entry.output_index = sqlite3_column_int(statement, 6);
 			if (current_mask == 0) {
 				/* only one entry with mask 0, move its index up */
 				previous_updated_index = sqlite3_column_int(statement, 4);
@@ -675,9 +686,9 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 				tmp_fib_entry.nps_index = previous_updated_index;
 				previous_updated_index = sqlite3_column_int(statement, 4);
 			}
+
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
-
 			/* Update DBs */
 			if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&tmp_fib_entry) == NW_API_DB_ERROR) {
 				/* Internal error */
@@ -686,18 +697,17 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 				return NW_API_DB_ERROR;
 
 			}
+
 			if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
 				return NW_API_DB_ERROR;
 			}
 		}
-
 		sqlite3_finalize(statement);
 
 
 	}
-
 	/* Take the index from the last updated entry  */
 	new_fib_entry->nps_index = previous_updated_index;
 
@@ -767,6 +777,9 @@ enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 			tmp_fib_entry.nps_index = previous_updated_index;
 			previous_updated_index = sqlite3_column_int(statement, 4);
 
+			tmp_fib_entry.is_lag = sqlite3_column_int(statement, 5);
+			tmp_fib_entry.output_index = sqlite3_column_int(statement, 6);
+
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 			/* Update DBs */
@@ -797,38 +810,91 @@ enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 /**************************************************************************//**
  * \brief       Fills fib_entry fields according to route_entry
  *
- * \param[in]   fib_entry        - reference to fib entry
- *              db_fib_entry     - reference to new db fib entry
+ * \param[in]   fib_entry        - reference to nw fib entry
+ *              cp_fib_entry     - reference to new cp fib entry
  *
  * \return      none
  */
-void set_fib_params(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *db_fib_entry)
+void set_fib_route_type_and_next_hop(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *cp_fib_entry)
 {
 	if (fib_entry->route_type == RTN_UNICAST) {
 		if (fib_entry->next_hop_count == 0) {
-			db_fib_entry->result_type = NW_FIB_NEIGHBOR;
+			cp_fib_entry->result_type = NW_FIB_NEIGHBOR;
 			write_log(LOG_DEBUG, "FIB entry is NEIGHBOR - no next hop.");
 		} else if (fib_entry->next_hop_count == 1) {
 			/* Take next hop */
-			db_fib_entry->next_hop = fib_entry->next_hop.in.s_addr;
-			db_fib_entry->result_type = NW_FIB_GW;
-			write_log(LOG_DEBUG, "FIB Entry is GW. next hop is %s", nw_inet_ntoa(db_fib_entry->next_hop));
+			cp_fib_entry->next_hop = fib_entry->next_hop.in.s_addr;
+			cp_fib_entry->result_type = NW_FIB_GW;
+			write_log(LOG_DEBUG, "FIB Entry is GW. next hop is %s", nw_inet_ntoa(cp_fib_entry->next_hop));
 		} else {
 			/* Unsupported number of hop entries - DP will handle it according to the application */
-			db_fib_entry->result_type = NW_FIB_UNSUPPORTED;
+			cp_fib_entry->result_type = NW_FIB_UNSUPPORTED;
 			write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) has multiple hops - marked as unsupported.",
-				  nw_inet_ntoa(db_fib_entry->dest_ip), db_fib_entry->mask_length);
+				  nw_inet_ntoa(cp_fib_entry->dest_ip), cp_fib_entry->mask_length);
 		}
 	} else if (fib_entry->route_type == RTN_BLACKHOLE) {
 		/* Drop packet */
-		db_fib_entry->result_type = NW_FIB_DROP;
+		cp_fib_entry->result_type = NW_FIB_DROP;
 		write_log(LOG_DEBUG, "FIB Entry is marked for drop.");
 	} else {
 		/* Unsupported route type - DP will handle it according to the application */
-		db_fib_entry->result_type = NW_FIB_UNSUPPORTED;
+		cp_fib_entry->result_type = NW_FIB_UNSUPPORTED;
 		write_log(LOG_DEBUG, "Unsupported route type - DP will handle it according to the application.");
 	}
 
+}
+
+/**************************************************************************//**
+ * \brief       Set LAG info for the ARP/FIB internal DB entry
+ *
+ * \param[in]   table_name   - table name to detect entry type
+ * \param[in]   entry_data   - reference to entry data
+ *                             (nw_db_fib_entry or nw_db_arp_entry)
+ *
+ * \return      NW_API_OK       - lag info was updated successfully
+ *              NW_API_FAILURE  - entry_data is NULL
+ *              NW_API_DB_ERROR - illegal table name; not arp or fib table name
+ */
+enum nw_api_rc set_lag_info(enum internal_db_table_name table_name, void *entry_data)
+{
+	struct nw_db_fib_entry *fib_entry = NULL;
+	struct nw_db_arp_entry *arp_entry = NULL;
+
+	switch (table_name) {
+	case FIB_ENTRIES_INTERNAL_DB:
+		fib_entry = (struct nw_db_fib_entry *)entry_data;
+		break;
+
+	case ARP_ENTRIES_INTERNAL_DB:
+		arp_entry = (struct nw_db_arp_entry *)entry_data;
+		break;
+	default:
+		write_log(LOG_NOTICE, "Trying to search an entry from a wrong internal db table name");
+		return NW_API_DB_ERROR;
+	}
+
+	if (fib_entry == NULL && arp_entry == NULL) {
+		return NW_API_FAILURE;
+	}
+	if (system_cfg_is_lag_en() == true) {
+		(table_name == FIB_ENTRIES_INTERNAL_DB) ? (fib_entry->is_lag = true) : (arp_entry->is_lag = true);
+	} else {
+		(table_name == FIB_ENTRIES_INTERNAL_DB) ? (fib_entry->is_lag = false) : (arp_entry->is_lag = false);
+	}
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Return the mapped interface index in NPS by giving the netlink if_index
+ *
+ * \param[in]   nl_if_index   - reference to netlink interface index
+ *
+ * \return      NPS logical id
+ */
+uint8_t get_nps_logical_id(uint8_t __attribute__((__unused__))nl_if_index)
+{
+	/* TODO: to add implementation after IFC code is ready */
+	return 0;
 }
 
 /**************************************************************************//**
@@ -843,6 +909,7 @@ void set_fib_params(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *
 enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
+	enum nw_api_rc rc;
 
 	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
 	cp_fib_entry.mask_length = fib_entry->mask_length;
@@ -876,16 +943,28 @@ enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 	}
 
-	set_fib_params(fib_entry, &cp_fib_entry);
+	rc = set_lag_info(FIB_ENTRIES_INTERNAL_DB, &cp_fib_entry);
+	if (rc != NW_API_OK) {
+		return rc;
+	}
+
+	if (cp_fib_entry.is_lag == true) {
+		cp_fib_entry.output_index = LAG_GROUP_DEFAULT;
+	} else {
+		cp_fib_entry.output_index = get_nps_logical_id(fib_entry->output_index);
+	}
+
+	set_fib_route_type_and_next_hop(fib_entry, &cp_fib_entry);
 
 	/* Choose where to put FIB entry */
-	enum nw_api_rc rc = fib_reorder_push_entries_up(&cp_fib_entry);
+	rc = fib_reorder_push_entries_up(&cp_fib_entry);
 
 	if (rc != NW_API_OK) {
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return rc;
 	}
+
 	/* Add new entry to DBs */
 	if (internal_db_add_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_API_DB_ERROR) {
 		/* Internal error */
@@ -894,15 +973,17 @@ enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 
 	}
+
 	if (add_fib_entry_to_nps(&cp_fib_entry) == false) {
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d) to NPS.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_DB_ERROR;
 	}
+
 	fib_entry_count++;
 
-	write_log(LOG_DEBUG, "FIB entry Added successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d) ",
-		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type);
+	write_log(LOG_DEBUG, "FIB entry Added successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d, is_lag=%d, output_index=%d) ",
+		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type, cp_fib_entry.is_lag, cp_fib_entry.output_index);
 
 	return NW_API_OK;
 }
@@ -974,8 +1055,9 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) deleted successfully.",
-		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
+	write_log(LOG_DEBUG, "FIB entry deleted successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d, is_lag=%d, output_index=%d) ",
+			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type, cp_fib_entry.is_lag, cp_fib_entry.output_index);
+
 	return NW_API_OK;
 }
 
@@ -991,6 +1073,7 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
+	enum nw_api_rc rc;
 
 	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
 	cp_fib_entry.mask_length = fib_entry->mask_length;
@@ -1015,7 +1098,18 @@ enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 	}
 
-	set_fib_params(fib_entry, &cp_fib_entry);
+	rc = set_lag_info(FIB_ENTRIES_INTERNAL_DB, &cp_fib_entry);
+	if (rc != NW_API_OK) {
+		return rc;
+	}
+
+	if (cp_fib_entry.is_lag == true) {
+		cp_fib_entry.output_index = LAG_GROUP_DEFAULT;
+	} else {
+		cp_fib_entry.output_index = get_nps_logical_id(fib_entry->output_index);
+	}
+
+	set_fib_route_type_and_next_hop(fib_entry, &cp_fib_entry);
 
 	/* Modify entry in DBs */
 	if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_API_DB_ERROR) {
@@ -1031,77 +1125,88 @@ enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) modified successfully.",
-		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
+	write_log(LOG_DEBUG, "FIB entry modified successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d, is_lag=%d, output_index=%d) ",
+			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type, cp_fib_entry.is_lag, cp_fib_entry.output_index);
+
 	return NW_API_OK;
 }
 
-/******************************************************************************
- * \brief    translate nw api arp entry to ARP table key & result
- *
- * \return   void
- */
-void arp_entry_to_table_entry(struct nw_api_arp_entry *arp_entry, struct nw_arp_key *key, struct nw_arp_result *result)
-{
-	if (key) {
-		key->real_server_address = arp_entry->ip_addr.in.s_addr;
-	}
-	if (result) {
-		memcpy(result->dest_mac_addr.ether_addr_octet, arp_entry->mac_addr.ether_addr_octet, ETH_ALEN);
-		result->output_index.output_interface = NW_BASE_LOGICAL_ID; /* todo will be changed in the future, to take the real port id */
-	}
-}
-
-enum nw_api_rc set_lag_info_for_arp_entry(struct nw_arp_result *result, struct nw_db_arp_entry *db_arp_entry)
-{
-	enum nw_api_rc rc;
-	/* set lag output index on lag mode - TODO: remove lag from ARP */
-	if (system_cfg_is_lag_en() == true) {
-		struct nw_db_lag_group_entry lag_group;
-
-		lag_group.lag_group_id = LAG_GROUP_DEFAULT;
-		rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-		if (rc != NW_API_OK) {
-			write_log(LOG_NOTICE, "Error reading lag group from internal DB");
-			return rc;
-		}
-		result->is_lag = true;
-		result->output_index.lag_index = LAG_GROUP_DEFAULT; /* default group */
-		db_arp_entry->output_index = LAG_GROUP_DEFAULT;
-	} else {
-		result->is_lag = false;
-		db_arp_entry->is_lag = false;
-	}
-	return NW_API_OK;
-}
 /**************************************************************************//**
- * \brief       Add a arp entry to NW DB
+ * \brief       build ARP key for NPS according to cp_arp_entry
  *
- * \param[in]   arp_entry   - reference to arp entry
+ * \param[in]   cp_arp_entry - reference to cp arp entry
+ * \param[out]  nps_arp_key  - reference to nps arp key
  *
- * \return      NW_API_OK - arp entry added successfully
+ * \return      none
+ */
+void build_nps_arp_key(struct nw_db_arp_entry *cp_arp_entry, struct nw_arp_key *nps_arp_key)
+{
+	memset(nps_arp_key, 0, sizeof(struct nw_arp_key));
+
+	nps_arp_key->ip = cp_arp_entry->entry_ip;
+	nps_arp_key->is_lag = cp_arp_entry->is_lag;
+	if (cp_arp_entry->is_lag == true) {
+		nps_arp_key->lag_index = cp_arp_entry->output_index;
+	} else {
+		nps_arp_key->output_interface = cp_arp_entry->output_index;
+	}
+}
+
+/**************************************************************************//**
+ * \brief       build ARP result for NPS according to cp_arp_entry
+ *
+ * \param[in]   cp_arp_entry   - reference to cp_arp_entry
+ * \param[out]  nps_arp_result - reference to nps_arp_result
+ *
+ * \return      none
+ */
+void build_nps_arp_result(struct nw_db_arp_entry *cp_arp_entry, struct nw_arp_result *nps_arp_result)
+{
+	memset(nps_arp_result, 0, sizeof(struct nw_arp_result));
+
+	memcpy(nps_arp_result->dest_mac_addr.ether_addr_octet, cp_arp_entry->dest_mac_address.ether_addr_octet, ETH_ALEN);
+}
+
+/**************************************************************************//**
+ * \brief       Add a ARP entry to NW DB
+ *
+ * \param[in]   arp_entry   - reference to ARP entry
+ *
+ * \return      NW_API_OK - ARP entry added successfully
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
 enum nw_api_rc nw_api_add_arp_entry(struct nw_api_arp_entry *arp_entry)
 {
 	struct nw_arp_result result;
 	struct nw_arp_key key;
-	struct nw_db_arp_entry db_arp_entry;
+	struct nw_db_arp_entry cp_arp_entry;
 	enum nw_api_rc rc;
 	uint32_t arp_entries_count = 0;
 
-	write_log(LOG_DEBUG, "Add neighbor to arp table. IP = %s MAC = %02x:%02x:%02x:%02x:%02x:%02x", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), arp_entry->mac_addr.ether_addr_octet[0], arp_entry->mac_addr.ether_addr_octet[1], arp_entry->mac_addr.ether_addr_octet[2], arp_entry->mac_addr.ether_addr_octet[3], arp_entry->mac_addr.ether_addr_octet[4], arp_entry->mac_addr.ether_addr_octet[5]);
+	write_log(LOG_DEBUG, "Add neighbor to ARP table. IP = %s MAC = %02x:%02x:%02x:%02x:%02x:%02x", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), arp_entry->mac_addr.ether_addr_octet[0], arp_entry->mac_addr.ether_addr_octet[1], arp_entry->mac_addr.ether_addr_octet[2], arp_entry->mac_addr.ether_addr_octet[3], arp_entry->mac_addr.ether_addr_octet[4], arp_entry->mac_addr.ether_addr_octet[5]);
 
 	/* check if arp entry already exist on internal db */
-	db_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry)) {
+	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
+	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
+	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	if (rc != NW_API_OK) {
+		return rc;
+	}
+
+	if (cp_arp_entry.is_lag == true) {
+		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
+	} else {
+		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
+	}
+
+	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
 	case NW_API_OK:
 		/* ARP entry already exists */
-		write_log(LOG_NOTICE, "Can't add ARP entry. Entry (IP=%s) already exists.", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_NOTICE, "Can't add ARP entry. Entry (IP=%s) already exists.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_FAILURE;
 	case NW_API_DB_ERROR:
 		/* Internal error */
-		write_log(LOG_ERR,  "Can't add ARP entry (IP=%s). Received error from internal DB.", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_ERR,  "Can't add ARP entry (IP=%s). Received error from internal DB.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_DB_ERROR;
 	case NW_API_FAILURE:
 		/* ARP entry doesn't exist on NW DB - Can add it.*/
@@ -1112,26 +1217,23 @@ enum nw_api_rc nw_api_add_arp_entry(struct nw_api_arp_entry *arp_entry)
 
 	/* check if reached to max num of arp entries */
 	if (internal_db_get_arp_entries_count(&arp_entries_count) != NW_API_OK) {
-		write_log(LOG_ERR, "Error while counting arp entries from internal db");
+		write_log(LOG_ERR, "Error while counting ARP entries from internal DB");
 		return NW_API_DB_ERROR;
 	}
-
-	/* check if reached to max num of entries */
 	if (arp_entries_count >= NW_ARP_TABLE_MAX_ENTRIES) {
-		write_log(LOG_ERR, "Error, reached to the maximum number of arp entries");
+		write_log(LOG_ERR, "Error, reached to the maximum number of ARP entries");
 		return NW_API_FAILURE;
 	}
 
-	arp_entry_to_table_entry(arp_entry, &key, &result);
-	/* set lag output index on lag mode - TODO: remove lag from ARP */
-	rc = set_lag_info_for_arp_entry(&result, &db_arp_entry);
-	if (rc != NW_API_OK) {
-		return rc;
-	}
+	/* update dest_mac_addr */
+	memcpy(cp_arp_entry.dest_mac_address.ether_addr_octet, arp_entry->mac_addr.ether_addr_octet, ETH_ALEN);
 
-	/* add arp entry to internal db */
-	memcpy(db_arp_entry.dest_mac_address.ether_addr_octet, result.dest_mac_addr.ether_addr_octet, ETH_ALEN);
-	if (internal_db_add_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry) != NW_API_OK) {
+	/* build ARP key & result */
+	build_nps_arp_key(&cp_arp_entry, &key);
+	build_nps_arp_result(&cp_arp_entry, &result);
+
+	/* add ARP entry to internal DB */
+	if (internal_db_add_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
 		write_log(LOG_NOTICE, "Error adding ARP entry to internal DB");
 		return NW_API_DB_ERROR;
 	}
@@ -1141,29 +1243,46 @@ enum nw_api_rc nw_api_add_arp_entry(struct nw_api_arp_entry *arp_entry)
 		return NW_API_DB_ERROR;
 	}
 
+	write_log(LOG_DEBUG, "ARP entry Added successfully. (IP = %s, is_lag = %d, output_if = %d)", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), cp_arp_entry.is_lag, cp_arp_entry.output_index);
+
 	return NW_API_OK;
 }
 
 /******************************************************************************
- * \brief       Remove arp entry from NW DB
+ * \brief       Remove ARP entry from NW DB
  *
- * \return      NW_API_OK - arp entry removed successfully
- *              NW_API_FAILURE - arp entry does not exist
+ * \param[in]   arp_entry   - reference to ARP entry
+ *
+ * \return      NW_API_OK - ARP entry removed successfully
+ *              NW_API_FAILURE - ARP entry does not exist
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
 enum nw_api_rc nw_api_remove_arp_entry(struct nw_api_arp_entry *arp_entry)
 {
 	struct nw_arp_key key;
-	struct nw_db_arp_entry db_arp_entry;
+	struct nw_db_arp_entry cp_arp_entry;
+	enum nw_api_rc rc;
 
-	write_log(LOG_DEBUG, "Remove neighbor from arp table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
+	write_log(LOG_DEBUG, "Remove neighbor from ARP table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
 
-	/* check if ARP entry exists in internal db */
-	db_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry)) {
+	/* check if ARP entry exists on internal db */
+	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
+	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
+	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	if (rc != NW_API_OK) {
+		return rc;
+	}
+
+	if (cp_arp_entry.is_lag == true) {
+		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
+	} else {
+		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
+	}
+
+	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
 	case NW_API_OK:
 		/* ARP entry exists */
-		write_log(LOG_DEBUG, "ARP entry (IP=%s) found in internal DB", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_DEBUG, "ARP entry (IP=%s) found in internal DB", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		break;
 	case NW_API_DB_ERROR:
 		/* Internal error */
@@ -1171,49 +1290,65 @@ enum nw_api_rc nw_api_remove_arp_entry(struct nw_api_arp_entry *arp_entry)
 		return NW_API_DB_ERROR;
 	case NW_API_FAILURE:
 		/* ARP entry doesn't exist in NW DB, no need to delete */
-		write_log(LOG_DEBUG, "ARP entry (IP=%s) not found in internal DB, no need to delete.", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_DEBUG, "ARP entry (IP=%s) not found in internal DB, no need to delete.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_FAILURE;
 	default:
 		return NW_API_DB_ERROR;
 	}
 
 	/* remove ARP entry from internal db */
-	if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry) != NW_API_OK) {
+	if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
 		write_log(LOG_ERR, "Received an error trying to delete ARP entry.");
 		return NW_API_DB_ERROR;
 	}
 
 	/* remove entry from NPS table */
-	arp_entry_to_table_entry(arp_entry, &key, NULL);
+	build_nps_arp_key(&cp_arp_entry, &key);
 	if (!infra_delete_entry(STRUCT_ID_NW_ARP, &key, sizeof(key))) {
 		write_log(LOG_ERR, "Cannot remove entry from ARP table IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
 		return NW_API_DB_ERROR;
 	}
 
+	write_log(LOG_DEBUG, "ARP entry Deleted successfully. (IP = %s, is_lag = %d, output_if = %d)", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), cp_arp_entry.is_lag, cp_arp_entry.output_index);
+
 	return NW_API_OK;
 }
 
 /******************************************************************************
- * \brief       Modify arp entry in NW DB
+ * \brief       Modify ARP entry in NW DB
  *
- * \return      NW_API_OK - arp entry modified/added successfully
+ * \param[in]   arp_entry   - reference to ARP entry
+ *
+ * \return      NW_API_OK - ARP entry modified/added successfully
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
 enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 {
 	struct nw_arp_result result;
 	struct nw_arp_key key;
-	struct nw_db_arp_entry db_arp_entry;
+	struct nw_db_arp_entry cp_arp_entry;
 	enum nw_api_rc rc;
 
-	write_log(LOG_DEBUG, "Modify neighbor in arp table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
+	write_log(LOG_DEBUG, "Modify neighbor in ARP table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
 
-	/* check if ARP entry exist in internal DB */
-	db_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry)) {
+	/* check if ARP entry exists on internal DB */
+	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
+	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
+	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	if (rc != NW_API_OK) {
+		return rc;
+	}
+
+	if (cp_arp_entry.is_lag == true) {
+		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
+	} else {
+		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
+	}
+
+	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
 	case NW_API_OK:
 		/* ARP entry exists */
-		write_log(LOG_DEBUG, "ARP entry (IP=%s) found on internal DB", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_DEBUG, "ARP entry (IP=%s) found on internal DB", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		break;
 	case NW_API_DB_ERROR:
 		/* Internal error */
@@ -1221,23 +1356,22 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 		return NW_API_DB_ERROR;
 	case NW_API_FAILURE:
 		/* ARP entry doesn't exist in NW DB, Add entry instead. */
-		write_log(LOG_DEBUG, "ARP Entry is not exist in DB, create a new entry (IP=%s)", nw_inet_ntoa(db_arp_entry.entry_ip));
+		write_log(LOG_DEBUG, "ARP Entry is not exist in DB, create a new entry (IP=%s)", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return nw_api_add_arp_entry(arp_entry);
 
 	default:
 		return NW_API_DB_ERROR;
 	}
 
-	/* set lag output index on lag mode - TODO: remove lag from ARP */
-	arp_entry_to_table_entry(arp_entry, &key, &result);
-	rc = set_lag_info_for_arp_entry(&result, &db_arp_entry);
-	if (rc != NW_API_OK) {
-		return rc;
-	}
+	/* update dest_mac_addr */
+	memcpy(cp_arp_entry.dest_mac_address.ether_addr_octet, arp_entry->mac_addr.ether_addr_octet, ETH_ALEN);
 
-	/* modify arp entry in internal db */
-	memcpy(db_arp_entry.dest_mac_address.ether_addr_octet, result.dest_mac_addr.ether_addr_octet, ETH_ALEN);
-	if (internal_db_modify_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&db_arp_entry) != NW_API_OK) {
+	/* build ARP key & result */
+	build_nps_arp_key(&cp_arp_entry, &key);
+	build_nps_arp_result(&cp_arp_entry, &result);
+
+	/* modify ARP entry in internal DB */
+	if (internal_db_modify_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
 		write_log(LOG_NOTICE, "Error from internal DB while modifying ARP entry");
 		return NW_API_DB_ERROR;
 	}
@@ -1247,6 +1381,8 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 		write_log(LOG_NOTICE, "Error from NPS DB while modifying ARP entry");
 		return NW_API_DB_ERROR;
 	}
+
+	write_log(LOG_DEBUG, "ARP entry Modified successfully. (IP = %s, is_lag = %d, output_if = %d)", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), cp_arp_entry.is_lag, cp_arp_entry.output_index);
 
 	return NW_API_OK;
 }
@@ -1893,9 +2029,9 @@ enum nw_api_rc remove_lag_group_from_arp_table(unsigned int lag_group_id)
 		}
 
 		/* remove entry from DP table */
-		key.real_server_address = arp_entry.entry_ip;
+		key.ip = arp_entry.entry_ip;
 		if (infra_delete_entry(STRUCT_ID_NW_ARP, &key, sizeof(key)) == false) {
-			write_log(LOG_ERR, "Cannot remove entry from ARP table key= 0x%X08", key.real_server_address);
+			write_log(LOG_ERR, "Cannot remove entry from ARP table key= 0x%X08", key.ip);
 			return NW_API_DB_ERROR;
 		}
 

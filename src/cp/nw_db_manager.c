@@ -300,7 +300,7 @@ void nw_db_manager_neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_
 
 	memset(arp_entry, 0, sizeof(struct nw_api_arp_entry));
 
-	arp_entry->if_index = rtnl_neigh_get_ifindex(neighbor);
+	arp_entry->output_index = rtnl_neigh_get_ifindex(neighbor);
 	arp_entry->ip_addr.af = rtnl_neigh_get_family(neighbor);
 	if (arp_entry->ip_addr.af == AF_INET) {
 		arp_entry->ip_addr.in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(dst);
@@ -334,6 +334,9 @@ void nw_db_manager_route_to_fib_entry(struct rtnl_route *route_entry, struct nw_
 	}
 	if (fib_entry->route_type == RTN_UNICAST) {
 		struct rtnl_nexthop *next_hop = rtnl_route_nexthop_n(route_entry, 0);
+		/* next hop index in case of neighbor or GW will indicate output interface index */
+		fib_entry->output_index = rtnl_route_nh_get_ifindex(next_hop);
+
 		struct nl_addr *next_hop_addr = rtnl_route_nh_get_gateway(next_hop);
 
 		if (next_hop_addr == NULL) {

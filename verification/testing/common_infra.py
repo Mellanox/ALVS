@@ -143,7 +143,7 @@ class ezbox_host:
 		outfile.write('# Automaticaly generated configuration file from E2E test environment. #\n')
 		outfile.write('########################################################################\n')
 		outfile.write('global_defs {\n')
-		outfile.write('	lvs_id LVS_MAIN\n')
+		outfile.write('	router_id LVS_MAIN\n')
 		outfile.write('}\n')
 		for vip in services.keys():
 			outfile.write('virtual_server %s 80 {\n'%vip)

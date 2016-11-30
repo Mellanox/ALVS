@@ -59,6 +59,8 @@ struct nw_db_fib_entry {
 	enum nw_fib_type           result_type;
 	in_addr_t                  next_hop;
 	uint16_t                   nps_index;
+	bool                       is_lag;
+	uint32_t                   output_index;	/* lag index or output_interface */
 };
 
 struct nw_db_lag_group_entry {

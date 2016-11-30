@@ -106,8 +106,10 @@ struct ezdp_decode_result {
 } __packed;
 
 struct route_entry_result {
-	enum nw_fib_type	fib_route_type;
-	uint32_t		fib_dest_ip;
+	in_addr_t                  dest_ip;
+	enum nw_fib_type           result_type;
+	bool                       is_lag;
+	uint8_t                    output_index;
 } __packed;
 
 enum nw_arp_processing_result {

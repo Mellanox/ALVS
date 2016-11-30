@@ -82,17 +82,21 @@ bool nw_db_init(void)
 	 * result_type
 	 * next_hop
 	 * nps_index
+	 * is_lag
+	 * output_index
 	 *
 	 * Key:
 	 * dest_ip
 	 * mask_length
 	 */
 	sql = "CREATE TABLE fib_entries("
-		"dest_ip INT NOT NULL,"
-		"mask_length INT NOT NULL,"
-		"result_type INT NOT NULL,"
-		"next_hop INT NOT NULL,"
-		"nps_index INT NOT NULL,"
+		"dest_ip INT NOT NULL,"                 /* 0 */
+		"mask_length INT NOT NULL,"             /* 1 */
+		"result_type INT NOT NULL,"             /* 2 */
+		"next_hop INT NOT NULL,"                /* 3 */
+		"nps_index INT NOT NULL,"               /* 4 */
+		"is_lag INT NOT NULL,"                  /* 5 */
+		"output_index INT NOT NULL,"            /* 6 */
 		"PRIMARY KEY (dest_ip,mask_length));";
 
 	/* Execute SQL statement */
@@ -147,10 +151,13 @@ bool nw_db_init(void)
 	 * Fields:
 	 * entry_ip
 	 * is_lag
-	 * lag_group_id
+	 * output_index
+	 * dest_mac_address
 	 *
 	 * Key:
 	 * entry_ip
+	 * is_lag
+	 * output_index
 	 */
 
 	sql = "CREATE TABLE arp_entries("
@@ -158,7 +165,7 @@ bool nw_db_init(void)
 		"is_lag INT NOT NULL,"			/* 1 */
 		"output_index INT NOT NULL,"		/* 2 */
 		"dest_mac_address BIGINT NOT NULL,"	/* 3 */
-		"PRIMARY KEY (entry_ip));";
+		"PRIMARY KEY (entry_ip,is_lag,output_index));";
 
 	/* Execute SQL statement */
 	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);

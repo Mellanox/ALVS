@@ -119,12 +119,12 @@ void		  packet_processing(void)
 	 printf("Entry 10.137.107.200 found in classification table\n");
 
 #ifndef EZ_SIM
-	 cmem.arp_key.real_server_address 	= service_res_ptr->real_server_ip;
+	 cmem.arp_key.ip 	= service_res_ptr->real_server_ip;
 #else
-	 cmem.arp_key.real_server_address 	= 0x0a9d07FE;
+	 cmem.arp_key.ip 	= 0x0a9d07FE;
 #endif
 
-	 printf("Search IP 0x%08X in ARP table\n", cmem.arp_key.real_server_address);
+	 printf("Search IP 0x%08X in ARP table\n", cmem.arp_key.ip);
 	 rc = ezdp_lookup_hash_entry(&shared_cmem.arp_struct_desc,
 								 (void*)&cmem.arp_key,
 								 sizeof(struct nw_arp_key),
