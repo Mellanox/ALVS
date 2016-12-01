@@ -59,9 +59,8 @@ void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint
  * \param[in]   dest_ip	         - destination IP
  * \param[out]  route_entry      - reference to a route entry result
  *
- * \return      bool             - true for a successful FIB processing
- *                                 false means the frame will be dropped, either due to
- *                                 drop route type or critical errors.
+ * \return      bool             - true  - successful FIB processing
+ *                                 false - fail in FIB processing, lookup fail/Unknown FIB result type
  */
 static __always_inline
 bool nw_fib_processing(in_addr_t dest_ip, struct route_entry_result *route_entry)
@@ -103,14 +102,14 @@ bool nw_fib_processing(in_addr_t dest_ip, struct route_entry_result *route_entry
 	} else if (route_entry->result_type == NW_FIB_DROP) {
 		anl_write_log(LOG_DEBUG, "NW_FIB_DROP: Drop frame.");
 		nw_interface_inc_counter(NW_IF_STATS_REJECT_BY_FIB);
-		return false;
+		return true;
 	} else if (route_entry->result_type == NW_FIB_UNSUPPORTED) {
 		anl_write_log(LOG_DEBUG, "NW_FIB_UNSUPPORTED: application will handle the frame.");
 		return true;
 	}
 
 	/* Unknown result type.*/
-	anl_write_log(LOG_ERR, "Unknown FIB result type. dropping packet");
+	anl_write_log(LOG_ERR, "Unknown FIB result type.");
 	nw_interface_inc_counter(NW_IF_STATS_UNKNOWN_FIB_RESULT);
 	return false;
 }
@@ -192,15 +191,14 @@ bool nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
 	struct route_entry_result route_entry;
 	enum nw_arp_processing_result arp_rc;
 
-	if (unlikely(nw_fib_processing(dest_ip, &route_entry) == false)) {
-		/* Critical error while fib_processing. Drop frame */
-		nw_discard_frame();
-		return true;
+	if (unlikely(nw_fib_processing(dest_ip, &route_entry) == false || route_entry.result_type == NW_FIB_UNSUPPORTED)) {
+		/* failed FIB processing/Unsupported route type, application will handle */
+		return false;
 	}
 
-	if (unlikely(route_entry.result_type == NW_FIB_UNSUPPORTED)) {
-		/* Unsupported route type; can't decide what to do. application will handle this frame */
-		return false;
+	if (unlikely(route_entry.result_type == NW_FIB_DROP)) {
+		nw_discard_frame();
+		return true;
 	}
 
 	arp_rc = nw_arp_processing(frame, frame_base, &route_entry, frame_buff_size);
