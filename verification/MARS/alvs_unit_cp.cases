@@ -102,4 +102,49 @@
         </cmd>
         <post> </post>
     </case>
+    
+    
+   	<case>
+        <info> alvs_unsupported_features_test </info>
+        <name> alvs_unsupported_features_test </name>
+        <tags> arp </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t alvs_unsupported_features_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+     	<case>
+        <info> arp_entry_state_change </info>
+        <name> arp_entry_state_change </name>
+        <tags> arp </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t arp_entry_state_change.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+         <case>
+        <info> arp_table_test </info>
+        <name> arp_table_test </name>
+        <tags> arp </tags>
+        <pre> </pre>
+        <cmd>
+             <params>
+                 <static_args> -t arp_table_test.py </static_args>
+             </params>
+        </cmd>
+        <post> </post>
+    </case>
+    
+    
+    
+    
+      
 </CASEDEF>    

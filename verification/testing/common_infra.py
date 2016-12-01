@@ -88,6 +88,17 @@ FIN_FLAG_DELETE_TIME = 60
 # Classes
 #===============================================================================
 
+
+class arp_entry:
+     
+    def __init__(self, ip_address, mac_address, interface=None, flags=None, mask=None, type=None):
+        self.ip_address = ip_address
+        self.mac_address = mac_address
+        self.interface = interface
+        self.flags = flags
+        self.mask = mask
+        self.type = type
+
 class ezbox_host:
 	
 	def __init__(self, setup_id):
@@ -582,6 +593,99 @@ class ezbox_host:
 		
 		return arp_entry
 	
+
+	def get_arp_table(self,incomplete=True):
+		parsed_arp_entries=[]
+		linux_arp= self.execute_command_on_host('arp -n')
+		if(linux_arp[0]==False):
+			print linux_arp
+			exit(1)
+		arp_entries = linux_arp[1].split('\n')
+		del arp_entries[0]
+		for entry in arp_entries:
+			if entry == '':
+				break
+			if incomplete:
+				if "incomplete" in entry: #not valid arp entry
+					continue
+			entry_items=entry.split()
+			entry_items[2] = entry_items[2].upper()
+			temp_entry = arp_entry(ip_address = entry_items[0], 
+								   type = entry_items[1], 
+								   mac_address = entry_items[2], 
+								   interface = entry_items[-1])
+			parsed_arp_entries.append(temp_entry)
+		
+		return parsed_arp_entries
+		
+
+		
+       
+
+	
+	def compare_arp_tables(self,linux_arp,cp_arp):
+
+		linux_arp_entries_dict={}
+
+		
+		##building dictonery for linux table entries
+		for x in linux_arp:
+			linux_arp_entries_dict[x.ip_address]=x.mac_address
+			
+		if len(linux_arp_entries_dict) != len(cp_arp):
+			print "arp_tables not in the same length:  %d  %d"%(len(linux_arp_entries_dict),len(cp_arp))
+			return False
+		#calculate dif between dictoneries
+		linux_arp_entries_dict_keys=set(linux_arp_entries_dict.keys())
+		cp_arp_entries_dict_keys=set(cp_arp.keys())
+		intersect_keys = cp_arp_entries_dict_keys.intersection(linux_arp_entries_dict_keys)
+		same = set(o for o in intersect_keys if linux_arp_entries_dict[o] == cp_arp[o])
+		return len(same)==len(linux_arp_entries_dict_keys)
+	
+	def get_unused_ip_on_subnet(self,netmask='255.255.248.0'):
+		arp_entries=self.get_arp_table(False)
+		z=self.setup['data_ip_hex_display']
+		bytes = ["".join(x) for x in zip(*[iter(z.replace(" ", ""))]*2)]
+		bytes = [int(x, 16) for x in bytes]
+		z=".".join(str(x) for x in bytes)
+		int_ip_address=ip2int(z)
+		int_netmask=ip2int(netmask)
+		first_ip = int2ip(int_ip_address & int_netmask)
+		temp_ip = first_ip
+		new_list = []
+		while True:
+			temp_ip = add2ip(temp_ip,1)
+			if z == temp_ip:
+				continue
+			
+			found=False
+			for entry in arp_entries:
+				if entry.ip_address == temp_ip:
+					found=True
+					continue
+			if (ip2int(first_ip) & int_netmask) < (ip2int(temp_ip) & int_netmask):
+				break
+			
+			if found == False:
+				new_list.append(temp_ip)
+			
+		return new_list
+		
+		
+		
+		
+		
+
+	
+	def check_cp_entry_exist(self,ip_address,mac_address):
+		alvs_arp_entries_dict=self.get_all_arp_entries()
+		value = alvs_arp_entries_dict.get(ip_address)
+		if value==None or value!=mac_address:
+			return False
+		else:
+			return True
+	
+	
 	def get_lag_group(self, lag_group_id):
 		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_NW_LAG_GROUPS, 0, {'key' : "%02x" % lag_group_id}).result["params"]["entry"]["result"]).split(' ')
 		lag_group = {
@@ -990,8 +1094,19 @@ class ezbox_host:
 		result,output = self.execute_command_on_host(cmd)
 		return [result,output]
 	
+	def delete_arp_entry(self, ip_address):
+		cmd = "arp -d " + ip_address
+		result,output = self.execute_command_on_host(cmd)
+		return [result,output]
+	
+	
+	
+	
+	
+	
+	
 	def change_arp_entry_state(self, ip_address, new_state, check_if_state_changed = False, old_state = None):
-		cmd ="ip neigh change " + ip_address + " dev eth0 nud " + new_state
+		cmd ="ip neigh change " + ip_address + " dev "+self.setup['interface']+" nud " + new_state
 		if check_if_state_changed == True:
 			cmd = cmd + " && ip neigh show nud " + new_state + " | grep " + ip_address
 		result,output = self.execute_command_on_host(cmd)
