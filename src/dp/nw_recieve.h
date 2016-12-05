@@ -95,8 +95,11 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			return;
 		}
 
-		/*check if my_mac is set*/
-		if (unlikely(!(cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.my_mac | cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.ipv4_multicast))) {
+		/*check mac & multicast */
+		if (likely(!ezdp_mem_cmp((uint8_t *)(&cmem_nw.ingress_if_result.mac_address), frame_base, sizeof(struct ether_addr)))) {
+			/* its my mac */
+			cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.my_mac = 1;
+		} else if (unlikely(!cmem_wa.nw_wa.ezdp_decode_result.mac_decode_result.control.ipv4_multicast)) {
 			anl_write_log(LOG_DEBUG, "Not my MAC or not multicast");
 			nw_interface_inc_counter(NW_IF_STATS_NOT_MY_MAC);
 			nw_direct_route(frame, frame_base, cmem_nw.ingress_if_result.direct_output_if, cmem_nw.ingress_if_result.is_direct_output_lag);

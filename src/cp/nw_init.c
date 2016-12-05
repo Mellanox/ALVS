@@ -50,7 +50,6 @@
 bool nw_initialize_protocol_decode(void)
 {
 	EZstatus ret_val;
-	struct ether_addr my_mac;
 	EZapiChannel_ProtocolDecoderParams protocol_decoder_params;
 
 	/* Get defaults for profile 0 - this is the default profile used
@@ -62,25 +61,6 @@ bool nw_initialize_protocol_decode(void)
 	if (EZrc_IS_ERROR(ret_val)) {
 		return false;
 	}
-
-	/* Get my MAC */
-	if (infra_get_my_mac(&my_mac) == false) {
-		return false;
-	}
-
-	/* Set my MAC in protocol decode profile */
-	protocol_decoder_params.aucDestMACAddressHigh[0] = my_mac.ether_addr_octet[0];
-	protocol_decoder_params.aucDestMACAddressHigh[1] = my_mac.ether_addr_octet[1];
-	protocol_decoder_params.aucDestMACAddressHigh[2] = my_mac.ether_addr_octet[2];
-	protocol_decoder_params.aucDestMACAddressHigh[3] = my_mac.ether_addr_octet[3];
-	protocol_decoder_params.aucDestMACAddressHigh[4] = my_mac.ether_addr_octet[4];
-	protocol_decoder_params.aucDestMACAddressHigh[5] = my_mac.ether_addr_octet[5];
-	protocol_decoder_params.aucDestMACAddressLow[0] = my_mac.ether_addr_octet[0];
-	protocol_decoder_params.aucDestMACAddressLow[1] = my_mac.ether_addr_octet[1];
-	protocol_decoder_params.aucDestMACAddressLow[2] = my_mac.ether_addr_octet[2];
-	protocol_decoder_params.aucDestMACAddressLow[3] = my_mac.ether_addr_octet[3];
-	protocol_decoder_params.aucDestMACAddressLow[4] = my_mac.ether_addr_octet[4];
-	protocol_decoder_params.aucDestMACAddressLow[5] = my_mac.ether_addr_octet[5];
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetProtocolDecoderParams, &protocol_decoder_params);
 	if (EZrc_IS_ERROR(ret_val)) {
