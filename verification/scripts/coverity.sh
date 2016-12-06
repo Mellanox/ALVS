@@ -131,17 +131,17 @@ function run_coverity_dp {
 	echo "Creating $DP_CONFIG_DIR for DP Coverity config directory..." | tee -a $LOG_FILE
 	mkdir $DP_CONFIG_DIR &>> $LOG_FILE
 
+        DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        makefile_dir="$DIR/../../"
+
 	echo "Creating compiler configuraion for DP..." | tee -a $LOG_FILE
-	cov-configure  --config $DP_CONFIG_DIR/dp_config.xml -co /auto/nps_release/EZdk/EZdk-2.0a-patch-1.0.0/ldk/toolchain/bin/arceb-linux-gcc -- -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape &>> $LOG_FILE
+	cov-configure  --config $DP_CONFIG_DIR/dp_config.xml -co $makefile_dir/EZdk/ldk/toolchain/bin/arceb-linux-gcc -- -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape &>> $LOG_FILE
 	if [ "$?" != 0 ]
 	then
 		echo "ERROR: cov-configure failed!!!" | tee -a $LOG_FILE
 		return 1
 	fi
 	
-	DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-	makefile_dir="$DIR/../../"
-
 	echo "Running clean project..." | tee -a $LOG_FILE
 	make -C $makefile_dir clean &>> $LOG_FILE
 
