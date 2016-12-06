@@ -115,16 +115,18 @@ def generic_init(setup_num, service_count, server_count, client_count):
 	# Create servers list
 	server_list=[]
 	for i in range(server_count):
-		server = HttpServer(ip       = setup_list[next_vm_idx]['ip'],
-						    hostname = setup_list[next_vm_idx]['hostname'])
+		server = HttpServer(ip       = setup_list[next_vm_idx]['all_ips'][0],
+						    hostname = setup_list[next_vm_idx]['hostname'],
+						    all_eths  = setup_list[next_vm_idx]['all_eths'])
 		server_list.append(server)
 		next_vm_idx+=1
 	
 	# Create clients list
 	client_list=[]
 	for i in range(client_count):
-		client = HttpClient(ip       = setup_list[next_vm_idx]['ip'],
-						    hostname = setup_list[next_vm_idx]['hostname'])
+		client = HttpClient(ip       = setup_list[next_vm_idx]['all_ips'][0],
+						    hostname = setup_list[next_vm_idx]['hostname'],
+						    all_eths = setup_list[next_vm_idx]['all_eths'])
 		client_list.append(client)
 		next_vm_idx+=1
 

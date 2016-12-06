@@ -1459,15 +1459,55 @@ class SshConnect:
 		return -1
 
 class player(object):
-	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
+	def __init__(self, ip, hostname, username, password, mode, all_eths, exe_path=None, exe_script=None, exec_params=None):
 		self.ip = ip
 		self.hostname = hostname
 		self.username = username
 		self.password = password
 		self.exe_path = exe_path
+                self.mode = mode
+		self.all_eths = all_eths
 		self.exe_script = exe_script
 		self.exec_params = exec_params
 		self.ssh		= SshConnect(hostname, username, password)
+
+	def config_interface(self):
+		if self.mode == "alvs":
+			eth_up = self.all_eths[0]
+			eth_down = self.all_eths[1:]
+		else:	# routing mode, mode = "number of network"
+			eth_down = self.all_eths[:self.mode] + self.all_eths[self.mode+1:]
+			eth_up = self.all_eths[self.mode]		
+		
+		interfaces = self.read_ifconfig()
+		
+		if eth_up not in interfaces:
+			self.ifconfig_eth_up(eth_up)
+		
+		for eth in eth_down:
+			if eth in interfaces:
+				self.ifconfig_eth_down(eth)
+	
+	def read_ifconfig(self):
+		result, exit_code = self.ssh.execute_command("ifconfig")
+		if result == False:
+			err_msg = "Error: command ifconfig failed, exit code: \n%s" %exit_code
+			raise RuntimeError(err_msg)
+		return exit_code
+	
+		
+	def ifconfig_eth_up(self, eth_up):
+		result, exit_code = self.ssh.execute_command("ifup " + eth_up + " --force")
+		if result == False:
+			err_msg = "Error: command ifup " + eth_up + " failed, exit code: \n%s" %exit_code
+			raise RuntimeError(err_msg)
+
+	def ifconfig_eth_down(self, eth_down):
+		result, exit_code = self.ssh.execute_command("ifdown " + eth_down + " --force")
+		if result == False:
+			err_msg = "Error: command ifdown " + eth_down + " failed, exit code: \n%s" %exit_code
+			raise RuntimeError(err_msg)
+			
 
 	def execute(self, exe_prog="python"):
 		if self.exe_script:
@@ -1480,7 +1520,7 @@ class player(object):
 	def connect(self):
 		self.ssh.connect()
 		# retrieve local mac address
-		result, self.mac_address = self.ssh.execute_command("cat /sys/class/net/ens6/address")
+		result, self.mac_address = self.ssh.execute_command("cat /sys/class/net/" + self.eth + "/address")
 		if result == False:
 			print "Error while retreive local address"
 			print self.mac_address
@@ -1586,8 +1626,10 @@ def get_setup_list(setup_num):
 	for line in infile:
 		input_list = line.strip().split(',')
 		if len(input_list) >= 2:
-			setup_list.append({'hostname':input_list[0],'ip':input_list[1]})
-	
+			setup_list.append({'hostname':input_list[0],
+								'mng_ip':input_list[2],
+								'all_eths':input_list[3::2],# all interfaces [ALVS, routing1, routing2, routing3, routing4]
+								'all_ips':[input_list[1]] + input_list[4::2]})# all IP's
 	return setup_list
 
 def get_ezbox_names(setup_id):

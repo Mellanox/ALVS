@@ -19,7 +19,7 @@ import pexpect
 #===============================================================================
 
 class HttpServer(player):
-	def __init__(self, ip, hostname,
+	def __init__(self, ip, hostname, all_eths,
 				username    = "root",
 				password    = "3tango",
 				exe_path    = None,
@@ -27,21 +27,22 @@ class HttpServer(player):
 				exec_params = None,
 				vip         = None,
 				net_mask    = "255.255.255.255",
-				eth         = 'ens6',
+				mode        = "alvs",
 				weight      = 1,
 				u_thresh    = 0,
 				l_thresh    = 0):
 		# init parent class
-		super(HttpServer, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
+		super(HttpServer, self).__init__(ip, hostname, username, password, mode, all_eths, exe_path, exe_script, exec_params)
 		# Init class variables
 		self.net_mask = net_mask
 		self.vip = vip
-		self.eth = eth
+		self.eth = all_eths[0]
 		self.weight = weight
 		self.u_thresh = u_thresh
 		self.l_thresh = l_thresh
 	def init_server(self, index_str):
 		self.connect()
+		self.config_interface()
 		self.clear_arp_table()
 		self.start_http_daemon()
 		self.configure_loopback()
@@ -58,21 +59,27 @@ class HttpServer(player):
 		self.logout()
 		
 	def start_http_daemon(self):
-		rc, output = self.ssh.execute_command("service httpd start")
+		if len(self.all_eths) > 1:
+			rc, output = self.ssh.execute_command("service apache2 start")
+		else:
+			rc, output = self.ssh.execute_command("service httpd start")#httpd
 		if rc != True:
 			print "ERROR: Start HTTP daemon failed. rc=" + str(rc) + " " + output
 			return
 		
-		rc, output = self.ssh.execute_command("chkconfig httpd on")
-		if rc != True:
-			print "ERROR: setting chkconfig ON failed. rc=" + str(rc) + " " + output
-			return
+		#rc, output = self.ssh.execute_command("chkconfig httpd on")
+		#if rc != True:
+		#	print "ERROR: setting chkconfig ON failed. rc=" + str(rc) + " " + output
+		#	return
 
 	def stop_http_daemon(self, verbose = True):
-		rc, output = self.ssh.execute_command("service httpd stop")
+		if len(self.all_eths) > 1:
+			rc, output = self.ssh.execute_command("service apache2 stop")#httpd
+		else:
+			rc, output = self.ssh.execute_command("service httpd stop")
 		if rc != True and verbose:
 			print "ERROR: Stop HTTP daemon failed. rc=" + str(rc) + " " + output
-
+		
 	def capture_packets_from_service(self, service_vip, tcpdump_params=''):
 		self.dump_pcap_file = '/tmp/server_dump.pcap'
 		self.ssh.execute_command("rm -f " + self.dump_pcap_file)

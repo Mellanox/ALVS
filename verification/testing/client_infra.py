@@ -20,25 +20,28 @@ from common_infra import *
 #===============================================================================
 
 class HttpClient(player):
-	def __init__(self, ip, hostname,
+	def __init__(self, ip, hostname, all_eths,
 				username    = "root",
 				password    = "3tango",
+				mode        = "alvs",
 				exe_path    = "/root/tmp/",
 				src_exe_path    = os.path.dirname(os.path.realpath(__file__))+"/system_level",
 				exe_script  = "basic_client_requests.py",
 				exec_params = ""):
 		
 		# init parent class
-		super(HttpClient, self).__init__(ip, hostname, username, password, exe_path, exe_script, exec_params)
+		super(HttpClient, self).__init__(ip, hostname, username, password, mode, all_eths, exe_path, exe_script, exec_params)
 		
 		# Init class variables
 		self.logfile_name  = '/root/client_%s.log'%ip
 		self.exec_params  += ' -l %s' %self.logfile_name
 		self.loglist       = [self.logfile_name]
 		self.src_exe_path  = src_exe_path
+		self.eth = all_eths[0]
 
 	def init_client(self):
 		self.connect()
+		self.config_interface()
 		self.clear_arp_table()
 		self.copy_exec_script()
 		
@@ -48,7 +51,7 @@ class HttpClient(player):
 		self.execute_command(cmd)
 		self.copy_file_to_player(pcap_file, self.exe_path)
 		pcap_file_name = pcap_file[pcap_file.rfind("/")+1:]
-		cmd = "tcpreplay --intf1=ens6 " + self.exe_path + pcap_file_name
+		cmd = "tcpreplay --intf1=" + self.eth + " " + self.exe_path + pcap_file_name
 		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
 		result, output = self.execute_command(cmd)
 		if result == False:
@@ -93,7 +96,7 @@ class HttpClient(player):
 		self.execute_command(cmd)
 	
 	def get_mac_adress(self):
-		[result, mac_address] = self.execute_command("cat /sys/class/net/ens6/address")
+		[result, mac_address] = self.execute_command("cat /sys/class/net/" + self.eth + "/address")
 		if result == False:
 			print "Error while retreive local address"
 			print mac_address
