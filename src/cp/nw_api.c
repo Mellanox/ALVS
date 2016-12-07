@@ -61,9 +61,6 @@ extern sqlite3 *nw_db;
 extern const char *nw_if_posted_stats_offsets_names[];
 extern const char *remote_if_posted_stats_offsets_names[];
 
-#define LAG_GROUP_NULL    0xFFFFFFFF
-#define LAG_GROUP_DEFAULT 0
-
 /**************************************************************************//**
  * \brief       internal inet_ntoa - IP to string
  *
@@ -76,392 +73,6 @@ char *nw_inet_ntoa(in_addr_t ip)
 	struct in_addr ip_addr = {.s_addr = ip};
 
 	return inet_ntoa(ip_addr);
-}
-
-/**************************************************************************//**
- * \brief       Add an entry to internal DB
- *
- * \param[in]   entry_data   - reference to entry data
- *                             (nw_db_lag_group_entry or nw_db_fib_entry or nw_db_nw_interface)
- *
- * \return      NW_API_OK - Add to internal DB succeed
- *              NW_API_DB_ERROR - failed to communicate with DB
- *
- */
-enum nw_api_rc internal_db_add_entry(enum internal_db_table_name table_name, void *entry_data)
-{
-	int rc;
-	char sql[512];
-	char *zErrMsg = NULL;
-	struct nw_db_lag_group_entry *lag_group = NULL;
-	struct nw_db_fib_entry *fib_entry = NULL;
-	struct nw_db_arp_entry *arp_entry = NULL;
-	struct nw_db_nw_interface *nw_interface = NULL;
-	uint16_t app_bitmap_u16_casting = 0;
-	uint64_t mac_address_casting = 0;
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-		fib_entry = (struct nw_db_fib_entry *)entry_data;
-		sprintf(sql, "INSERT INTO fib_entries "
-			"(dest_ip, mask_length, result_type, next_hop, nps_index, is_lag, output_index) "
-			"VALUES (%d, %d, %d, %d, %d, %d, %d);",
-			fib_entry->dest_ip, fib_entry->mask_length, fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index, fib_entry->is_lag, fib_entry->output_index);
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		arp_entry = (struct nw_db_arp_entry *)entry_data;
-		memcpy(&mac_address_casting, arp_entry->dest_mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "INSERT INTO arp_entries "
-			"(entry_ip, is_lag, output_index, dest_mac_address) "
-			"VALUES (%d, %d, %d, %ld);",
-			arp_entry->entry_ip, arp_entry->is_lag,
-			arp_entry->output_index,
-			mac_address_casting);
-		break;
-
-	case LAG_GROUPS_INTERNAL_DB:
-		lag_group = (struct nw_db_lag_group_entry *)entry_data;
-		memcpy(&mac_address_casting, lag_group->mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "INSERT INTO lag_groups "
-			"(lag_group_id, admin_state, mac_address) "
-			"VALUES (%d, %d, %ld);",
-			lag_group->lag_group_id, (uint32_t)lag_group->admin_state,
-			mac_address_casting);
-		break;
-
-	case NW_INTERFACES_INTERNAL_DB:
-		nw_interface = (struct nw_db_nw_interface *)entry_data;
-		memcpy(&app_bitmap_u16_casting, &nw_interface->app_bitmap, sizeof(uint16_t));
-		memcpy(&mac_address_casting, nw_interface->mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "INSERT INTO nw_interfaces "
-			"(interface_id, admin_state, lag_group_id, is_lag, mac_address, path_type, "
-			"is_direct_output_lag, direct_output_if, app_bitmap, output_channel, sft_en, stats_base) "
-			"VALUES (%d, %d, %d, %d, %ld, %d, %d, %d, %d, %d, %d, %d );",
-			nw_interface->interface_id,
-			nw_interface->admin_state,
-			nw_interface->lag_group_id, nw_interface->is_lag,
-			mac_address_casting,
-			nw_interface->path_type,
-			nw_interface->is_direct_output_lag,
-			nw_interface->direct_output_if,
-			app_bitmap_u16_casting,
-			nw_interface->output_channel,
-			nw_interface->sft_en,
-			nw_interface->stats_base);
-
-		break;
-	default:
-		write_log(LOG_NOTICE, "Trying to add an entry to a bad internal db table name");
-		return NW_API_DB_ERROR;
-	}
-
-	/* Execute SQL statement */
-	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
-		write_log(LOG_CRIT, "Last SQL command: %s", sql);
-		sqlite3_free(zErrMsg);
-		return NW_API_DB_ERROR;
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       Modify an entry in internal DB
- *
- * \param[in]   fib_entry   - reference to fib entry
- *
- * \return      NW_API_OK - Modify of internal DB succeed
- *              NW_API_DB_ERROR - failed to communicate with DB
- *              NW_API_FAILURE - wrong table name
- */
-enum nw_api_rc internal_db_modify_entry(enum internal_db_table_name table_name, void *entry_data)
-{
-	int rc;
-	char sql[512];
-	char *zErrMsg = NULL;
-
-	struct nw_db_lag_group_entry *lag_group = NULL;
-	struct nw_db_nw_interface *nw_interface = NULL;
-	struct nw_db_fib_entry *fib_entry = NULL;
-	struct nw_db_arp_entry *arp_entry = NULL;
-	uint16_t app_bitmap_u16_casting = 0;
-	uint64_t mac_address_casting = 0;
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-
-		fib_entry = (struct nw_db_fib_entry *)entry_data;
-		sprintf(sql, "UPDATE fib_entries "
-			"SET result_type=%d, next_hop=%d, nps_index=%d, is_lag=%d, output_index=%d "
-			"WHERE dest_ip=%d AND mask_length=%d;",
-			fib_entry->result_type, fib_entry->next_hop, fib_entry->nps_index, fib_entry->is_lag, fib_entry->output_index, fib_entry->dest_ip, fib_entry->mask_length);
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		arp_entry = (struct nw_db_arp_entry *)entry_data;
-		memcpy(&mac_address_casting, arp_entry->dest_mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "UPDATE arp_entries "
-			"SET dest_mac_address=%ld "
-			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
-			mac_address_casting,
-			arp_entry->entry_ip,
-			arp_entry->is_lag,
-			arp_entry->output_index);
-		break;
-
-	case LAG_GROUPS_INTERNAL_DB:
-		lag_group = (struct nw_db_lag_group_entry *)entry_data;
-		memcpy(&mac_address_casting, lag_group->mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "UPDATE lag_groups "
-			"SET admin_state=%d, mac_address=%ld "
-			"WHERE lag_group_id=%d;",
-			lag_group->admin_state,
-			mac_address_casting,
-			lag_group->lag_group_id);
-
-		break;
-
-	case NW_INTERFACES_INTERNAL_DB:
-		nw_interface = (struct nw_db_nw_interface *)entry_data;
-		memcpy(&app_bitmap_u16_casting, &nw_interface->app_bitmap, sizeof(uint16_t));
-		memcpy(&mac_address_casting, nw_interface->mac_address.ether_addr_octet, ETH_ALEN);
-		sprintf(sql, "UPDATE nw_interfaces "
-			"SET admin_state=%d, lag_group_id=%d, is_lag=%d, "
-			"mac_address=%ld, path_type=%d, is_direct_output_lag=%d,"
-			"direct_output_if=%d, app_bitmap=%d, output_channel=%d, sft_en=%d, stats_base=%d "
-			"WHERE interface_id=%d;",
-			nw_interface->admin_state,
-			nw_interface->lag_group_id,
-			nw_interface->is_lag,
-			mac_address_casting,
-			nw_interface->path_type,
-			nw_interface->is_direct_output_lag,
-			nw_interface->direct_output_if,
-			app_bitmap_u16_casting,
-			nw_interface->output_channel,
-			nw_interface->sft_en,
-			nw_interface->stats_base,
-			nw_interface->interface_id);
-		break;
-
-	default:
-		write_log(LOG_NOTICE, "Trying to modify an entry from a wrong internal db table name");
-		return NW_API_DB_ERROR;
-	}
-
-	/* Execute SQL statement */
-	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
-		write_log(LOG_CRIT, "Last SQL command: %s", sql);
-		sqlite3_free(zErrMsg);
-		return NW_API_DB_ERROR;
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       Remove an_entry from internal DB
- *
- * \param[in]   fib_entry   - reference to fib entry
- *
-
- * \return      NW_API_OK - remove from internal db succeed
- *              NW_API_DB_ERROR - failed to communicate with DB
- *
- *              NW_API_FAILURE - wrong table name
- */
-enum nw_api_rc internal_db_remove_entry(enum internal_db_table_name table_name, void *entry_data)
-{
-	int rc;
-	char sql[512];
-	char *zErrMsg = NULL;
-	struct nw_db_lag_group_entry *lag_group = NULL;
-	struct nw_db_fib_entry *fib_entry = NULL;
-	struct nw_db_arp_entry *arp_entry = NULL;
-	struct nw_db_nw_interface *nw_interface = NULL;
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-		fib_entry = (struct nw_db_fib_entry *)entry_data;
-		sprintf(sql, "DELETE FROM fib_entries "
-			"WHERE dest_ip=%d AND mask_length=%d;",
-			fib_entry->dest_ip, fib_entry->mask_length);
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		arp_entry = (struct nw_db_arp_entry *)entry_data;
-		sprintf(sql, "DELETE FROM arp_entries "
-			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
-			arp_entry->entry_ip, arp_entry->is_lag, arp_entry->output_index);
-		break;
-
-	case LAG_GROUPS_INTERNAL_DB:
-		lag_group = (struct nw_db_lag_group_entry *)entry_data;
-		sprintf(sql, "DELETE FROM lag_groups "
-			"WHERE lag_group_id=%d;",
-			lag_group->lag_group_id);
-		break;
-
-	case NW_INTERFACES_INTERNAL_DB:
-		nw_interface = (struct nw_db_nw_interface *)entry_data;
-		sprintf(sql, "DELETE FROM nw_interfaces "
-			"WHERE interface_id=%d;",
-			nw_interface->interface_id);
-		break;
-
-	default:
-		write_log(LOG_NOTICE, "Trying to remove an entry from a bad internal db table name");
-		return NW_API_DB_ERROR;
-	}
-
-	/* Execute SQL statement */
-	rc = sqlite3_exec(nw_db, sql, NULL, NULL, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
-		write_log(LOG_CRIT, "Last SQL command: %s", sql);
-		sqlite3_free(zErrMsg);
-		return NW_API_DB_ERROR;
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       Searches an entry in internal DB
- *
- * \param[in]   entry   - reference to entry
- *
- * \return      NW_API_OK - entry found
- *              NW_API_FAILURE - entry not found
- *              NW_API_DB_ERROR - failed to communicate with DB
- */
-enum nw_api_rc internal_db_get_entry(enum internal_db_table_name table_name, void *entry_data)
-{
-	int rc;
-	char sql[512];
-	sqlite3_stmt *statement;
-	struct nw_db_lag_group_entry *lag_group = NULL;
-	struct nw_db_fib_entry *fib_entry = NULL;
-	struct nw_db_arp_entry *arp_entry = NULL;
-	struct nw_db_nw_interface *nw_interface = NULL;
-	uint16_t app_bitmap_u16_casting = 0;
-	uint64_t mac_address_casting = 0;
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-		fib_entry = (struct nw_db_fib_entry *)entry_data;
-		sprintf(sql, "SELECT * FROM fib_entries "
-			"WHERE dest_ip=%d AND mask_length=%d;",
-			fib_entry->dest_ip, fib_entry->mask_length);
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		arp_entry = (struct nw_db_arp_entry *)entry_data;
-		sprintf(sql, "SELECT * FROM arp_entries "
-			"WHERE entry_ip=%d AND is_lag=%d AND output_index=%d;",
-			arp_entry->entry_ip, arp_entry->is_lag, arp_entry->output_index);
-		break;
-
-	case LAG_GROUPS_INTERNAL_DB:
-		lag_group = (struct nw_db_lag_group_entry *)entry_data;
-		sprintf(sql, "SELECT * FROM lag_groups "
-			"WHERE lag_group_id=%d;",
-			lag_group->lag_group_id);
-		break;
-
-	case NW_INTERFACES_INTERNAL_DB:
-		nw_interface = (struct nw_db_nw_interface *)entry_data;
-		sprintf(sql, "SELECT * FROM nw_interfaces "
-			"WHERE interface_id=%d;",
-			nw_interface->interface_id);
-		break;
-
-	default:
-		write_log(LOG_NOTICE, "Trying to search an entry from a wrong internal db table name");
-		return NW_API_DB_ERROR;
-	}
-
-	/* Prepare SQL statement */
-	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s",
-			  sqlite3_errmsg(nw_db));
-		return NW_API_DB_ERROR;
-	}
-
-	/* Execute SQL statement */
-	rc = sqlite3_step(statement);
-
-	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s",
-			  sqlite3_errmsg(nw_db));
-		sqlite3_finalize(statement);
-		return NW_API_DB_ERROR;
-	}
-
-	/* FIB entry not found */
-	if (rc == SQLITE_DONE) {
-		sqlite3_finalize(statement);
-		return NW_API_FAILURE;
-	}
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-		/* retrieve fib entry from result,
-		 * finalize SQL statement and return
-		 */
-		fib_entry->result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
-		fib_entry->next_hop = sqlite3_column_int(statement, 3);
-		fib_entry->nps_index = sqlite3_column_int(statement, 4);
-		fib_entry->is_lag = sqlite3_column_int(statement, 5);
-		fib_entry->output_index = sqlite3_column_int(statement, 6);
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		/* retrieve arp entry from result,
-		 * finalize SQL statement and return
-		 */
-		mac_address_casting = sqlite3_column_int64(statement, 3);
-		memcpy(arp_entry->dest_mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
-		break;
-
-	case LAG_GROUPS_INTERNAL_DB:
-		/* retrieve fib entry from result,
-		 * finalize SQL statement and return
-		 */
-		lag_group->admin_state = sqlite3_column_int(statement, 1);
-		mac_address_casting = sqlite3_column_int64(statement, 2);
-		memcpy(lag_group->mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
-		break;
-
-	case NW_INTERFACES_INTERNAL_DB:
-		/* retrieve fib entry from result,
-		 * finalize SQL statement and return
-		 */
-		nw_interface->admin_state = sqlite3_column_int(statement, 1);
-		nw_interface->lag_group_id = sqlite3_column_int(statement, 2);
-		nw_interface->is_lag = sqlite3_column_int(statement, 3);
-		mac_address_casting = sqlite3_column_int64(statement, 4);
-		memcpy(nw_interface->mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
-		nw_interface->path_type = sqlite3_column_int(statement, 5);
-		nw_interface->is_direct_output_lag = sqlite3_column_int(statement, 6);
-		nw_interface->direct_output_if = sqlite3_column_int(statement, 7);
-		app_bitmap_u16_casting = sqlite3_column_int(statement, 8);
-		memcpy(&nw_interface->app_bitmap, &app_bitmap_u16_casting, sizeof(uint16_t));
-		nw_interface->output_channel = sqlite3_column_int(statement, 9);
-		nw_interface->sft_en = sqlite3_column_int(statement, 10);
-		nw_interface->stats_base = sqlite3_column_int(statement, 11);
-		break;
-	}
-
-	sqlite3_finalize(statement);
-
-	return NW_API_OK;
 }
 
 /**************************************************************************//**
@@ -478,7 +89,7 @@ enum nw_api_rc internal_db_get_arp_entries_count(unsigned int *arp_entries_count
 	sqlite3_stmt *statement;
 	char sql[256];
 
-	sprintf(sql, "SELECT COUNT (*) AS arp_entries_count FROM arp_entries;");
+	sprintf(sql, "SELECT COUNT (entry_ip) AS arp_entries_count FROM arp_entries;");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
@@ -506,6 +117,7 @@ enum nw_api_rc internal_db_get_arp_entries_count(unsigned int *arp_entries_count
 	sqlite3_finalize(statement);
 	return NW_API_OK;
 }
+
 
 /**************************************************************************//**
  * \brief       build fib key and mask for NPS according to cp_fib_entry
@@ -576,7 +188,6 @@ bool add_fib_entry_to_nps(struct nw_db_fib_entry *cp_fib_entry)
 	/* Add entry to FIB TCAM table based on CP FIB entry */
 	build_nps_fib_key_and_mask(cp_fib_entry, &nps_fib_key, &nps_fib_mask);
 	build_nps_fib_result(cp_fib_entry, &nps_fib_result);
-
 	return infra_add_tcam_entry(NW_FIB_TCAM_SIDE,
 				    NW_FIB_TCAM_TABLE,
 				    &nps_fib_key,
@@ -690,24 +301,25 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 			/* Update DBs */
-			if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&tmp_fib_entry) == NW_API_DB_ERROR) {
+			if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&tmp_fib_entry) == NW_DB_ERROR) {
 				/* Internal error */
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
 				return NW_API_DB_ERROR;
 
 			}
-
 			if (add_fib_entry_to_nps(&tmp_fib_entry) == false) {
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) in NPS.",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
 				return NW_API_DB_ERROR;
 			}
 		}
+
 		sqlite3_finalize(statement);
 
 
 	}
+
 	/* Take the index from the last updated entry  */
 	new_fib_entry->nps_index = previous_updated_index;
 
@@ -776,14 +388,13 @@ enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 
 			tmp_fib_entry.nps_index = previous_updated_index;
 			previous_updated_index = sqlite3_column_int(statement, 4);
-
 			tmp_fib_entry.is_lag = sqlite3_column_int(statement, 5);
 			tmp_fib_entry.output_index = sqlite3_column_int(statement, 6);
 
 			write_log(LOG_DEBUG, "Reorder FIB table - move entry (%s:%d) to index %d.",
 				nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length, tmp_fib_entry.nps_index);
 			/* Update DBs */
-			if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&tmp_fib_entry) == NW_API_DB_ERROR) {
+			if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&tmp_fib_entry) == NW_DB_ERROR) {
 				/* Internal error */
 				write_log(LOG_CRIT, "Failed to update FIB entry (IP=%s, mask length=%d) (internal error).",
 					  nw_inet_ntoa(tmp_fib_entry.dest_ip), tmp_fib_entry.mask_length);
@@ -808,6 +419,43 @@ enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
 }
 
 /**************************************************************************//**
+ * \brief       Return the mapped logical id / lag group
+ *
+ * \param[in]   if_index      - reference to interface index
+ * \param[out]  output_index  - reference to interface logical id / lag_group
+ *
+ * \return      NW_API_OK       - logical id / lag group retrieved successfully
+ *              NW_API_FAILURE  - if index does not exists
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc get_output_index(uint8_t if_index, uint32_t *output_index)
+{
+	struct nw_db_nw_interface interface_data;
+
+	/* read interface id from internal db */
+	interface_data.interface_id = if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", if_index);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_NOTICE, "Failed to read nw interface %d from internal DB. interface does not exist", if_index);
+		return NW_API_FAILURE;
+	}
+
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		*output_index = interface_data.lag_group_id;
+	} else {
+		*output_index = interface_data.logical_id;
+	}
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
  * \brief       Fills fib_entry fields according to route_entry
  *
  * \param[in]   fib_entry        - reference to nw fib entry
@@ -815,7 +463,7 @@ enum nw_api_rc fib_reorder_push_entries_down(struct nw_db_fib_entry *fib_entry)
  *
  * \return      none
  */
-void set_fib_route_type_and_next_hop(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *cp_fib_entry)
+enum nw_api_rc  set_fib_params(struct nw_api_fib_entry *fib_entry, struct nw_db_fib_entry *cp_fib_entry)
 {
 	if (fib_entry->route_type == RTN_UNICAST) {
 		if (fib_entry->next_hop_count == 0) {
@@ -842,61 +490,24 @@ void set_fib_route_type_and_next_hop(struct nw_api_fib_entry *fib_entry, struct 
 		write_log(LOG_DEBUG, "Unsupported route type - DP will handle it according to the application.");
 	}
 
+	cp_fib_entry->is_lag = system_cfg_is_lag_en();
+	return get_output_index(fib_entry->output_if_index, &cp_fib_entry->output_index);
 }
 
-/**************************************************************************//**
- * \brief       Set LAG info for the ARP/FIB internal DB entry
+/******************************************************************************
+ * \brief       set FIB key params in CP FIB entry
  *
- * \param[in]   table_name   - table name to detect entry type
- * \param[in]   entry_data   - reference to entry data
- *                             (nw_db_fib_entry or nw_db_arp_entry)
+ * \param[in]   fib_entry   - reference to ARP entry
+ *              cp_fib_entry- reference to CP ARP entry
  *
- * \return      NW_API_OK       - lag info was updated successfully
- *              NW_API_FAILURE  - entry_data is NULL
- *              NW_API_DB_ERROR - illegal table name; not arp or fib table name
+ * \return      None
  */
-enum nw_api_rc set_lag_info(enum internal_db_table_name table_name, void *entry_data)
+void set_fib_cp_key(struct nw_db_fib_entry *cp_fib_entry, struct nw_api_fib_entry *fib_entry)
 {
-	struct nw_db_fib_entry *fib_entry = NULL;
-	struct nw_db_arp_entry *arp_entry = NULL;
-
-	switch (table_name) {
-	case FIB_ENTRIES_INTERNAL_DB:
-		fib_entry = (struct nw_db_fib_entry *)entry_data;
-		break;
-
-	case ARP_ENTRIES_INTERNAL_DB:
-		arp_entry = (struct nw_db_arp_entry *)entry_data;
-		break;
-	default:
-		write_log(LOG_NOTICE, "Trying to search an entry from a wrong internal db table name");
-		return NW_API_DB_ERROR;
-	}
-
-	if (fib_entry == NULL && arp_entry == NULL) {
-		return NW_API_FAILURE;
-	}
-	if (system_cfg_is_lag_en() == true) {
-		(table_name == FIB_ENTRIES_INTERNAL_DB) ? (fib_entry->is_lag = true) : (arp_entry->is_lag = true);
-	} else {
-		(table_name == FIB_ENTRIES_INTERNAL_DB) ? (fib_entry->is_lag = false) : (arp_entry->is_lag = false);
-	}
-	return NW_API_OK;
+	memset(cp_fib_entry, 0, sizeof(struct nw_db_fib_entry));
+	cp_fib_entry->mask_length = fib_entry->mask_length;
+	cp_fib_entry->dest_ip = fib_entry->dest.in.s_addr;
 }
-
-/**************************************************************************//**
- * \brief       Return the mapped interface index in NPS by giving the netlink if_index
- *
- * \param[in]   nl_if_index   - reference to netlink interface index
- *
- * \return      NPS logical id
- */
-uint8_t get_nps_logical_id(uint8_t __attribute__((__unused__))nl_if_index)
-{
-	/* TODO: to add implementation after IFC code is ready */
-	return 0;
-}
-
 /**************************************************************************//**
  * \brief       Add a fib_entry to NW DB
  *
@@ -911,24 +522,20 @@ enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 	struct nw_db_fib_entry cp_fib_entry;
 	enum nw_api_rc rc;
 
-	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
-	cp_fib_entry.mask_length = fib_entry->mask_length;
-	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
-
-	write_log(LOG_DEBUG, "Adding FIB entry. (IP=%s, mask length=%d) ",
-		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
-
+	set_fib_cp_key(&cp_fib_entry, fib_entry);
+	write_log(LOG_DEBUG, "Adding FIB entry. (IP=%s, mask length=%d, IF index %d) ",
+		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, fib_entry->output_if_index);
 	switch (internal_db_get_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* FIB entry already exists */
 		write_log(LOG_NOTICE, "Can't add FIB entry. Entry (IP=%s, mask length=%d) already exists.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_FAILURE;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d) doesn't exist in DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
@@ -942,19 +549,10 @@ enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_DB_ERROR;
 	}
-
-	rc = set_lag_info(FIB_ENTRIES_INTERNAL_DB, &cp_fib_entry);
+	rc = set_fib_params(fib_entry, &cp_fib_entry);
 	if (rc != NW_API_OK) {
 		return rc;
 	}
-
-	if (cp_fib_entry.is_lag == true) {
-		cp_fib_entry.output_index = LAG_GROUP_DEFAULT;
-	} else {
-		cp_fib_entry.output_index = get_nps_logical_id(fib_entry->output_index);
-	}
-
-	set_fib_route_type_and_next_hop(fib_entry, &cp_fib_entry);
 
 	/* Choose where to put FIB entry */
 	rc = fib_reorder_push_entries_up(&cp_fib_entry);
@@ -964,22 +562,19 @@ enum nw_api_rc nw_api_add_fib_entry(struct nw_api_fib_entry *fib_entry)
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return rc;
 	}
-
 	/* Add new entry to DBs */
-	if (internal_db_add_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_API_DB_ERROR) {
+	if (internal_db_add_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_DB_ERROR;
 
 	}
-
 	if (add_fib_entry_to_nps(&cp_fib_entry) == false) {
 		write_log(LOG_CRIT, "Failed to add FIB entry (IP=%s, mask length=%d) to NPS.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_DB_ERROR;
 	}
-
 	fib_entry_count++;
 
 	write_log(LOG_DEBUG, "FIB entry Added successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d, is_lag=%d, output_index=%d) ",
@@ -1001,21 +596,21 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 {
 	struct nw_db_fib_entry cp_fib_entry;
 
-	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
-	cp_fib_entry.mask_length = fib_entry->mask_length;
-	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
+	set_fib_cp_key(&cp_fib_entry, fib_entry);
+	write_log(LOG_DEBUG, "Deleting FIB entry. (IP=%s, mask length=%d, IF index %d) ",
+		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, fib_entry->output_if_index);
 
 	switch (internal_db_get_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* FIB entry exists */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d, index=%d) found in internal DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 		break;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_NOTICE, "Can't delete FIB entry. Entry (IP=%s, mask length=%d) doesn't exist.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
@@ -1042,7 +637,7 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 
 	/* Delete last entry from DBs */
-	if (internal_db_remove_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_API_DB_ERROR) {
+	if (internal_db_remove_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to delete FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
@@ -1075,21 +670,21 @@ enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 	struct nw_db_fib_entry cp_fib_entry;
 	enum nw_api_rc rc;
 
-	memset(&cp_fib_entry, 0, sizeof(cp_fib_entry));
-	cp_fib_entry.mask_length = fib_entry->mask_length;
-	cp_fib_entry.dest_ip = fib_entry->dest.in.s_addr;
+	set_fib_cp_key(&cp_fib_entry, fib_entry);
+	write_log(LOG_DEBUG, "Modifying FIB entry. (IP=%s, mask length=%d, IF index %d) ",
+		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, fib_entry->output_if_index);
 
 	switch (internal_db_get_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* FIB entry exists */
 		write_log(LOG_DEBUG, "FIB entry (IP=%s, mask length=%d, index=%d) found in internal DB",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 		break;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find FIB entry (internal error).");
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* FIB entry doesn't exist in NW DB */
 		write_log(LOG_NOTICE, "Can't modify FIB entry. Entry (IP=%s, mask length=%d) doesn't exist.",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
@@ -1098,21 +693,13 @@ enum nw_api_rc nw_api_modify_fib_entry(struct nw_api_fib_entry *fib_entry)
 		return NW_API_DB_ERROR;
 	}
 
-	rc = set_lag_info(FIB_ENTRIES_INTERNAL_DB, &cp_fib_entry);
+	rc = set_fib_params(fib_entry, &cp_fib_entry);
 	if (rc != NW_API_OK) {
 		return rc;
 	}
 
-	if (cp_fib_entry.is_lag == true) {
-		cp_fib_entry.output_index = LAG_GROUP_DEFAULT;
-	} else {
-		cp_fib_entry.output_index = get_nps_logical_id(fib_entry->output_index);
-	}
-
-	set_fib_route_type_and_next_hop(fib_entry, &cp_fib_entry);
-
 	/* Modify entry in DBs */
-	if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_API_DB_ERROR) {
+	if (internal_db_modify_entry(FIB_ENTRIES_INTERNAL_DB, (void *)&cp_fib_entry) == NW_DB_ERROR) {
 		/* Internal error */
 		write_log(LOG_CRIT, "Failed to modify FIB entry (IP=%s, mask length=%d) (internal error).",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
@@ -1145,11 +732,7 @@ void build_nps_arp_key(struct nw_db_arp_entry *cp_arp_entry, struct nw_arp_key *
 
 	nps_arp_key->ip = cp_arp_entry->entry_ip;
 	nps_arp_key->is_lag = cp_arp_entry->is_lag;
-	if (cp_arp_entry->is_lag == true) {
-		nps_arp_key->lag_index = cp_arp_entry->output_index;
-	} else {
-		nps_arp_key->output_interface = cp_arp_entry->output_index;
-	}
+	nps_arp_key->out_index = cp_arp_entry->output_index;
 }
 
 /**************************************************************************//**
@@ -1165,6 +748,24 @@ void build_nps_arp_result(struct nw_db_arp_entry *cp_arp_entry, struct nw_arp_re
 	memset(nps_arp_result, 0, sizeof(struct nw_arp_result));
 
 	memcpy(nps_arp_result->dest_mac_addr.ether_addr_octet, cp_arp_entry->dest_mac_address.ether_addr_octet, ETH_ALEN);
+}
+
+/******************************************************************************
+ * \brief       set ARP key params in CP ARP entry
+ *
+ * \param[in]   arp_entry   - reference to ARP entry
+ *              cp_arp_entry- reference to CP ARP entry
+ *
+ * \return      NW_API_OK - ARP entry key set successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ *              NW_API_FAILURE
+ */
+enum nw_api_rc set_arp_cp_key(struct nw_db_arp_entry *cp_arp_entry, struct nw_api_arp_entry *arp_entry)
+{
+	memset(cp_arp_entry, 0, sizeof(struct nw_db_arp_entry));
+	cp_arp_entry->entry_ip = arp_entry->ip_addr.in.s_addr;
+	cp_arp_entry->is_lag = system_cfg_is_lag_en();
+	return get_output_index(arp_entry->if_index, &cp_arp_entry->output_index);
 }
 
 /**************************************************************************//**
@@ -1183,32 +784,23 @@ enum nw_api_rc nw_api_add_arp_entry(struct nw_api_arp_entry *arp_entry)
 	enum nw_api_rc rc;
 	uint32_t arp_entries_count = 0;
 
-	write_log(LOG_DEBUG, "Add neighbor to ARP table. IP = %s MAC = %02x:%02x:%02x:%02x:%02x:%02x", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), arp_entry->mac_addr.ether_addr_octet[0], arp_entry->mac_addr.ether_addr_octet[1], arp_entry->mac_addr.ether_addr_octet[2], arp_entry->mac_addr.ether_addr_octet[3], arp_entry->mac_addr.ether_addr_octet[4], arp_entry->mac_addr.ether_addr_octet[5]);
+	write_log(LOG_DEBUG, "Add neighbor to arp table. IP = %s MAC = %02x:%02x:%02x:%02x:%02x:%02x", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr), arp_entry->mac_addr.ether_addr_octet[0], arp_entry->mac_addr.ether_addr_octet[1], arp_entry->mac_addr.ether_addr_octet[2], arp_entry->mac_addr.ether_addr_octet[3], arp_entry->mac_addr.ether_addr_octet[4], arp_entry->mac_addr.ether_addr_octet[5]);
 
 	/* check if arp entry already exist on internal db */
-	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
-	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	rc = set_arp_cp_key(&cp_arp_entry, arp_entry);
 	if (rc != NW_API_OK) {
 		return rc;
 	}
-
-	if (cp_arp_entry.is_lag == true) {
-		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
-	} else {
-		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
-	}
-
 	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* ARP entry already exists */
 		write_log(LOG_NOTICE, "Can't add ARP entry. Entry (IP=%s) already exists.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_FAILURE;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR,  "Can't add ARP entry (IP=%s). Received error from internal DB.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* ARP entry doesn't exist on NW DB - Can add it.*/
 		break;
 	default:
@@ -1233,7 +825,7 @@ enum nw_api_rc nw_api_add_arp_entry(struct nw_api_arp_entry *arp_entry)
 	build_nps_arp_result(&cp_arp_entry, &result);
 
 	/* add ARP entry to internal DB */
-	if (internal_db_add_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
+	if (internal_db_add_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_DB_OK) {
 		write_log(LOG_NOTICE, "Error adding ARP entry to internal DB");
 		return NW_API_DB_ERROR;
 	}
@@ -1265,30 +857,21 @@ enum nw_api_rc nw_api_remove_arp_entry(struct nw_api_arp_entry *arp_entry)
 
 	write_log(LOG_DEBUG, "Remove neighbor from ARP table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
 
-	/* check if ARP entry exists on internal db */
-	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
-	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	/* check if ARP entry exists in internal db */
+	rc = set_arp_cp_key(&cp_arp_entry, arp_entry);
 	if (rc != NW_API_OK) {
 		return rc;
 	}
-
-	if (cp_arp_entry.is_lag == true) {
-		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
-	} else {
-		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
-	}
-
 	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* ARP entry exists */
 		write_log(LOG_DEBUG, "ARP entry (IP=%s) found in internal DB", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		break;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Received an error trying to delete ARP entry.");
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* ARP entry doesn't exist in NW DB, no need to delete */
 		write_log(LOG_DEBUG, "ARP entry (IP=%s) not found in internal DB, no need to delete.", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return NW_API_FAILURE;
@@ -1297,7 +880,7 @@ enum nw_api_rc nw_api_remove_arp_entry(struct nw_api_arp_entry *arp_entry)
 	}
 
 	/* remove ARP entry from internal db */
-	if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
+	if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_DB_OK) {
 		write_log(LOG_ERR, "Received an error trying to delete ARP entry.");
 		return NW_API_DB_ERROR;
 	}
@@ -1331,34 +914,24 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 
 	write_log(LOG_DEBUG, "Modify neighbor in ARP table. IP = %s", nw_inet_ntoa(arp_entry->ip_addr.in.s_addr));
 
-	/* check if ARP entry exists on internal DB */
-	memset(&cp_arp_entry, 0, sizeof(cp_arp_entry));
-	cp_arp_entry.entry_ip = arp_entry->ip_addr.in.s_addr;
-	rc = set_lag_info(ARP_ENTRIES_INTERNAL_DB, &cp_arp_entry);
+	/* check if ARP entry exist in internal DB */
+	rc = set_arp_cp_key(&cp_arp_entry, arp_entry);
 	if (rc != NW_API_OK) {
 		return rc;
 	}
-
-	if (cp_arp_entry.is_lag == true) {
-		cp_arp_entry.output_index = LAG_GROUP_DEFAULT;
-	} else {
-		cp_arp_entry.output_index = get_nps_logical_id(arp_entry->output_index);
-	}
-
 	switch (internal_db_get_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry)) {
-	case NW_API_OK:
+	case NW_DB_OK:
 		/* ARP entry exists */
 		write_log(LOG_DEBUG, "ARP entry (IP=%s) found on internal DB", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		break;
-	case NW_API_DB_ERROR:
+	case NW_DB_ERROR:
 		/* Internal error */
 		write_log(LOG_ERR, "Can't find ARP entry (internal error).");
 		return NW_API_DB_ERROR;
-	case NW_API_FAILURE:
+	case NW_DB_FAILURE:
 		/* ARP entry doesn't exist in NW DB, Add entry instead. */
 		write_log(LOG_DEBUG, "ARP Entry is not exist in DB, create a new entry (IP=%s)", nw_inet_ntoa(cp_arp_entry.entry_ip));
 		return nw_api_add_arp_entry(arp_entry);
-
 	default:
 		return NW_API_DB_ERROR;
 	}
@@ -1371,7 +944,7 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 	build_nps_arp_result(&cp_arp_entry, &result);
 
 	/* modify ARP entry in internal DB */
-	if (internal_db_modify_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_API_OK) {
+	if (internal_db_modify_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&cp_arp_entry) != NW_DB_OK) {
 		write_log(LOG_NOTICE, "Error from internal DB while modifying ARP entry");
 		return NW_API_DB_ERROR;
 	}
@@ -1389,18 +962,16 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry)
 
 
 /**************************************************************************//**
- * \brief       create lag members array
+ * \brief       create lag members array - returns a list of if logical IDs
  *
  * \param[in]   lag_group_id  - lag group id
- * \param[in]   interface_id  - the interface id to not include (if using remove)
- * \param[out]  members_count - num of members in group
+ * \param[out]  members_count - reference to num of members in group
  * \param[out]  lag_members   - the members array
- * \param[in]   include_disabled_ports  - add the disabled ports of this group also when counting members and creating members array
  *
  * \return      NW_API_OK - function succeed
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_count, uint8_t *lag_members, bool include_disabled_ports)
+enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_count, uint8_t *lag_members)
 {
 	int rc, member_index;
 	sqlite3_stmt *statement;
@@ -1411,23 +982,20 @@ enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_co
 		"WHERE is_lag=1 AND lag_group_id=%d AND admin_state=1;",
 		lag_group_id);
 
-	if (include_disabled_ports == true) {
-		sprintf(sql, "SELECT * FROM nw_interfaces "
-			"WHERE is_lag=1 AND lag_group_id=%d;",
-			lag_group_id);
-	}
-
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
 		return NW_API_DB_ERROR;
 	}
+
 	/* Execute SQL statement */
 	rc = sqlite3_step(statement);
+
 	member_index = 0;
 	while (rc == SQLITE_ROW) {
-		lag_members[member_index] = sqlite3_column_int(statement, 0); /* copy interface id to the members array */
+		/* copy interface logical id to the members array */
+		lag_members[member_index] = sqlite3_column_int(statement, 4);
 		member_index++;
 		rc = sqlite3_step(statement);
 	}
@@ -1437,7 +1005,6 @@ enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_co
 		sqlite3_finalize(statement);
 		return NW_API_DB_ERROR;
 	}
-
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
 
@@ -1447,216 +1014,40 @@ enum nw_api_rc get_lag_group_members_array(int lag_group_id, uint8_t *members_co
 }
 
 /******************************************************************************
- * \brief    build the result for the DP table of the nw_interface
+ * \brief    build the result and key for the DP table of the nw_interface
  *
  * \param[out]  if_result      - reference to the result struct.
  *  param[in]   interface_data - the values to store in the result struct
  *
  * \return   void
  */
-void build_nps_nw_interface_result(struct nw_if_result *if_result, struct nw_db_nw_interface interface_data)
+void build_nps_nw_interface_result_and_key(struct nw_if_key *if_key, struct nw_if_result *if_result, struct nw_db_nw_interface *interface_data)
 {
-	if_result->admin_state = interface_data.admin_state;
-	if_result->app_bitmap = (struct nw_if_apps)interface_data.app_bitmap;
-	if_result->direct_output_if = interface_data.direct_output_if;
-	if_result->is_direct_output_lag = interface_data.is_direct_output_lag;
-	memcpy(if_result->mac_address.ether_addr_octet, interface_data.mac_address.ether_addr_octet, ETH_ALEN);
-	if_result->output_channel = interface_data.output_channel;
-	if_result->path_type = (enum dp_path_type)interface_data.path_type;
-	if_result->sft_en = interface_data.sft_en;
-	if_result->stats_base = interface_data.stats_base;
+	memset(if_result, 0, sizeof(struct nw_if_result));
+	memset(if_key, 0, sizeof(struct nw_if_key));
+	if_key->logical_id = interface_data->logical_id;
+	if_result->admin_state = interface_data->admin_state;
+	if_result->app_bitmap = (struct nw_if_apps)interface_data->app_bitmap;
+	if_result->direct_output_if = interface_data->direct_output_if;
+	if_result->is_direct_output_lag = interface_data->is_direct_output_lag;
+	memcpy(if_result->mac_address.ether_addr_octet, interface_data->mac_address.ether_addr_octet, ETH_ALEN);
+	if_result->output_channel = interface_data->output_channel;
+	if_result->path_type = (enum dp_path_type)interface_data->path_type;
+	if_result->sft_en = interface_data->sft_en;
+	if_result->stats_base = interface_data->stats_base;
 
 }
 
 /******************************************************************************
- * \brief    build the result for entry in the DP table of the nw_interface
+ * \brief    Enable LAG group and add to entry all IFs of LAG group
  *
- * \param[out]  if_result      - reference to the result struct.
- *  param[in]   interface_data - the reference to interface data to "put" on the result struct
+ * \param[in]   lag_group_id   - lag group to update
  *
- * \return   true - function succeed
- *           false - function failed
- */
-bool build_nps_lag_group_result(struct nw_lag_group_result *lag_result, struct nw_db_lag_group_entry *lag_group)
-{
-	/* update members_cound and members array */
-	if (get_lag_group_members_array(lag_group->lag_group_id, &lag_result->members_count, lag_result->lag_member, false) != NW_API_OK) {
-		write_log(LOG_NOTICE, "error on internal db while creating members array");
-		return false;
-	}
-	lag_result->admin_state = lag_group->admin_state;
-
-	return true;
-}
-
-
-/**************************************************************************//**
- * \brief       set mac to interface
- *
- * \param[in]   interface_id   - the interface id of the interface
- *              new_my_mac     - the new my mac value
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface is not exist
- *              NW_API_DB_ERROR - database error
- *
- */
-enum nw_api_rc nw_api_set_nw_interface_mac(unsigned int interface_id, uint8_t *new_my_mac)
-{
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-	struct nw_db_nw_interface interface_data;
-	enum nw_api_rc nw_api_rc;
-
-	/* read interface id from internal db */
-	interface_data.interface_id = interface_id;
-	nw_api_rc = internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read nw interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* change my mac value */
-	memcpy(interface_data.mac_address.ether_addr_octet, new_my_mac, ETH_ALEN);
-
-	/* change interface on internal db */
-	nw_api_rc = internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "modify interface id %d on internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* change my mac on DP table */
-	if_key.logical_id = interface_id;
-	build_nps_nw_interface_result(&if_result, interface_data);
-	if (infra_modify_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_NOTICE, "failed to change my mac value on interface cp/dp table");
-		return NW_API_DB_ERROR;
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       set mac to lag group
- *
- * \param[in]   lag_group_id   - the lag group id of the interface
- *              new_my_mac     - the new my mac value
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - group was not exist
- *              NW_API_DB_ERROR - database error
- *
- */
-enum nw_api_rc nw_api_set_lag_group_mac(unsigned int lag_group_id, uint8_t *new_my_mac)
-{
-	struct nw_db_lag_group_entry lag_group;
-	uint8_t members_array[LAG_GROUP_MAX_MEMBERS] = {0}, lag_members_count = 0;
-	int i;
-	enum nw_api_rc nw_api_rc;
-
-	/* read lag group from internal db, check if lag group exists */
-	lag_group.lag_group_id = lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read lag group %d from internal table was failed, failure on internal db or lag group is not exist", lag_group_id);
-		return nw_api_rc;
-	}
-
-	/* change my mac value */
-	memcpy(lag_group.mac_address.ether_addr_octet, new_my_mac, ETH_ALEN);
-
-	/* change lag group on internal db */
-	nw_api_rc = internal_db_modify_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		/* return to original value */
-		write_log(LOG_NOTICE, "modify lag group %d from internal table was failed, failure on internal db or lag group is not exist", lag_group_id);
-		return nw_api_rc;
-	}
-
-	if (get_lag_group_members_array(lag_group.lag_group_id, &lag_members_count, members_array, false) != NW_API_OK) {
-		write_log(LOG_NOTICE, "Error while counting members on lag group %d", lag_group_id);
-		return NW_API_DB_ERROR;
-	}
-
-	write_log(LOG_DEBUG, "Set mac to all lag_members %d", lag_members_count);
-	for (i = 0; i < lag_members_count; i++) {
-		write_log(LOG_DEBUG, "Set mac to members_array[%d] = %d", i, members_array[i]);
-		nw_api_rc = nw_api_set_nw_interface_mac(members_array[i], new_my_mac);
-		if (nw_api_rc != NW_API_OK) {
-			write_log(LOG_ERR, "Set mac to nw interace %d failed", members_array[i]);
-			return nw_api_rc;
-		}
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       get mac from nw interface
- *
- * \param[in]   interface_id - interface id
- * \param[out]  mac - mac address return value
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface is not exist
+ * \return      NW_API_OK - DB updated successfully
+ *              NW_API_FAILURE - group does not exist
  *              NW_API_DB_ERROR - database error
  */
-enum nw_api_rc get_nw_interface_mac(unsigned int interface_id, struct ether_addr *mac)
-{
-	/* read interface id from internal db */
-	struct nw_db_nw_interface interface_data;
-	enum nw_api_rc nw_api_rc;
-
-	interface_data.interface_id = interface_id;
-	nw_api_rc = internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_data.interface_id);
-		return nw_api_rc;
-	}
-	memcpy(mac, interface_data.mac_address.ether_addr_octet, ETH_ALEN);
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       get mac from lag group
- *
- * \param[in]   lag_group_id - interface id
- * \param[out]  mac - mac address return value
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - lag group is not exist
- *              NW_API_DB_ERROR - database error
- */
-enum nw_api_rc get_lag_group_mac(unsigned int lag_group_id, struct ether_addr *mac)
-{
-	struct nw_db_lag_group_entry lag_group;
-	enum nw_api_rc nw_api_rc;
-
-	/* read lag group from internal db, check if lag group exists */
-	lag_group.lag_group_id = lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read lag group %d from internal table was failed, failure on internal db or lag group is not exist", lag_group_id);
-		return nw_api_rc;
-	}
-	memcpy(mac, lag_group.mac_address.ether_addr_octet, ETH_ALEN);
-
-	return NW_API_OK;
-}
-
-/******************************************************************************
- * \brief    add a port to lag group
- *
- * \param[in]   lag_group_id   - lag group to use
- *              interface_id   - interface id to add
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface or group is not exist
- *              NW_API_DB_ERROR - database error
- */
-enum nw_api_rc nw_api_add_port_to_lag_group(struct nw_db_nw_interface *if_db_entry)
+enum nw_api_rc enable_lag_group(uint32_t lag_group_id)
 {
 	struct nw_lag_group_key lag_key;
 	struct nw_lag_group_result lag_result;
@@ -1667,159 +1058,82 @@ enum nw_api_rc nw_api_add_port_to_lag_group(struct nw_db_nw_interface *if_db_ent
 	memset(&lag_result, 0, sizeof(lag_result));
 
 	/* read lag group from internal db */
-	lag_group.lag_group_id = if_db_entry->lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read lag group %d from internal DB failed", if_db_entry->lag_group_id);
-		return nw_api_rc;
+	lag_group.lag_group_id = lag_group_id;
+	switch (internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_NOTICE, "Failed to read lag group %d from internal DB. (internal error)", lag_group_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read lag group %d from internal DB. Group does not exist", lag_group_id);
+		return NW_API_FAILURE;
 	}
 
-	/* get the num of members on this group (including disabled ports) */
-	nw_api_rc = get_lag_group_members_array(if_db_entry->lag_group_id, &lag_result.members_count, lag_result.lag_member, true);
+	/* get array of IFs in LAG group */
+	nw_api_rc = get_lag_group_members_array(lag_group_id, &lag_result.members_count, lag_result.lag_member);
 	if (nw_api_rc != NW_API_OK) {
 		write_log(LOG_NOTICE, "error on internal db while creating members array");
 		return nw_api_rc;
 	}
-	/* check that we didnt reached the max num of members */
-	if (lag_result.members_count >= LAG_GROUP_MAX_MEMBERS) {
-		write_log(LOG_NOTICE, "Cannot add interface %d to lag group , lag group %d reached to maximum members", if_db_entry->interface_id, if_db_entry->lag_group_id);
+	/* check that we didn't reached the max num of members */
+	if (lag_result.members_count > LAG_GROUP_MAX_MEMBERS) {
+		write_log(LOG_NOTICE, "Cannot add interfaces to lag group %d, too many members (%d)", lag_group_id, lag_result.members_count);
 		return NW_API_FAILURE;
 	}
 
-	/* update key and result on lag group DP table */
-	lag_key.lag_group_id = if_db_entry->lag_group_id;
-	if (build_nps_lag_group_result(&lag_result, &lag_group) == false) {
-		write_log(LOG_ERR, "Error while updating LAG result in NPS DB");
-		return NW_API_DB_ERROR;
-	}
+	/* Set LAG key & admin state*/
+	lag_key.lag_group_id = lag_group_id;
+	lag_result.admin_state = true;
+
+	/* Update NPS */
 	if (infra_modify_entry(STRUCT_ID_NW_LAG_GROUPS, &lag_key, sizeof(lag_key), &lag_result, sizeof(lag_result)) == false) {
-		write_log(LOG_CRIT, "Adding lag member to lag group %d failed", if_db_entry->lag_group_id);
+		write_log(LOG_CRIT, "Enable lag group %d failed", lag_group_id);
 		return NW_API_DB_ERROR;
 	}
 
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       enable interface
- *
- * \param[in]   interface_id   - the interface id of the interface
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface is not exist
- *              NW_API_DB_ERROR - database error
- */
-enum nw_api_rc nw_api_enable_nw_interface(unsigned int interface_id)
-{
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-	struct nw_db_nw_interface interface_data;
-	enum nw_api_rc nw_api_rc;
-
-	/* read interface id from internal db, check if interface exists */
-	interface_data.interface_id = interface_id;
-	nw_api_rc = internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* if admin state is already enable no need to change anything */
-	if (interface_data.admin_state == true) {
-		write_log(LOG_NOTICE, "interface is already enabled");
-		return NW_API_FAILURE;
-	}
-
-	/* change admin state value */
-	interface_data.admin_state = true;
-
-	/* change on internal db */
-	nw_api_rc = internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "modify interface id %d on internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	if_key.logical_id = interface_id;
-	build_nps_nw_interface_result(&if_result, interface_data);
-
-	if (infra_modify_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_NOTICE, "failed to change my mac value on interface cp/dp table");
-		return NW_API_DB_ERROR;
-	}
-
-	/* check if this port is a part of lag group --> add this port back to the lag group */
-	if (interface_data.is_lag) {
-		nw_api_rc = nw_api_add_port_to_lag_group(&interface_data);
-		if (nw_api_rc != NW_API_OK) {
-			write_log(LOG_ERR, "Error while adding port to lag group");
-			return nw_api_rc;
-		}
-	}
+	write_log(LOG_DEBUG, "Updated LAG group successfully. Group ID %d admin state %d member count %d IFs: %d, %d, %d, %d", lag_key.lag_group_id, lag_result.admin_state, lag_result.members_count, lag_result.lag_member[0], lag_result.lag_member[1], lag_result.lag_member[2], lag_result.lag_member[3]);
 
 	return NW_API_OK;
 }
 
 /******************************************************************************
- * \brief    modify admin state to a member on lag group
+ * \brief    Disable LAG group and remove from entry all IFs of LAG group
  *
- * \param[in]   lag_group_id    - lag group lag group to use
- *              interface_id    - interface id to add
- *              new_admin_state - the new admin state ,true-enable, false-disable
+ * \param[in]   lag_group_id   - lag group to update
  *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface or group is not exist
+ * \return      NW_API_OK - DB updated successfully
+ *              NW_API_FAILURE - group does not exist
  *              NW_API_DB_ERROR - database error
  */
-enum nw_api_rc nw_api_modify_lag_member_admin_state(unsigned int lag_group_id, unsigned int interface_id, bool new_admin_state)
+enum nw_api_rc disable_lag_group(uint32_t lag_group_id)
 {
 	struct nw_lag_group_key lag_key;
 	struct nw_lag_group_result lag_result;
-
 	struct nw_db_lag_group_entry lag_group;
-	struct nw_db_nw_interface interface_data;
-	enum nw_api_rc nw_api_rc;
 
-	/* read interface id from internal db */
-	interface_data.interface_id = interface_id;
-	nw_api_rc = internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* if admin_state is already disabled - no need to do anything */
-	if (interface_data.admin_state == new_admin_state) {
-		write_log(LOG_NOTICE, "interface is already updated");
-		return NW_API_FAILURE;
-	}
-
-	/* change admin state value */
-	interface_data.admin_state = new_admin_state;
-
-	/* change on internal db */
-	nw_api_rc = internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "modify interface id %d on internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
+	memset(&lag_key, 0, sizeof(lag_key));
+	memset(&lag_result, 0, sizeof(lag_result));
 
 	/* read lag group from internal db */
 	lag_group.lag_group_id = lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read lag group %d from internal table was failed, failure on internal db or group id is not exist", lag_group_id);
-		return nw_api_rc;
+	switch (internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_NOTICE, "Failed to read lag group %d from internal DB. (internal error)", lag_group_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read lag group %d from internal DB. Group does not exist", lag_group_id);
+		return NW_API_FAILURE;
 	}
 
-	/* update key and result on lag group DP table */
+	/* Set LAG key & admin state*/
 	lag_key.lag_group_id = lag_group_id;
-	if (build_nps_lag_group_result(&lag_result, &lag_group) == false) {
-		write_log(LOG_ERR, "Error while updating result on the DP table");
-		return NW_API_FAILURE;
-	}
+	lag_result.admin_state = false;
+	/* Update NPS */
 	if (infra_modify_entry(STRUCT_ID_NW_LAG_GROUPS, &lag_key, sizeof(lag_key), &lag_result, sizeof(lag_result)) == false) {
-		write_log(LOG_CRIT, "Removing lag member from lag group %d failed", lag_group_id);
+		write_log(LOG_CRIT, "Disable lag group %d failed", lag_group_id);
 		return NW_API_DB_ERROR;
 	}
 
@@ -1827,80 +1141,26 @@ enum nw_api_rc nw_api_modify_lag_member_admin_state(unsigned int lag_group_id, u
 }
 
 /**************************************************************************//**
- * \brief       disable interface
+ * \brief       return all interface entries from nw IF internal DB
  *
- * \param[in]   interface_id   - the interface id of the interface
+ * \param[in/out]   interface_entries   - reference to IF entries
+ * \param[out]      entry_count         - reference to entry count
  *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - interface is not exist
- *              NW_API_DB_ERROR - database error
- */
-enum nw_api_rc nw_api_disable_nw_interface(unsigned int interface_id)
-{
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-	struct nw_db_nw_interface interface_data;
-	enum nw_api_rc nw_api_rc;
-
-	/* read interface id from internal db */
-	interface_data.interface_id = interface_id;
-	nw_api_rc = internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* if admin_state is already disabled - no need to do anything */
-	if (interface_data.admin_state == false) {
-		write_log(LOG_NOTICE, "interface is already disabled");
-		return NW_API_FAILURE;
-	}
-
-	/* change admin state value */
-	interface_data.admin_state = false;
-
-	/* change on internal db */
-	nw_api_rc = internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "modify interface id %d on internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
-	}
-
-	/* if it is a lag interface, we need to update the members array */
-	if (interface_data.is_lag) {
-		nw_api_rc = nw_api_modify_lag_member_admin_state(interface_data.lag_group_id, interface_id, false);
-		if (nw_api_rc != NW_API_OK) {
-			write_log(LOG_ERR, "Error while disable lag member");
-			return nw_api_rc;
-		}
-	}
-
-	/* change operation state on DP table */
-	if_key.logical_id = interface_id;
-	build_nps_nw_interface_result(&if_result, interface_data);
-	if (infra_modify_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_NOTICE, "failed to change admin state on interface cp/dp table");
-		return NW_API_DB_ERROR;
-	}
-
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       count the number of lag groups on internal db
- *
- * \param[out]  lag_groups_count - will get the num of lag groups on internal db
- *
- * \return      NW_API_OK - function succeed
+ * \return      NW_API_OK - entries found successfully
+ *              NW_API_FAILURE - IF entry does not exist or exceeds max entry count
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc internal_db_get_lag_groups_count(unsigned int *lag_groups_count)
+enum nw_api_rc get_all_interface_entries(struct nw_db_nw_interface *interface_entries, uint32_t *entry_count)
 {
 	int rc;
+	char sql[512];
 	sqlite3_stmt *statement;
-	char sql[256];
+	uint16_t app_bitmap_u16_casting = 0;
+	uint64_t mac_address_casting = 0;
 
-	sprintf(sql, "SELECT COUNT (lag_group_id) AS lag_groups_count FROM lag_groups;");
+	sprintf(sql, "SELECT * FROM nw_interfaces "
+		"WHERE interface_id=%d;",
+		interface_entries[0].interface_id);
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
@@ -1913,77 +1173,384 @@ enum nw_api_rc internal_db_get_lag_groups_count(unsigned int *lag_groups_count)
 	/* Execute SQL statement */
 	rc = sqlite3_step(statement);
 
-	/* In case of error return 0 */
-	if (rc != SQLITE_ROW) {
+	if (rc < SQLITE_ROW) {
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(nw_db));
 		sqlite3_finalize(statement);
 		return NW_API_DB_ERROR;
 	}
 
-	/* retrieve count from result,
-	 * finalize SQL statement and return count
-	 */
-	*lag_groups_count = sqlite3_column_int(statement, 0);
+	/* Entry not found */
+	if (rc == SQLITE_DONE) {
+		sqlite3_finalize(statement);
+		return NW_API_FAILURE;
+	}
+
+	while (rc == SQLITE_ROW) {
+		if (*entry_count == LAG_GROUP_MAX_MEMBERS) {
+			write_log(LOG_NOTICE, "Too many members in LAG group %d.", interface_entries[0].lag_group_id);
+			sqlite3_finalize(statement);
+			return NW_API_DB_ERROR;
+		}
+		/* retrieve NW IF entry from result */
+		interface_entries[*entry_count].interface_id = sqlite3_column_int(statement, 0);
+		interface_entries[*entry_count].admin_state = sqlite3_column_int(statement, 1);
+		interface_entries[*entry_count].lag_group_id = sqlite3_column_int(statement, 2);
+		interface_entries[*entry_count].is_lag = sqlite3_column_int(statement, 3);
+		interface_entries[*entry_count].logical_id = sqlite3_column_int(statement, 4);
+		interface_entries[*entry_count].path_type = sqlite3_column_int(statement, 5);
+		interface_entries[*entry_count].is_direct_output_lag = sqlite3_column_int(statement, 6);
+		interface_entries[*entry_count].direct_output_if = sqlite3_column_int(statement, 7);
+		app_bitmap_u16_casting = sqlite3_column_int(statement, 8);
+		memcpy(&interface_entries[*entry_count].app_bitmap, &app_bitmap_u16_casting, sizeof(uint16_t));
+		interface_entries[*entry_count].output_channel = sqlite3_column_int(statement, 9);
+		interface_entries[*entry_count].sft_en = sqlite3_column_int(statement, 10);
+		interface_entries[*entry_count].stats_base = sqlite3_column_int(statement, 11);
+		mac_address_casting = sqlite3_column_int64(statement, 12);
+		memcpy(interface_entries[*entry_count].mac_address.ether_addr_octet, &mac_address_casting, ETH_ALEN);
+
+		(*entry_count)++;
+		rc = sqlite3_step(statement);
+	}
+
+	/* finalize SQL statement */
 	sqlite3_finalize(statement);
+
 	return NW_API_OK;
 }
 
-/******************************************************************************
- * \brief    add lag group entry to table,
- *           add to internal db and cp/dp table
+/**************************************************************************//**
+ * \brief       Change IF params in DBs
  *
- * \param[in]   lag_group_id   - the lag group id
- *              admin_state - the admin state of the new lag group
+ * \param[in]   interface_data   - reference to IF entry in internal DB
  *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - reached maximum or group exist
- *              NW_API_DB_ERROR - database error
+ * \return      NW_API_OK - IF entry modified successfully
+ *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc nw_api_add_lag_group_entry(unsigned int lag_group_id)
+enum nw_api_rc update_if_params(struct nw_db_nw_interface *interface_data)
 {
-	struct nw_lag_group_key lag_key;
-	struct nw_lag_group_result lag_result;
-	struct nw_db_lag_group_entry lag_group;
-	unsigned int num_of_lag_groups;
+	struct nw_if_key if_key;
+	struct nw_if_result if_result;
+
+	/* Update entry in internal DB */
+	if (internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)interface_data) != NW_DB_OK) {
+		write_log(LOG_NOTICE, "Failed to modify IF %d params - received error from internal DB", interface_data->interface_id);
+		return NW_API_DB_ERROR;
+	}
+	build_nps_nw_interface_result_and_key(&if_key, &if_result, interface_data);
+	if (infra_modify_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+		write_log(LOG_NOTICE, "Failed to modify IF params - received error from NPS");
+		return NW_API_DB_ERROR;
+	}
+	write_log(LOG_DEBUG, "Updated Interface successfully. Logical ID %d is lag %d LAG group %d admin state %d MAC %02X:%02X:%02X:%02X:%02X:%02X", if_key.logical_id, interface_data->is_lag, interface_data->lag_group_id, if_result.admin_state, if_result.mac_address.ether_addr_octet[0], if_result.mac_address.ether_addr_octet[1], if_result.mac_address.ether_addr_octet[2], if_result.mac_address.ether_addr_octet[3], if_result.mac_address.ether_addr_octet[4], if_result.mac_address.ether_addr_octet[5]);
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Enable IF entry - lag mode
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry enabled successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc enable_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface lag_interfaces[LAG_GROUP_MAX_MEMBERS];
 	enum nw_api_rc nw_api_rc;
-	/* check if group id is already exist on system */
-	lag_group.lag_group_id = lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc == NW_API_OK) {
-		write_log(LOG_DEBUG, "cannot add group, group id %d already exists", lag_group_id);
+	uint32_t i, entry_count = 0;
+	/* Find all related phyisical ports */
+	lag_interfaces[0].interface_id = if_entry->if_index;
+	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
+	case NW_API_OK:
+		break;
+	case NW_API_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
+		if (entry_count == 0) {
+			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
+			return NW_API_FAILURE;
+		}
+		break;
+	}
+
+	/* For each physical port update admin state in internal & NPS DBs*/
+	for (i = 0; i < entry_count; i++) {
+		/* check if this port is a part of lag group */
+		if (lag_interfaces[i].is_lag == false) {
+			write_log(LOG_NOTICE, "Interface %d not part of LAG group", lag_interfaces[i].interface_id);
+			return NW_API_FAILURE;
+		}
+		/* change admin state value */
+		lag_interfaces[i].admin_state = true;
+		nw_api_rc = update_if_params(&lag_interfaces[i]);
+		if (nw_api_rc != NW_API_OK) {
+			return nw_api_rc;
+		}
+	}
+	/* Update LAG group with all enabled ports */
+	nw_api_rc = enable_lag_group(lag_interfaces[0].lag_group_id);
+	if (nw_api_rc != NW_API_OK) {
+		write_log(LOG_ERR, "Error while adding port to lag group");
+		return nw_api_rc;
+	}
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Disable IF entry - lag mode
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry disabled successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc disable_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface lag_interfaces[LAG_GROUP_MAX_MEMBERS];
+	enum nw_api_rc nw_api_rc;
+	uint32_t i, entry_count = 0;
+	/* Find all related phyisical ports */
+	lag_interfaces[0].interface_id = if_entry->if_index;
+	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
+	case NW_API_OK:
+		break;
+	case NW_API_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
+		if (entry_count == 0) {
+			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
+			return NW_API_FAILURE;
+		}
+		break;
+	}
+
+	/* Disable LAG group */
+	nw_api_rc = disable_lag_group(lag_interfaces[0].lag_group_id);
+	if (nw_api_rc != NW_API_OK) {
+		write_log(LOG_ERR, "Error while enabling LAG group %d", lag_interfaces[0].lag_group_id);
+		return nw_api_rc;
+	}
+
+	/* For each physical port update admin state in internal & NPS DBs*/
+	for (i = 0; i < entry_count; i++) {
+		/* check if this port is a part of lag group */
+		if (lag_interfaces[i].is_lag == false) {
+			write_log(LOG_NOTICE, "Interface %d not part of LAG group", lag_interfaces[i].interface_id);
+			return NW_API_FAILURE;
+		}
+		/* change admin state value */
+		lag_interfaces[i].admin_state = false;
+		nw_api_rc = update_if_params(&lag_interfaces[i]);
+		if (nw_api_rc != NW_API_OK) {
+			return nw_api_rc;
+		}
+	}
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Modify IF entry - lag mode
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry modified successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc modify_if_entry_lag_mode(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface lag_interfaces[LAG_GROUP_MAX_MEMBERS];
+	enum nw_api_rc nw_api_rc;
+	uint32_t i, entry_count = 0;
+	/* Find all related physical ports */
+	lag_interfaces[0].interface_id = if_entry->if_index;
+	switch (get_all_interface_entries(lag_interfaces, &entry_count)) {
+	case NW_API_OK:
+		break;
+	case NW_API_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interfaces from internal DB. (internal error)");
+		return NW_API_DB_ERROR;
+	case NW_API_FAILURE:
+		if (entry_count == 0) {
+			write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", if_entry->if_index);
+			return NW_API_FAILURE;
+		}
+		break;
+	}
+
+	/* For each physical port update params in internal & NPS DBs*/
+	for (i = 0; i < entry_count; i++) {
+		/* check if this port is a part of lag group */
+		if (lag_interfaces[i].is_lag == false) {
+			write_log(LOG_NOTICE, "Interface %d not part of LAG group", lag_interfaces[i].interface_id);
+			return NW_API_FAILURE;
+		}
+		/* change IF params */
+		memcpy(lag_interfaces[i].mac_address.ether_addr_octet, if_entry->mac_addr.ether_addr_octet, ETH_ALEN);
+		nw_api_rc = update_if_params(&lag_interfaces[i]);
+		if (nw_api_rc != NW_API_OK) {
+			return nw_api_rc;
+		}
+	}
+
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Enable IF entry
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry enabled successfully
+ *              NW_API_FAILURE - IF entry does not exist or already enabled
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc nw_api_enable_if_entry(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface interface_data;
+	enum nw_api_rc nw_api_rc;
+
+	/* read interface id from internal db */
+	interface_data.interface_id = if_entry->if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", interface_data.interface_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_data.interface_id);
 		return NW_API_FAILURE;
 	}
 
-	/* check if reached max num of lag groups on internal db */
-	if (internal_db_get_lag_groups_count(&num_of_lag_groups) != NW_API_OK) {
-		write_log(LOG_ERR, "error on internal db");
-		return NW_API_DB_ERROR;
-	}
-	if (num_of_lag_groups >= NW_LAG_GROUPS_TABLE_MAX_ENTRIES) {
-		write_log(LOG_ERR, "Error, can not add lag group, reached to the max number of lag groups (%d)", NW_LAG_GROUPS_TABLE_MAX_ENTRIES);
+	if (interface_data.admin_state == true) {
+		/* Already enabled. Nothing to do. */
 		return NW_API_FAILURE;
 	}
 
-	/* add the new group to internal db */
-	memset(&lag_group, 0, sizeof(struct nw_db_lag_group_entry));
-	lag_group.lag_group_id = lag_group_id;
-	lag_group.admin_state = true;
-	if (internal_db_add_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group) != NW_API_OK) {
-		write_log(LOG_CRIT, "Failed to add lag group %d to internal db", lag_group_id);
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		nw_api_rc = enable_if_entry_lag_mode(if_entry);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while enabling port in lag group");
+			return nw_api_rc;
+		}
+	} else {
+		/* this port is independent */
+		/* change admin state value */
+		interface_data.admin_state = true;
+		nw_api_rc = update_if_params(&interface_data);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while enabling port.");
+			return nw_api_rc;
+		}
+	}
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Disable IF entry
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry disabled successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc nw_api_disable_if_entry(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface interface_data;
+	enum nw_api_rc nw_api_rc;
+
+	/* read interface id from internal db */
+	interface_data.interface_id = if_entry->if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", interface_data.interface_id);
 		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_data.interface_id);
+		return NW_API_FAILURE;
 	}
 
-	/* add the new lag group to the DP table */
-	memset(&lag_result, 0, sizeof(struct nw_lag_group_result));
-	memset(&lag_key, 0, sizeof(struct nw_lag_group_key));
-	lag_key.lag_group_id = lag_group_id;
-	lag_result.admin_state = true;
-	if (infra_add_entry(STRUCT_ID_NW_LAG_GROUPS, &lag_key, sizeof(lag_key), &lag_result, sizeof(lag_result)) == false) {
-		write_log(LOG_CRIT, "Adding lag group failed, lag group id %d", lag_group_id);
-		return NW_API_DB_ERROR;
+	if (interface_data.admin_state == false) {
+		/* Already disabled. Nothing to do. */
+		return NW_API_FAILURE;
 	}
 
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		nw_api_rc = disable_if_entry_lag_mode(if_entry);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while disabling port in lag group");
+			return nw_api_rc;
+		}
+	} else {
+		/* This port is independent */
+		/* change admin state value */
+		interface_data.admin_state = false;
+		nw_api_rc = update_if_params(&interface_data);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while disabling port.");
+			return nw_api_rc;
+		}
+	}
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief       Modify IF entry - For disabled IF only.
+ *
+ * \param[in]   if_entry   - reference to IF entry
+ *
+ * \return      NW_API_OK - IF entry Modified successfully
+ *              NW_API_FAILURE - IF entry does not exist
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc nw_api_modify_if_entry(struct nw_api_if_entry *if_entry)
+{
+	struct nw_db_nw_interface interface_data;
+	enum nw_api_rc nw_api_rc;
+
+	/* read interface id from internal db */
+	interface_data.interface_id = if_entry->if_index;
+	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
+	case NW_DB_OK:
+		break;
+	case NW_DB_ERROR:
+		write_log(LOG_ERR, "Failed to read interface %d from internal DB. (internal error)", interface_data.interface_id);
+		return NW_API_DB_ERROR;
+	case NW_DB_FAILURE:
+		write_log(LOG_DEBUG, "Failed to read nw interface %d from internal DB. interface does not exist", interface_data.interface_id);
+		return NW_API_FAILURE;
+	}
+	/* check if we are running in lag mode */
+	if (system_cfg_is_lag_en() == true) {
+		nw_api_rc = modify_if_entry_lag_mode(if_entry);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while modifying port in lag group");
+			return nw_api_rc;
+		}
+	} else {
+		/* This port is independent */
+		/* change IF params */
+		memcpy(interface_data.mac_address.ether_addr_octet, if_entry->mac_addr.ether_addr_octet, ETH_ALEN);
+		nw_api_rc = update_if_params(&interface_data);
+		if (nw_api_rc != NW_API_OK) {
+			write_log(LOG_ERR, "Error while modifying port.");
+			return nw_api_rc;
+		}
+	}
 	return NW_API_OK;
 }
 
@@ -2023,15 +1590,15 @@ enum nw_api_rc remove_lag_group_from_arp_table(unsigned int lag_group_id)
 
 		/* remove arp entry from internal db */
 		arp_entry.entry_ip = sqlite3_column_int (statement, 0); /* copy interface id to the members array */
-		if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&arp_entry) != NW_API_OK) {
+		if (internal_db_remove_entry(ARP_ENTRIES_INTERNAL_DB, (void *)&arp_entry) != NW_DB_OK) {
 			write_log(LOG_NOTICE, "Error on internal db while deleting arp entry");
 			return NW_API_DB_ERROR;
 		}
 
 		/* remove entry from DP table */
-		key.ip = arp_entry.entry_ip;
+		key.real_server_address = arp_entry.entry_ip;
 		if (infra_delete_entry(STRUCT_ID_NW_ARP, &key, sizeof(key)) == false) {
-			write_log(LOG_ERR, "Cannot remove entry from ARP table key= 0x%X08", key.ip);
+			write_log(LOG_ERR, "Cannot remove entry from ARP table key= 0x%X08", key.real_server_address);
 			return NW_API_DB_ERROR;
 		}
 
@@ -2092,10 +1659,9 @@ enum nw_api_rc remove_port_from_lag_group(unsigned int lag_group_id, unsigned in
 
 	/* remove member from lag group, disable mode we will set is_lag back to true later */
 	interface_data.is_lag = false;
-	nw_api_rc = internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read interface %d from internal table was failed, failure on internal db or interface id is not exist", interface_id);
-		return nw_api_rc;
+	if (internal_db_modify_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data) != NW_DB_OK) {
+		write_log(LOG_NOTICE, "modify interface id %d on internal DB failed. (internal error)", interface_id);
+		return NW_API_DB_ERROR;
 	}
 
 	/* update key and result on lag group DP table */
@@ -2158,10 +1724,9 @@ enum nw_api_rc remove_lag_group_entry(unsigned int lag_group_id)
 	}
 
 	/* remove lag group from internal db */
-	nw_api_rc = internal_db_remove_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
+	if (internal_db_remove_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group) != NW_DB_OK) {
 		write_log(LOG_ERR, "remove lag group entry was failed, failure on db or lag group id is not exist");
-		return nw_api_rc;
+		return NW_API_DB_ERROR;
 	}
 
 	/* remove lag group entry from DP table */
@@ -2183,266 +1748,6 @@ enum nw_api_rc remove_lag_group_entry(unsigned int lag_group_id)
 }
 #endif
 
-/******************************************************************************
- * \brief    modify lag group admin state
- *
- * \param[in]   lag_group_id   - lag group id to disable
- *              new_admin_state   - true (enable), false (disable)
- *
- * \return      NW_API_OK - function succeed
- *              NW_API_FAILURE - group is not exist
- *              NW_API_DB_ERROR - failed to communicate with DB
- */
-enum nw_api_rc nw_api_modify_lag_group_admin_state(unsigned int lag_group_id, bool new_admin_state)
-{
-	struct nw_lag_group_key lag_key;
-	struct nw_lag_group_result lag_result;
-	struct nw_db_lag_group_entry lag_group;
-	int i;
-	uint8_t members_count = 0, members_array[LAG_GROUP_MAX_MEMBERS] = {0};
-	enum nw_api_rc nw_api_rc;
-
-	/* read lag group from internal db */
-	lag_group.lag_group_id = lag_group_id;
-	nw_api_rc = internal_db_get_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "read lag group %d from internal table was failed, failure on internal db or group id is not exist", lag_group_id);
-		return nw_api_rc;
-	}
-
-	/* check if lag group is already enabled */
-	if (lag_group.admin_state == new_admin_state) {
-		return NW_API_FAILURE;
-	}
-
-	/* change admin state on internal db */
-	lag_group.admin_state = new_admin_state;
-	nw_api_rc = internal_db_modify_entry(LAG_GROUPS_INTERNAL_DB, (void *)&lag_group);
-	if (nw_api_rc != NW_API_OK) {
-		write_log(LOG_NOTICE, "modify lag group %d on internal table was failed, failure on internal db or group id is not exist", lag_group_id);
-		return nw_api_rc;
-	}
-
-	if (new_admin_state == true) {
-		/* enable all ports on this group */
-		nw_api_rc = get_lag_group_members_array(lag_group_id, &members_count, members_array, true);
-		if (nw_api_rc != NW_API_OK) {
-			write_log(LOG_NOTICE, "error on internal db while creating members array");
-			return nw_api_rc;
-		}
-		for (i = 0; i < members_count; i++) {
-			nw_api_rc = nw_api_modify_lag_member_admin_state(lag_group_id, members_array[i], true);
-			if (nw_api_rc != NW_API_OK) {
-				write_log(LOG_NOTICE, "Error while changing members admin state");
-				return nw_api_rc;
-			}
-		}
-	}
-
-	/* change admin state on lag entry result, all other values will stay the same */
-	memset(&lag_result, 0, sizeof(struct nw_lag_group_result));
-	lag_key.lag_group_id = lag_group_id;
-	if (build_nps_lag_group_result(&lag_result, &lag_group) == false) {
-		write_log(LOG_ERR, "Error while updating result on the DP table");
-		return NW_API_FAILURE;
-	}
-	if (infra_modify_entry(STRUCT_ID_NW_LAG_GROUPS, &lag_key, sizeof(lag_key), &lag_result, sizeof(lag_result)) == false) {
-		write_log(LOG_ERR, "Adding lag group failed, lag group id %d", lag_group_id);
-		return NW_API_DB_ERROR;
-	}
-
-	if (new_admin_state == false) {
-		/* disable all ports on this group */
-		if (get_lag_group_members_array(lag_group_id, &members_count, members_array, false) != NW_API_OK) {
-			write_log(LOG_NOTICE, "error on internal db while creating members array");
-			return NW_API_DB_ERROR;
-		}
-		for (i = 0; i < members_count; i++) {
-			nw_api_rc = nw_api_modify_lag_member_admin_state(lag_group_id, members_array[i], false);
-			if (nw_api_rc != NW_API_OK) {
-				write_log(LOG_NOTICE, "Error while removing port from lag group");
-				return nw_api_rc;
-			}
-		}
-	}
-
-	return NW_API_OK;
-}
-
-/******************************************************************************
- * \brief       Build application bitmap.
- *
- * \param[out]  nw_if_apps - reference to application bitmap
- *
- * \return      void
- */
-static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
-{
-	nw_if_apps->tc_en = 0;
-	nw_if_apps->alvs_en = 0;
-#ifdef CONFIG_ALVS
-	nw_if_apps->alvs_en = 1;
-#endif
-
-	nw_if_apps->routing_en = (system_cfg_is_routing_app_en() == true) ? 1 : 0;
-	nw_if_apps->qos_en = (system_cfg_is_qos_app_en() == true) ? 1 : 0;
-	nw_if_apps->firewall_en = (system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-}
-
-/**************************************************************************//**
- * \brief       Add host IF entry to NW DB
- *
- * \param[in]   if_entry   - reference to IF entry
- *
- * \return      NW_API_OK - IF entry added successfully
- *              NW_API_DB_ERROR - failed to communicate with DB
- */
-enum nw_api_rc nw_api_add_host_if_entry(struct nw_api_if_entry *if_entry)
-{
-
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-
-	/* Add to NPS DB */
-	/* set key */
-	if_key.logical_id    = HOST_LOGICAL_ID;
-	/* set result */
-	build_nw_if_apps(&if_result.app_bitmap);
-	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-	memcpy(&if_result.mac_address, &if_entry->mac_addr, sizeof(if_result.mac_address));
-	if_result.path_type  = DP_PATH_FROM_HOST_PATH;
-	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-						       NW_POSTED_STATS_MSID,
-						       HOST_IF_STATS_POSTED_OFFSET));
-	if_result.output_channel       = 24 | (1 << 7);
-	if_result.direct_output_if     = NW_BASE_LOGICAL_ID;
-	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
-	if_result.admin_state = true;
-
-	/* Add entry to NPS */
-	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_ERR, "Adding host if entry to NPS IF table failed.");
-		return NW_API_DB_ERROR;
-	}
-
-	/****************************/
-	/* TODO: Add to internal DB */
-	/****************************/
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       Add network IF entry to NW DB
- *
- * \param[in]   if_entry   - reference to IF entry
- *
- * \return      NW_API_OK - IF entry added successfully
- *              NW_API_DB_ERROR - failed to communicate with DB
- */
-enum nw_api_rc nw_api_add_nw_if_entry(struct nw_api_if_entry *if_entry)
-{
-	struct nw_db_nw_interface if_db_entry;
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-
-	/* Build entry for NPS */
-	/* set key */
-	if_key.logical_id = NW_BASE_LOGICAL_ID + if_entry->if_index;
-
-	/* set result */
-	build_nw_if_apps(&if_result.app_bitmap);
-	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-	memcpy(&if_result.mac_address, &if_entry->mac_addr, sizeof(if_result.mac_address));
-	if_result.path_type = DP_PATH_FROM_NW_PATH;
-	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-						       NW_POSTED_STATS_MSID,
-						       NW_IF_STATS_POSTED_OFFSET + if_entry->if_index * NW_NUM_OF_IF_STATS));
-	if_result.output_channel       = ((if_entry->if_index % 2) * 12) | (if_entry->if_index < 2 ? 0 : (1 << 7));
-	if_result.direct_output_if     = (system_cfg_is_remote_control_en() == true) ?  (if_entry->if_index + REMOTE_BASE_LOGICAL_ID) : HOST_LOGICAL_ID;
-	if_result.is_direct_output_lag = 0;/*TODO in case we support lag on remote ((system_cfg_is_remote_control_en() == true) && (system_cfg_is_lag_en() == true)) ? 1 : 0;*/
-	if_result.admin_state          = true;
-
-	/* Add entry to NPS DB */
-	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_ERR, "Adding NW if (%d) entry to NPS IF table failed.", if_entry->if_index);
-		return NW_API_DB_ERROR;
-	}
-
-	/* Build IF entry for internal DB */
-	memset(&if_db_entry, 0, sizeof(if_db_entry));
-	if_db_entry.interface_id = if_entry->if_index;
-	if_db_entry.is_lag       = system_cfg_is_lag_en();
-	if_db_entry.lag_group_id = ((system_cfg_is_lag_en()) ? LAG_GROUP_DEFAULT : LAG_GROUP_NULL);
-	if_db_entry.admin_state  = true;
-	memcpy(&if_db_entry.mac_address.ether_addr_octet, &if_result.mac_address.ether_addr_octet, ETH_ALEN);
-	if_db_entry.app_bitmap = if_result.app_bitmap;
-	if_db_entry.direct_output_if = if_result.direct_output_if;
-	if_db_entry.is_direct_output_lag = if_result.is_direct_output_lag;
-	if_db_entry.output_channel = if_result.output_channel;
-	if_db_entry.path_type = if_result.path_type;
-	if_db_entry.sft_en = if_result.sft_en;
-	if_db_entry.stats_base = if_result.stats_base;
-
-	/* Add to internal db */
-	if (internal_db_add_entry(NW_INTERFACES_INTERNAL_DB, (void *)&if_db_entry) != NW_API_OK) {
-		write_log(LOG_ERR, "Adding NW if (%d) entry to internal IF table failed.", if_entry->if_index);
-		return NW_API_DB_ERROR;
-	}
-
-	/* If LAG enabled, add port to lag group. If LAG group does not exist, add it. */
-	if (system_cfg_is_lag_en() == true) {
-		if (nw_api_add_lag_group_entry(LAG_GROUP_DEFAULT) == NW_API_DB_ERROR) {
-			write_log(LOG_CRIT, "Failed to create main lag group. Internal DB error.");
-			return NW_API_DB_ERROR;
-		}
-		if (nw_api_add_port_to_lag_group(&if_db_entry)  == NW_API_DB_ERROR) {
-			write_log(LOG_CRIT, "Failed to add port %d to main lag group. Received DB error.", if_entry->if_index);
-			return NW_API_DB_ERROR;
-		}
-	}
-	return NW_API_OK;
-}
-
-/**************************************************************************//**
- * \brief       Add remote IF entry to NW DB
- *
- * \param[in]   if_entry   - reference to IF entry
- *
- * \return      NW_API_OK - IF entry added successfully
- *              NW_API_DB_ERROR - failed to communicate with DB
- */
-enum nw_api_rc nw_api_add_remote_if_entry(struct nw_api_if_entry *if_entry)
-{
-	struct nw_if_key if_key;
-	struct nw_if_result if_result;
-
-	/* Build entry for NPS */
-	/* set key */
-	if_key.logical_id = REMOTE_BASE_LOGICAL_ID + if_entry->if_index;
-
-	/* set result */
-	build_nw_if_apps(&if_result.app_bitmap);
-	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
-	memcpy(&if_result.mac_address, &if_entry->mac_addr, sizeof(if_result.mac_address));
-	if_result.path_type = DP_PATH_FROM_REMOTE_PATH;
-	if_result.stats_base = bswap_32(BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
-						       NW_POSTED_STATS_MSID,
-						       REMOTE_IF_STATS_POSTED_OFFSET + if_entry->if_index * REMOTE_NUM_OF_IF_STATS));
-	if_result.output_channel   = remote_interface_params[if_entry->if_index][INFRA_INTERFACE_PARAMS_PORT] | (remote_interface_params[if_entry->if_index][INFRA_INTERFACE_PARAMS_SIDE] << 7);
-	if_result.direct_output_if = (system_cfg_is_lag_en() == true) ? 0 : if_entry->if_index + NW_BASE_LOGICAL_ID;
-	if_result.is_direct_output_lag = (system_cfg_is_lag_en() == true) ? 1 : 0;
-	if_result.admin_state = true;
-
-	/* Add entry to NPS DB */
-	if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
-		write_log(LOG_ERR, "Adding NW if (%d) entry to NPS IF table failed.", if_entry->if_index);
-		return NW_API_DB_ERROR;
-	}
-	/****************************/
-	/* TODO: Add to internal DB */
-	/****************************/
-	return NW_API_OK;
-}
 
 /**************************************************************************//**
  * \brief       print interface statistics

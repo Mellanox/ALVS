@@ -598,8 +598,8 @@ bool infra_initialized(void)
 	EZstatus ez_ret_val;
 
 	/* Launch DB constructor */
-	if (nw_db_constructor() == false) {
-		write_log(LOG_CRIT, "infra_initialized: nw_db_constructor failed.");
+	if (nw_constructor() == false) {
+		write_log(LOG_CRIT, "infra_initialized: nw_constructor failed.");
 		return false;
 	}
 #ifdef CONFIG_ALVS
@@ -613,18 +613,24 @@ bool infra_initialized(void)
 	write_log(LOG_DEBUG, "Load partition...");
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "setup_chip: load partition failed (rc = 0x%08x)", ez_ret_val);
+		write_log(LOG_CRIT, "infra_initialized: load partition failed (rc = 0x%08x)", ez_ret_val);
+		return false;
+	}
+
+	/* Initialize tables */
+	if (nw_initialize_tables() == false) {
+		write_log(LOG_CRIT, "infra_initialized: nw_initialize_tables failed.");
 		return false;
 	}
 
 	/* Initialize statistics counters */
 	if (nw_initialize_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: nw_infra_initialize_statistics failed.");
+		write_log(LOG_CRIT, "infra_initialized: nw_initialize_statistics failed.");
 		return false;
 	}
 #ifdef CONFIG_ALVS
 	if (alvs_initialize_statistics() == false) {
-		write_log(LOG_CRIT, "setup_chip: alvs_infra_initialize_statistics failed.");
+		write_log(LOG_CRIT, "infra_initialized: alvs_initialize_statistics failed.");
 		return false;
 	}
 #endif
@@ -720,4 +726,13 @@ void infra_disable_agt(void)
 
 	/* Destroy server */
 	EZagtRPC_ServerDestroy(host_server);
+}
+
+/**************************************************************************//**
+ * \brief       Destruct all DBs
+ *
+ */
+void infra_db_destructor(void)
+{
+	nw_destructor();
 }

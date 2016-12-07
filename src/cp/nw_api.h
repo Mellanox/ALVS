@@ -109,34 +109,37 @@ enum nw_api_rc nw_api_modify_arp_entry(struct nw_api_arp_entry *arp_entry);
 enum nw_api_rc nw_api_remove_arp_entry(struct nw_api_arp_entry *arp_entry);
 
 /**************************************************************************//**
- * \brief       Add network IF entry to NW DB
+ * \brief       Enable IF entry
  *
  * \param[in]   if_entry   - reference to IF entry
  *
- * \return      NW_API_OK - IF entry added successfully
+ * \return      NW_API_OK - IF entry enabled successfully
+ *              NW_API_FAILURE - IF entry does not exist
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc nw_api_add_nw_if_entry(struct nw_api_if_entry *if_entry);
+enum nw_api_rc nw_api_enable_if_entry(struct nw_api_if_entry *if_entry);
 
 /**************************************************************************//**
- * \brief       Add remote IF entry to NW DB
+ * \brief       Disable IF entry
  *
  * \param[in]   if_entry   - reference to IF entry
  *
- * \return      NW_API_OK - IF entry added successfully
+ * \return      NW_API_OK - IF entry disabled successfully
+ *              NW_API_FAILURE - IF entry does not exist
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc nw_api_add_remote_if_entry(struct nw_api_if_entry *if_entry);
+enum nw_api_rc nw_api_disable_if_entry(struct nw_api_if_entry *if_entry);
 
 /**************************************************************************//**
- * \brief       Add host IF entry to NW DB
+ * \brief       Modify IF entry - For disabled IF only.
  *
  * \param[in]   if_entry   - reference to IF entry
  *
- * \return      NW_API_OK - IF entry added successfully
+ * \return      NW_API_OK - IF entry Modified successfully
+ *              NW_API_FAILURE - IF entry does not exist
  *              NW_API_DB_ERROR - failed to communicate with DB
  */
-enum nw_api_rc nw_api_add_host_if_entry(struct nw_api_if_entry *if_entry);
+enum nw_api_rc nw_api_modify_if_entry(struct nw_api_if_entry *if_entry);
 
 /**************************************************************************//**
  * \brief       print all interfaces statistics

@@ -70,15 +70,13 @@ struct nw_api_fib_entry {
 	/* Number of next hops. 0 = neighbor, 1 = gateway, 1 < not supported  */
 	struct nw_api_inet_addr next_hop;
 	/* Next hop address */
-	uint8_t next_hop_if;
-	/* Next hop interface  */
-	uint8_t output_index;
-	/* lag index or output_interface */
+	uint8_t output_if_index;
+	/* output interface index */
 };
 
 struct nw_api_arp_entry {
-	uint8_t output_index;
-	/* lag index or output_interface */
+	uint8_t if_index;
+	/* interface index */
 	struct nw_api_inet_addr ip_addr;
 	/* IP address */
 	struct ether_addr mac_addr;

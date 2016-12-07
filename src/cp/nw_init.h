@@ -49,6 +49,13 @@
 bool nw_initialize_protocol_decode(void);
 
 /**************************************************************************//**
+ * \brief       Initialize network tables
+ *
+ * \return      bool - success or failure
+ */
+bool nw_initialize_tables(void);
+
+/**************************************************************************//**
  * \brief       Initialize all statistics counter to be zero
  *
  * \return      bool - success or failure
@@ -62,8 +69,13 @@ bool nw_initialize_statistics(void);
  *
  * \return   bool - success or failure
  */
-bool nw_db_constructor(void);
+bool nw_constructor(void);
 
-
+/******************************************************************************
+ * \brief    destructor function for network data bases.
+ *
+ * \return   void
+ */
+void nw_destructor(void);
 
 #endif /* _NW_INIT_H_ */

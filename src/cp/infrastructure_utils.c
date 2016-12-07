@@ -66,7 +66,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetStructParams, &struct_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Status(GetStructParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Status(GetStructParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 
@@ -87,7 +87,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetStructParams, &struct_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetStructParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetStructParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 
@@ -97,7 +97,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashParams, &hash_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Status(GetHashParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Status(GetHashParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 
@@ -114,7 +114,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashParams, &hash_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetHashParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetHashParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 
@@ -124,7 +124,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Status(struct_id, EZapiStruct_StatCmd_GetHashMemMngParams, &hash_mem_mng_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(GetHashMemMngParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(GetHashMemMngParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 
@@ -144,7 +144,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 
 	ez_ret_val = EZapiStruct_Config(struct_id, EZapiStruct_ConfigCmd_SetHashMemMngParams, &hash_mem_mng_params);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetHashMemMngParams) failed, struct ID %d", struct_id);
+		write_log(LOG_CRIT, "infra_create_hash: EZapiStruct_Config(SetHashMemMngParams) failed, struct ID %d (RC=%08x)", struct_id, ez_ret_val);
 		return false;
 	}
 

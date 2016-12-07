@@ -506,6 +506,9 @@ void main_thread_graceful_stop(void)
 	if (is_object_allocated[object_type_alvs_db_manager]) {
 		pthread_join(alvs_db_manager_thread, NULL);
 	}
+
+	infra_db_destructor();
+
 	if (is_object_allocated[object_type_agt]) {
 		write_log(LOG_DEBUG, "Delete AGT");
 		infra_disable_agt();

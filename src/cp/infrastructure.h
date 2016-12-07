@@ -112,6 +112,11 @@ bool infra_enable_agt(void);
  */
 void infra_disable_agt(void);
 
+/**************************************************************************//**
+ * \brief       Destruct all DBs
+ *
+ */
+void infra_db_destructor(void);
 
 /**************************************************************************//**
  * \brief       Find the index of the required memory heap
