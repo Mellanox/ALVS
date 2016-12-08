@@ -79,6 +79,7 @@ pthread_t alvs_db_manager_thread;
 pthread_t dp_load_thread;
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
+extern struct nw_db_manager_ops nw_ops;
 int fd = -1;
 /******************************************************************************/
 
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
 	write_log(LOG_DEBUG, "Start network DB manager thread...");
 
 	rc = pthread_create(&nw_db_manager_thread, NULL,
-			    (void * (*)(void *))nw_db_manager_main, &cancel_application_flag);
+			    (void * (*)(void *))nw_db_manager_main, &nw_ops);
 	if (rc != 0) {
 		write_log(LOG_CRIT, "Cannot start nw_db_manager_thread: pthread_create failed for network DB manager");
 		main_thread_graceful_stop();
@@ -454,6 +455,8 @@ bool nps_init(void)
  */
 void signal_terminate_handler(int signum)
 {
+	write_log(LOG_INFO, "Got signal! %d", signum);
+
 	if (signum != SIGTERM) {
 		pthread_t self = pthread_self();
 

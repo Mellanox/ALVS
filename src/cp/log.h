@@ -34,18 +34,7 @@
 #define LOG_H_
 #include <stdarg.h>
 #include "syslog.h"
-#include "EZlog.h"
-#ifndef NDEBUG
-#define LOG_LEVEL LOG_DEBUG
-#define EZlog_LEVEL EZlog_LEVEL_DEBUG
-#else
-#define LOG_LEVEL LOG_INFO
-#define EZlog_LEVEL EZlog_LEVEL_TRACE
-#endif
-#define EZlog_COMP EZlog_COMP_CP_ALL
-#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_PRM
 
-#define LOG_MAX_SIZE 500
 /*****************************************************************************/
 /*! \fn void write_log(char *s)
  * \brief write the message to syslog utility

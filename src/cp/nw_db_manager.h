@@ -37,12 +37,48 @@
 #ifndef CP_NW_DB_MANAGER_H_
 #define CP_NW_DB_MANAGER_H_
 
+#include <netlink/route/route.h>
+#include <netlink/route/neighbour.h>
+#include <netlink/route/link.h>
+
+/* NW DB manager operations for ARP\FIB\IFC control.
+ * Called on netlink changes with libnl structs and should initiate the relevant NW APIs.
+ * On false return value, nw_db_manager will exit with an error.
+ */
+struct nw_db_manager_ops {
+	bool (*add_fib_entry)(struct rtnl_route *);
+	/*called when new fib entry is added*/
+	bool (*remove_fib_entry)(struct rtnl_route *);
+	/*called when fib entry is deleted*/
+	bool (*modify_fib_entry)(struct rtnl_route *);
+	/*called when fib entry is modified*/
+	bool (*add_arp_entry)(struct rtnl_neigh *);
+	/*called when arp entry is added*/
+	bool (*remove_arp_entry)(struct rtnl_neigh *);
+	/*called when arp entry is deleted*/
+	bool (*modify_arp_entry)(struct rtnl_neigh *);
+	/*called when arp entry is modified*/
+	bool (*add_if)(struct rtnl_link *link);
+	/*called when interface is enabled\created*/
+	bool (*remove_if)(struct rtnl_link *link);
+	/*called when interface is disabled*/
+	bool (*modify_if)(struct rtnl_link *link);
+	/*called when interface is modified*/
+};
+
+/******************************************************************************
+ * \brief    nl address print
+ *
+ * \return   void
+ */
+char *nl_addr_to_str(struct nl_addr *addr);
+
 /******************************************************************************
  * \brief	  Network thread main application.
  *
  * \return	  void
  */
-void nw_db_manager_main(bool *cancel_application_flag);
+void nw_db_manager_main(struct nw_db_manager_ops *nw_dp_ops);
 
 /******************************************************************************
  * \brief    Raises SIGTERM signal to main thread and exits the thread.

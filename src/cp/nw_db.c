@@ -35,6 +35,8 @@
 *
 */
 
+#include <stdio.h>
+#include <string.h>
 #include "log.h"
 #include "infrastructure.h"
 #include "sqlite3.h"

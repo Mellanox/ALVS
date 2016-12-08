@@ -30,50 +30,53 @@
 *
 *
 *  Project:             NPS400 ALVS application
-*  File:                log.c
-*  Desc:                performs logging functionality for CP via SYSlog.
+*  File:                nw_ops.h
+*  Desc:                Network operations for NW DB manager.
 *
 */
 
-#include "log.h"
+#ifndef _NW_OPS_H_
+#define _NW_OPS_H_
 
-#include "EZlog.h"
-#ifndef NDEBUG
-#define LOG_LEVEL LOG_DEBUG
-#define EZlog_LEVEL EZlog_LEVEL_DEBUG
-#else
-#define LOG_LEVEL LOG_INFO
-#define EZlog_LEVEL EZlog_LEVEL_TRACE
-#endif
-#define EZlog_COMP EZlog_COMP_CP_ALL
-#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_PRM
+#include <stdbool.h>
+#include <netlink/route/route.h>
+#include <nw_db_manager.h>
 
-#define LOG_MAX_SIZE 500
+/******************************************************************************
+ * \brief    Add\Remove\Modify FIB entry.
+ *           Get libnl rtnl_route and return false only on fatal error.
+ */
+bool nw_ops_add_fib_entry(struct rtnl_route *route_entry);
+bool nw_ops_remove_fib_entry(struct rtnl_route *route_entry);
+bool nw_ops_modify_fib_entry(struct rtnl_route *route_entry);
 
-void open_log(char *s)
-{
-	setlogmask(LOG_UPTO(LOG_LEVEL));
+/******************************************************************************
+ * \brief    Add\Remove\Modify ARP entry.
+ *           Get libnl rtnl_neigh and return false only on fatal error.
+ */
+bool nw_ops_add_arp_entry(struct rtnl_neigh *neighbor);
+bool nw_ops_remove_arp_entry(struct rtnl_neigh *neighbor);
+bool nw_ops_modify_arp_entry(struct rtnl_neigh *neighbor);
 
-	int facility = LOG_DAEMON;
-	int option = LOG_CONS | LOG_PID | LOG_NDELAY;
+/******************************************************************************
+ * \brief    Add\Remove\Modify IF entry.
+ *           Get libnl rtnl_link and return false only on fatal error.
+ */
+bool nw_ops_add_if(struct rtnl_link *link);
+bool nw_ops_remove_if(struct rtnl_link *link);
+bool nw_ops_modify_if(struct rtnl_link *link);
 
-	openlog(s, option, facility);
+/*init NW DB manager ops with nw_ops*/
+struct nw_db_manager_ops nw_ops = {
+	.add_fib_entry = &nw_ops_add_fib_entry,
+	.remove_fib_entry = &nw_ops_remove_fib_entry,
+	.modify_fib_entry = &nw_ops_modify_fib_entry,
+	.add_arp_entry = &nw_ops_add_arp_entry,
+	.remove_arp_entry = &nw_ops_remove_arp_entry,
+	.modify_arp_entry = &nw_ops_modify_arp_entry,
+	.add_if = &nw_ops_add_if,
+	.remove_if = &nw_ops_remove_if,
+	.modify_if = &nw_ops_modify_if
+};
 
-	EZlog_SetFileName("/var/log/anl_ezcp_log");
-	EZlog_OpenLogFile();
-	EZlog_SetMaximalLogSize(LOG_MAX_SIZE);
-
-	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP,
-		     EZlog_SUB_COMP, EZlog_LEVEL);
-}
-
-void close_log(void)
-{
-	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP_ALL,
-		     EZlog_SUB_COMP_LOG_ALL, EZlog_LEVEL_FATAL);
-	EZlog_CloseLogFile();
-
-	closelog();
-}
-
-
+#endif /* _NW_OPS_H_ */

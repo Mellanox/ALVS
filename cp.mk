@@ -6,8 +6,10 @@ PATH := $(PATH):$(abspath $(EZDK_BASE)/ldk/toolchain/bin)
 
 CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/include -I$(EZDK_BASE)/cpe/env/include -I$(EZDK_BASE)/cpe/dev/include -I$(EZDK_BASE)/cpe/cp/include -I$(EZDK_BASE)/cpe/agt/agt-cp/include -I$(EZDK_BASE)/cpe/agt/agt/include
 
-CP_C_SRCS = src/cp/error_names.c \
+CP_C_SRCS = src/cp/nw_db_manager.c \
+			src/cp/error_names.c \
 			src/cp/log.c \
+			src/cp/nw_ops.c \
 			src/cp/nw_api.c \
 			src/cp/nw_db.c \
 			src/cp/sqlite3.c \
@@ -15,8 +17,8 @@ CP_C_SRCS = src/cp/error_names.c \
 			src/cp/infrastructure.c \
 			src/cp/infrastructure_utils.c \
 			src/cp/nw_init.c \
-			src/cp/main.c \
-			src/cp/nw_db_manager.c
+			src/cp/main.c
+			
 ifdef CONFIG_ALVS
 CP_C_SRCS += src/cp/alvs_db.c \
 			 src/cp/alvs_db_manager.c \
