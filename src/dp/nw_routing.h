@@ -133,6 +133,7 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 
 	cmem_nw.arp_key.ip = route_entry->dest_ip;
 	cmem_nw.arp_key.is_lag = route_entry->is_lag;
+	cmem_nw.arp_key.zero_rsrv1 = 0;
 	cmem_nw.arp_key.out_index = route_entry->output_index;
 
 	rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
@@ -154,7 +155,6 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 			nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 			return NW_ARP_CRITICAL_ERR;
 		}
-
 		/*copy src mac*/
 		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
@@ -203,11 +203,14 @@ bool nw_do_route(ezframe_t __cmem * frame, uint8_t *frame_base,
 
 	arp_rc = nw_arp_processing(frame, frame_base, &route_entry, frame_buff_size);
 	if (likely(arp_rc == NW_ARP_OK)) {
+		anl_write_log(LOG_DEBUG, "ARP process success");
 		return true;
 	} else if (arp_rc == NW_ARP_CRITICAL_ERR) {
+		anl_write_log(LOG_DEBUG, "Error while ARP processing dest_ip: 0x%x", route_entry.dest_ip);
 		nw_discard_frame();
 		return true;
 	} else if (arp_rc == NW_ARP_LOOKUP_FAIL) {
+		anl_write_log(LOG_DEBUG, "ARP lookup failed dest_ip: 0x%x", route_entry.dest_ip);
 		return false;
 	}
 

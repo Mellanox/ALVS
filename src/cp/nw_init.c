@@ -383,9 +383,9 @@ bool nw_constructor(void)
 	write_log(LOG_DEBUG, "Creating interface table.");
 	table_params.key_size = sizeof(struct nw_if_key);
 	table_params.result_size = sizeof(struct nw_if_result);
-	table_params.max_num_of_entries = 256;  /* TODO - define? */
+	table_params.max_num_of_entries = NW_INTERFACES_TABLE_MAX_ENTRIES;
 	table_params.updated_from_dp = false;
-	hash_params.is_external = false;
+	table_params.is_external = false;
 	table_params.search_mem_heap = INFRA_1_CLUSTER_SEARCH_HEAP;
 	if (infra_create_table(STRUCT_ID_NW_INTERFACES,
 			       &table_params) == false) {

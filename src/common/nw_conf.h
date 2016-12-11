@@ -119,7 +119,7 @@ enum nw_external_msid {
  * Memory configuration
  */
 #define NW_HALF_CLUSTER_SEARCH_SIZE    0
-#define NW_1_CLUSTER_SEARCH_SIZE       5
+#define NW_1_CLUSTER_SEARCH_SIZE       2 /* need only 1024 bytes */
 #define NW_2_CLUSTER_SEARCH_SIZE       0
 #define NW_4_CLUSTER_SEARCH_SIZE       0
 #define NW_16_CLUSTER_SEARCH_SIZE      0

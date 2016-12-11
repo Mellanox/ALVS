@@ -221,6 +221,102 @@ bool delete_fib_entry_from_nps(struct nw_db_fib_entry *cp_fib_entry)
 }
 
 /**************************************************************************//**
+ * \brief        Getting mask of the lowest priority, the one with the lowest mask_length.
+ *               In case of an empty table, empty_tbl will return with true.
+ *
+ * \param[out]   empty_tbl      - true for empty FIB table, otherwise returns false
+ * \param[out]   lowest_mask    - reference for the lowest mask in the FIB table
+ *
+ * \return      NW_API_OK       - no internal error occurs.
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc get_mask_of_lowest_prio(bool *empty_tbl, uint32_t *lowest_mask)
+{
+	int rc;
+	char sql[256];
+	sqlite3_stmt *statement;
+
+	sprintf(sql, "SELECT * FROM fib_entries "
+		"ORDER BY mask_length ASC;");
+
+	/* Prepare SQL statement */
+	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s",
+			  sqlite3_errmsg(nw_db));
+		return NW_API_DB_ERROR;
+	}
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	/* Error */
+	if (rc < SQLITE_ROW) {
+		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
+		sqlite3_finalize(statement);
+		return NW_API_DB_ERROR;
+	}
+
+	if (rc == SQLITE_DONE) {
+		/* No entries were found */
+		*empty_tbl = true;
+	} else {
+		*empty_tbl = false;
+		*lowest_mask = sqlite3_column_int(statement, 1);
+	}
+
+	sqlite3_finalize(statement);
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
+ * \brief        Getting the next nps_index for a mask when we need to move
+ *               a FIB entry for a mask group with the given mask in order to create
+ *               a gap for the new FIB entry
+ *
+ * \param[out]   next_nps_index - reference for the next_nps_index
+ *
+ * \return      NW_API_OK       - no internal error occurs.
+ *              NW_API_DB_ERROR - failed to communicate with DB
+ */
+enum nw_api_rc get_next_nps_index_for_mask(uint16_t *next_nps_index, uint32_t mask)
+{
+	int rc;
+	char sql[256];
+	sqlite3_stmt *statement;
+
+	sprintf(sql, "SELECT * FROM fib_entries "
+		"WHERE mask_length = %d "
+		"ORDER BY nps_index DESC;", mask);
+
+	/* Prepare SQL statement */
+	rc = sqlite3_prepare_v2(nw_db, sql, -1, &statement, NULL);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s",
+			  sqlite3_errmsg(nw_db));
+		return NW_API_DB_ERROR;
+	}
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+
+	/* Error */
+	if (rc < SQLITE_ROW) {
+		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(nw_db));
+		sqlite3_finalize(statement);
+		return NW_API_DB_ERROR;
+	}
+
+	if (rc == SQLITE_DONE) {
+		/* No entries were found */
+		*next_nps_index = 0;
+	} else {
+		*next_nps_index = sqlite3_column_int(statement, 4) + 1;
+	}
+
+	sqlite3_finalize(statement);
+	return NW_API_OK;
+}
+
+/**************************************************************************//**
  * \brief       Push entries up, create a gap to insert the new entry, from each group of
  *              entries with the same mask we will move up to lower mask,
  *              for example if we will add an entry with mask 16, an entry with mask 0 will move up,
@@ -238,15 +334,30 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 	char sql[256];
 	sqlite3_stmt *statement;
 	struct nw_db_fib_entry tmp_fib_entry;
-	uint32_t current_mask, previous_updated_index = 0;
+	uint32_t current_mask, previous_updated_index = 0, lowest_mask;
+	bool is_fib_empty;
 
 	memset(&tmp_fib_entry, 0, sizeof(tmp_fib_entry));
 
 	write_log(LOG_DEBUG, "Reorder FIB table - push entries up.");
 
+	if (get_mask_of_lowest_prio(&is_fib_empty, &lowest_mask) == NW_API_DB_ERROR) {
+		return NW_API_DB_ERROR;
+	}
 
-	for (current_mask = 0; current_mask < new_fib_entry->mask_length; current_mask++) {
+	if (is_fib_empty == true) {
+		/* Empty FIB table, new entry will get nps_index = 0 */
+		new_fib_entry->nps_index = 0;
+		return NW_API_OK;
+	}
 
+	for (current_mask = lowest_mask; current_mask <= new_fib_entry->mask_length; current_mask++) {
+		/* Start reorder FIB entries from the lowest mask */
+
+		/* ascending sort to the fib entries with mask = current_mast
+		 * to get an entry with the lowest nps_index to be moved to the entry with nps_index = previous_updated_index
+		 * in order to create a gap.
+		 */
 		sprintf(sql, "SELECT * FROM fib_entries "
 			"WHERE mask_length = %d "
 			"ORDER BY nps_index ASC;", current_mask);
@@ -274,16 +385,20 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 			sqlite3_finalize(statement);
 			continue;
 		} else {
+			/* tmp_fib_entry will be moved to new nps_index that will be calculated accordantly */
 			tmp_fib_entry.dest_ip = sqlite3_column_int(statement, 0);
 			tmp_fib_entry.mask_length = sqlite3_column_int(statement, 1);
 			tmp_fib_entry.result_type = (enum nw_fib_type)sqlite3_column_int(statement, 2);
 			tmp_fib_entry.next_hop = sqlite3_column_int(statement, 3);
 			tmp_fib_entry.is_lag = sqlite3_column_int(statement, 5);
 			tmp_fib_entry.output_index = sqlite3_column_int(statement, 6);
-			if (current_mask == 0) {
-				/* only one entry with mask 0, move its index up */
+
+			if (current_mask == lowest_mask) {
+				/* only entries with the same mask_length in FIB table, move the first entry to the end of the table */
 				previous_updated_index = sqlite3_column_int(statement, 4);
-				tmp_fib_entry.nps_index = previous_updated_index + 1;
+				if (get_next_nps_index_for_mask(&tmp_fib_entry.nps_index, current_mask) == NW_API_DB_ERROR) {
+					return NW_API_DB_ERROR;
+				}
 			} else {
 				tmp_fib_entry.nps_index = previous_updated_index;
 				previous_updated_index = sqlite3_column_int(statement, 4);
@@ -1409,6 +1524,7 @@ enum nw_api_rc nw_api_enable_if_entry(struct nw_api_if_entry *if_entry)
 	struct nw_db_nw_interface interface_data;
 	enum nw_api_rc nw_api_rc;
 
+	write_log(LOG_DEBUG, "Enable interface with index %d", if_entry->if_index);
 	/* read interface id from internal db */
 	interface_data.interface_id = if_entry->if_index;
 	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
@@ -1461,6 +1577,7 @@ enum nw_api_rc nw_api_disable_if_entry(struct nw_api_if_entry *if_entry)
 	struct nw_db_nw_interface interface_data;
 	enum nw_api_rc nw_api_rc;
 
+	write_log(LOG_DEBUG, "Disable interface with index %d", if_entry->if_index);
 	/* read interface id from internal db */
 	interface_data.interface_id = if_entry->if_index;
 	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {
@@ -1513,6 +1630,7 @@ enum nw_api_rc nw_api_modify_if_entry(struct nw_api_if_entry *if_entry)
 	struct nw_db_nw_interface interface_data;
 	enum nw_api_rc nw_api_rc;
 
+	write_log(LOG_DEBUG, "Modify interface with index %d", if_entry->if_index);
 	/* read interface id from internal db */
 	interface_data.interface_id = if_entry->if_index;
 	switch (internal_db_get_entry(NW_INTERFACES_INTERNAL_DB, (void *)&interface_data)) {

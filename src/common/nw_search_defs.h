@@ -58,8 +58,8 @@ enum dp_path_type {
 	DP_PATH_NOT_VALID           = 3
 };
 
-#define NW_LAG_GROUPS_TABLE_MAX_ENTRIES     256
-#define NW_INTERFACES_TABLE_MAX_ENTRIES     256
+#define NW_LAG_GROUPS_TABLE_MAX_ENTRIES     32
+#define NW_INTERFACES_TABLE_MAX_ENTRIES     32
 #define NW_ARP_TABLE_MAX_ENTRIES            65536
 
 struct nw_if_apps {
@@ -186,9 +186,9 @@ struct nw_arp_key {
 	/* byte 4 */
 #ifdef NPS_BIG_ENDIAN
 		unsigned     is_lag        : 1;
-		unsigned     /*reserved*/  : 7;
+		unsigned     zero_rsrv1    : 7;
 #else
-		unsigned     /*reserved*/  : 7;
+		unsigned     zero_rsrv1    : 7;
 		unsigned     is_lag        : 1;
 #endif
 	/* byte 5 */

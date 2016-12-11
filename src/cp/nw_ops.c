@@ -401,7 +401,7 @@ bool nw_ops_modify_if(struct rtnl_link *link)
 	}
 
 	if (nw_ret == NW_API_DB_ERROR) {
-		write_log(LOG_CRIT, "Received fatal error from NW DBs while adding IF. IF ID = %d.", if_entry.if_index);
+		write_log(LOG_CRIT, "Received fatal error from NW DBs while modifying IF. IF ID = %d.", if_entry.if_index);
 		return false;
 	}
 

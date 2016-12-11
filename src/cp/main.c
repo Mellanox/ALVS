@@ -156,19 +156,22 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_dp_load_thread] = true;
 
-	/************************************************/
-	/* Start network DB manager main thread         */
-	/************************************************/
-	write_log(LOG_DEBUG, "Start network DB manager thread...");
+	/* run nw_db_manager thread only in case of remote control is disable */
+	if (system_cfg_is_remote_control_en() == false) {
+		/************************************************/
+		/* Start network DB manager main thread         */
+		/************************************************/
+		write_log(LOG_DEBUG, "Start network DB manager thread...");
 
-	rc = pthread_create(&nw_db_manager_thread, NULL,
-			    (void * (*)(void *))nw_db_manager_main, &nw_ops);
-	if (rc != 0) {
-		write_log(LOG_CRIT, "Cannot start nw_db_manager_thread: pthread_create failed for network DB manager");
-		main_thread_graceful_stop();
-		exit(1);
+		rc = pthread_create(&nw_db_manager_thread, NULL,
+				    (void * (*)(void *))nw_db_manager_main, &nw_ops);
+		if (rc != 0) {
+			write_log(LOG_CRIT, "Cannot start nw_db_manager_thread: pthread_create failed for network DB manager");
+			main_thread_graceful_stop();
+			exit(1);
+		}
+		is_object_allocated[object_type_nw_db_manager] = true;
 	}
-	is_object_allocated[object_type_nw_db_manager] = true;
 
 #ifdef CONFIG_ALVS
 	/************************************************/
