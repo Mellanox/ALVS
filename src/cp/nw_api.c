@@ -209,24 +209,15 @@ bool add_fib_entry_to_nps(struct nw_db_fib_entry *cp_fib_entry)
 bool delete_fib_entry_from_nps(struct nw_db_fib_entry *cp_fib_entry)
 {
 	struct nw_fib_key nps_fib_key;
-	struct nw_fib_key nps_fib_mask;
-	struct nw_fib_result nps_fib_result;
 
 	memset(&nps_fib_key, 0, sizeof(nps_fib_key));
-	memset(&nps_fib_mask, 0, sizeof(nps_fib_mask));
-	memset(&nps_fib_result, 0, sizeof(nps_fib_result));
 
-	/* Add entry to FIB TCAM table based on CP FIB entry */
-	build_nps_fib_key_and_mask(cp_fib_entry, &nps_fib_key, &nps_fib_mask);
-	build_nps_fib_result(cp_fib_entry, &nps_fib_result);
+	/* Delete entry to FIB TCAM table based on CP FIB entry */
 	return infra_delete_tcam_entry(NW_FIB_TCAM_SIDE,
 				    NW_FIB_TCAM_TABLE,
 				    &nps_fib_key,
 				    sizeof(struct nw_fib_key),
-				    &nps_fib_mask,
-				    cp_fib_entry->nps_index,
-				    &nps_fib_result,
-				    sizeof(struct nw_fib_result));
+				    cp_fib_entry->nps_index);
 }
 
 /**************************************************************************//**

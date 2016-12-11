@@ -190,15 +190,11 @@ bool infra_add_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key
  * \param[in]   table           - table number
  * \param[in]   key             - reference to key
  * \param[in]   key_size        - size of the key in bytes
- * \param[in]   mask            - reference to mask
  * \param[in]   index           - index in table
- * \param[in]   result          - reference to result
- * \param[in]   result_size     - size of the result in bytes
  *
  * \return      bool - success or failure
  */
-bool infra_delete_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size,
-				  void *mask, uint32_t index, void *result, uint32_t result_size);
+bool infra_delete_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t key_size, uint32_t index);
 
 /**************************************************************************//**
  * \brief       Delete all entries from a data structure
