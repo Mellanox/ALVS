@@ -168,7 +168,7 @@ bool nw_initialize_if_table(void)
 	/* Adding remote Interfaces */
 	/****************************/
 	if (system_cfg_is_remote_control_en() == true) {
-		memset(&if_db_entry, 0, sizeof(if_db_entry));
+
 		memset(&if_result, 0, sizeof(if_result));
 		/* Set Common fields */
 		memcpy(&if_result.app_bitmap, &app_bitmap, sizeof(app_bitmap));
@@ -186,6 +186,11 @@ bool nw_initialize_if_table(void)
 								       REMOTE_IF_STATS_POSTED_OFFSET + ind * REMOTE_NUM_OF_IF_STATS));
 			if_result.output_channel   = remote_interface_params[ind][INFRA_INTERFACE_PARAMS_PORT] | (remote_interface_params[ind][INFRA_INTERFACE_PARAMS_SIDE] << 7);
 			if_result.direct_output_if = ind + NW_BASE_LOGICAL_ID;
+			/* Add entry to NPS */
+			if (infra_add_entry(STRUCT_ID_NW_INTERFACES, &if_key, sizeof(if_key), &if_result, sizeof(if_result)) == false) {
+				write_log(LOG_ERR, "Adding remote host if entry to NPS IF table failed.");
+				return false;
+			}
 		}
 	}
 
