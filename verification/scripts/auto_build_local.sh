@@ -7,7 +7,7 @@
 #
 #  Project:         All NPS_SOLUTION git projects
 #
-#  Description:     This script create release for BPS_SOLUTION projects
+#  Description:     This script create release for NPS_SOLUTION projects
 #
 #  Notes:           runs on nighly build
 #
@@ -288,7 +288,7 @@ function set_version_dir_variable()
     echo -e "\n======= Setting version_dir variable ========="
 
 	cd $git_dir
-	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2| uniq)
+	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f2| uniq)
 	num_commits=$(git rev-list HEAD | wc -l)
 	num_commits=$num_commits-$base_commit_num
 	version="${fixed_version}.${num_commits}"
