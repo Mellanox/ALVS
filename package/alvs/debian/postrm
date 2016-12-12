@@ -22,12 +22,8 @@
 filename=$(basename $0)
 
 case "$1" in
-	remove)
-	# purge all debconf answers
-	echo PURGE | debconf-communicate alvs
-	;;
 
-	purge|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+	remove|purge|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
 	
 	;;
 
