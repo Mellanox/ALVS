@@ -14,7 +14,7 @@ import time
 # local
 sys.path.append("verification/testing")
 from common_infra import *
-from e2e_infra import *
+from alvs_infra import *
 
 server_count   = 0
 client_count   = 0

@@ -20,7 +20,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 sys.path.insert(0,currentdir)
-from e2e_infra import *
+from alvs_infra import *
 
 gen_retval = True
 failed_tests = ""

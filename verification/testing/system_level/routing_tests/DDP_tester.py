@@ -1,22 +1,9 @@
-#!/usr/bin/env python
-
-#===============================================================================
-# imports
-#===============================================================================
 # system  
 import cmd
-from collections import namedtuple
-import logging
-from optparse import OptionParser
 import os
 import inspect
 import sys
 import traceback
-import re
-from time import gmtime, strftime
-from os import listdir
-from os.path import isfile, join
-import copy
 import abc
 import signal
 # pythons modules 
@@ -26,8 +13,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 
-from client_infra import *
-from alvs_infra import *
+from DDP_infra import *
 from tester import *
 
 from multiprocessing import Process
@@ -36,10 +22,9 @@ from multiprocessing import Process
 # Test Globals
 #===============================================================================
 
-class Unit_Tester(Tester):
-    
+class DDP_Tester(Tester):
     __metaclass__  = abc.ABCMeta
-        
+    
     @abc.abstractmethod
     def change_config(self, config):
         """change configurantion staticly - must be implemented"""
@@ -50,7 +35,8 @@ class Unit_Tester(Tester):
         return self.test_rc
     
     def clean_all_players(self):
-        clean_players(self.test_resources, True, self.config['stop_ezbox'])
+    	#the DDP_tester clean_players
+        clean_players(self.test_resources)
     
     def start_test(self):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
@@ -69,7 +55,3 @@ class Unit_Tester(Tester):
         
         self.test_rc = 0
         
-        
-            
-
-    

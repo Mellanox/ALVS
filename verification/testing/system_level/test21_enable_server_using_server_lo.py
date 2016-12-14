@@ -13,7 +13,7 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-from system_tester_class import System_Tester
+from alvs_tester_class import ALVS_Tester
 
 
 # pythons modules 
@@ -21,7 +21,7 @@ from system_tester_class import System_Tester
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-from e2e_infra import *
+from alvs_infra import *
 
 
 #===============================================================================
@@ -49,7 +49,7 @@ g_sched_alg_opt  = "-b sh-port"
 #
 # Brief:
 #===============================================================================
-class Test21(System_Tester):
+class Test21(ALVS_Tester):
 	
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"

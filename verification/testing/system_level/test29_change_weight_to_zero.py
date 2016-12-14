@@ -14,14 +14,14 @@ import sys
 import inspect
 from multiprocessing import Process
 import copy
-from system_tester_class import System_Tester
+from alvs_tester_class import ALVS_Tester
 
 # pythons modules 
 # local
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-from e2e_infra import *
+from alvs_infra import *
 
 
 #===============================================================================
@@ -46,7 +46,7 @@ g_base_weight    = 2
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-class Test29(System_Tester):
+class Test29(ALVS_Tester):
 
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"

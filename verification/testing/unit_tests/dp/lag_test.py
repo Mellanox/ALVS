@@ -11,7 +11,7 @@ sys.path.append(my_parentdir)
 
 import random
 from common_infra import *
-from e2e_infra import *
+from alvs_infra import *
 from unit_tester import Unit_Tester
 
 server_count   = 1

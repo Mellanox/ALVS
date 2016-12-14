@@ -26,10 +26,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from common_infra import *
-from server_infra import *
-from client_infra import *
-from test_infra import *
-from e2e_infra import *
+from alvs_infra import *
 from tester import Tester
 
 from multiprocessing import Process
@@ -38,7 +35,7 @@ from multiprocessing import Process
 # Test Globals
 #===============================================================================
 
-class System_Tester(Tester):
+class ALVS_Tester(Tester):
     
     __metaclass__  = abc.ABCMeta
         
@@ -72,9 +69,12 @@ class System_Tester(Tester):
                 s.ssh.recreate_ssh_object()
         return copy.deepcopy(self.test_resources['server_list'])
     
+    def clean_all_players(self):
+        clean_players(self.test_resources, True, self.config['stop_ezbox'])
+    
     def start_test(self):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-            
+        
         self.config = fill_default_config(generic_main())
         
         self.user_init(self.config['setup_num'])
@@ -90,6 +90,6 @@ class System_Tester(Tester):
         self.user_rc = self.run_user_checker(log_dir)
         
         self.print_test_result()
-            
+        
 
     

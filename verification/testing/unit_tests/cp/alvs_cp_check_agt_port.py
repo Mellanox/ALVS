@@ -7,7 +7,6 @@
 
 import sys
 sys.path.append("verification/testing/")
-from test_infra import *
 from ez_general.ezpy_exceptions import EZpyFailedToConnectSocket
 
 ezbox,args = init_test(test_arguments=sys.argv, agt_enable=False, wait_for_dp=False)

@@ -13,14 +13,14 @@ import os
 import sys
 import inspect
 from multiprocessing import Process
-from system_tester_class import System_Tester
+from alvs_tester_class import ALVS_Tester
 
 # pythons modules 
 # local
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-from e2e_infra import *
+from alvs_infra import *
 
 
 #===============================================================================
@@ -35,7 +35,7 @@ service_count = 3
 #===============================================================================
 # User Area function needed by infrastructure
 #===============================================================================
-class Test35_36(System_Tester):
+class Test35_36(ALVS_Tester):
 	
 	def __init__(self, sched_alg):
 		self.sched_alg = sched_alg

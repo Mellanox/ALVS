@@ -26,13 +26,12 @@ import stf_path
 from trex_client import *
 
 # pythons modules 
-from test_infra import *
 from cmd import Cmd
 
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALVSdir = os.path.dirname(parentdir)
 
-from e2e_infra import *
+from alvs_infra import *
 
 #===============================================================================
 # Classes

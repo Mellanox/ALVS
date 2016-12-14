@@ -25,11 +25,6 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
-from common_infra import *
-from server_infra import *
-from client_infra import *
-from test_infra import *
-from e2e_infra import *
 
 from multiprocessing import Process
 
@@ -81,7 +76,12 @@ class Tester():
     def get_test_rc(self):
         """Get test result - must be implemented"""
         pass
-    
+        
+    @abc.abstractmethod
+    def clean_all_players(self):
+        """User initialization - must be implemented"""
+        pass
+        
     def signal_handler(self, signum, frame):
         #Ignore termination signals while executing clean up
         signal.signal(signal.SIGTERM,signal.SIG_IGN)
@@ -108,7 +108,7 @@ class Tester():
             logging.exception(error)
     
         finally:
-            clean_players(self.test_resources, True, self.config['stop_ezbox'])
+            self.clean_all_players()
             exit(self.get_test_rc())
             
 

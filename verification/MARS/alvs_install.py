@@ -12,6 +12,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 testdir = parentdir + '/testing' 
 sys.path.insert(0,testdir) 
 from common_infra import *
+from alvs_infra import *
 
 ################################################################################
 # Function: Main
@@ -69,7 +70,7 @@ def main():
                       help="test topology script")
     (options, args) = parser.parse_args()
     setup_num = int(parse_topology(options.topo_file))
-    ezbox = ezbox_host(setup_num)
+    ezbox = alvs_ezbox(setup_num)
     if init_ezbox(ezbox, options.cpus_count, options.file_name):
         return 0
     else:

@@ -27,10 +27,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from common_infra import *
-from server_infra import *
-from client_infra import *
-from test_infra import *
-from e2e_infra import *
+from alvs_infra import *
 from trex_infra_utils import *
 from multiprocessing import Process
 

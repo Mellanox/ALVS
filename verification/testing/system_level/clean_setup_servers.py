@@ -17,7 +17,7 @@ from timeit import default_timer as timer
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-from e2e_infra import *
+from alvs_infra import *
 
 '''
  Function: clean_server
@@ -30,12 +30,9 @@ from e2e_infra import *
  	1 = Connection failed, reset VM 
 '''
 def clean_server(server, vm):
-	s = HttpServer(ip = vm['ip'],
-				  hostname = vm['hostname'], 
-				  username = "root", 
-				  password = "3tango", 
-				  vip = "",
-				  eth='ens6')
+	s = HttpServer(ip      = vm['mng_ip'],
+				  hostname = vm['hostname'],
+				  all_eths = vm['all_eths'])
 	start = timer()
 	s.connect()
 	end = timer()

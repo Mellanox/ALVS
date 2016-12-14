@@ -20,7 +20,7 @@ sys.path.append(my_grandparentdir)
 sys.path.append(my_parentdir)
 # from test_infra import *
 from common_infra import *
-from e2e_infra import *
+from alvs_infra import *
 from unit_tester import Unit_Tester
 
 #===============================================================================

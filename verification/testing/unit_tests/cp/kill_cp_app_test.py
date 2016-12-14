@@ -2,7 +2,6 @@
 
 import sys
 sys.path.append("../")
-from test_infra import *
 
 args = read_test_arg(sys.argv)    
 

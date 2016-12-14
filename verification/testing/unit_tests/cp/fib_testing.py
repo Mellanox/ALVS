@@ -10,7 +10,7 @@ sys.path.append(my_grandparentdir)
 sys.path.append(my_parentdir)
 from time import sleep
 from random import shuffle
-from e2e_infra import *
+from alvs_infra import *
 from common_infra import *
 from unit_tester import Unit_Tester
 
