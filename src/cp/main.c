@@ -222,7 +222,7 @@ void dp_load(void)
 
 	/* check connection to NPS */
 	write_log(LOG_INFO, "Waiting for Connection to NPS");
-	for (i = 0; i < WAIT_FOR_NPS || cancel_application_flag; i++) {
+	for (i = 0; i < WAIT_FOR_NPS && cancel_application_flag == false; i++) {
 		rc = system("ping -c1 -w10 nps_if > /dev/null 2>&1");
 		if (rc == 0) {
 			write_log(LOG_INFO, "Connection to NPS Succeed");
@@ -239,7 +239,7 @@ void dp_load(void)
 
 	/* copy dp bin file to nps */
 	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", system_cfg_get_dp_bin_file());
-	for (i = 0; i < FTP_RETRIES || cancel_application_flag; i++) {
+	for (i = 0; i < FTP_RETRIES  && cancel_application_flag == false; i++) {
 		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n nps_if;", system_cfg_get_dp_bin_file());
 		rc = system(temp);
 		if (rc == 0) {
@@ -254,7 +254,7 @@ void dp_load(void)
 	}
 
 	/* run dp bin */
-	for (i = 0; i < DP_RUN_RETRIES || cancel_application_flag; i++) {
+	for (i = 0; i < DP_RUN_RETRIES  && cancel_application_flag == false; i++) {
 		if (strcmp(system_cfg_get_run_cpus(), "not_used") == 0) {
 			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp &\"; sleep 10;} | telnet nps_if &");
 		} else {

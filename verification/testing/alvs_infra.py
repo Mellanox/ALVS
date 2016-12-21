@@ -1209,6 +1209,7 @@ def init_ezbox(ezbox, server_list, vip_list, test_config={}):
 		if test_config['modify_run_cpus']:
 			ezbox.alvs_service_start()
 			ezbox.modify_run_cpus(cpus_range)
+			ezbox.wait_for_dp_app()
 			
 		ezbox.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
 		ezbox.update_port_type("--port_type=%s " % (ezbox.setup['nps_port_type']))
