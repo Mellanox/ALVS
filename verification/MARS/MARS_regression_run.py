@@ -22,7 +22,9 @@ def main():
     cpus_choices=['32','64','128','256','512','1024','2048','4096']
     parser.add_option("-s", "--setup_num", dest="setup_num",
                       help="Setup number. range (1..7)					(Mandatory parameter)")
-    parser.add_option("-p", "--path", dest="path",
+    parser.add_option("--type", dest="regression_type", default = 'system',
+                      help="Set type to system or unit 						(default is system)")
+    parser.add_option("-p", "--path", dest="path", 
                       help="Set path to ALVS directory 						(default is your current directory)")
     parser.add_option("-t", "--tags", action="append", dest="tags", default = [],
                       help="Filter by tags								(Optional parameter. Few tags:  -t tagA -t tagB)")
@@ -37,12 +39,17 @@ def main():
         print 'ERROR: setup_num was not given'
         exit(1)
     
+    if options.regression_type == 'unit':
+    	test_file = 'alvs_unit.setup'
+    else:
+    	test_file = 'alvs_sys.setup'
+    	
     command_line = 'python2.7 '\
                    '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
                    '--cmd start '\
                    '--setup solution_setup' + options.setup_num + \
-                   ' --conf alvs_sys.setup '\
-                   '--meinfo_tests_src_path='\
+                   ' --conf ' + test_file + \
+                   ' --meinfo_tests_src_path='
                    
                    
     if options.path:

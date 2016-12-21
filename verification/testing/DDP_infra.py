@@ -6,6 +6,7 @@ import inspect
 import random
 
 from common_infra import *
+from optparse import OptionParser
 dir = os.path.dirname(parentdir)
 #===============================================================================
 # Classes
@@ -77,7 +78,10 @@ class Remote_Host(player):
 			if rc is True:
 				err_msg = "ERROR: %s Failed to stop sync process " %(func_name)
 				raise RuntimeError(err_msg)
-
+	
+	
+	def clean_host(self):
+		self.logout()
 
 class Host(player):
 	def __init__(self, hostname, all_eths,
@@ -229,7 +233,7 @@ def generic_main():
 	return config
 
 
-def generic_init(setup_num, host_count, networks):
+def generic_init(setup_num, host_count):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
 	next_vm_idx = 0
@@ -241,7 +245,7 @@ def generic_init(setup_num, host_count, networks):
 	# Create host list
 	host_list=[]
 	for i in range(host_count):
-		host = Host(ip       = setup_list[next_vm_idx]['all_ips'][networks[next_vm_idx]],
+		host = Host(ip       = setup_list[next_vm_idx]['all_ips'],
 					hostname = setup_list[next_vm_idx]['hostname'],
 					all_eths = setup_list[next_vm_idx]['all_eths'])
 		host_list.append(host)
@@ -266,8 +270,8 @@ def init_host(host):
 def init_players(test_resources, test_config={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	if test_config['start_ezbox']:
-		change_switch_lag_mode(test_config['setup_num'], enable_lag = False)
+# 	if test_config['start_ezbox']:
+# 		change_switch_lag_mode(test_config['setup_num'], enable_lag = False)
 	
 	# init ezbox in another proccess
 	ezbox_init_proccess = Process(target=init_ezbox,
@@ -358,3 +362,44 @@ def fill_default_config(test_config):
 		print "     " + '{0: <16}'.format(key) + ": " + str(test_config[key])
 
 	return test_config
+
+# TODO
+def clean_players(test_resources, use_director = False, stop_ezbox = False):
+		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+	
+		# recreate ssh object for the new proccess (patch)
+		process_list = []
+		remote_host = test_resources['remote_host']
+		
+		if not remote_host.ssh.connection_established:
+			remote_host.ssh.connect()
+		remote_host.ssh.recreate_ssh_object()
+		process_list.append(Process(target=clean_host, args=(remote_host,)))
+		
+		for host in test_resources['host_list']:
+			if not host.ssh.connection_established:
+				host.ssh.connect()
+			host.ssh.recreate_ssh_object()
+			process_list.append(Process(target=clean_host, args=(host,)))
+				
+		if test_resources['ezbox']:
+			test_resources['ezbox'].ssh_object.recreate_ssh_object()
+			test_resources['ezbox'].run_app_ssh.recreate_ssh_object()
+			test_resources['ezbox'].syslog_ssh.recreate_ssh_object()
+			process_list.append(Process(target=clean_ezbox, args=(test_resources['ezbox'], use_director, stop_ezbox,)))
+		
+		# run clean for all player parallely
+		for p in process_list:
+			p.start()
+			
+		# Wait for all proccess to finish
+		for p in process_list:
+			p.join()
+			
+		for p in process_list:
+			if p.exitcode:
+				print p, p.exitcode
+				exit(p.exitcode)
+
+
+

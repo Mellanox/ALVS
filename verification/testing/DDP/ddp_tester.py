@@ -1,53 +1,35 @@
-#!/usr/bin/env python
-
 #===============================================================================
 # imports
 #===============================================================================
 # system  
 import cmd
-from collections import namedtuple
-import logging
-from optparse import OptionParser
 import os
 import inspect
 import sys
 import traceback
 import re
-from time import gmtime, strftime
-from os import listdir
-from os.path import isfile, join
-import copy
 import abc
-import signal
 # pythons modules 
 # local
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
-from alvs_infra import *
+
+from DDP_infra import *
 from tester import *
 
 from multiprocessing import Process
 
-#===============================================================================
-# Test Globals
-#===============================================================================
-
-class Unit_Tester(Tester):
+class DDP_Tester(Tester):
     
     __metaclass__  = abc.ABCMeta
     
     def __init__(self):
-    	super(Unit_Tester, self).__init__()
-    	self.test_resources = {'server_list': [],
+    	super(Tester, self).__init__()
+    	self.test_resources = {'host_list': [],
                                'ezbox': None,
-                               'client_list': []}
-        
-    @abc.abstractmethod
-    def change_config(self, config):
-        """change configurantion staticly - must be implemented"""
-        pass
+                               'remote-host' : None} 
     
     def get_test_rc(self):
         #zero means test passed
@@ -61,8 +43,6 @@ class Unit_Tester(Tester):
         
         self.config = fill_default_config(generic_main())
         
-        self.change_config(self.config)
-        
         self.user_init(self.config['setup_num'])
         
         init_players(self.test_resources, self.config)
@@ -72,8 +52,4 @@ class Unit_Tester(Tester):
         print "Test Passed"
         
         self.test_rc = 0
-        
-        
-            
-
-    
+      

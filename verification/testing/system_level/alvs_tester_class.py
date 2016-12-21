@@ -38,6 +38,12 @@ from multiprocessing import Process
 class ALVS_Tester(Tester):
     
     __metaclass__  = abc.ABCMeta
+    
+    def __init__(self):
+    	super(ALVS_Tester, self).__init__()
+    	self.test_resources = {'server_list': [],
+                               'ezbox': None,
+                               'client_list': []} 
         
     @abc.abstractmethod
     def run_user_test(self):

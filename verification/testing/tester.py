@@ -36,11 +36,7 @@ class Tester():
     
     __metaclass__  = abc.ABCMeta
     
-    def __init__(self):
-        self.test_resources = {'server_list': [],
-                               'ezbox': None,
-                               'client_list': []}   
-        
+    def __init__(self):  
         # define default configuration 
         self.config = {'setup_num'       : None,  # supply by user
                        'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored

@@ -69,6 +69,12 @@ class ezbox_host(object):
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
+		
+	def send_ping(self, ip):
+		self.ssh_object.sendline('ping -c1 -w10 '+ ip + ' > /dev/null 2>&1')
+		exit_code = self.get_execute_command_exit_code(False)
+		if(exit_code!=0):
+			raise Exception('commmand failed')
 
 	def execute_command_on_chip(self, chip_cmd):
 		return self.ssh_object.execute_chip_command(chip_cmd)
@@ -804,6 +810,22 @@ class player(object):
 				self.ifconfig_eth_down(eth)
 		
 		self.eth = eth_up
+	
+	#mode is one of the next {'alvs', 1 , 2, 3, 4}
+	def change_mode(self, mode):
+		if self.mode == "alvs":
+			self.ip = self.ip[0]
+		elif mode > 0 and mode < 5:
+			self.ip = self.ip[mode]
+		else:
+			raise Exception("mode is illegal please choose mode from the following {'alvs', 1 , 2 ,3 ,4}")
+		self.mode = mode
+	
+	def send_ping(self, ip):
+		self.ssh_object.sendline('ping -c1 -w10 '+ ip + ' > /dev/null 2>&1')
+		exit_code = self.get_execute_command_exit_code(False)
+		if(exit_code!=0):
+			raise Exception('commmand failed')
 		
 	def read_ifconfig(self):
 		result, exit_code = self.ssh.execute_command("ifconfig")
@@ -949,20 +971,22 @@ def get_setup_list(setup_num):
 			setup_list.append({'hostname':input_list[0],
 								'mng_ip':input_list[2],
 								'all_eths':input_list[3::2],# all interfaces [ALVS, routing1, routing2, routing3, routing4]
-								'all_ips':[input_list[1]] + input_list[4::2]})# all IP's
+								'all_ips':[input_list[1]] + input_list[4::2]})# all IP's 
 	return setup_list
 
 def get_remote_host(setup_num):
-	file_name = '%s/remote_hosts_vms.csv' %(g_setups_dir)
-	infile    = open(file_name, 'r')
-	
-	for index,line in enumerate(infile):
-		if (index == setup_num - 1):
-			remote_host_info = line.strip().split(',')
-			dict = {'ip'       : remote_host_info[0],
-					'hostname' : remote_host_info[1]}
-			break
-	return dict
+		file_name = '%s/remote_hosts_vms.csv' %(g_setups_dir)
+		infile    = open(file_name, 'r')
+		
+		for index,line in enumerate(infile):
+			if (index == setup_num - 1):
+				remote_host_info = line.strip().split(',')
+				dict = {'mng_ip'        : remote_host_info[0],
+						'hostname' 		: remote_host_info[1],
+						'all_eth'		:remote_host_info[3::2],
+						'all_ips'		:remote_host_info[2::2]}
+				break
+		return dict	 
 
 def change_switch_lag_mode(setup_num, enable_lag = True):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
