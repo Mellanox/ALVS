@@ -7,7 +7,7 @@ from optparse import OptionParser
 import socket
 import inspect
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+grandparentdir =  os.path.dirname(parentdir)
 ################################################################################
 # Function: Main
 ################################################################################
@@ -20,7 +20,7 @@ def main():
     parser.add_option("--topo_file", dest="topo_file", help="test topology script")
     (options, args) = parser.parse_args()
     
-    tests_path = parentdir + '/venus'
+    tests_path = grandparentdir + '/venus'
     os.chdir(tests_path)
     print "Test Case :   " + options.test_case
     print "venus_runner working dir is:   "+ os.getcwd()

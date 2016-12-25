@@ -26,7 +26,7 @@ class DDP_Tester(Tester):
     __metaclass__  = abc.ABCMeta
     
     def __init__(self):
-    	super(Tester, self).__init__()
+    	super(DDP_Tester, self).__init__()
     	self.test_resources = {'host_list': [],
                                'ezbox': None,
                                'remote-host' : None} 

@@ -11,7 +11,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class Wrapper(StandaloneWrapper):
 
     def get_prog_path(self):
-        prog = "test_runner.py"
+        prog = "../test_runner.py"
         return prog
 
     def configure_parser(self):
@@ -22,4 +22,5 @@ class Wrapper(StandaloneWrapper):
 
 if __name__ == "__main__":
     wrapper = Wrapper("test_runner")
+    print os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     wrapper.execute(sys.argv[1:])

@@ -8,7 +8,6 @@ import socket
 from topology.TopologyAPI import TopologyAPI
 import inspect
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 ################################################################################
 # Function: Main
 ################################################################################
@@ -44,8 +43,10 @@ def main():
     print "Test to run: %s" %test_to_run
     setup_num = parse_topology(options.topo_file)
     cmd = test_to_run + ' -s ' + setup_num
+    
     if 'unit_tests' in cmd:
     	cmd = cmd + ' --install_package False --modify_run_cpus False'
+    
     print "*** CMD: " + cmd
     retval = os.system(cmd)
     return retval

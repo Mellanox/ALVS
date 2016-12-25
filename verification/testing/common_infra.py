@@ -22,6 +22,7 @@ from ftplib import FTP
 
 # pythons modules 
 from cmd import Cmd
+from network_interface_enum import *
 cp_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../EZdk/tools/EZcpPyLib/lib"
 sys.path.append(cp_dir)
 from ezpy_cp import EZpyCP
@@ -66,6 +67,31 @@ class ezbox_host(object):
 		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
+
+	def common_ezbox_bringup(self, test_config={}):
+		print "init EZbox: " + self.setup['name']
+		# start daemon and DP
+		self.connect()
+		cpus_range = "16-" + str(int(test_config['num_of_cpus']) - 1)
+		if test_config['install_package']:
+			self.copy_and_install_package(test_config['install_file'])
+		
+		if test_config['stats']:
+			stats = '--statistics'
+		else:
+			stats = ''
+			
+		if test_config['modify_run_cpus']:
+			self.service_start()
+			self.modify_run_cpus(cpus_range)
+			self.wait_for_dp_app()
+		
+		self.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
+		self.update_port_type("--port_type=%s " % (self.setup['nps_port_type']))
+		self.service_stop()
+		self.service_start()
+		return self.wait_for_dp_app()
+
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
@@ -211,7 +237,7 @@ class ezbox_host(object):
 	def wait_for_dp_app(self):
 		sys.stdout.write("Waiting for DP application to load...")
 		sys.stdout.flush()
-		output = self.syslog_ssh.wait_for_msgs(['starting ALVS DP application'])
+		output = self.syslog_ssh.wait_for_msgs(['Application version:'])
 		print
 
 		if output == 0:
@@ -638,13 +664,11 @@ class SshConnect:
 				self.ssh_object.expect(' #')
 			else:
 				self.ssh_object.prompt(timeout=120)
-			
 			exit_code = self.ssh_object.before.split('\n')[1]
 			exit_code = int(exit_code)
 				
 		except:
 			exit_code = None
-		
 		return exit_code
 
 	#############################################################
@@ -734,11 +758,9 @@ class SshConnect:
 		print "Error while waiting for message"
 		return -1
 
-
 class player(object):
-	def __init__(self, ip, hostname, username, password, mode = None, all_eths = None, exe_path=None, exe_script=None, exec_params=None):
-		
-		
+
+	def __init__(self, ip, hostname, username, password, interface = None, all_eths = None, exe_path=None, exe_script=None, exec_params=None):
 		self.ip = ip
 		self.hostname   = hostname
 		self.username   = username
@@ -746,45 +768,40 @@ class player(object):
 		self.exe_path   = exe_path
 		self.exe_script = exe_script
 		self.exec_params= exec_params
-		self.mode       = mode
+		self.interface 	= interface
 		self.all_eths   = all_eths
-		self.eth        = (None if all_eths is None else all_eths[0])
-		self.ssh        = SshConnect(hostname, username, password)
+		self.eth 		= (None if all_eths is None else all_eths[0])
+		self.ssh 		= SshConnect(hostname, username, password)
 
 
-	def config_interface(self):
-		if self.mode == "alvs":
-			eth_up = self.all_eths[0]
-			eth_down = self.all_eths[1:]
-		else:	# routing mode, mode = "number of network"
-			eth_down = self.all_eths[:self.mode] + self.all_eths[self.mode+1:]
-			eth_up = self.all_eths[self.mode]
-		
-		interfaces = self.read_ifconfig()
-		if eth_up not in interfaces:
-			self.ifconfig_eth_up(eth_up)
-		for eth in eth_down:
-			if eth in interfaces:
-				self.ifconfig_eth_down(eth)
-		
-		self.eth = eth_up
+# 	def config_interface(self):
+# 		if self.interface == Network_Interface.REGULAR:
+# 			eth_up = self.all_eths[0]
+# 			eth_down = self.all_eths[1:]
+# 		else:	# routing interface, interface = "number of network"
+# 			eth_down = self.all_eths[:self.interface] + self.all_eths[self.interface+1:]
+# 			eth_up = self.all_eths[self.interface]
+# 		
+# 		interfaces = self.read_ifconfig()
+# 		if eth_up not in interfaces:
+# 			self.ifconfig_eth_up(eth_up)
+# 		for eth in eth_down:
+# 			if eth in interfaces:
+# 				self.ifconfig_eth_down(eth)
+# 		
+# 		self.eth = eth_up
 	
-	#mode is one of the next {'alvs', 1 , 2, 3, 4}
-	def change_mode(self, mode):
-		if mode == "alvs":
-			self.ip = self.ip[0]
-		elif mode > 0 and mode < 5:
-			self.ip = self.ip[mode]
-		else:
-			raise Exception("mode is illegal please choose mode from the following {'alvs', 1 , 2 ,3 ,4}")
-		self.mode = mode
+	def change_interface(self, interface):
+		self.ip = self.ip[interface]
+		self.interface = interface
 	
-	def send_ping(self, ip):
-		self.ssh_object.sendline('ping -c1 -w10 '+ ip + ' > /dev/null 2>&1')
-		exit_code = self.get_execute_command_exit_code(False)
-		if(exit_code!=0):
-			raise Exception('commmand failed')
-		
+	def send_ping(self, ip, timeout=10, count=1, size=56):
+		cmd = 'ping -c%s -w%s -s%s %s > /dev/null 2>&1' % (count, timeout, size, ip)
+		self.ssh.ssh_object.sendline(cmd)
+		self.ssh.ssh_object.prompt(timeout=120)
+		exit_code = self.ssh.get_execute_command_exit_code()
+		return exit_code
+
 	def read_ifconfig(self):
 		result, exit_code = self.ssh.execute_command("ifconfig")
 		if result == False:
@@ -815,13 +832,15 @@ class player(object):
 		mac_address = mac_address.replace(':', ' ')
 		return mac_address
 
-	def execute(self, exe_prog="python"):
+	def execute(self, script=None,exe_prog="python"):
 		if self.exe_script:
-			sshpass_cmd = "sshpass -p " + self.password+ " ssh -o StrictHostKeyChecking=no " + self.username + "@" + self.hostname
-			exec_cmd	= "cd " + self.exe_path + "; " + exe_prog + " " + self.exe_script
+			if script==None:
+				script=self.exe_script
+			sshpass_cmd = "sshpass -p " + self.password + " ssh -o StrictHostKeyChecking=no " + self.username + "@" + self.hostname
+			exec_cmd	 = "cd " + self.exe_path + "; " + exe_prog + " " + script
 			cmd = sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\""
-			print cmd
 			os.system(cmd)
+		return
 
 	def connect(self):
 		self.ssh.connect()
@@ -837,6 +856,12 @@ class player(object):
 
 	def execute_command(self, cmd):
 		return self.ssh.execute_command(cmd)
+	
+	def remove_exe_dir(self):
+		self.execute_command('rm -rf %s'%self.exe_path)
+	
+	def create_exe_dir(self):
+		self.execute_command('mkdir -p %s'%self.exe_path)
 	
 	def copy_file_to_player(self, filename, dest):
 		cmd = "sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest
@@ -941,7 +966,7 @@ def get_remote_host(setup_num):
 				remote_host_info = line.strip().split(',')
 				dict = {'mng_ip'        : remote_host_info[0],
 						'hostname' 		: remote_host_info[1],
-						'all_eth'		:remote_host_info[3::2],
+						'all_eths'		:remote_host_info[3::2],
 						'all_ips'		:remote_host_info[2::2]}
 				break
 		return dict	 
@@ -989,7 +1014,6 @@ def execute_command_on_switch(ip, exec_param):
 	if rc != 0:
 		err_msg = " ERROR: failed to configure switch. command: %s" %cmd
 		raise RuntimeError(err_msg)
-	
 	
 def get_ezbox_names(setup_id):
 	setup_dict = []
@@ -1087,7 +1111,24 @@ def compare_pcap_files(file_name_1, file_name_2):
 			return False
 		
 	return True
-	 
+
+def check_if_eth_is_up(self, eth_up_index):
+	interfaces = self.test_resources['remote-host'].get_all_interfaces()
+	for interface in interfaces:
+		if interface['key'] == eth_up_index:
+			print "eth %s is up" %eth_up_index
+			break
+		
+	raise TestFailedException ("ERROR eth %s is not up" %eth_up_index)
+	
+def check_if_eth_is_down(self, eth_down_index):
+	interfaces = self.test_resources['remote-host'].get_all_interfaces()
+	for interface in interfaces:
+		if interface['key'] == eth_down_index:
+			raise TestFailedException ("ERROR eth %s is not down" %eth_down_index)
+		
+	print "eth %s is down" %eth_down_index
+	
 def check_packets_on_pcap(pcap_file_name, ssh_object=None):
 	cmd = "tcpdump -r %s | wc -l "%pcap_file_name
 	logging.log(logging.DEBUG,"executing: "+cmd)

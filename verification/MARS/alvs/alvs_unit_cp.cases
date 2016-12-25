@@ -12,15 +12,15 @@
 		           <name> run_test_wrapper </name>
 		           <tout> 1500 </tout>
 		           <params>
-		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/alvs_install_wrapper.py </wrapper>
-		               <wrapper_params> "-c [[conf:extra_info.cpu_count:32]] -f [[conf:extra_info.file_name:None]]" </wrapper_params>
+		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/install_wrapper.py </wrapper>
+		               <wrapper_params> "-c [[conf:extra_info.cpu_count:32]] -f [[conf:extra_info.file_name:None]] -p [[conf:extra_info.project_name:alvs]]" </wrapper_params>
 	                   <remote_test_path> [[run_time:remote_src_path]]/ALVS/verification/MARS/ </remote_test_path>
 		           </params>
 		    </pre>
         </Test>
         <Case>
             <tout>  1500 </tout>
-            <wrapper> Wrapper.py </wrapper>
+            <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/Wrapper.py </wrapper>
             <params> <env> /testing/unit_tests/cp/ </env> </params>
             <on_failure>
                  <cmd>

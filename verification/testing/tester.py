@@ -27,6 +27,7 @@ sys.path.insert(0,parentdir)
 
 
 from multiprocessing import Process
+from test_failed_exception import *
 
 #===============================================================================
 # Test Globals
@@ -100,6 +101,10 @@ class Tester():
         except KeyboardInterrupt:
             print "The test has been terminated, Good Bye"
         
+        except TestFailedException as error:
+            print error
+            print "Test Failed"
+            
         except Exception as error:
             logging.exception(error)
     

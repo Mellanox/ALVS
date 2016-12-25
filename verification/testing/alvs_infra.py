@@ -16,6 +16,7 @@ from os import listdir
 from os.path import isfile, join
 
 from common_infra import *
+from network_interface_enum import *
 from pexpect import pxssh
 import pexpect
 
@@ -69,7 +70,7 @@ class alvs_ezbox(ezbox_host):
 		# init parent class
 		super(alvs_ezbox, self).__init__(setup_id)
 		self.install_path = "alvs_install"
-
+	
 	def clean(self, use_director=False, stop_ezbox=False):
 		self.zero_all_ipvs_stats()
 		if use_director:
@@ -78,7 +79,7 @@ class alvs_ezbox(ezbox_host):
 		self.flush_ipvs()
 		
 		if stop_ezbox:
-			self.alvs_service_stop()
+			self.service_stop()
 		
 		self.clean_vips()
 		self.logout()
@@ -217,11 +218,10 @@ class alvs_ezbox(ezbox_host):
 		
 		return version
 	
-	def copy_and_install_alvs(self, alvs_package=None):
+	def copy_and_install_package(self, alvs_package=None):
 		if alvs_package is None:
 			# get package name
-			version = self.get_version()
-			alvs_package = "alvs_%s_amd64.deb" %(version)
+			alvs_package = "alvs_*_amd64.deb"
 		self.copy_package(alvs_package)
 		self.install_package(alvs_package)
 
@@ -229,15 +229,15 @@ class alvs_ezbox(ezbox_host):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"
 		self.run_app_ssh.execute_command("service alvs " + cmd)
 
-	def alvs_service_start(self):
+	def service_start(self):
 		self.run_app_ssh.execute_command("cat /dev/null > /var/log/syslog")
 		self.syslog_ssh.wait_for_msgs(['file truncated'])
 		self.alvs_service("start")
 
-	def alvs_service_stop(self):
+	def service_stop(self):
 		self.alvs_service("stop")
 
-	def alvs_service_restart(self):
+	def service_restart(self):
 		self.alvs_service("restart")
 
 	def get_num_of_services(self):
@@ -783,13 +783,13 @@ class HttpServer(player):
 				exe_script  = None,
 				exec_params = None,
 				vip         = None,
-				mode        = "alvs",
+				interface   = Network_Interface.REGULAR,
 				net_mask    = "255.255.255.255",
 				weight      = 1,
 				u_thresh    = 0,
 				l_thresh    = 0):
 		# init parent class player
-		super(HttpServer, self).__init__(ip, hostname, username, password, mode, all_eths, exe_path, exe_script, exec_params)
+		super(HttpServer, self).__init__(ip, hostname, username, password, interface, all_eths, exe_path, exe_script, exec_params)
 		# Init class variables
 		self.net_mask = net_mask
 		self.vip = vip
@@ -799,7 +799,7 @@ class HttpServer(player):
 		self.mac_address = None
 	def init_server(self, index_str):
 		self.connect()
-		self.config_interface()
+		#self.config_interface()
 		self.mac_address = self.get_mac_adress()
 		self.clear_arp_table()
 		self.start_http_daemon()
@@ -982,14 +982,14 @@ class HttpClient(player):
 	def __init__(self, ip, hostname, all_eths,
 				username    = "root",
 				password    = "3tango",
-				mode        = "alvs",
+				interface   = Network_Interface.REGULAR,
 				exe_path    = "/root/tmp/",
 				src_exe_path    = os.path.dirname(os.path.realpath(__file__))+"/system_level",
 				exe_script  = "basic_client_requests.py",
 				exec_params = ""):
 		
 		# init parent class player
-		super(HttpClient, self).__init__(ip, hostname, username, password, mode, all_eths, exe_path, exe_script, exec_params)
+		super(HttpClient, self).__init__(ip, hostname, username, password, interface, all_eths, exe_path, exe_script, exec_params)
 		
 		# Init class variables
 		self.logfile_name  = '/root/client_%s.log'%ip
@@ -999,7 +999,7 @@ class HttpClient(player):
 
 	def init_client(self):
 		self.connect()
-		self.config_interface()
+		#self.config_interface()
 		self.mac_address = self.get_mac_adress()
 		self.clear_arp_table()
 		self.copy_exec_script()
@@ -1086,7 +1086,7 @@ def generic_main():
 	# validate options
 	if not options.setup_num:
 		raise ValueError('setup_num is not given')
-	if (options.setup_num == 0) or (options.setup_num > 8):
+	if (options.setup_num == 0) or (options.setup_num > 9):
 		raise ValueError('setup_num: ' + str(options.setup_num) + ' is not in range')
 
 	# set user configuration
@@ -1190,55 +1190,22 @@ def init_client(client):
 	print "init client: " + client.str()
 	client.init_client()
 
-
 #------------------------------------------------------------------------------
-def init_ezbox(ezbox, server_list, vip_list, test_config={}):
-	print "init EZbox: " + ezbox.setup['name']
-	# start ALVS daemon and DP
-	ezbox.connect()
-	if test_config['start_ezbox']:
-		cpus_range = "16-" + str(int(test_config['num_of_cpus']) - 1)
-		if test_config['install_package']:
-			ezbox.copy_and_install_alvs(test_config['install_file'])
-		
-		if test_config['stats']:
-			stats = '--statistics'
-		else:
-			stats = ''
-
-		if test_config['modify_run_cpus']:
-			ezbox.alvs_service_start()
-			ezbox.modify_run_cpus(cpus_range)
-			ezbox.wait_for_dp_app()
-			
-		ezbox.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
-		ezbox.update_port_type("--port_type=%s " % (ezbox.setup['nps_port_type']))
-		ezbox.alvs_service_stop()
-		ezbox.config_vips(vip_list)
-		ezbox.flush_ipvs()
-		ezbox.alvs_service_start()
-		# wait for CP before initialize director
-		ezbox.wait_for_cp_app()
-		# wait for DP app
-		ezbox.wait_for_dp_app()	
-		time.sleep(6)
-		
-	else:
-		ezbox.config_vips(vip_list)
-		ezbox.flush_ipvs()
-		
+def alvs_bringup_env(ezbox, server_list, vip_list, use_director):
+	ezbox.config_vips(vip_list)
+	ezbox.flush_ipvs()
+	
 	# init director
-	if test_config['use_director']:
+	if use_director:
 		print 'Start Director'
 		services = dict((vip, []) for vip in vip_list )
 		for server in server_list:
 			services[server.vip].append((server.ip, server.weight))
 		ezbox.init_keepalived(services)
-		#wait for director	
+		#wait for director
 		time.sleep(15)
 		#flush director configurations
 		ezbox.flush_ipvs()
-	ezbox.logout()
 
 #------------------------------------------------------------------------------
 def fill_default_config(test_config):
@@ -1279,14 +1246,14 @@ def fill_default_config(test_config):
 def init_players(test_resources, test_config={}):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	if test_config['start_ezbox']:
-		change_switch_lag_mode(test_config['setup_num'])
-		
 	# init ezbox in another proccess
-	ezbox_init_proccess = Process(target=init_ezbox,
-								  args=(test_resources['ezbox'], test_resources['server_list'], test_resources['vip_list'], test_config))
-	ezbox_init_proccess.start()
+	if test_config['start_ezbox']:
+		ezbox_init_proccess = Process(target=test_resources['ezbox'].common_ezbox_bringup,
+								  args=(test_config,))
 	
+		ezbox_init_proccess.start()
+		#change_switch_lag_mode(test_config['setup_num'])
+		
 	# connect Ezbox (proccess work on ezbox copy and not on ezbox object
 	test_resources['ezbox'].connect()
 	
@@ -1296,11 +1263,14 @@ def init_players(test_resources, test_config={}):
 		init_client(c)
 	
 	# Wait for EZbox proccess to finish
-	ezbox_init_proccess.join()
+	if test_config['start_ezbox']:
+		ezbox_init_proccess.join()
 	# Wait for all proccess to finish
-	if ezbox_init_proccess.exitcode:
-		print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
-		exit(ezbox_init_proccess.exitcode)
+		if ezbox_init_proccess.exitcode:
+			print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
+			exit(ezbox_init_proccess.exitcode)
+	time.sleep(6)
+	alvs_bringup_env(test_resources['ezbox'], test_resources['server_list'], test_resources['vip_list'], test_config['use_director'])
 
 #===============================================================================
 # clean functions
@@ -1382,7 +1352,6 @@ def run_test(server_list, client_list):
 	for c in client_list:
 		print "running client: " + c.str()
 		c.execute()
-	
 	
 
 def collect_logs(test_resources, setup_num = None):

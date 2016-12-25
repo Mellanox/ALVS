@@ -7,18 +7,19 @@ import os
 # Local modules
 from reg2_wrapper.test_wrapper.standalone_wrapper import StandaloneWrapper
 
-class alvs_install_wrapper(StandaloneWrapper):
+class install_wrapper(StandaloneWrapper):
 
     def get_prog_path(self):
-        prog = "python2.7 alvs_install.py"
+        prog = "python2.7 install.py"
         return prog
 
     def configure_parser(self):
-        super(alvs_install_wrapper, self).configure_parser()
+        super(install_wrapper, self).configure_parser()
         self.add_cmd_argument('-f',  help='Installation file name ')
+        self.add_cmd_argument('-p',  help='Installation project name ')
         self.add_cmd_argument('-c',  help='number of CPUs')
         self.add_test_attribute_argument('--topo_file', 'topo_file', separator=' ') 
 
 if __name__ == "__main__":
-    alvs_wrapper = alvs_install_wrapper("alvs_install")
-    alvs_wrapper.execute(sys.argv[1:])
+    wrapper = install_wrapper("install")
+    wrapper.execute(sys.argv[1:])
