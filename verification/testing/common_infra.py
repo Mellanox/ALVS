@@ -996,35 +996,42 @@ def change_switch_lag_mode(setup_num, enable_lag = True):
 	
 	for index,line in enumerate(infile):
 		if (index == setup_num - 1):
-			switch_info = line.strip().split(',')
-			if switch_info[0] not in '#':
-				dict = ({'ip' : switch_info[0],
-						'ports' : switch_info[1:-1],
+			if line[0] not in '#':
+				switch_info = line.strip().split(',')
+				dict = ({'ip'          : switch_info[0],
+						'ports'        : switch_info[1:5],
+						'vlans'        : switch_info[5:-1],
 						'port_channel' : switch_info[-1]})
-				ssh_object = SshConnect(dict['ip'], 'admin', 'admin')
-				ssh_object.connect(prompt_reset = False)
-				execute_command_on_switch(ssh_object, 'enable')
-				execute_command_on_switch(ssh_object, 'configure terminal')
-				#closing channel port
-				execute_command_on_switch(ssh_object, 'no interface port-channel %s'%dict['port_channel'])
-			
+				execute_command_on_switch(dict['ip'], 'no interface port-channel %s'%dict['port_channel'])
 				if(enable_lag):
-					execute_command_on_switch(ssh_object, 'interface port-channel %s'%dict['port_channel'])
-					time.sleep(1)
-					execute_command_on_switch(ssh_object, 'exit')
-				
+					# create port channel
+					execute_command_on_switch(dict['ip'], 'interface port-channel %s'%dict['port_channel'])
+					execute_command_on_switch(dict['ip'], 'interface port-channel %s\" \"switchport access vlan 101'%dict['port_channel'])
+					# add ports to port channel without vlans
 					for port in dict['ports']:
-						execute_command_on_switch(ssh_object, 'interface ethernet 1/%s'%port)
-						execute_command_on_switch(ssh_object, 'switchport mode access')
-						execute_command_on_switch(ssh_object, 'channel-group %s mode on'%dict['port_channel'])
-						execute_command_on_switch(ssh_object, 'exit')
-				execute_command_on_switch(ssh_object, 'exit')
-				ssh_object.logout()
-				break	
+						port = 'interface ethernet 1/%s\" \"'%port
+						execute_command_on_switch(dict['ip'], port + 'switchport mode access')
+						execute_command_on_switch(dict['ip'], port + 'switchport access vlan 101')
+						execute_command_on_switch(dict['ip'], port + 'channel-group %s mode on'%dict['port_channel'])
+				else:
+					for index, port in enumerate(dict['ports']):
+						#create vlan
+						execute_command_on_switch(dict['ip'], 'vlan %s'%dict['vlans'][index])
+						#add vlan to port
+						port = 'interface ethernet 1/%s\" \"'%port
+						execute_command_on_switch(dict['ip'], port + 'switchport mode access')
+						execute_command_on_switch(dict['ip'], port + 'switchport access vlan %s'%dict['vlans'][index])
+			break
 	
-def execute_command_on_switch(ssh_object, cmd):
-	ssh_object.execute_command(cmd, False)
-	time.sleep(0.5)
+def execute_command_on_switch(ip, exec_param):
+	ssh_cmd = 'sshpass -p admin ssh -o StrictHostKeyChecking=no admin@' + ip
+	exec_cmd = ' cli -h \'\"enable\" \"configure terminal\" \"' + exec_param + '\"\' > /dev/null 2>&1 ' 
+	cmd = ssh_cmd + exec_cmd
+	rc = os.system(cmd)
+	if rc != 0:
+		err_msg = " ERROR: failed to configure switch. command: %s" %cmd
+		raise RuntimeError(err_msg)
+	
 	
 def get_ezbox_names(setup_id):
 	setup_dict = []

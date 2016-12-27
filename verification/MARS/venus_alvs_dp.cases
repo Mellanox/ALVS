@@ -2,9 +2,9 @@
 <CASEDEF>
     <global>
         <Test>
-            <info> alvs_dp </info>
-            <name> alvs_dp </name>
-            <tags> alvs_dp </tags>
+            <info> venus_alvs_dp </info>
+            <name> venus_alvs_dp </name>
+            <tags> venus_alvs_dp </tags>
             <owner> anat </owner>
             <pre>
                  <type> reg_exec_cmd </type>

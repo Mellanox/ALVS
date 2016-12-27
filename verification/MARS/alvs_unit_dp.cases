@@ -2,8 +2,8 @@
 <CASEDEF>
     <global>
         <Test>
-            <info> Regression </info>
-            <name> Regression </name>
+            <info> alvs_unit_dp </info>
+            <name> alvs_unit_dp </name>
             <tags> dp </tags>
             <tags> unit_tests </tags>
             <owner> anat </owner>
