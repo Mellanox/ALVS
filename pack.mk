@@ -17,13 +17,11 @@ PACKAGE_FOLEDR := $(CURRENT_DIR)/package
 APP_FOLEDR := $(PACKAGE_FOLEDR)/$(APP_NAME)
 DEB_FOLDER := $(APP_FOLEDR)/debian
 APP_INSTALL := $(DEB_FOLDER)/install
-CP_BIN := $(PREFIX)$(APP_NAME)_daemon
-DP_BIN := $(PREFIX)$(APP_NAME)_dp
 deb-app:deb-distclean deb-bins-loc deb-build deb-pack-conv
 
 deb-bins-loc:
 	# update install file with the relevant bins location
-	sed -E "s/(debug\/)*$(APP_NAME)_daemon/$(CP_BIN)/;s/(debug\/)*$(APP_NAME)_dp/$(DP_BIN)/" < $(APP_INSTALL) > $(APP_INSTALL).tmp
+	sed -E "s/\/bin\/(debug\/)*/\/bin\/$(PREFIX)/" < $(APP_INSTALL) > $(APP_INSTALL).tmp
 	mv -f $(APP_INSTALL).tmp $(APP_INSTALL)
 
 deb-build: 

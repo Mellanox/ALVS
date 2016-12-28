@@ -48,6 +48,7 @@
 #include "nw_db_manager.h"
 #include "alvs_db_manager.h"
 #include "alvs_conf.h"
+#include "cli_manager.h"
 
 
 /******************************************************************************/
@@ -69,14 +70,21 @@ enum object_type {
 	object_type_nw_db_manager,
 	object_type_alvs_db_manager,
 	object_type_dp_load_thread,
+	object_type_cli_thread,
+
+	/* must be at the end */
 	object_type_count
 };
 
 /******************************************************************************/
+/* Threads */
 pthread_t main_thread;
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
 pthread_t dp_load_thread;
+pthread_t cli_thread;
+
+/* General */
 bool is_object_allocated[object_type_count];
 bool cancel_application_flag;
 extern struct nw_db_manager_ops nw_ops;
@@ -173,6 +181,20 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_alvs_db_manager] = true;
 #endif
+
+	/************************************************/
+	/* Start CLI main thread                        */
+	/************************************************/
+	write_log(LOG_DEBUG, "Start CLI thread...");
+	rc = pthread_create(&cli_thread, NULL,
+			    (void * (*)(void *))cli_manager_main,
+			    &cancel_application_flag);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "Cannot start cli_thread: pthread_create failed");
+		main_thread_graceful_stop();
+		exit(1);
+	}
+	is_object_allocated[object_type_cli_thread] = true;
 
 
 	/************************************************/
@@ -475,6 +497,9 @@ void signal_terminate_handler(int signum)
 		if (self == dp_load_thread) {
 			dp_load_exit_with_error();
 		}
+		if (self == cli_thread) {
+			cli_manager_exit();
+		}
 
 		kill(getpid(), SIGTERM);
 		pthread_exit(NULL);
@@ -508,6 +533,9 @@ void main_thread_graceful_stop(void)
 	}
 	if (is_object_allocated[object_type_alvs_db_manager]) {
 		pthread_join(alvs_db_manager_thread, NULL);
+	}
+	if (is_object_allocated[object_type_cli_thread]) {
+		pthread_join(cli_thread, NULL);
 	}
 
 	infra_db_destructor();

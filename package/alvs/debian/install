@@ -7,3 +7,4 @@
 ../common/config/templates             DEBIAN/
 ../../bin/alvs_daemon                  usr/sbin/
 ../../bin/alvs_dp                      usr/lib/alvs/
+../../bin/alvs                         sbin/

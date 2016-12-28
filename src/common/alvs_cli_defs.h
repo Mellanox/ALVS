@@ -27,35 +27,44 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
-*	file - version.h
-*	description - define version of DP & daemon application
+*	file - alvs_cli_defs.h
+*	description - shared CLI definitions (cli app and daemon) for ALVS
 */
 
-#ifndef SRC_COMMON_VERSION_H_
-#define SRC_COMMON_VERSION_H_
-
-/*
- * P.GGMC.ZZZZ	- Version format
- * P		- Major 16 bits, fixed product number, allocated value is 22
- * GG		- Minor bits 15:8, 2 digits, GA release number 1, 2, 3..
- * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3...9
- * C		- Minor bits 3:0, 1 digit, branch maintenance number (customer), reset on each GA release
- * ZZZZ		- Currently zero
- *
- */
-
-#ifdef NDEBUG
-#define APP_VERSION "$Revision: 22.0300.0000 $"
-#else
-#define APP_VERSION "$Revision: 22.0300.0000-debug $"
-#endif
+#ifndef _ALVS_CLI_DEFS_H_
+#define _ALVS_CLI_DEFS_H_
 
 
-/**************************************************************************//**
- * \brief       Get version of the application
- *
- * \return      char *- pointer to version string
- */
-const char *get_version(void);
+/************************************************/
+/* includes                                     */
+/************************************************/
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <stdio.h>
+#include "stdbool.h"
+#include <unistd.h>
+#include <stdint.h>
+#include <ezdp_defs.h>
+#include "cli_defs.h"
 
-#endif /* SRC_COMMON_VERSION_H_ */
+/************************************************/
+/* Defines                                      */
+/************************************************/
+
+
+/************************************************/
+/* Enums                                        */
+/************************************************/
+enum cli_family_type {
+	CLI_FAMILY_COMMON,
+};
+
+enum cli_op_type {
+	/* Common types */
+	CLI_OP_TYPE_GET_VERSION				  = 0,
+	CLI_OP_TYPE_EXIT,				/*  1 */
+
+};
+
+#endif /* _ALVS_CLI_DEFS_H_ */

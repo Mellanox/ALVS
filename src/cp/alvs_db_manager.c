@@ -806,7 +806,7 @@ static int alvs_msg_parser(struct nl_cache_ops __attribute__((__unused__))*cache
 		break;
 	case IPVS_CMD_GET_SERVICE:
 		if (system_cfg_is_print_staistics_en() == true) {
-			write_log(LOG_INFO, "Application version: %s", version);
+			write_log(LOG_INFO, "Application version: %s", get_version());
 			alvs_ret = alvs_db_print_global_error_stats();
 			if (alvs_ret != ALVS_DB_OK) {
 				write_log(LOG_ERR, "Problem printing global error statistics");

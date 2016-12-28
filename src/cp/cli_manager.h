@@ -27,35 +27,37 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
-*	file - version.h
-*	description - define version of DP & daemon application
+*
+*
+*  Project:             NPS400 ALVS application
+*  File:                cli_manager.h
+*  Desc:                CLI manager include file.
+*
 */
 
-#ifndef SRC_COMMON_VERSION_H_
-#define SRC_COMMON_VERSION_H_
+#ifndef _CLI_MANAGER_H_
+#define _CLI_MANAGER_H_
 
-/*
- * P.GGMC.ZZZZ	- Version format
- * P		- Major 16 bits, fixed product number, allocated value is 22
- * GG		- Minor bits 15:8, 2 digits, GA release number 1, 2, 3..
- * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3...9
- * C		- Minor bits 3:0, 1 digit, branch maintenance number (customer), reset on each GA release
- * ZZZZ		- Currently zero
+#include <stdbool.h>
+#include <stdint.h>
+
+
+/******************************************************************************
+ * \brief	  CLI thread main application.
  *
+ * \return	  void
  */
-
-#ifdef NDEBUG
-#define APP_VERSION "$Revision: 22.0300.0000 $"
-#else
-#define APP_VERSION "$Revision: 22.0300.0000-debug $"
-#endif
+void cli_manager_main(bool *cancel_application_flag);
 
 
-/**************************************************************************//**
- * \brief       Get version of the application
+/******************************************************************************
+ * \brief    Raises SIGTERM signal to main thread and exits the thread.
+ *           Deletes the DB manager.
  *
- * \return      char *- pointer to version string
+ * \return   void
  */
-const char *get_version(void);
+void cli_manager_exit(void);
 
-#endif /* SRC_COMMON_VERSION_H_ */
+
+
+#endif /* _CLI_MANAGER_H_ */

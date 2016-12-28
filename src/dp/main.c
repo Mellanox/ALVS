@@ -396,7 +396,7 @@ void print_app_info(void)
 	anl_write_log(LOG_INFO, "starting ALVS DP application.");
 #endif
 	anl_write_log(LOG_INFO, "num CPUs:            %d", num_cpus);
-	anl_write_log(LOG_INFO, "Application version: %s.", version);
+	anl_write_log(LOG_INFO, "Application version: %s.", get_version());
 	anl_write_log(LOG_DEBUG, "Memory layout:");
 
 	/* print memory section info */

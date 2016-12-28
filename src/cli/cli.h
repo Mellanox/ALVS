@@ -27,35 +27,59 @@
 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
-*	file - version.h
-*	description - define version of DP & daemon application
+*	file - cli.h
+*	description - contains definitions for cli src files
 */
 
-#ifndef SRC_COMMON_VERSION_H_
-#define SRC_COMMON_VERSION_H_
+#ifndef _CLI_H_
+#define _CLI_H_
 
-/*
- * P.GGMC.ZZZZ	- Version format
- * P		- Major 16 bits, fixed product number, allocated value is 22
- * GG		- Minor bits 15:8, 2 digits, GA release number 1, 2, 3..
- * M		- Minor bits 7:4, 1 digit, release number 0, 1, 2, 3...9
- * C		- Minor bits 3:0, 1 digit, branch maintenance number (customer), reset on each GA release
- * ZZZZ		- Currently zero
- *
- */
+#include <stdbool.h>
 
+#include "cli_defs.h"
+
+/************************************************/
+/* MACROs                                       */
+/************************************************/
 #ifdef NDEBUG
-#define APP_VERSION "$Revision: 22.0300.0000 $"
+#define print_dbg(format, ...)
 #else
-#define APP_VERSION "$Revision: 22.0300.0000-debug $"
+#define print_dbg(format, ...)  \
+	printf("DBG: Line %d %s: "format, __LINE__, __func__, ##__VA_ARGS__)
 #endif
 
+#define print_err(format, ...)  \
+	printf("ERROR: "format, ##__VA_ARGS__)
 
-/**************************************************************************//**
- * \brief       Get version of the application
+
+
+/************************************************/
+/* APIs used by main                            */
+/* Each application must implement those APIs   */
+/************************************************/
+
+/******************************************************************************
+ * \brief    parse main function argument and set CLI message accordingly
  *
- * \return      char *- pointer to version string
+ * \param[in]   argc		- argc given by main function
+ * \param[in]   argv		- argv given by main function
+ * \param[out]  cli		- pointer to CLI message buffer
+ *
+ * \return   void
  */
-const char *get_version(void);
+void parse_arguments(int		 argc,
+		     char		*argv[],
+		     struct cli_msg	*cli);
 
-#endif /* SRC_COMMON_VERSION_H_ */
+
+/******************************************************************************
+ * \brief    Handle response message from daemon
+ *
+ * \param[in]   cli	- pointer to CLI message
+ *
+ * \return   true	- success
+ *           false	- failure
+ */
+bool handle_response(struct cli_msg  *cli);
+
+#endif /* _CLI_H_ */
