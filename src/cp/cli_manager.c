@@ -139,46 +139,31 @@ void cli_manager_init_socket(void)
  *
  * \param[in]     release_old_socket    - True for close old socket
  *                                      - False dont close old socket
- * \param[out]    newsockfd             - new socket FD given by accept()
  *
- * \return        void
+ * \return        new socket FD given by accept()
  */
-void cli_manager_listern_and_accept_socket(bool  release_old_socket,
-					   int  *newsockfd)
+int cli_manager_listern_and_accept_socket(bool  release_old_socket)
 {
 	/* socket variables */
 	struct sockaddr_un cli_addr;
 	socklen_t          clilen;
 	int32_t            rc;
-	int32_t            l_errno;
 
 	/* Release socket if needed */
 	if (release_old_socket) {
-		close(*newsockfd);
+		close(newsockfd);
 	}
 
-	do {
+	/* Go to server mode - Enable the socket to accept connections */
+	rc = listen(sockfd, PENDING_SOCKET_CONNECTIONS);
+	if (rc < 0) {
+		write_log(LOG_CRIT, "listening to cli socket failed");
+		cli_manager_exit();
+	}
 
-		/* Go to server mode - Enable the socket to accept connections */
-		rc = listen(sockfd, PENDING_SOCKET_CONNECTIONS);
-		if (rc < 0) {
-			write_log(LOG_CRIT, "listening to cli socket failed");
-			cli_manager_exit();
-		}
-
-		/* Wait for client */
-		clilen = sizeof(cli_addr);
-		*newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-		if (*newsockfd < 0) {
-			l_errno = errno;
-			if (errno == EAGAIN) {
-				write_log(LOG_DEBUG, "accept timeout (errno %d)", l_errno);
-			} else {
-				write_log(LOG_CRIT, "accept failed. errno  %d", l_errno);
-				cli_manager_exit();
-			}
-		}
-	} while (*newsockfd < 0);
+	/* Wait for client */
+	clilen = sizeof(cli_addr);
+	return accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 }
 
 
@@ -238,8 +223,18 @@ void cli_manager_poll(void)
 
 		/* check if need to reconnect socket */
 		if ((newsockfd < 0) || (reconnect)) {
-			cli_manager_listern_and_accept_socket(reconnect, &newsockfd);
+			newsockfd = cli_manager_listern_and_accept_socket(reconnect);
 			reconnect = false;
+			if (newsockfd < 0) {
+				l_errno = errno;
+				if (errno == EAGAIN) {
+					write_log(LOG_DEBUG, "accept timeout (errno %d)", l_errno);
+					continue;
+				} else {
+					write_log(LOG_CRIT, "accept failed. errno  %d", l_errno);
+					cli_manager_exit();
+				}
+			}
 
 			/* Setting timeout for accepted socket FD */
 			rc = setsockopt(newsockfd, SOL_SOCKET, SO_RCVTIMEO,
@@ -347,7 +342,7 @@ void cli_manager_main(bool *cancel_application_flag)
 	write_log(LOG_INFO, "cli_manager_main_poll...");
 	cli_manager_poll();
 
-	write_log(LOG_NOTICE, "Exiting CLI thread...");
+	write_log(LOG_DEBUG, "Exiting CLI thread...");
 	cli_manager_delete();
 }
 
