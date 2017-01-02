@@ -97,8 +97,8 @@ function compile_git()
     echo "Function: $FUNCNAME called"
     rc=0  # no failure
 
-    echo "perform: make clean"
-    make clean > $make_clean_file
+    echo "perform: make -j  clean"
+    make -j  clean > $make_clean_file
     rc=$?
     if [ $rc -ne 0 ]; then
         echo 'ERROR: make clean failed. for more details look at $make_clean_file'
@@ -106,8 +106,8 @@ function compile_git()
     fi
 
     
-    echo "perform: make $make_params"
-    make $make_params > $make_log_file
+    echo "perform: make -j  $make_params"
+    make -j  $make_params > $make_log_file
     rc=$?
     if [ $? -ne 0 ]; then
         echo 'ERROR make $make_params failed. for more details look at $make_log_file'

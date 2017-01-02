@@ -18,7 +18,7 @@ alvs_dp:
 	mkdir -p bin$(PREFIX)
 	
 	# call specific make 
-	CONFIG_ALVS=1 make -f dp.mk make_dp
+	CONFIG_ALVS=1 $(MAKE) -f dp.mk make_dp
 
 alvs_cli:
 	# Prepare objects folder
@@ -27,7 +27,7 @@ alvs_cli:
 	mkdir -p bin$(PREFIX)
 	
 	# call specific make
-	CONFIG_ALVS=1 make -f cli.mk make_cli
+	CONFIG_ALVS=1 $(MAKE) -f cli.mk make_cli
 
 alvs_cp:
 	# Prepare objects folder
@@ -36,17 +36,17 @@ alvs_cp:
 	mkdir -p bin$(PREFIX)
 	
 	# call specific make
-	CONFIG_ALVS=1 make -f cp.mk make_cp
+	CONFIG_ALVS=1 $(MAKE) -f cp.mk make_cp
 
 
 dp-clean:
-	make -f dp.mk dp-clean
+	$(MAKE) -f dp.mk dp-clean
 
 cp-clean:
-	make -f cp.mk cp-clean
+	$(MAKE) -f cp.mk cp-clean
 	
 cli-clean:
-	make -f cli.mk cli-clean
+	$(MAKE) -f cli.mk cli-clean
 
 clean: dp-clean cp-clean cli-clean
 	rm -rf bin	

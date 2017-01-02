@@ -26,6 +26,8 @@ def main():
                       help="Set type to system or unit 						(default is system)")
     parser.add_option("-p", "--path", dest="path", 
                       help="Set path to ALVS directory 						(default is your current directory)")
+    parser.add_option("--project", dest="project_name", default = 'alvs',
+                      help="Set type of project alvs/ddp..                  (default is alvs)")
     parser.add_option("-t", "--tags", action="append", dest="tags", default = [],
                       help="Filter by tags								(Optional parameter. Few tags:  -t tagA -t tagB)")
     parser.add_option("-f", "--file_name", dest="file_name",
@@ -39,11 +41,14 @@ def main():
         print 'ERROR: setup_num was not given'
         exit(1)
     
-    if options.regression_type == 'unit':
-    	test_file = 'alvs_unit.setup'
+    if options.project_name != 'alvs':
+        test_file = options.project_name + '.setup'
     else:
-    	test_file = 'alvs_sys.setup'
-    	
+        if options.regression_type == 'unit':
+            test_file = 'alvs_unit.setup'
+        else:
+            test_file = 'alvs_sys.setup'
+    
     command_line = 'python2.7 '\
                    '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
                    '--cmd start '\
