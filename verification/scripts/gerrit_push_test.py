@@ -3,13 +3,15 @@ import os
 import time
 import subprocess
 import sys
+import traceback
+import logging
 from twisted.python._release import Project
 
 dir =  '/.autodirect/sw_regression/nps_sw/MARS/MARS_conf/setups/ALVS_gen'
 sys.path.insert(0,dir) 
 from common import *
 
-
+process_list = []
 def parse_command():
     if len(sys.argv)==1:
         print "No args given. Script wont run regression.."
@@ -49,19 +51,19 @@ def exec_regression(branch):
 
 
 def run_regression(project):
+    global process_list
     print 
     print "Running Regression"
     print "=================="
     setup_num,setup_name = get_setup_num(project,'push')
     cmd = "python2.7 ./verification/MARS/MARS_regression_run.py -s %s -t basic -c 32" %setup_num
     cmd = cmd + " -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS --project %s" %project
-    regression=subprocess.Popen(cmd,shell=True)
-    regression.wait()
-    process_list.append(["Regression_%s %s"%project,regression.returncode])
-    return regression.returncode
+    rc =  os.system(cmd)
+    process_list.append(["Regression_%s"%project, rc])
+    return rc
 
 
-def summary(process_list):
+def summary():
     print "########### Summary : ###########"
     exit_code=0
     ret_code = 1
@@ -79,17 +81,17 @@ def summary(process_list):
 # Script start point
 ################################################################################
 try:
-    exit_code = 1
+    exit_code = 0
+    scripts_path="verification/scripts/"
     
-    process_list = []
     
     branch=parse_command()
     
-    subprocess.check_call("verification/scripts/make_all.sh all deb", shell=True)
+    subprocess.check_call(scripts_path + "make_all.sh all deb", shell=True)
     
-    coverity=subprocess.Popen(["verification/scripts/coverity.sh"])
+    coverity=subprocess.Popen([scripts_path + "coverity.sh"])
     
-    coding_style=subprocess.Popen(["verification/scripts/coding_style.sh"])
+    coding_style=subprocess.Popen([scripts_path + "coding_style.sh"])
     
     copy_project()
     exec_regression(branch)
@@ -99,7 +101,7 @@ try:
     
     process_list.append(["Coverity",coverity.returncode])
     process_list.append(["Coding Style",coding_style.returncode])
-    exit_code = summary(process_list)
+    exit_code = summary()
 except Exception as error:
     logging.exception(error)
     exit_code = 1

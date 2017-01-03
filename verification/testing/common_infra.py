@@ -813,7 +813,7 @@ class player(object):
 	
 	#mode is one of the next {'alvs', 1 , 2, 3, 4}
 	def change_mode(self, mode):
-		if self.mode == "alvs":
+		if mode == "alvs":
 			self.ip = self.ip[0]
 		elif mode > 0 and mode < 5:
 			self.ip = self.ip[mode]
