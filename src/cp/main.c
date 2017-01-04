@@ -34,6 +34,7 @@
 *  Desc:                Main thread configuration.
 */
 
+#include <stdbool.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <getopt.h>
@@ -138,7 +139,9 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+#ifdef CONFIG_ALVS
 	write_log(LOG_INFO, "ALVS daemon application is running...");
+#endif
 
 	/************************************************/
 	/* Start DP load and run thread                 */
@@ -259,10 +262,13 @@ void dp_load(void)
 
 	sleep(3);
 
+#ifdef CONFIG_ALVS
+#define DP_APP_NAME    "alvs_dp"
+#endif
 	/* copy dp bin file to nps */
 	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", system_cfg_get_dp_bin_file());
 	for (i = 0; i < FTP_RETRIES  && cancel_application_flag == false; i++) {
-		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/alvs_dp\"; echo \"quit\"; } | ftp -n nps_if;", system_cfg_get_dp_bin_file());
+		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/"DP_APP_NAME"\"; echo \"quit\"; } | ftp -n nps_if;", system_cfg_get_dp_bin_file());
 		rc = system(temp);
 		if (rc == 0) {
 			write_log(LOG_INFO, "Copy Succeed");
@@ -278,9 +284,9 @@ void dp_load(void)
 	/* run dp bin */
 	for (i = 0; i < DP_RUN_RETRIES  && cancel_application_flag == false; i++) {
 		if (strcmp(system_cfg_get_run_cpus(), "not_used") == 0) {
-			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp &\"; sleep 10;} | telnet nps_if &");
+			sprintf(temp, "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" &\"; sleep 10;} | telnet nps_if &");
 		} else {
-			sprintf(temp, "{ echo \"chmod +x /tmp/alvs_dp\"; echo \"/tmp/alvs_dp --run_cpus %s &\"; sleep 10;} | telnet nps_if &", system_cfg_get_run_cpus());
+			sprintf(temp, "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" --run_cpus %s &\"; sleep 10;} | telnet nps_if &", system_cfg_get_run_cpus());
 		}
 		rc = system(temp);
 		if (rc == 0) {
@@ -306,7 +312,7 @@ bool nps_bringup(void)
 	write_log(LOG_DEBUG, "Creating channel...");
 	ez_ret_val = EZapiChannel_Create(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Create returned an error.");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Create returned an error (0x%08x).", ez_ret_val);
 		return false;
 	}
 
@@ -326,7 +332,7 @@ bool nps_bringup(void)
 	for (pup_phase = 1; pup_phase <= 4; pup_phase++) {
 		ez_ret_val = EZapiChannel_PowerUp(0, pup_phase);
 		if (EZrc_IS_ERROR(ez_ret_val)) {
-			write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_PowerUp phase %u failed.", pup_phase);
+			write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_PowerUp phase %u failed (0x%08x).", pup_phase, ez_ret_val);
 			return false;
 		}
 	}
@@ -365,7 +371,7 @@ bool nps_bringup(void)
 	write_log(LOG_DEBUG, "Finalize channel...");
 	ez_ret_val = EZapiChannel_Finalize(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Finalize returned an error.");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Finalize returned an error (0x%08x).", ez_ret_val);
 		return false;
 	}
 
@@ -384,7 +390,7 @@ bool nps_bringup(void)
 	write_log(LOG_DEBUG, "Channel GO...");
 	ez_ret_val = EZapiChannel_Go(0);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
-		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Go returned an error.");
+		write_log(LOG_CRIT, "nps_bringup failed: EZapiChannel_Go returned an error (0x%08x).", ez_ret_val);
 		return false;
 	}
 
