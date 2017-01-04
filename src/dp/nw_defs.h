@@ -39,6 +39,7 @@
 #define NW_DEFS_H_
 
 #include <ezdp.h>
+#include "log.h"
 #include "nw_conf.h"
 #include "nw_search_defs.h"
 #include "application_search_defs.h"

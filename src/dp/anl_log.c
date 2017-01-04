@@ -78,7 +78,7 @@ int anl_send(ezframe_t  __cmem * frame)
 	/*check that wa provided by middle ware not less than
 	 * required for the work with the first buffer
 	 */
-	assert(sizeof(cmem_wa.syslog_work_area) >= SYSLOG_BUF_DATA_SIZE);
+	assert(sizeof(syslog_work_area) >= SYSLOG_BUF_DATA_SIZE);
 
 	rc = ezframe_first_buf(frame, 0);
 	if (rc) {
@@ -89,7 +89,7 @@ int anl_send(ezframe_t  __cmem * frame)
 
 	/*load the buffer and get the start of the data*/
 	frame_base = ezframe_load_buf(frame,
-				      cmem_wa.syslog_work_area.frame_info.frame_data + SYSLOG_FIRST_BUFFER_SIZE,
+				      syslog_work_area.frame_info.frame_data + SYSLOG_FIRST_BUFFER_SIZE,
 				      &orig_length,
 				      EZFRAME_LOAD_DATA_WITHOUT_OFFSET);
 

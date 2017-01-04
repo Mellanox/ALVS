@@ -36,7 +36,6 @@
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
 
-#include "log.h"
 #include "nw_defs.h"
 #include "alvs_defs.h"
 
@@ -59,7 +58,6 @@ union cmem_workarea {
 	union alvs_workarea   alvs_wa;
 #endif
 	union nw_workarea     nw_wa;
-	struct syslog_wa_info syslog_work_area;
 };
 
 #ifdef CONFIG_ALVS
@@ -67,6 +65,7 @@ extern struct alvs_cmem         cmem_alvs;
 extern struct alvs_shared_cmem  shared_cmem_alvs;
 #endif
 
+extern struct syslog_wa_info    syslog_work_area;
 extern union cmem_workarea      cmem_wa;
 extern ezframe_t                frame;
 extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];

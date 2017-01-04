@@ -106,6 +106,7 @@ extern uint32_t remote_interface_params[REMOTE_IF_NUM][INFRA_NUM_OF_INTERFACE_PA
  */
 enum nw_external_msid {
 	NW_EMEM_SEARCH_MSID = 0,
+	NW_EMEM_DATA_MSID,
 	NW_POSTED_STATS_MSID,
 	NW_ON_DEMAND_STATS_MSID,
 	NUM_OF_NW_EXTERNAL_MSIDS
@@ -132,6 +133,12 @@ enum nw_external_msid {
 #define NW_ALL_CLUSTER_DATA_SIZE       0
 
 #define NW_EMEM_SEARCH_SIZE            9
+#define NW_EMEM_DATA_SIZE              1
+
+
+/* EMEM data offsets */
+#define SYSLOG_MUTEX_ARRAY_OFFSET      0x0
+
 
 
 
@@ -222,7 +229,6 @@ enum remote_if_posted_stats_offsets {
 enum nw_struct_id {
 	STRUCT_ID_NW_INTERFACES                = 0,
 	STRUCT_ID_NW_LAG_GROUPS,
-	STRUCT_ID_NW_FIB,
 	STRUCT_ID_NW_ARP,
 	NUM_OF_NW_STRUCT_IDS
 };

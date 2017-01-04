@@ -40,7 +40,6 @@
 #include "syslog.h"
 #include <ezdp.h>
 #include <ezframe.h>
-#include "alvs_defs.h"
 
 #define MIN(x, y) (((x) <= (y)) ? (x) : (y))
 
@@ -85,6 +84,7 @@ struct syslog_wa_info {
 		uint64_t tb_color_flag_counter;
 		struct ezdp_tb_ctr_result tb_ctr_result;
 	};
+	ezdp_spinlock_t mutex;
 };
 
 typedef int (*send_cb)(ezframe_t *);
@@ -115,7 +115,7 @@ struct syslog_info {
  */
 void write_log(int priority, char *str, int length,
 	       void __cmem * syslog_wa,
-	       unsigned int syslog_wa_size) __slow_path_code;
+	       unsigned int syslog_wa_size);
 /*****************************************************************************/
 /*! \fn void open_log(char *applic_name, int applic_name_lengh,
  *                       in_addr_t dest_ip, in_addr_t src_ip,

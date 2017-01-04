@@ -65,6 +65,7 @@ struct alvs_cmem         cmem_alvs __cmem_var;
 struct alvs_shared_cmem  shared_cmem_alvs __cmem_shared_var;
 #endif
 
+struct syslog_wa_info    syslog_work_area __cmem_shared_var;
 union cmem_workarea      cmem_wa __cmem_var;
 ezframe_t                frame __cmem_var;
 uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE] __cmem_var;

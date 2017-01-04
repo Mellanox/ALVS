@@ -45,13 +45,13 @@
 
 #ifndef NDEBUG
 #define anl_write_log(priority, str, ...) \
-		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__)
+		write_log_macro(priority, &syslog_work_area, sizeof(syslog_work_area), str, ##__VA_ARGS__)
 
 #else
 #define ANL_LOGMASK  LOG_UPTO(LOG_INFO)
 #define anl_write_log(priority, str, ...) { \
 	if (LOG_MASK(priority) & ANL_LOGMASK) { \
-		write_log_macro(priority, &cmem_wa.syslog_work_area, sizeof(cmem_wa.syslog_work_area), str, ##__VA_ARGS__); \
+		write_log_macro(priority, &syslog_work_area, sizeof(syslog_work_area), str, ##__VA_ARGS__); \
 	} \
 }
 

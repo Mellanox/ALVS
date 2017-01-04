@@ -879,9 +879,18 @@ struct syslog_info syslog_info __cmem_shared_var;
 
 bool open_log(struct syslog_info *user_syslog_info)
 {
+	struct ezdp_ext_addr mutex_addr;
+
 	if (user_syslog_info->send_cb == NULL) {
 		return false;
 	}
+
+	mutex_addr.mem_type = EZDP_EXTERNAL_MS;
+	mutex_addr.msid = NW_EMEM_DATA_MSID;
+	mutex_addr.address = SYSLOG_MUTEX_ARRAY_OFFSET + (ezdp_get_cpu_id() >> 4);
+	mutex_addr.address_msb = 0;
+	ezdp_init_spinlock_ext_addr(&syslog_work_area.mutex,
+				    &mutex_addr);
 
 	/*save in syslog_wa relevant fields for further work*/
 	syslog_info.applic_name_size =
@@ -954,12 +963,11 @@ void set_syslog_template(struct net_hdr  *net_hdr_info, int total_frame_length)
 
 static uint32_t send_special_message(char *str, int length, void  __cmem * syslog_wa)
 {
-
 	uint32_t rc;
 	uint8_t *ptr;
 	int buf_len;
-	/*create new frame*/
 
+	/*create new frame*/
 	rc = ezframe_new(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame,
 			 (struct net_hdr *)(((struct syslog_wa_info *)syslog_wa)->frame_info.frame_data),
 			 sizeof(struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
@@ -1092,11 +1100,18 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 	 */
 	assert(syslog_wa_size >= sizeof(struct syslog_wa_info));
 
+
+	/* lock mutex */
+	ezdp_lock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
+
 	/*token_bucket implementation for sending the number of packets in seconds*/
 	rc = token_bucket(syslog_wa);
 	if (rc != 0) {
+		/* unlock mutex */
+		ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 		return;
 	}
+
 	/*calculation of the user string length
 	 * which entered to the buffer with restrictions:
 	 * num_of_buffers <= 3 and the first buffer consists
@@ -1120,6 +1135,8 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 			 net_hdr_info,
 			 sizeof(struct net_hdr), SYSLOG_BUF_HEADROOM, 0);
 	if (rc != 0) {
+		/* unlock mutex */
+		ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 		return;
 	}
 
@@ -1164,6 +1181,8 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 			    0);
 	if (rc != 0) {
 		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		/* unlock mutex */
+		ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 		return;
 	}
 
@@ -1185,6 +1204,8 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 				    buf_len, 0);
 		if (rc != 0) {
 			ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+			/* unlock mutex */
+			ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 			return;
 		}
 
@@ -1194,17 +1215,23 @@ void write_log(int priority, char *str, int length, void  __cmem * syslog_wa,
 		length -= buf_len;
 
 		num_of_bufs += 1;
+	}
 
-	 }
 	rc = ezframe_first_buf(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
 	if (rc != 0) {
 		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		/* unlock mutex */
+		ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 		return;
 	}
 	rc = syslog_info.send_cb(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame);
 	if (rc != 0) {
 		ezframe_free(&((struct syslog_wa_info *)syslog_wa)->frame_info.frame, 0);
+		/* unlock mutex */
+		ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 		return;
 	}
 
+	/* unlock mutex */
+	ezdp_unlock_spinlock(&(((struct syslog_wa_info *)syslog_wa)->mutex));
 }
