@@ -38,6 +38,7 @@
 
 #include "anl_log.h"
 #include "nw_routing.h"
+#include <arpa/inet.h>
 
 #define SYSLOG_SERVER_IP          "169.254.42.41"
 #define SYSLOG_CLIENT_ETH_ADDR    {0x00, 0x02, 0xc9, 0x42, 0x42, 0x43}

@@ -36,11 +36,7 @@
 #ifndef ANL_LOG_H_
 #define ANL_LOG_H_
 
-#include <arpa/inet.h>
-#include <ezdp.h>
-#include <ezframe.h>
 #include "log.h"
-#include "global_defs.h"
 
 
 #ifndef NDEBUG
@@ -77,6 +73,6 @@ bool anl_open_log(void);
  *
  * \return 0 on SUCESS, otherwise 1.
  */
-int anl_send(ezframe_t  __cmem * frame) __slow_path_code;
+int anl_send(ezframe_t  __cmem * frame);
 
 #endif /* ANL_LOG_H_ */
