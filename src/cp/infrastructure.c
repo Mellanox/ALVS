@@ -324,6 +324,29 @@ bool infra_create_mem_partition(void)
 	EZapiChannel_ExtMemSpaceParams ext_mem_space_params;
 	uint32_t ind;
 
+	/* Disable first 3 indexes that are enabled by default */
+	for (ind = 0; ind < 3; ind++) {
+		memset(&int_mem_space_params, 0, sizeof(int_mem_space_params));
+
+		int_mem_space_params.uiIndex = ind;
+
+		/* get default settings for the memory space */
+		ret_val = EZapiChannel_Status(0, EZapiChannel_StatCmd_GetIntMemSpaceParams, &int_mem_space_params);
+		if (EZrc_IS_ERROR(ret_val)) {
+			return false;
+		}
+
+		int_mem_space_params.bEnable = false;
+
+		ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIntMemSpaceParams, &int_mem_space_params);
+		if (EZrc_IS_ERROR(ret_val)) {
+			write_log(LOG_CRIT, "fail disable IMEM index = %d (rc = 0x%08x)\n", int_mem_space_params.uiIndex, ret_val);
+			return false;
+		}
+
+		write_log(LOG_DEBUG, "IMEM index %d disabled", ind);
+	}
+
 	/* Configure IMEM memory spaces */
 	for (ind = 0; ind < NUM_OF_INT_MEMORY_SPACES; ind++) {
 		/* Configure only memory spaces with positive size */
@@ -340,8 +363,8 @@ bool infra_create_mem_partition(void)
 			}
 
 			/* set size and type */
-			int_mem_space_params.bEnable = true;
 			int_mem_space_params.eType = (EZapiChannel_IntMemSpaceType)imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_TYPE];
+			int_mem_space_params.bEnable = true;
 			int_mem_space_params.uiSize = imem_spaces_params[ind][INFRA_IMEM_SPACES_PARAMS_SIZE];
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetIntMemSpaceParams, &int_mem_space_params);
