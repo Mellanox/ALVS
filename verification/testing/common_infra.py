@@ -790,7 +790,7 @@ class player(object):
 		self.exec_params= exec_params
 		self.mode       = mode
 		self.all_eths   = all_eths
-		self.eth        = None
+		self.eth        = (None if all_eths is None else all_eths[0])
 		self.ssh        = SshConnect(hostname, username, password)
 
 
