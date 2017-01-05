@@ -358,9 +358,9 @@ bool nw_constructor(void)
 	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
 	hash_params.is_external = true;
-	hash_params.main_table_search_mem_heap = NW_EMEM_SEARCH_0_HEAP;
-	hash_params.sig_table_search_mem_heap = NW_EMEM_SEARCH_0_HEAP;
-	hash_params.res_table_search_mem_heap = NW_EMEM_SEARCH_0_HEAP;
+	hash_params.main_table_search_mem_heap = NW_EMEM_SEARCH_HEAP;
+	hash_params.sig_table_search_mem_heap = NW_EMEM_SEARCH_HEAP;
+	hash_params.res_table_search_mem_heap = NW_EMEM_SEARCH_HEAP;
 	if (infra_create_hash(STRUCT_ID_NW_ARP,
 			      &hash_params) == false) {
 		write_log(LOG_CRIT, "Error - Failed creating ARP table.");
