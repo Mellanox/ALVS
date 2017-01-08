@@ -110,7 +110,7 @@ uint32_t alvs_sched_sh_get_scheduling_index(uint32_t sip, uint16_t sport)
 
 	final_hash = ezdp_hash(sip_hash,
 			       port_hash,
-			       LOG2(ALVS_SIZE_OF_SCHED_BUCKET),
+			       ANL_LOG2(ALVS_SIZE_OF_SCHED_BUCKET),
 			       sizeof(sip_hash) + sizeof(port_hash),
 			       0,
 			       EZDP_HASH_BASE_MATRIX_HASH_BASE_MATRIX_0,
