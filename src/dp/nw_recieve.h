@@ -140,8 +140,9 @@ void nw_recieve_and_parse_frame(ezframe_t __cmem * frame,
 			      &cmem_wa.nw_wa.ezdp_decode_result.ipv4_decode_result.next_protocol,
 			      sizeof(struct ezdp_decode_ip_next_protocol));
 
+		/*frame is OK */
 #ifdef CONFIG_ALVS
-		/*frame is OK, let's start alvs IF_STATS processing*/
+		/*let's start alvs IF_STATS processing*/
 		if (cmem_nw.ingress_if_result.app_bitmap.alvs_en == true) {
 			alvs_packet_processing(frame, frame_base);
 			return;

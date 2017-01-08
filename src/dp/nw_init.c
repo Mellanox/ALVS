@@ -37,9 +37,6 @@
 #include "global_defs.h"
 #include "application_search_defs.h"
 
-struct cmem_nw_info             cmem_nw __cmem_var;
-struct shared_cmem_network      shared_cmem_nw __cmem_shared_var;
-
 /******************************************************************************
  * \brief         Initialize nw shared CMEM constructor
  *
