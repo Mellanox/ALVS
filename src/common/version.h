@@ -44,10 +44,16 @@
  *
  */
 
+
 #ifdef NDEBUG
-#define APP_VERSION "$Revision: 22.0300.0000 $"
+#	define DEBUG ""
 #else
-#define APP_VERSION "$Revision: 22.0300.0000-debug $"
+#	define DEBUG "-debug"
+#endif
+
+
+#ifdef CONFIG_ALVS
+#	define APP_VERSION "$Revision: 22.0300.0000"DEBUG" $"
 #endif
 
 
