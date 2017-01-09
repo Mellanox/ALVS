@@ -102,7 +102,7 @@ bool infra_create_hash(uint32_t struct_id, struct infra_hash_params *params)
 	}
 
 	/* set single cycle and update mode */
-	hash_params.bSingleCycle = true;
+	hash_params.bSingleCycle = params->single_cycle;
 	if (params->updated_from_dp == true) {
 		hash_params.eUpdateMode = EZapiStruct_UpdateMode_DP;
 		hash_params.eMultiChannelDataMode = EZapiStruct_MultiChannelDataMode_DIFFERENT;

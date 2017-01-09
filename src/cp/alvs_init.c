@@ -214,6 +214,7 @@ bool alvs_db_constructor(void)
 	hash_params.max_num_of_entries = ALVS_SERVICES_MAX_ENTRIES;
 	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
+	hash_params.single_cycle = true;
 	hash_params.is_external = true;
 	hash_params.main_table_search_mem_heap = ALVS_EMEM_SEARCH_0_HEAP;
 	hash_params.sig_table_search_mem_heap = ALVS_EMEM_SEARCH_0_HEAP;
@@ -269,6 +270,7 @@ bool alvs_db_constructor(void)
 	hash_params.max_num_of_entries = ALVS_CONN_MAX_ENTRIES;
 	hash_params.hash_size = 26;
 	hash_params.updated_from_dp = true;
+	hash_params.single_cycle = true;
 	hash_params.sig_pool_id = ALVS_CONN_HASH_SIG_PAGE_POOL_ID;
 	hash_params.result_pool_id = ALVS_CONN_HASH_RESULT_POOL_ID;
 	hash_params.is_external = true;
@@ -300,6 +302,7 @@ bool alvs_db_constructor(void)
 	hash_params.max_num_of_entries = ALVS_SERVERS_MAX_ENTRIES;
 	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
+	hash_params.single_cycle = true;
 	hash_params.is_external = true;
 	hash_params.main_table_search_mem_heap = ALVS_EMEM_SEARCH_0_HEAP;
 	hash_params.sig_table_search_mem_heap = ALVS_EMEM_SEARCH_0_HEAP;

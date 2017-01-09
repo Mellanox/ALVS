@@ -371,6 +371,7 @@ bool nw_constructor(void)
 	hash_params.max_num_of_entries = 65536;  /* TODO - define? */
 	hash_params.hash_size = 0;
 	hash_params.updated_from_dp = false;
+	hash_params.single_cycle = true;
 	hash_params.is_external = true;
 	hash_params.main_table_search_mem_heap = NW_EMEM_SEARCH_HEAP;
 	hash_params.sig_table_search_mem_heap = NW_EMEM_SEARCH_HEAP;
