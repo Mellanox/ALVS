@@ -35,14 +35,14 @@
 *
 */
 
-#include "infrastructure_utils.h"
-
+#include <EZapiPrm.h>
 #include <EZapiStat.h>
 #include <EZapiStruct.h>
 #include <EZapiTCAM.h>
 
 #include "log.h"
 #include "infrastructure.h"
+#include "infrastructure_utils.h"
 
 
 /**************************************************************************//**
@@ -694,6 +694,45 @@ bool infra_clear_long_counters(uint32_t counter_index,
 
 	if (EZrc_IS_ERROR(ret_val)) {
 		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		return false;
+	}
+
+	return true;
+}
+
+
+/**************************************************************************//**
+ * \brief       Copy data to memory (IMEM/EMEM)
+ *
+ * \param[in]   addr         - extended address of the memory to copy data to
+ *		data         - the data to copy to memory
+ *		data_size    - size of the data (in bytes)
+ *
+ * \return      bool
+ */
+bool infra_set_memory(struct ezdp_ext_addr *addr,
+		      void *data,
+		      uint32_t data_size)
+{
+	EZstatus ret_val;
+
+	ret_val =  EZapiPrm_WriteMem(0, /* uiChannelId */
+				     (addr->mem_type == EZDP_EXTERNAL_MS ? EZapiPrm_MemId_EXT_MEM : EZapiPrm_MemId_INT_MEM), /* eMemId */
+				     addr->msid, /* uiMemSpaceIndex */
+				     addr->address, /* uiLSBAddress */
+				     addr->address_msb, /* uiMSBAddress */
+				     0, /* bRange */
+				     0, /* uiRangeSize */
+				     0, /* uiRangeStep */
+				     0, /* bSingleCopy */
+				     0, /* bGCICopy */
+				     0, /* uiCopyIndex */
+				     data_size,
+				     data,   /* pucData */
+				     0 /* pSpecialParams */);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "infra_set_memory: EZapiPrm_WriteMem failed.");
 		return false;
 	}
 

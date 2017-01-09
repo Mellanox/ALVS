@@ -427,38 +427,22 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
  */
 enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_server)
 {
-
 	uint32_t server_flags = 0;
-	EZstatus ret_val;
+	struct ezdp_ext_addr addr;
 
-	write_log(LOG_DEBUG, "raw = 0x%x ext = %d msid = %d, lsb_addr = 0x%x",
-		  cp_server->server_flags_dp_base.raw_data,
-		  (cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET,
-		  (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
-		  (uint32_t)(ALVS_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags)));
+	addr.mem_type = (cp_server->server_flags_dp_base.raw_data >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET);
+	addr.msid = (cp_server->server_flags_dp_base.raw_data >> EZDP_SUM_ADDR_MSID_OFFSET) & ((1 << EZDP_SUM_ADDR_MSID_SIZE) - 1);
+	addr.address = ALVS_SERVER_FLAGS_OFFSET + cp_server->nps_index * sizeof(uint32_t);
+	addr.address_msb = 0;
 
-	ret_val =  EZapiPrm_WriteMem(0, /*uiChannelId*/
-				     ((((cp_server->server_flags_dp_base.raw_data & EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MEM_TYPE_OFFSET) == EZDP_EXTERNAL_MS) ? EZapiPrm_MemId_EXT_MEM : EZapiPrm_MemId_INT_MEM), /*eMemId*/
-				     (cp_server->server_flags_dp_base.raw_data & ~EZDP_SUM_ADDR_MEM_TYPE_MASK) >> EZDP_SUM_ADDR_MSID_OFFSET,
-				     ALVS_SERVER_FLAGS_OFFSET_CP + cp_server->nps_index * sizeof(server_flags),
-				     0, /* uiMSBAddress */
-				     0, /* bRange */
-				     0, /* uiRangeSize */
-				     0, /* uiRangeStep */
-				     0, /* bSingleCopy */
-				     0, /* bGCICopy */
-				     0, /* uiCopyIndex */
-				     sizeof(server_flags),
-				     (EZuc8 *)&server_flags,   /*pucData*/
-				     0 /* pSpecialParams */);
-
-	if (EZrc_IS_ERROR(ret_val)) {
+	if (infra_set_memory(&addr,
+			     &server_flags,
+			     sizeof(uint32_t)) == false) {
 		write_log(LOG_CRIT, "alvs_db_clean_alloc_memory: EZapiPrm_WriteMem failed.");
 		return ALVS_DB_INTERNAL_ERROR;
 	}
 
 	return ALVS_DB_OK;
-
 }
 
 /**************************************************************************//**
@@ -2512,7 +2496,7 @@ enum alvs_db_rc alvs_db_add_server(struct ip_vs_service_user *ip_vs_service,
 										ALVS_SERVER_STATS_ON_DEMAND_OFFSET + cp_server.nps_index * ALVS_NUM_OF_SERVER_ON_DEMAND_STATS);
 		cp_server.server_flags_dp_base.raw_data = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
 									 ALVS_EMEM_DATA_OUT_OF_BAND_MSID,
-									 ALVS_SERVER_FLAGS_OFFSET + cp_server.nps_index);
+									 ALVS_SERVER_FLAGS_OFFSET/sizeof(uint32_t) + cp_server.nps_index);
 
 		write_log(LOG_DEBUG, "Server info: conn_flags=%d, server_flags=%d, weight=%d, u_thresh=%d, l_thresh=%d.",
 			  cp_server.conn_flags,

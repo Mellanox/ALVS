@@ -44,6 +44,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <net/ethernet.h>
+#include "ezdp_memory_defs.h"
 
 
 /*! Required parameters for hash creation data structure  */
@@ -248,5 +249,19 @@ bool infra_clear_posted_counters(uint32_t counter_index,
  */
 bool infra_clear_long_counters(uint32_t counter_index,
 			       uint32_t num_of_counters);
+
+
+/**************************************************************************//**
+ * \brief       Copy data to memory (IMEM/EMEM)
+ *
+ * \param[in]   addr         - extended address of the memory to copy data to
+ *		data         - the data to copy to memory
+ *		data_size    - size of the data (in bytes)
+ *
+ * \return      bool
+ */
+bool infra_set_memory(struct ezdp_ext_addr *addr,
+		      void *data,
+		      uint32_t data_size);
 
 #endif /* _INFRASTRUCTURE_UTILS_H_ */

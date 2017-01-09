@@ -96,9 +96,7 @@ enum alvs_external_msid {
 
 /* EMEM out of band offsets */
 #define ALVS_SPINLOCK_OFFSET          0x0
-
-#define ALVS_SERVER_FLAGS_OFFSET      (ALVS_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT)
-#define ALVS_SERVER_FLAGS_OFFSET_CP   (ALVS_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT * 4) /*TODO - change to sizeof()*/
+#define ALVS_SERVER_FLAGS_OFFSET      (ALVS_SPINLOCK_OFFSET + ALVS_CONN_LOCK_ELEMENTS_COUNT * sizeof(uint32_t))
 
 
 
