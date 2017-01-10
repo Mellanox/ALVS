@@ -29,11 +29,11 @@ function error_exit()
 function usage()
 {
     cat <<EOF
-Usage: $script_name [release | debug | all | EMPTY (all), deb]
+Usage: $script_name [release | debug | all | EMPTY (all)] [deb] [make_params | EMPTY (all)]
 This script runs build on the current working area (release/debug/package)
 
 Examples:
-$script_name release deb
+$script_name release deb alvs
 
 EOF
    exit 1
@@ -47,6 +47,7 @@ function parse_cmd()
     echo "args: "$@
     # check number of arguments
     deb_flag=0
+	make_params="all"
     
     test $# -eq 0
     no_args=$?
@@ -54,27 +55,32 @@ function parse_cmd()
     one_args=$?
     test $# -eq 2
     two_args=$?
+    test $# -eq 3
+    three_args=$?
     
     if [ $no_args -eq 0 ]; then
         compile_flag="all"
         return
     fi
     
-    if [ $one_args -eq 0 ] || [ $two_args -eq 0 ]; then
+    if [ $one_args -eq 0 ] || [ $two_args -eq 0 ] || [ $three_args -eq 0 ]; then
         if [ "$1" == "release" ] ||  [ "$1" == "debug" ] ||  [ "$1" == "all" ]; then
             compile_flag=$1
         else
             usage
         fi
         
-        if [ $two_args -eq 0 ]; then
+        if [ $two_args -eq 0 ] || [ $three_args -eq 0 ]; then
             if [ $2 == "deb" ]; then
                 deb_flag=1
+				if [ $three_args -eq 0 ]; then
+				    make_params=$3
+				fi
             else
                 usage
             fi
         fi
-    else # more than 2 args
+    else # more than 3 args
         usage
     fi
 }
@@ -126,7 +132,6 @@ function make_release()
     echo "Function: $FUNCNAME called"
 
     # prepare compilation parameters
-    make_params="all"
     make_clean_file=$wa_path"make_clean_release.log"
     make_log_file=$wa_path"make_release.log"
 
@@ -164,7 +169,6 @@ function make_debug()
     export DEBUG
     
     # prepare compilation parameters
-    make_params="all"
     make_clean_file=$wa_path"make_clean_debug.log"
     make_log_file=$wa_path"make_debug.log"
 

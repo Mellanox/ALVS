@@ -24,20 +24,22 @@ declare -i base_commit_num
 function print_paths()
 {
     echo "Exported variables:"
-    echo "Git project           = $git_project"
-    echo "Git branch            = $git_branch"
-    echo "Base commit num       = $base_commit_num"
-    echo "base_dir              = $base_dir"
-    echo "wa_path               = $wa_path"
-    echo "git_dir               = $git_dir"
+    echo "Git project                   = $git_project"
+    echo "Git branch                    = $git_branch"
+    echo "Base commit num               = $base_commit_num"
+    echo "base_dir                      = $base_dir"
+    echo "wa_path                       = $wa_path"
+    echo "git_dir                       = $git_dir"
     
     echo "Directories:"
-    echo "branch_dir            = $branch_dir"
-    echo "build_products_path   = $build_products_path"
+    echo "branch_dir                    = $branch_dir"
+    echo "build_products_path           = $build_products_path"
+	echo "build_products_release_path   = $build_products_release_path"
+	echo "build_products_debug_path     = $build_products_debug_path"
 
     echo "Links:"
-    echo "last_release_link     = $last_release_link"
-    echo "last_stable_link      = $last_stable_link"
+    echo "last_release_link             = $last_release_link"
+    echo "last_stable_link              = $last_stable_link"
 }
 
 #######################################################################################
@@ -56,21 +58,50 @@ function set_global_variables()
 
 	script_name=$(basename $0)
 	script_dir=$(cd $(dirname $0) && pwd)
+	
+    # project_flag
+	set_project_flags
 
     # release paths
-    branch_dir=${base_dir}${git_project}/${git_branch}/
+    branch_dir=${base_dir}${git_project}/${git_branch}/${project_name}/
     
     last_release_link=${branch_dir}"last_release"
     last_stable_link=${branch_dir}"last_stable"
     
     # WA paths
     build_products_path=$wa_path"products/"
+    build_products_release_path=$build_products_path"release/"
+    build_products_debug_path=$build_products_path"debug/"
 
 	print_paths
 
     echo "==== END Set variables ====="
 }
 
+#######################################################################################
+
+function set_project_flags()
+{
+	
+	echo -e "\n======== Setting project name ========"
+	
+	project_products="*.deb"
+			
+	if [ "$project_name" == "alvs" ];then
+		project_flag="CONFIG_ALVS"
+	elif [ "$project_name" == "ddp" ];then
+	    project_flag="CONFIG_DDP"
+	    project_products="*.deb bin/libfp* bin/synca"
+	elif [ "$project_name" == "tc" ];then
+        project_flag="CONFIG_TC"	 
+	else
+        echo "ERROR: invalid project name $project_name"
+		exit_status=1
+		print_end_script 
+	fi
+	echo "===== End Setting project name ======"
+    
+}
 
 ######################################################################################
 
@@ -79,12 +110,11 @@ function create_product_dir()
 	echo -e "\n======== $FUNCNAME ========="
 
     # make products folder
-    mkdir -p $build_products_path
+    mkdir -p $build_products_release_path $build_products_debug_path
     if [ $? -ne 0 ]; then
         exit_status=1
-        echo "ERROR: make dir ($build_products_path) failed"
+        echo "ERROR: make dir ($build_products_release_path $build_products_debug_path) failed"
         print_end_script
-        exit $exit_status
     fi
     
 	echo "======== End: $FUNCNAME ========="
@@ -100,7 +130,7 @@ function create_release_dir()
 	if [ $? -eq 0 ]; then
 		echo "Version didn't change. Version $version"
 		exit_status=0
-		clean_wa_and_exit    
+		print_end_script    
 	fi
 
 	# create release folder
@@ -109,7 +139,7 @@ function create_release_dir()
     if [ $? -ne 0 ]; then
 		echo "ERROR: can creating release folder ($version_dir)"
 		exit_status=1
-		clean_wa_and_exit    
+		print_end_script    
     fi
 
 	echo "====== END Create release directory ======="
@@ -180,42 +210,41 @@ function tar_folder_and_copy_to_products()
 
 #######################################################################################
 
-function build_and_add_bins()
+function build_and_copy_products()
 {
-	echo -e "\n======== Build ALVS and add bin files ========="
+	echo -e "\n======== Build project $project_name and copy products ========="
 	
     cd $git_dir
 
-    # Create release package    
-    ./verification/scripts/make_all.sh release deb
+    # Create release package
+    ./verification/scripts/make_all.sh release deb $project_name
     if [ $? -ne 0 ]; then
         echo "Failed at make_all release in version $version!"
         is_stable=0
+    else    	
+    # Copy build products to products path
+    mv $project_products $build_products_release_path
+        if [ $? -ne 0 ]; then
+            echo "ERROR: failed to move build products to $build_products_release_path"
+            is_stable=0
+        fi
     fi
-    	
-	# Copy debian package to products path
-    mv *.deb $build_products_path
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to move debian package to failed to $build_products_path"
-        is_stable=0
-    fi
-
 
     # Create debug package    
-	./verification/scripts/make_all.sh debug deb
+    ./verification/scripts/make_all.sh debug deb $project_name
 	if [ $? -ne 0 ]; then
         echo "ERROR: Failed at make_all debug in version $version!"
         is_stable=0
+    else
+    # Copy debug build products to products path
+    mv $project_products $build_products_debug_path
+        if [ $? -ne 0 ]; then
+            echo "ERROR: failed to move debug build products to $build_products_debug_path"
+            is_stable=0
+        fi
     fi
-
-	# Copy debug debian package to products path
-    mv *.deb $build_products_path
-    if [ $? -ne 0 ]; then
-        echo "ERROR: failed to move debian debug package to failed to $build_products_path"
-        is_stable=0
-    fi
-    
-	echo -e "\n======== END Build ALVS and add bin files ========="
+	
+	echo -e "\n======== END Build project $project_name and copy products ========="
 }
 
 #######################################################################################
@@ -256,7 +285,6 @@ function update_links()
     # update last build
     echo "Last release link = $last_release_link"
     echo "Last stable link  = $last_stable_link"
-
     
     $nps_sw_user_command ln -sfn $version_dir $last_release_link
 
@@ -279,6 +307,7 @@ function print_end_script()
     echo "< exit status $exit_status"
     echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     echo ""
+	exit $exit_status
 }
 
 #######################################################################################
@@ -288,14 +317,29 @@ function set_version_dir_variable()
     echo -e "\n======= Setting version_dir variable ========="
 
 	cd $git_dir
-	fixed_version=$(grep -e "\"\$Revision: .* $\"" src/common/version.h | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f2| uniq)
+	parse_version
 	num_commits=$(git rev-list HEAD | wc -l)
 	num_commits=$num_commits-$base_commit_num
 	version="${fixed_version}.${num_commits}"
 	version_dir=${branch_dir}"archive/"${version}/
-	echo "version		= $version"
-	echo "version_dir	= $version_dir"
+	echo "version		        = $version"
+	echo "version_dir	        = $version_dir"
 
+	echo "====== END Setting version_dir variable ======="
+}
+
+#######################################################################################
+
+function parse_version()
+{ 
+    echo -e "\n======= Parsing project version ========="
+	fixed_version=$(sed -e '1,/'"$project_flag"'/d' -e '/endif/,$d' src/common/version.h | grep -e "\"\$Revision: .* $\"" | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2| uniq)
+	if [ $? -ne 0 ] || [ -z "$fixed_version" ]; then
+	    exit_status=1 
+	    echo "ERROR: unable to parse project version from verion.h"
+		print_end_script
+	fi
+	echo "fixed_version		        = $fixed_version"
 	echo "====== END Setting version_dir variable ======="
 }
 
@@ -318,9 +362,6 @@ function update_release_dir()
 
 function run_auto_build_local()
 {
-    echo -e "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-    echo "> Start script $script_name"
-
 
 	set_global_variables
 
@@ -330,7 +371,7 @@ function run_auto_build_local()
 
 	create_release_dir
 
-	build_and_add_bins
+	build_and_copy_products
 
 	update_products_dir
 	
@@ -338,10 +379,42 @@ function run_auto_build_local()
 
 	update_links
 
-    print_end_script
 }
 
 #######################################################################################
 
-run_auto_build_local $@
+function get_project_list()
+{
+	
+	echo -e "\n======== Get Project list ========"
+	cd $git_dir
+	project_names=$(grep -e 'all:' makefile | cut -d":" -f 2)
+	if [ $? -ne 0 ]; then
+        echo "ERROR: failed to parse prject list from makfile"
+		exit_status=1 
+		print_end_script
+	fi
+	echo "===== END Get Project list ======"
+    
+}
+
+#######################################################################################
+
+function main()
+{
+    echo -e "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+    echo "> Start script $script_name"
+	get_project_list
+	for project in $project_names
+	do
+		project_name=$project
+		echo "Start local build for project $project_name"
+		run_auto_build_local
+	done
+	print_end_script
+}
+
+#######################################################################################
+
+main $@
 
