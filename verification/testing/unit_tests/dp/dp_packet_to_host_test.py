@@ -8,7 +8,6 @@ my_grandparentdir =  os.path.dirname(my_parentdir)
 sys.path.append(my_grandparentdir)
 sys.path.append(my_parentdir)
 from common_infra import *
-from client_infra import *
 from alvs_infra import *
 from unit_tester import Unit_Tester
 

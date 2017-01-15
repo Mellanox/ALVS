@@ -721,7 +721,7 @@ class SshConnect:
 			return [False, "command failed: " + chip_cmd]
 
 	def wait_for_msgs(self, msgs):
-		for i in range(40):
+		for i in range(30):
 			index = self.ssh_object.expect_exact([pexpect.EOF, pexpect.TIMEOUT] + msgs)
 			if index == 0:
 				print "\n" + self.ssh_object.before + self.ssh_object.match
@@ -733,48 +733,6 @@ class SshConnect:
 				return (index-2)
 		print "Error while waiting for message"
 		return -1
-
-class basic_player(object):
-	def __init__(self, ip, hostname, username, password, exe_path=None, exe_script=None, exec_params=None):
-		self.ip = ip
-		self.hostname   = hostname
-		self.username   = username
-		self.password   = password
-		self.exe_path   = exe_path
-		self.exe_script = exe_script
-		self.exec_params= exec_params
-		self.ssh        = SshConnect(hostname, username, password)
-
-	def execute(self, exe_prog="python"):
-		if self.exe_script:
-			sshpass_cmd = "sshpass -p " + self.password+ " ssh -o StrictHostKeyChecking=no " + self.username + "@" + self.hostname
-			exec_cmd	= "cd " + self.exe_path + "; " + exe_prog + " " + self.exe_script
-			cmd = sshpass_cmd + " \"" + exec_cmd + " " + self.exec_params + "\""
-			print cmd
-			os.system(cmd)
-
-	def connect(self):
-		self.ssh.connect()
-
-	def clear_arp_table(self):
-		self.ssh.execute_command('ip neigh flush all')
-		
-	def logout(self):
-		self.ssh.logout()
-		
-	def str(self):
-		return self.ip
-
-	def execute_command(self, cmd):
-		return self.ssh.execute_command(cmd)
-	
-	def copy_file_to_player(self, filename, dest):
-		cmd = "sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest
-		rc =  os.system(cmd)
-		if rc:
-			print "ERROR: failed to copy %s to %s" %(filename, dest)
-		
-		return rc
 
 
 class player(object):

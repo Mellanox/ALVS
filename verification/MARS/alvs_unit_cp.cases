@@ -4,7 +4,7 @@
         <Test>
             <info> alvs_unit_cp </info>
             <name> alvs_unit_cp </name>
-            <tags> dp </tags>
+            <tags> cp </tags>
             <tags> unit_tests </tags>
             <owner> anat </owner>
 		    <pre>
