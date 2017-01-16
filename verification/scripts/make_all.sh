@@ -174,12 +174,12 @@ function make_debug()
 
     # make
     compile_git
-
+    rc=$?
+    		
     # unset local variable
     unset DEBUG
     
     # check make result
-    rc=$?
     if [ $rc -ne 0 ]; then
         echo "ERROR: $FUNCNAME failed on git compilation"
         exit_status=1
