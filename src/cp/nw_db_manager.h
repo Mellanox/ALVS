@@ -59,9 +59,9 @@ struct nw_db_manager_ops {
 	/*called when arp entry is deleted*/
 	bool (*modify_arp_entry)(struct rtnl_neigh *);
 	/*called when arp entry is modified*/
-	bool (*add_if)(struct rtnl_link *link);
+	bool (*enable_if)(struct rtnl_link *link);
 	/*called when interface is enabled\created*/
-	bool (*remove_if)(struct rtnl_link *link);
+	bool (*disable_if)(struct rtnl_link *link);
 	/*called when interface is disabled*/
 	bool (*modify_if)(struct rtnl_link *link);
 	/*called when interface is modified*/

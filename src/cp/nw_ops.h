@@ -42,6 +42,59 @@
 #include <netlink/route/route.h>
 #include <nw_db_manager.h>
 
+/* interface mapping if_map_by_name[interface-id] = interface name */
+char *if_map_by_name[NW_IF_NUM] = {"eth0", "eth1", "eth2", "eth3"};
+/* interface mapping if_map_by_index[interface-id] = linux interface index */
+int if_map_by_index[NW_IF_NUM] = {-1, -1, -1, -1};
+
+/******************************************************************************
+ * \brief       interface id lookup using interface name
+ *
+ * \param[in]   if_name - interface name
+ *
+ * \return      interface id.
+ *		valid interface id: 0-3 for interfaces eth0-3
+ *		otherwise return -1
+ */
+int32_t if_lookup_by_name(char *if_name)
+{
+	int i;
+	char *name;
+
+	for (i = 0; i < NW_IF_NUM; i++) {
+		name = if_map_by_name[i];
+		if (!strcmp(if_name, name)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+/******************************************************************************
+ * \brief       interface id lookup using interface linux index
+ *
+ * \param[in]   linux_index - interface linux index
+ *
+ * \return      interface id.
+ *		valid interface id: 0-3 for interfaces eth0-3
+ *		otherwise return -1
+ */
+int32_t if_lookup_by_index(int  __attribute__((__unused__))linux_index)
+{
+	/* TODO: this is a workaround for ALVS until real implementation of eth mapping */
+#ifdef CONFIG_ALVS
+	return 0;
+#else
+	int i;
+
+	for (i = 0; i < NW_IF_NUM; i++) {
+		if (if_map_by_index[i] == linux_index) {
+			return i;
+		}
+	}
+	return -1;
+#endif
+}
 /******************************************************************************
  * \brief    Add\Remove\Modify FIB entry.
  *           Get libnl rtnl_route and return false only on fatal error.
@@ -59,11 +112,11 @@ bool nw_ops_remove_arp_entry(struct rtnl_neigh *neighbor);
 bool nw_ops_modify_arp_entry(struct rtnl_neigh *neighbor);
 
 /******************************************************************************
- * \brief    Add\Remove\Modify IF entry.
+ * \brief    Enable\Disable\Modify IF entry.
  *           Get libnl rtnl_link and return false only on fatal error.
  */
-bool nw_ops_add_if(struct rtnl_link *link);
-bool nw_ops_remove_if(struct rtnl_link *link);
+bool nw_ops_enable_if(struct rtnl_link *link);
+bool nw_ops_disable_if(struct rtnl_link *link);
 bool nw_ops_modify_if(struct rtnl_link *link);
 
 /******************************************************************************
@@ -81,8 +134,8 @@ struct nw_db_manager_ops nw_ops = {
 	.add_arp_entry = &nw_ops_add_arp_entry,
 	.remove_arp_entry = &nw_ops_remove_arp_entry,
 	.modify_arp_entry = &nw_ops_modify_arp_entry,
-	.add_if = &nw_ops_add_if,
-	.remove_if = &nw_ops_remove_if,
+	.enable_if = &nw_ops_enable_if,
+	.disable_if = &nw_ops_disable_if,
 	.modify_if = &nw_ops_modify_if,
 	.add_if_addr = &nw_ops_add_if_addr,
 	.remove_if_addr = &nw_ops_remove_if_addr

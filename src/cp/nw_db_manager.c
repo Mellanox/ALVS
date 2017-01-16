@@ -208,7 +208,10 @@ void nw_db_manager_if_table_init(void)
 	link_entry = (struct rtnl_link *)nl_cache_get_first(ifc_cache);
 	while ((link_entry != NULL)) {
 		if (rtnl_link_get_flags(link_entry) & IFF_UP) {
-			rc = nw_db_manager_ops->add_if(link_entry);
+			rc = nw_db_manager_ops->modify_if(link_entry);
+			if (rc == true) {
+				rc = nw_db_manager_ops->enable_if(link_entry);
+			}
 			if (rc == false) {
 				write_log(LOG_CRIT, "Fatal error. exiting.");
 				nw_db_manager_exit_with_error();
@@ -352,16 +355,27 @@ void nw_db_manager_ifc_cb(struct nl_cache __attribute__((__unused__))*cache, str
 {
 	struct rtnl_link *link = (struct rtnl_link *) obj;
 	bool rc = true;
+	bool is_if_up = rtnl_link_get_flags(link) & IFF_UP;
 
 	switch (action) {
 	case NL_ACT_NEW:
-		rc = nw_db_manager_ops->add_if(link);
+		rc = nw_db_manager_ops->modify_if(link);
+		if (rc == true && is_if_up) {
+			rc = nw_db_manager_ops->enable_if(link);
+		}
 		break;
 	case NL_ACT_DEL:
-		rc = nw_db_manager_ops->remove_if(link);
+		rc = nw_db_manager_ops->disable_if(link);
 		break;
 	case NL_ACT_CHANGE:
 		rc = nw_db_manager_ops->modify_if(link);
+		if (rc == true) {
+			if (is_if_up) {
+				rc = nw_db_manager_ops->enable_if(link);
+			} else {
+				rc = nw_db_manager_ops->disable_if(link);
+			}
+		}
 		break;
 	}
 
