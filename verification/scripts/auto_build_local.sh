@@ -349,7 +349,8 @@ function update_release_dir()
 { 
     echo -e "\n======= Copy build products to release folder ========="
 
-	$nps_sw_user_command cp -r $build_products_path $version_dir
+	target_vm="gen-l-vrt-232-005"	
+	scp -r $build_products_path nps_sw_release@$target_vm:$version_dir
     if [ $? -ne 0 ]; then
         echo "ERROR: failed to copy build product to $version_dir"
         is_stable=0
