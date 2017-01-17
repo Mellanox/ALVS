@@ -211,11 +211,11 @@ function make_deb()
     WHOAMI=$(whoami)
     set -x
     if [ "$WHOAMI" == "root" ]; then
-        sshpass -p 3tango ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+        sshpass -p 3tango ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
     elif [ "$WHOAMI" == "gilf" ]; then
-        sshpass -p 123456 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+        sshpass -p 123456 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
     else
-        sshpass -p $(whoami)11 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk; exit"
+        sshpass -p $(whoami)11 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
     fi
     set +x
     
