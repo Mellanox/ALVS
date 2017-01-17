@@ -349,7 +349,7 @@ function update_release_dir()
 { 
     echo -e "\n======= Copy build products to release folder ========="
 
-	sudo -u nps_sw_release cp -r $build_products_path/ $version_dir
+	$nps_sw_user_command cp -r $build_products_path $version_dir
     if [ $? -ne 0 ]; then
         echo "ERROR: failed to copy build product to $version_dir"
         is_stable=0
