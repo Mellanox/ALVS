@@ -78,6 +78,7 @@ void cli_manager_handle_message(struct cli_msg  *rcv_cli,
  *
  * \return   void
  */
+static
 void cli_manager_print_message(struct cli_msg  *cli)
 {
 	write_log(LOG_DEBUG, "Message header:");
@@ -94,6 +95,7 @@ void cli_manager_print_message(struct cli_msg  *cli)
  *
  * \return	  void
  */
+static
 void cli_manager_init_socket(void)
 {
 	struct sockaddr_un  serv_addr;
@@ -142,17 +144,13 @@ void cli_manager_init_socket(void)
  *
  * \return        new socket FD given by accept()
  */
-int cli_manager_listern_and_accept_socket(bool  release_old_socket)
+static
+int cli_manager_listen_and_accept_socket(void)
 {
 	/* socket variables */
 	struct sockaddr_un cli_addr;
 	socklen_t          clilen;
 	int32_t            rc;
-
-	/* Release socket if needed */
-	if (release_old_socket) {
-		close(newsockfd);
-	}
 
 	/* Go to server mode - Enable the socket to accept connections */
 	rc = listen(sockfd, PENDING_SOCKET_CONNECTIONS);
@@ -172,6 +170,7 @@ int cli_manager_listern_and_accept_socket(bool  release_old_socket)
  *
  * \return	  void
  */
+static
 void cli_manager_init(void)
 {
 	sigset_t sigs_to_block;
@@ -190,6 +189,7 @@ void cli_manager_init(void)
  *
  * \return	  void
  */
+static
 void cli_manager_poll(void)
 {
 	write_log(LOG_DEBUG, "CLI thread started");
@@ -218,17 +218,20 @@ void cli_manager_poll(void)
 	/* Receive & handle messages                    */
 	/************************************************/
 	while (*cli_manager_cancel_application_flag == false) {
-		write_log(LOG_DEBUG, "CLI loop started. newsockfd %d reconnect %d",
-			  newsockfd, reconnect);
 
 		/* check if need to reconnect socket */
 		if ((newsockfd < 0) || (reconnect)) {
-			newsockfd = cli_manager_listern_and_accept_socket(reconnect);
+
+			/* Release socket if needed */
+			if (reconnect) {
+				close(newsockfd);
+			}
 			reconnect = false;
+
+			newsockfd = cli_manager_listen_and_accept_socket();
 			if (newsockfd < 0) {
 				l_errno = errno;
 				if (errno == EAGAIN) {
-					write_log(LOG_DEBUG, "accept timeout (errno %d)", l_errno);
 					continue;
 				} else {
 					write_log(LOG_CRIT, "accept failed. errno  %d", l_errno);
@@ -249,11 +252,14 @@ void cli_manager_poll(void)
 		/************************************************/
 		/* Read response                                */
 		/************************************************/
+		write_log(LOG_DEBUG, "New message received. Reading message");
 		/* handle different version of message */
 		rcv_cli_len = read_message(&rcv_cli, newsockfd);
 
 		/* save errno. errno can overide by other system operation */
 		l_errno = errno;
+
+		write_log(LOG_DEBUG, "Received length is %d", rcv_cli_len);
 		if (rcv_cli_len == 0) {
 			write_log(LOG_DEBUG, "Received zero length");
 			reconnect = true;
@@ -276,7 +282,6 @@ void cli_manager_poll(void)
 
 			continue;
 		}
-		write_log(LOG_DEBUG, "Received length is %d", rcv_cli_len);
 		cli_manager_print_message(&rcv_cli);
 
 
@@ -289,6 +294,7 @@ void cli_manager_poll(void)
 		/************************************************/
 		/* Send message                                 */
 		/************************************************/
+		write_log(LOG_DEBUG, "Sending response");
 		cli_manager_print_message(&res_cli);
 		written_len = write_message(&res_cli, newsockfd);
 		if (written_len < 0) {
@@ -314,6 +320,7 @@ void cli_manager_poll(void)
  *
  * \return   void
  */
+static
 void cli_manager_delete(void)
 {
 	/* Close sockets */
