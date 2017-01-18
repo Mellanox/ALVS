@@ -160,7 +160,8 @@ function cp_tar_file_to_products()
     mv *tar.gz $build_products_path
     if [ $? -ne 0 ]; then
         echo "ERROR: failed to copy tar files"
-        is_stable=0
+		exit_status=1 
+		print_end_script
     fi
     
     # back to previos folder
@@ -226,7 +227,8 @@ function build_and_copy_products()
     mv $project_products $build_products_release_path
         if [ $? -ne 0 ]; then
             echo "ERROR: failed to move build products to $build_products_release_path"
-            is_stable=0
+			exit_status=1 
+			print_end_script
         fi
     fi
 
@@ -240,7 +242,8 @@ function build_and_copy_products()
     mv $project_products $build_products_debug_path
         if [ $? -ne 0 ]; then
             echo "ERROR: failed to move debug build products to $build_products_debug_path"
-            is_stable=0
+			exit_status=1 
+			print_end_script
         fi
     fi
 	
@@ -335,8 +338,8 @@ function parse_version()
     echo -e "\n======= Parsing project version ========="
 	fixed_version=$(sed -e '1,/'"$project_flag"'/d' -e '/endif/,$d' src/common/version.h | grep -e "\"\$Revision: .* $\"" | cut -d":" -f 2 | cut -d" " -f2 | cut -d"." -f1-2| uniq)
 	if [ $? -ne 0 ] || [ -z "$fixed_version" ]; then
+        echo "ERROR: unable to parse project version from verion.h"
 	    exit_status=1 
-	    echo "ERROR: unable to parse project version from verion.h"
 		print_end_script
 	fi
 	echo "fixed_version		        = $fixed_version"
@@ -356,10 +359,27 @@ function update_release_dir()
 	sudo -u nps_sw_release cp -r $relative_products_path $version_dir
 	if [ $? -ne 0 ]; then
 		echo "ERROR: failed to copy build product to $version_dir"
-		is_stable=0
+		exit_status=1 
+		print_end_script
     fi
 
 	echo "====== END Copy build products to release folder ========="
+}
+
+#######################################################################################
+
+function clean_products()
+{
+    echo -e "\n======= Cleaning WA products ========="
+
+    rm -rf $build_products_path
+    if [ $? -eq 0 ]; then
+        echo "WA products($build_products_path) removed"
+    else
+        echo "WARNING: failed to remove WA products: $build_products_path"
+    fi
+
+    echo "====== END Cleaning WA products ======="
 }
 
 #######################################################################################
@@ -382,6 +402,8 @@ function run_auto_build_local()
 	update_release_dir
 
 	update_links
+	
+	clean_products
 
 }
 
@@ -411,8 +433,8 @@ function main()
 	get_project_list
 	for project in $project_names
 	do
-		project_name=$project
 		echo "Start local build for project $project_name"
+		project_name=$project
 		run_auto_build_local
 	done
 	print_end_script
