@@ -63,7 +63,21 @@ class DDP_ezbox(ezbox_host):
 			self.service_stop()
 		self.logout()
 
-
+	
+	def check_if_eth_is_up(self, eth_up_index):
+		interface = self.get_interface(eth_up_index)
+		if interface['admin_state']==0:
+			raise TestFailedException ("ERROR eth %s is not up" %eth_up_index)
+		print "eth %s is up" %eth_up_index
+			
+		
+	def check_if_eth_is_down(self, eth_down_index):
+		interface = self.get_interface(eth_down_index)
+		if interface['admin_state']==1:
+			raise TestFailedException ("ERROR eth %s is not down" %eth_down_index)
+		print "eth %s is down" %eth_down_index
+	
+	
 class Remote_Host(player):
 	def __init__(self, ip, hostname, all_eths,
 				username	= "root",
@@ -122,6 +136,8 @@ class Remote_Host(player):
 		self.logout()
 
 
+
+
 class Host(player):
 	def __init__(self, hostname, all_eths,
 				ip			= None,
@@ -139,7 +155,7 @@ class Host(player):
 	
 	def init_host(self):
 		self.connect()
-# 		self.config_interface()
+ 		self.config_interface()
 		self.mac_adress= self.get_mac_adress()
 		
 	def clean_host(self):
@@ -307,7 +323,7 @@ def generic_init_ddp(setup_num, host_count):
 	return dict
 #------------------------------------------------------------------------------
 def init_host(host):
-	print "init host: " + host.str()
+	print "init host: " , host.str()
 	host.init_host()
 #------------------------------------------------------------------------------
 def init_players(test_resources, test_config={}):

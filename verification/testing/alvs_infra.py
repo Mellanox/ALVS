@@ -799,7 +799,7 @@ class HttpServer(player):
 		self.mac_address = None
 	def init_server(self, index_str):
 		self.connect()
-		#self.config_interface()
+		self.config_interface()
 		self.mac_address = self.get_mac_adress()
 		self.clear_arp_table()
 		self.start_http_daemon()
@@ -999,7 +999,7 @@ class HttpClient(player):
 
 	def init_client(self):
 		self.connect()
-		#self.config_interface()
+		self.config_interface()
 		self.mac_address = self.get_mac_adress()
 		self.clear_arp_table()
 		self.copy_exec_script()

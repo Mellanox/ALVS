@@ -359,20 +359,21 @@ class ezbox_host(object):
 		same = set(o for o in intersect_keys if linux_arp_entries_dict[o] == cp_arp[o])
 		return len(same)==len(linux_arp_entries_dict_keys)
 	
-	def get_unused_ip_on_subnet(self,netmask='255.255.248.0'):
+	def get_unused_ip_on_subnet(self,netmask='255.255.255.0',ip=None):
 		arp_entries=self.get_arp_table(False)
-		z=self.setup['data_ip_hex_display']
-		bytes = ["".join(x) for x in zip(*[iter(z.replace(" ", ""))]*2)]
-		bytes = [int(x, 16) for x in bytes]
-		z=".".join(str(x) for x in bytes)
-		int_ip_address=ip2int(z)
+		if ip == None:#caleld from alvs test so need to use ezbox data ip
+			ip=self.setup['data_ip_hex_display']
+			bytes = ["".join(x) for x in zip(*[iter(ip.replace(" ", ""))]*2)]
+			bytes = [int(x, 16) for x in bytes]
+			ip=".".join(str(x) for x in bytes)
+		int_ip_address=ip2int(ip)
 		int_netmask=ip2int(netmask)
 		first_ip = int2ip(int_ip_address & int_netmask)
 		temp_ip = first_ip
 		new_list = []
 		while True:
 			temp_ip = add2ip(temp_ip,1)
-			if z == temp_ip:
+			if ip == temp_ip:
 				continue
 			
 			found=False
@@ -385,7 +386,7 @@ class ezbox_host(object):
 			
 			if found == False:
 				new_list.append(temp_ip)
-			
+		
 		return new_list
 	
 
@@ -750,7 +751,8 @@ class SshConnect:
 class player(object):
 
 	def __init__(self, ip, hostname, username, password, interface = None, all_eths = None, exe_path=None, exe_script=None, exec_params=None):
-		self.ip = ip
+		self.all_ips    = ip
+		self.ip	        = ip
 		self.hostname   = hostname
 		self.username   = username
 		self.password   = password
@@ -763,27 +765,28 @@ class player(object):
 		self.ssh 		= SshConnect(hostname, username, password)
 
 
-# 	def config_interface(self):
-# 		if self.interface == Network_Interface.REGULAR:
-# 			eth_up = self.all_eths[0]
-# 			eth_down = self.all_eths[1:]
-# 		else:	# routing interface, interface = "number of network"
-# 			eth_down = self.all_eths[:self.interface] + self.all_eths[self.interface+1:]
-# 			eth_up = self.all_eths[self.interface]
-# 		
-# 		interfaces = self.read_ifconfig()
-# 		if eth_up not in interfaces:
-# 			self.ifconfig_eth_up(eth_up)
-# 		for eth in eth_down:
-# 			if eth in interfaces:
-# 				self.ifconfig_eth_down(eth)
-# 		
-# 		self.eth = eth_up
+	def config_interface(self):
+ 		if self.interface == Network_Interface.REGULAR:
+ 			eth_up = self.all_eths[0]
+ 			eth_down = self.all_eths[1:]
+ 		else:	# routing interface, interface = "number of network"
+ 			eth_down = self.all_eths[:self.interface] + self.all_eths[self.interface+1:]
+ 			eth_up = self.all_eths[self.interface]
+ 		
+ 		interfaces = self.read_ifconfig()
+ 		if eth_up not in interfaces:
+ 			self.ifconfig_eth_up(eth_up)
+ 		for eth in eth_down:
+ 			if eth in interfaces:
+ 				self.ifconfig_eth_down(eth)
+		
+ 		self.eth = eth_up
 	
 	def change_interface(self, interface):
-		self.ip = self.ip[interface]
+		self.ip = self.all_ips[interface]
 		self.interface = interface
-	
+		
+		
 	def send_ping(self, ip, timeout=10, count=1, size=56):
 		cmd = 'ping -c%s -w%s -s%s %s > /dev/null 2>&1' % (count, timeout, size, ip)
 		self.ssh.ssh_object.sendline(cmd)
@@ -800,14 +803,16 @@ class player(object):
 	
 	def ifconfig_eth_up(self, eth_up):
 		result, exit_code = self.ssh.execute_command("ifup " + eth_up + " --force")
-		if result == False:
+		result2, exit_code2 = self.ssh.execute_command("ifconfig " + eth_up + " up")
+		if result == False and result2 == False:
 			err_msg = "Error: command ifup " + eth_up + " failed, exit code: \n%s" %exit_code
 			raise RuntimeError(err_msg)
 
 	def ifconfig_eth_down(self, eth_down):
 		result, exit_code = self.ssh.execute_command("ifdown " + eth_down + " --force")
+		result2, exit_code2 = self.ssh.execute_command("ifconfig " + eth_down + " down")
 		#print exit_code
-		if result == False:
+		if result == False and result2 == False:
 			err_msg = "Error: command ifdown " + eth_down + " failed, exit code: \n%s" %exit_code
 			raise RuntimeError(err_msg)
 
@@ -1101,22 +1106,9 @@ def compare_pcap_files(file_name_1, file_name_2):
 		
 	return True
 
-def check_if_eth_is_up(self, eth_up_index):
-	interfaces = self.test_resources['remote-host'].get_all_interfaces()
-	for interface in interfaces:
-		if interface['key'] == eth_up_index:
-			print "eth %s is up" %eth_up_index
-			break
-		
-	raise TestFailedException ("ERROR eth %s is not up" %eth_up_index)
+
 	
-def check_if_eth_is_down(self, eth_down_index):
-	interfaces = self.test_resources['remote-host'].get_all_interfaces()
-	for interface in interfaces:
-		if interface['key'] == eth_down_index:
-			raise TestFailedException ("ERROR eth %s is not down" %eth_down_index)
-		
-	print "eth %s is down" %eth_down_index
+	
 	
 def check_packets_on_pcap(pcap_file_name, ssh_object=None):
 	cmd = "tcpdump -r %s | wc -l "%pcap_file_name
