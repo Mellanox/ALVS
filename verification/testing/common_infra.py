@@ -90,7 +90,7 @@ class ezbox_host(object):
 		self.update_port_type("--port_type=%s " % (self.setup['nps_port_type']))
 		self.service_stop()
 		self.service_start()
-		return self.wait_for_dp_app()
+		self.wait_for_dp_app()
 
 
 	def reset_ezbox(self):
@@ -225,13 +225,9 @@ class ezbox_host(object):
 		sys.stdout.flush()
 		output = self.syslog_ssh.wait_for_msgs(['alvs_db_manager_poll...'])
 		print
-		if output == 0:
-			return True
-		elif output < 0:
-			err_msg = '\nwait_for_cp_app: Error... (end of output)'
-			raise RuntimeError(err_msg)
-		else:
-			err_msg =  '\nwait_for_cp_app: Error... (Unknown output)'
+		
+		if output != 0:
+			err_msg =  '\nwait_for_cp_app: Error... wait for CP failed'
 			raise RuntimeError(err_msg)
 		
 	def wait_for_dp_app(self):
@@ -240,16 +236,9 @@ class ezbox_host(object):
 		output = self.syslog_ssh.wait_for_msgs(['Application version:'])
 		print
 
-		if output == 0:
-			return True
-		elif output == 1:
-			return False
-		elif output < 0:
-			print "\n" + sys._getframe().f_code.co_name + ": Error... (end of output)"
-			return False
-		else:
-			print "\n" + sys._getframe().f_code.co_name + ": Error... (Unknown output)"
-			return False
+		if output != 0:
+			err_msg = "\n" + sys._getframe().f_code.co_name + ": Error... wait for DP failed"
+			raise RuntimeError(err_msg)
 
 	def capture_packets(self, tcpdump_params = None):
 		if tcpdump_params == None:

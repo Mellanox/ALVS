@@ -2,12 +2,12 @@
 <CASEDEF>
     <global>
         <Test>
-            <info> DDP </info>
-            <name> DDP </name>
+            <info> DDP_system </info>
+            <name> DDP_system </name>
             <owner> anat </owner>
 		    <pre>
 		           <type> reg_exec_func </type>
-		           <name> run install wrapper </name>
+		           <name> run_test_wrapper </name>
 		           <tout> 1500 </tout>
 		           <params>
 		               <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/install_wrapper.py </wrapper>
@@ -24,7 +24,7 @@
             <on_failure>
                  <cmd>
                       <type> reg_exec_func </type>
-		              <name> run clean wrapper </name> 
+		              <name> run_test_wrapper </name> 
 		              <tout> 1000 </tout>
 		              <params>
 		                   <wrapper> [[run_time:db_tests_path]]/ALVS/verification/MARS/clean_wrapper.py </wrapper>

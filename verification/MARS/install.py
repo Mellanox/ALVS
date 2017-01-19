@@ -72,8 +72,9 @@ def main():
 	elif options.project_name == 'ddp':
 		print '========  DDP  =========='
 		remote_host_info = get_remote_host(setup_num)
-		remote_host = Remote_Host(ip       = remote_host_info['ip'],
-								hostname = remote_host_info['hostname'])
+		remote_host = Remote_Host(ip   = remote_host_info['all_ips'],
+							  hostname = remote_host_info['hostname'],
+							  all_eths = remote_host_info['all_eths'])
 		ezbox = DDP_ezbox(setup_num, remote_host)
 	
 	else:
@@ -81,9 +82,8 @@ def main():
 		raise RuntimeError(err_msg)
 
 	test_config = get_test_config( options.cpus_count, options.file_name)
-	if not ezbox.common_ezbox_bringup(test_config):
-		err_msg =  "wait for DP failed"
-		raise RuntimeError(err_msg)
+	ezbox.common_ezbox_bringup(test_config)
+
 	
 ################################################################################
 # Script start point
@@ -98,18 +98,14 @@ print ''
 try:
 	rc = 0
 	main()
+	print '----Installation Ended successfully------'
 except Exception as error:
 	logging.exception(error)
+	print '----Installation Ended with failure------'
 	rc = 1
 finally:
 	if ezbox:
 		print "ezbox logout"
 		ezbox.logout()
-	if (rc == 0):
-		print '----Installation Ended successfully------'
-		exit(0)
-	else:
-		print '----Installation Ended with failure------'
-		exit(1)
-
+	exit(rc)
 
