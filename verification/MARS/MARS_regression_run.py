@@ -5,6 +5,8 @@ import os
 import getpass
 from optparse import OptionParser
 from pexpect import pxssh
+import traceback
+import logging
 
 
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,10 +65,10 @@ def run_regression(cmd):
         print cmd
         mars_server.sendline (cmd)
         mars_server.prompt(timeout=36000)         # match the prompt
-        print (mars_server.before)     # print everything before the prompt.
-        if '*Session RC: 0' not in mars_server.before:
+        if '*Session RC: 1' in mars_server.before:
             err_msg = "Regression Failed"
             raise RuntimeError(err_msg)
+        
         
     
 ################################################################################
@@ -110,8 +112,8 @@ try:
     main()
 except Exception as error:
     logging.exception(error)
-    print str(error)
     rc = 1
 finally:
+    print (mars_server.before)
     mars_server.logout()
     exit(rc)
