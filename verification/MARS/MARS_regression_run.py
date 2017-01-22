@@ -1,15 +1,74 @@
 #!/usr/bin/env python
 
-#import urllib2
 import sys
 import os
+import getpass
 from optparse import OptionParser
 from pexpect import pxssh
 
 
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALVSdir = os.path.dirname(parentdir)
+mars_server = pxssh.pxssh()
 
+def get_def_caller():
+    return 'manual_' + getpass.getuser()
+
+def create_command(options):
+    if options.project_name != 'alvs':
+        test_file = options.project_name + '.setup'
+    else:
+        if options.regression_type == 'unit':
+            test_file = 'alvs_unit.setup'
+        else:
+            test_file = 'alvs_sys.setup'
+    
+    cmd = 'python2.7 '\
+          '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
+          '--cmd start '\
+          '--setup solution_setup' + options.setup_num + \
+          ' --conf ' + test_file + \
+          ' --meinfo_regression_type=' + options.caller + '_' + options.project_name + \
+          ' --meinfo_tests_src_path='
+    
+    if options.path:
+        cmd += options.path
+    else:
+        cmd += ALVSdir[12:]
+    
+    if options.tags:
+        cmd += ' --enable_tags "('
+        for tag in options.tags:
+            cmd += tag + ','
+        cmd = cmd[:len(cmd)-1] + ')"'
+    
+    if options.file_name:
+        cmd += ' --meinfo_file_name='
+        cmd += options.file_name
+        
+    if options.cpu_count:
+        cmd += ' --meinfo_cpu_count='
+        cmd += options.cpu_count
+    return cmd
+    
+def run_regression(cmd):
+    global mars_server
+    mars_host_name = 'mtl-stm-76'
+    if not mars_server.login (mars_host_name,'root','3tango'):
+        err_msg = "SSH session: ERROR - Failed to login to " + mars_host_name
+        raise RuntimeError(err_msg)
+    else:
+        print "SSH session: Successful login to " + mars_host_name
+        print "Executing:"
+        print cmd
+        mars_server.sendline (cmd)
+        mars_server.prompt(timeout=36000)         # match the prompt
+        print (mars_server.before)     # print everything before the prompt.
+        if '*Session RC: 0' not in mars_server.before:
+            err_msg = "Regression Failed"
+            raise RuntimeError(err_msg)
+        
+    
 ################################################################################
 # Function: Main
 ################################################################################
@@ -17,7 +76,6 @@ def main():
     
     usage = "usage: %prog [-s, -p, -t, -f ,-c]"
     
-
     parser = OptionParser(usage=usage, version="%prog 1.0")
     cpus_choices=['32','64','128','256','512','1024','2048','4096']
     parser.add_option("-s", "--setup_num", dest="setup_num",
@@ -28,6 +86,8 @@ def main():
                       help="Set path to ALVS directory 						(default is your current directory)")
     parser.add_option("--project", dest="project_name", default = 'alvs',
                       help="Set type of project alvs/ddp..                  (default is alvs)")
+    parser.add_option("--caller", dest="caller", default = get_def_caller(),
+                      help="regression caller (manual / push)")
     parser.add_option("-t", "--tags", action="append", dest="tags", default = [],
                       help="Filter by tags								(Optional parameter. Few tags:  -t tagA -t tagB)")
     parser.add_option("-f", "--file_name", dest="file_name",
@@ -36,65 +96,22 @@ def main():
                       help="number of CPUs, must be power of 2 between 32-4096")
     (options, args) = parser.parse_args()
     
-    # validate options
     if not options.setup_num:
-        print 'ERROR: setup_num was not given'
-        exit(1)
+        err_msg = "ERROR: setup_num was not given"
+        raise RuntimeError(err_msg)
     
-    if options.project_name != 'alvs':
-        test_file = options.project_name + '.setup'
-    else:
-        if options.regression_type == 'unit':
-            test_file = 'alvs_unit.setup'
-        else:
-            test_file = 'alvs_sys.setup'
+    cmd = create_command(options)
     
-    command_line = 'python2.7 '\
-                   '/.autodirect/MARS/production/mlnx_autotest/tools/mars_cli/mini_regression.py '\
-                   '--cmd start '\
-                   '--setup solution_setup' + options.setup_num + \
-                   ' --conf ' + test_file + \
-                   ' --meinfo_tests_src_path='
-                   
-                   
-    if options.path:
-        command_line += options.path
-    else:
-        command_line += ALVSdir[12:]
+    run_regression(cmd)
     
-    
-    if options.tags:
-        command_line += ' --enable_tags "('
-        for tag in options.tags:
-            command_line += tag + ','
-        command_line = command_line[:len(command_line)-1] + ')"'
-    
-    if options.file_name:
-        command_line += ' --meinfo_file_name='
-        command_line += options.file_name
-        
-    if options.cpu_count:
-        command_line += ' --meinfo_cpu_count='
-        command_line += options.cpu_count
-    
+
+try:
+    rc = 0
+    main()
+except Exception as error:
+    logging.exception(error)
+    print str(error)
     rc = 1
-    s = pxssh.pxssh()
-    if not s.login ('mtl-stm-76','root','3tango'):
-        print "SSH session: ERROR - Failed to login to mtl-stm-76."
-        print str(s)
-    else:
-        print "SSH session: Successful login to mtl-stm-76"
-        print "Executing:"
-        print command_line
-        s.sendline (command_line)
-        s.prompt(timeout=36000)         # match the prompt
-        if '*Session RC: 0' in s.before:
-            rc = 0
-        print (s.before)     # print everything before the prompt.
-        s.logout()
-    
-    return rc
-
-
-rc = main()
-exit(rc)
+finally:
+    mars_server.logout()
+    exit(rc)

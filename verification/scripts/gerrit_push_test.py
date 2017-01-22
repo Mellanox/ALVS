@@ -39,25 +39,26 @@ def exec_regression(branch):
         return
     
     if branch == 'master':      # only alvs push regression
-        run_regression('alvs')
+        run_regression('alvs', branch)
     elif branch == 'dev/ddp':   #running alvs and ddp push regression
-        rc = run_regression('alvs')
+        rc = run_regression('alvs',branch)
         if rc != 0:
             return
-        #run_regression('ddp')    #need to build tests
+        #run_regression('ddp', branch)    #need to build tests
     else:
         print'ERROR: undefined name of branch'
         exit(1)
 
 
-def run_regression(project):
+def run_regression(project, branch):
     global process_list
     print 
     print "Running Regression"
     print "=================="
     setup_num,setup_name = get_setup_num(project,'push')
+    caller = 'push_' + branch
     cmd = "python2.7 ./verification/MARS/MARS_regression_run.py -s %s -t basic -c 32" %setup_num
-    cmd = cmd + " -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS --project %s" %project
+    cmd = cmd + " -p /swgwork/nps_solutions/workspace/mars_push_regression/ALVS --project %s --caller %s" %(project,caller)
     rc =  os.system(cmd)
     process_list.append(["Regression_%s"%project, rc])
     return rc
