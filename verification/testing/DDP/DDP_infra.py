@@ -80,16 +80,19 @@ class DDP_ezbox(ezbox_host):
 	
 class Remote_Host(player):
 	def __init__(self, ip, hostname, all_eths,
-				username	= "root",
-				password	= "3tango",
-				exe_path	= "DDP_install",
-				exe_script	= "bin/synca",
-				exec_params	= "&"):
+				username        = "root",
+				password        = "3tango",
+				exe_path        = "DDP_install",
+				exe_script      = "bin/synca",
+				dump_pcap_file  = '/tmp/server_dump.pcap',
+				exec_params     = "&"):
 		# init parent class basic_player
 		
-		super(Remote_Host, self).__init__(ip, hostname, username, password, None, all_eths, exe_path, exe_script, exec_params)
+		super(Remote_Host, self).__init__(ip, hostname, username, password, None, all_eths,
+										 exe_path, exe_script, exec_params, dump_pcap_file)
 		self.lib_path = '/usr/lib/'
 		self.fp_so = 'bin/libfp.so'
+		self.dump_pcap_file = '/tmp/remote_host_dump.pcap'
 		
 	def start_sync_agent(self,ezbox_mng_ip):
 		func_name = sys._getframe().f_code.co_name
@@ -111,120 +114,14 @@ class Remote_Host(player):
 	def kill_synca_process(self):
 		self.execute_command('pkill -SIGINT synca')
 
-	def capture_packet(self, tcpdump_params = None):
-		if tcpdump_params == None:
-			tcpdump_params = 'net 192.168.0.0/16 and icmp'
-		self.ssh.execute_command('pkill -HUP -f tcpdump; tcpdump -w /tmp/dump.pcap -i ' + self.eth + ' ' + tcpdump_params + ' &')
-
-
-	def stop_capture(self):
-		self.ssh.execute_command('pkill -HUP -f tcpdump')
-		time.sleep(1)
-		result, output = self.ssh.execute_command('tcpdump -r /tmp/dump.pcap | wc -l')
-		if result == False:
-			err_msg = 'ERROR, reading captured num of packets was failed'
-			raise RuntimeError(err_msg)
-		try:
-			num_of_packets = int(output.split('\n')[1].strip('\r'))
-		except:
-			err_msg = 'ERROR, reading captured num of packets was failed'
-			raise RuntimeError(err_msg)
-
-		return num_of_packets
+	def capture_ping_form_host(self):
+		tcpdump_params = ' tcpdump -w ' + self.dump_pcap_file + ' -i ' + self.eth + ' net 192.168.0.0/16 and icmp &'
+		self.capture_packets(tcpdump_params)
 	
 	def clean_remote_host(self):
 		self.logout()
 
 
-
-
-class Host(player):
-	def __init__(self, hostname, all_eths,
-				ip			= None,
-				username	= "root",
-				password	= "3tango",
-				exe_path	= "/temp/host/",
-				exe_script	= None,
-				exec_params	= None,
-				mode		= None):
-		# init parent class
-		super(Host, self).__init__(ip, hostname, username, password, mode, all_eths, exe_path, exe_script, exec_params)
-		# Init class variables
-		self.pcap_files = []
-		self.mac_adress = None
-	
-	def init_host(self):
-		self.connect()
- 		self.config_interface()
-		self.mac_adress= self.get_mac_adress()
-		
-	def clean_host(self):
-		self.logout()
-
-	def send_packet(self, pcap_file):
-		logging.log(logging.DEBUG,"Send packet to NPS") 
-		cmd = "mkdir -p %s" %self.exe_path
-		self.execute_command(cmd)
-		self.copy_file_to_player(pcap_file, self.exe_path)
-		pcap_file_name = pcap_file[pcap_file.rfind("/")+1:]
-		cmd = "tcpreplay --intf1="+self.eth +" " + self.exe_path + "/" + pcap_file_name		#############
-		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
-		result, output = self.execute_command(cmd)
-		if result == False:
-			print "Error while sending a packet to NPS"
-			print output
-			exit(1)
-		self.remove_exe_dir()
-
-	##send n packets to specific ip and mac address
-	def send_n_packets(self,dest_ip,dest_mac,num_of_packets):
-		packet_list_to_send = []
-		src_port_list = []
-		for i in range (num_of_packets):
-		# set the packet size	  
-			packet_size = 150
-	
-			random_source_port = '%02x %02x' %(random.randint(1,1255),random.randint(1,255))
-			
-			data_packet = tcp_packet(mac_da			= dest_mac,
-									mac_sa			= self.mac_address,
-									ip_dst			= ip_to_hex_display(dest_ip),
-									ip_src			= ip_to_hex_display(self.ip),
-									tcp_source_port	= random_source_port,
-									tcp_dst_port	= '00 50', # port 80
-									packet_length	= packet_size)
-			
-			data_packet.generate_packet()
-			print data_packet.packet
-			packet_list_to_send.append(data_packet.packet)
-			
-		#	src_port_list.append(int(random_source_port.replace(' ',''),16))    not sure why need this? 
-		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=dir + 'verification/testing/dp/temp_packet_%s.pcap'%self.ip)
-		self.pcap_files.append(pcap_to_send)
-		self.send_packet(pcap_to_send)
-	
-	def capture_packets(self, tcpdump_params=''):
-		self.dump_pcap_file = '/tmp/dump.pcap'
-		self.ssh.execute_command("rm -f " + self.dump_pcap_file)
-		cmd = 'pkill -HUP -f tcpdump; tcpdump -w ' + self.dump_pcap_file + ' -n -i '+self.eth+' ether host ' + self.mac_address + ' and dst ' + self.ip + ' &'
-		logging.log(logging.DEBUG,"running on host command:\n"+cmd)
-		self.ssh.ssh_object.sendline(cmd)
-		self.ssh.ssh_object.prompt()
-		
-	def stop_capture(self):
-		self.ssh_object.execute_command('pkill -HUP -f tcpdump')
-		time.sleep(1)
-		result, output = self.ssh_object.execute_command('tcpdump -r /tmp/dump.pcap | wc -l')
-		if result == False:
-			err_msg = 'ERROR, reading captured num of packets was failed'
-			raise RuntimeError(err_msg)
-		try:
-			num_of_packets = int(output.split('\n')[1].strip('\r'))
-		except:
-			err_msg = 'ERROR, reading captured num of packets was failed'
-			raise RuntimeError(err_msg)
-
-		return num_of_packets
 #===============================================================================
 # Function: generic_main
 #

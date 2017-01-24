@@ -750,20 +750,21 @@ class SshConnect:
 
 class player(object):
 
-	def __init__(self, ip, hostname, username, password, interface = None, all_eths = None, exe_path=None, exe_script=None, exec_params=None):
-		self.all_ips    = ip
-		self.ip	        = ip
-		self.hostname   = hostname
-		self.username   = username
-		self.password   = password
-		self.exe_path   = exe_path
-		self.exe_script = exe_script
-		self.exec_params= exec_params
-		self.interface 	= interface
-		self.all_eths   = all_eths
-		self.eth 		= (None if all_eths is None else all_eths[0])
-		self.ssh 		= SshConnect(hostname, username, password)
-
+	def __init__(self, ip, hostname, username, password, interface = None, 
+				all_eths = None, exe_path=None, exe_script=None, exec_params=None, dump_pcap_file = None):
+		self.all_ips         = ip
+		self.ip              = ip
+		self.hostname        = hostname
+		self.username        = username
+		self.password        = password
+		self.exe_path        = exe_path
+		self.exe_script      = exe_script
+		self.exec_params     = exec_params
+		self.interface       = interface
+		self.all_eths        = all_eths
+		self.eth             = (None if all_eths is None else all_eths[0])
+		self.ssh             = SshConnect(hostname, username, password)
+		self.dump_pcap_file  = dump_pcap_file
 
 	def config_interface(self):
  		if self.interface == Network_Interface.REGULAR:
@@ -793,7 +794,27 @@ class player(object):
 		self.ssh.ssh_object.prompt(timeout=120)
 		exit_code = self.ssh.get_execute_command_exit_code()
 		return exit_code
-
+	
+	def capture_packets(self, params):
+		cmd = 'pkill -HUP -f tcpdump;' + params
+		logging.log(logging.DEBUG,"running command:\n"+cmd)
+		self.ssh.ssh_object.sendline(cmd)
+		self.ssh.ssh_object.prompt()
+	
+	def stop_capture(self):
+		cmd = 'pkill -HUP -f tcpdump'
+		self.ssh.ssh_object.sendline(cmd)
+		self.ssh.ssh_object.prompt()
+		output = self.ssh.ssh_object.before
+		
+		# send a dummy command to clear all unnecessary outputs
+		self.ssh.ssh_object.sendline("echo $?")
+		self.ssh.ssh_object.prompt()
+		
+		num_of_packets_received = check_packets_on_pcap(self.dump_pcap_file, self.ssh.ssh_object)
+		
+		return num_of_packets_received
+	
 	def read_ifconfig(self):
 		result, exit_code = self.ssh.execute_command("ifconfig")
 		if result == False:
@@ -811,7 +832,6 @@ class player(object):
 	def ifconfig_eth_down(self, eth_down):
 		result, exit_code = self.ssh.execute_command("ifdown " + eth_down + " --force")
 		result2, exit_code2 = self.ssh.execute_command("ifconfig " + eth_down + " down")
-		#print exit_code
 		if result == False and result2 == False:
 			err_msg = "Error: command ifdown " + eth_down + " failed, exit code: \n%s" %exit_code
 			raise RuntimeError(err_msg)
@@ -823,7 +843,6 @@ class player(object):
 			print mac_address
 			exit(1)
 		mac_address = mac_address.strip()
-		mac_address = mac_address.replace(':', ' ')
 		return mac_address
 
 	def execute(self, script=None,exe_prog="python"):
@@ -863,6 +882,84 @@ class player(object):
 		if rc:
 			print "ERROR: failed to copy %s to %s" %(filename, dest)
 		return rc
+
+class Host(player):
+	def __init__(self, hostname, all_eths,
+				ip          = None,
+				username    = "root",
+				password    = "3tango",
+				exe_path    = "/temp/host/",
+				dump_pcap_file = '/tmp/host_dump.pcap',
+				exe_script  = None,
+				exec_params = None,
+				mode        = None):
+		# init parent class
+		super(Host, self).__init__(ip, hostname, username, password, mode, all_eths,
+								 exe_path, exe_script, exec_params, dump_pcap_file)
+		# Init class variables
+		self.pcap_files = []
+		self.mac_adress = None
+	
+	def init_host(self):
+		self.connect()
+		self.config_interface()
+		self.mac_adress= self.get_mac_adress()
+	
+	def clean_host(self):
+		self.logout()
+
+	def copy_and_send_pcap(self, pcap_file):
+		copy_pcap(pcap_file)
+		send_pcap(pcap_file)
+
+	def copy_pcap(self, pcap_file):
+		logging.log(logging.DEBUG,"Copy packet")
+		cmd = "mkdir -p %s" %self.exe_path
+		self.execute_command(cmd)
+		self.copy_file_to_player(pcap_file, self.exe_path)
+		
+	def send_pcap(self, pcap_file):
+		logging.log(logging.DEBUG,"Send packet")
+		pcap_file_name = pcap_file[pcap_file.rfind("/")+1:]
+		cmd = "tcpreplay --intf1="+self.eth +" " + self.exe_path + "/" + pcap_file_name
+		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
+		result, output = self.execute_command(cmd)
+		if result == False:
+			print "Error while sending a packet to NPS"
+			print output
+			exit(1)
+		self.remove_exe_dir()
+	
+	##send n packets to specific ip and mac address
+	def send_n_packets(self,dest_ip,dest_mac,num_of_packets):
+		packet_list_to_send = []
+		src_port_list = []
+		for i in range (num_of_packets):
+		# set the packet size      
+			packet_size = 150
+	
+			random_source_port = '%02x %02x' %(random.randint(1,1255),random.randint(1,255))
+			
+			data_packet = tcp_packet(mac_da          = dest_mac,
+									mac_sa           = self.mac_address,
+									ip_dst           = ip_to_hex_display(dest_ip),
+									ip_src           = ip_to_hex_display(self.ip),
+									tcp_source_port  = random_source_port,
+									tcp_dst_port     = '00 50', # port 80
+									packet_length    = packet_size)
+			
+			data_packet.generate_packet()
+			print data_packet.packet
+			packet_list_to_send.append(data_packet.packet)
+		
+		#    src_port_list.append(int(random_source_port.replace(' ',''),16))    not sure why need this? 
+		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=dir + 'verification/testing/dp/temp_packet_%s.pcap'%self.ip)
+		self.pcap_files.append(pcap_to_send)
+		self.send_packet(pcap_to_send)
+	
+	def capture_packets_on_host(self):
+		params = ' tcpdump -w ' + self.dump_pcap_file + ' -n -i ' + self.eth + ' ether host ' + self.mac_address + ' &'
+		self.capture_packets(params)
 
 
 class tcp_packet:
@@ -1165,7 +1262,6 @@ def string_to_pcap_file(packet_string, output_pcap_file):
 	# create a temp pcap directory for pcap files
 	if not os.path.exists(os.path.dirname(output_pcap_file)):
 		os.makedirs(os.path.dirname(output_pcap_file))
-		
 	os.system("rm -f " + output_pcap_file)
 	cmd = "echo 0000	" + packet_string + " > tmp.txt"   
 	os.system(cmd)

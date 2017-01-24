@@ -785,11 +785,13 @@ class HttpServer(player):
 				vip         = None,
 				interface   = Network_Interface.REGULAR,
 				net_mask    = "255.255.255.255",
+				dump_pcap_file = '/tmp/server_dump.pcap',
 				weight      = 1,
 				u_thresh    = 0,
 				l_thresh    = 0):
 		# init parent class player
-		super(HttpServer, self).__init__(ip, hostname, username, password, interface, all_eths, exe_path, exe_script, exec_params)
+		super(HttpServer, self).__init__(ip, hostname, username, password, interface,
+										 all_eths, exe_path, exe_script, exec_params, dump_pcap_file)
 		# Init class variables
 		self.net_mask = net_mask
 		self.vip = vip
@@ -833,28 +835,9 @@ class HttpServer(player):
 		if rc != True and verbose:
 			print "ERROR: Stop HTTP daemon failed. rc=" + str(rc) + " " + output
 
-	def capture_packets_from_service(self, service_vip, tcpdump_params=''):
-		self.dump_pcap_file = '/tmp/server_dump.pcap'
-		self.ssh.execute_command("rm -f " + self.dump_pcap_file)
-		cmd = 'pkill -HUP -f tcpdump; tcpdump -w ' + self.dump_pcap_file + ' -n -i ' + self.eth + ' ether host ' + self.mac_address + ' and dst ' + service_vip + ' &'
-
-		logging.log(logging.DEBUG,"running on server command:\n"+cmd)
-		self.ssh.ssh_object.sendline(cmd)
-		self.ssh.ssh_object.prompt()
-				
-	def stop_capture(self):
-		cmd = 'pkill -HUP -f tcpdump'
-		self.ssh.ssh_object.sendline(cmd)
-		self.ssh.ssh_object.prompt()
-		output = self.ssh.ssh_object.before
-		
-		# send a dummy command to clear all unnecessary outputs
-		self.ssh.ssh_object.sendline("echo $?")
-		self.ssh.ssh_object.prompt()
-		
-		num_of_packets_received = check_packets_on_pcap(self.dump_pcap_file, self.ssh.ssh_object)
-		
-		return num_of_packets_received
+	def capture_packets_from_service(self, service_vip):
+		params = ' tcpdump -w ' + self.dump_pcap_file + ' -n -i ' + self.eth + ' ether host ' + self.mac_address + ' and dst ' + service_vip + ' &'
+		self.capture_packets(params)
 	
 	def update_vip(self,new_vip):
 		self.take_down_loopback()
@@ -1005,9 +988,8 @@ class HttpClient(player):
 		self.copy_exec_script()
 		
 	def send_packet_to_nps(self, pcap_file):
-		logging.log(logging.DEBUG,"Send packet to NPS") 
-		local_dir = os.getcwd()
-		cmd = "tcpreplay --intf1=" + self.eth + " " + local_dir + "/" + pcap_file
+		logging.log(logging.DEBUG,"Send packet to NPS")
+		cmd = "tcpreplay --intf1=" + self.eth + " " + pcap_file
 		logging.log(logging.DEBUG,"run command on client:\n" + cmd) #todo
 		result, output = self.execute_command(cmd)
 		if result == False:

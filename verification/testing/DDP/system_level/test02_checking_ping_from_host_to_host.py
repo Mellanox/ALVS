@@ -39,7 +39,7 @@ class Test2(DDP_Tester):
 		
 		ezbox.clean_arp_table()
 		
-		remote_host.capture_packet()
+		remote_host.capture_ping_form_host()
 		
 		time.sleep(1)
 		print "Testing ping from host 1 to host 2"
