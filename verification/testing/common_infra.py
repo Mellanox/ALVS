@@ -880,8 +880,8 @@ class player(object):
 		cmd = "sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest
 		rc =  os.system(cmd)
 		if rc:
-			print "ERROR: failed to copy %s to %s" %(filename, dest)
-		return rc
+			err_msg =  "ERROR: failed to copy %s to %s" %(filename, dest)
+			raise RuntimeError(err_msg)
 
 class Host(player):
 	def __init__(self, hostname, all_eths,

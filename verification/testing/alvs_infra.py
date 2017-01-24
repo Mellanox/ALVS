@@ -1023,9 +1023,7 @@ class HttpClient(player):
 		
 		# copy exec file
 		filename = self.src_exe_path + "/" + self.exe_script
-		rc = self.copy_file_to_player(filename, self.exe_path)
-		if rc:
-			print "ERROR: falied to copy exe script. client IP: " + self.hostname
+		self.copy_file_to_player(filename, self.exe_path)
 		
 	def remove_exec_script(self):
 		cmd = "rm -rf %s/%s" %(self.exe_path, self.exe_script)
