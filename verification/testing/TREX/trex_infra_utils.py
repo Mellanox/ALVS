@@ -4,171 +4,128 @@
 # imports
 #===============================================================================
 # system  
-import cmd
-import logging
+from time import gmtime, strftime
+from netaddr import *
+import itertools
 import os
 import sys
 import inspect
-import time
-import struct
-import socket
-import pprint
-import struct
-from multiprocessing import Process
-from pexpect import pxssh
-import pexpect
-from ftplib import FTP
-from netaddr import *
-import subprocess
-import itertools
 
+# TRex api  
 import stf_path
 from trex_client import *
 
-# pythons modules 
-from cmd import Cmd
-
-parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ALVSdir = os.path.dirname(parentdir)
-
-from alvs_infra import *
-
+#Local
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir) 
+from common_infra import *
 #===============================================================================
 # Classes
 #===============================================================================
-class TrexServer:
-    def __init__(self, ip,
-                vip         = None,
-                weight      = 1):
-        self.ip = ip
-        self.vip = vip
-        self.weight = weight
-#===============================================================================
 class TrexRunParams:
     def __init__(self, 
-                 multiplier = 800,
+                 multiplier = 100,
                  nc = False,
                  p = False,
                  duration = 30,   
                  yaml_file_path = None,
-                 cores = 5,
+                 config_file = None,
+                 cores = 4,
                  latency = 0):
         self.multiplier = multiplier            #Factor for bandwidth (multiplies the CPS of each template by this value).
         self.nc = nc                            #If set, will terminate exacly at the end of the duration. This provides a faster, more accurate TRex termination.
-        self.p =p                               #Flow-flip. Sends all flow packets from the same interface.
+        self.p = p                              #Flow-flip. Sends all flow packets from the same interface.
         self.duration = duration                #Duration of the test (sec).
         self.yaml_file_path = yaml_file_path    #Traffic YAML configuration file.
+        self.config_file = config_file          #TRex topology file
         self.cores =cores                       #Number of cores.
         self.latency =latency                   #Run the latency daemon in this Hz rate. A value of zero (0) disables the latency check.
         
+    def set_multiplier(self, multiplier):
+        self.multiplier = multiplier
+
+    def set_duration(self, duration):
+        self.duration = duration
+        
+    def set_cores(self, cores):
+        self.cores = cores   
+        
+    def set_config_file(self, config_file):
+        self.config_file = config_file   
+    
     def get_run_params(self):
         return dict( m = self.multiplier,
                      nc = self.nc,
                      p = self.p,
                      d = self.duration,
                      f = self.yaml_file_path,
+                     cfg = self.config_file,
                      c = self.cores,
                      l =self.latency)
 #===============================================================================
 class TrexTestParams:
-    def __init__(self, 
-                 clients_start,
-                 services_start,
-                 servers_start,
-                 dual_port_mask,
+    def __init__(self,
+                 trex_info,
                  client_count = None,
                  server_count = None,
-                 service_count = None,
                  is_dual_port = True):
+        self.clients_start = IPAddress(trex_info['clients_start']) 
         self.client_count = client_count
-        self.server_count = server_count
-        self.service_count = service_count 
-        self.clients_start = IPAddress(clients_start)  
-        self.services_start = IPAddress(services_start)  
-        self.servers_start = IPAddress(servers_start)
-        self.dual_port_mask = IPAddress(dual_port_mask)
+        self.servers_start = IPAddress(trex_info['servers_start'])
+        self.server_count = server_count 
+        self.dual_port_mask = IPAddress(trex_info['dual_port_mask'])
         self.is_dual_port = is_dual_port
         self.pcap_list = []
         self.yaml_filename = self.generate_yaml_file_name()
-        self.run_params = TrexRunParams()
-        
-    def get_num_of_ports(self):
-        num_of_ports = 1
-        if (self.is_dual_port):
-            num_of_ports = 2
-        return num_of_ports
+        self.run_params = TrexRunParams(config_file = trex_info['config_file'])
         
     def generate_yaml_file_name(self):
         current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
         yaml_filename = 'trex_conf_' + current_time + '.yaml'
         return yaml_filename
         
-    def create_trex_logs_dir(self):
-        current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())  
-        if not os.path.exists("trex_logs"):
-            os.makedirs("trex_logs")
-            
-        self.logs_dir_name = 'trex_logs/trex_logs_'
-        self.logs_dir_name += current_time
-        cmd = "mkdir -p %s" %self.logs_dir_name
-        os.system(cmd)
-        
     def remove_trex_yaml_from_localhost(self):
-        #Check whether yaml file exists
         if (os.path.isfile(self.yaml_filename)):
             os.remove(self.yaml_filename)
-        
-    def save_output_to_log_file(self, file_name, file_contents):
-        log_file_name = self.logs_dir_name + '/' + file_name
-        log_file = open(log_file_name, 'w')
-        log_file.write(file_contents)
-        log_file.close()
-        
-    def get_ip_range(self, ip_start_address, len): 
-        ip_sub_lists  = self.get_ip_sub_lists(ip_start_address, len)
-        ip_range = self.concat_sub_lists_to_list(ip_sub_lists)
-        return map(str, ip_range)
-            
-    def get_ip_sub_lists(self, ip_start_address, len):
-        num_of_cores = self.run_params.cores * self.get_num_of_ports() #cores per port * num of ports
-        chunks = len/num_of_cores
-        if (chunks == 0):
-            raise ValueError('The number of ips:%s should be at least number of cores:%s'% (len,num_of_cores))
-        ip_sub_lists = []        
-        for i in range(num_of_cores):
-            sub_list_start = ip_start_address + i*chunks
-            #add dual port mask to odd elements
-            if (i%2):
-                sub_list_start+= self.dual_port_mask
-            sub_list_end = sub_list_start + chunks -1
-            ip_sub_lists.append(list(iter_iprange(sub_list_start,sub_list_end)))               
-        return ip_sub_lists
-                
-    def concat_sub_lists_to_list(self, sub_lists):
-        return list(itertools.chain.from_iterable(sub_lists))
 
     def get_clients_end(self):
         clients_end = self.clients_start + self.client_count 
         return clients_end
     
-    def get_services_end(self):
-        services_end = self.services_start + self.service_count 
-        return services_end
-    
-    def get_vip_list(self):
-        return self.get_ip_range(self.services_start, self.service_count)
+    def get_servers_end(self):
+        servers_end = self.servers_start + self.server_count 
+        return servers_end
     
     def get_client_list(self):
-        return self.get_ip_range(self.clients_start, self.client_count)  
+        client_list=self.get_client_list_first_pair()
+        client_list+=self.get_client_list_second_pair()
+        return client_list
+    
+    def get_client_list_first_pair(self):
+        return self.get_ip_string_list(self.clients_start,self.get_clients_end())
+    
+    def get_client_list_second_pair(self):
+        client_start = self.clients_start + self.dual_port_mask
+        client_end = self.get_clients_end() + self.dual_port_mask
+        return self.get_ip_string_list(client_start,client_end)
     
     def get_server_list(self):
-        server_ip_list = self.get_ip_range(self.servers_start, self.server_count) 
-        return [TrexServer(ip = server_ip) for server_ip in server_ip_list]
+        server_list=self.get_server_list_first_pair()
+        server_list+=self.get_server_list_second_pair()
+        return server_list
     
-    def set_test_players(self, client_count, server_count, service_count):
-        self.client_count = client_count
-        self.server_count = server_count
-        self.service_count = service_count
+    def get_server_list_first_pair(self):
+        return self.get_ip_string_list(self.servers_start,self.get_servers_end())
+    
+    def get_server_list_second_pair(self):
+        server_start = self.servers_start + self.dual_port_mask
+        server_end = self.get_servers_end() + self.dual_port_mask
+        return self.get_ip_string_list(server_start,server_end)
+    
+    def get_ip_string_list(self, ip_start, ip_end):
+        ip_list = list(iter_iprange(ip_start,ip_end))
+        return map(str, ip_list)
         
     def add_trex_pcap(self, trex_pcap):
         self.pcap_list.append(trex_pcap)
@@ -183,8 +140,8 @@ class TrexTestParams:
         outfile.write('          distribution : "seq"\n')
         outfile.write('          clients_start : "%s"\n'%str(self.clients_start))
         outfile.write('          clients_end   : "%s"\n'%str(self.get_clients_end()))
-        outfile.write('          servers_start : "%s"\n'%str(self.services_start))
-        outfile.write('          servers_end   : "%s"\n'%str(self.get_services_end()))
+        outfile.write('          servers_start : "%s"\n'%str(self.servers_start))
+        outfile.write('          servers_end   : "%s"\n'%str(self.get_servers_end()))
         outfile.write('          clients_per_gb : 201\n')
         outfile.write('          min_clients    : 101\n')
         outfile.write('          dual_port_mask : "%s" \n'%str(self.dual_port_mask))
@@ -201,7 +158,7 @@ class TrexTestParams:
             outfile.write('       rtt : %d\n'%trex_pcap.rtt)
             outfile.write('       w   : %d\n'%trex_pcap.weight)
         
-        outfile.close()
+        outfile.close()    
 #===============================================================================     
 class TrexPcap:
     def __init__(self, 
@@ -216,42 +173,41 @@ class TrexPcap:
         self.weight = weight
 #===============================================================================
 class TrexHost:
-    def __init__(self, trex_hostname):
-        self.trex_info = self.get_trex_host_info(trex_hostname)       
+    def __init__(self, trex_index, client_count, server_count):
+        self.trex_info = self.get_trex_host_info(trex_index)       
         self.ssh_object = SshConnect(self.trex_info['host'], self.trex_info['username'], self.trex_info['password'])
-        self.init_trex_host()
         self.trex_api =  CTRexClient(self.trex_info['host'])
-        self.params = TrexTestParams(self.trex_info['clients_start'],self.trex_info['services_start'],
-                                     self.trex_info['servers_start'],self.trex_info['dual_port_mask'])
+        self.params = TrexTestParams(self.trex_info, client_count, server_count)
+        self.init_trex_host()
         
-    def get_trex_host_info(self, trex_hostname):
-        if ('None' == trex_hostname):
-            raise ValueError('Trex host does not exist for the required setup')
+    def get_trex_host_info(self, trex_index):
+        if (trex_index < 0 or trex_index > 2):
+            raise ValueError('trex index is out of range')
         
         # Open list file
-        file_name = '%s/trex_hosts.csv' %(g_setups_dir)
+        file_name = '%s/setup7_trex_hosts.csv' %(g_setups_dir)
         infile    = open(file_name, 'r')
         
         # Extract list from file  
-        for line in infile:
+        for index,line in enumerate(infile):
             input_list = line.strip().split(',')
-            if (trex_hostname == input_list[0]):
+            if (index == trex_index):
                 trex_host_info = {'host':                input_list[0],
                                   'username':            input_list[1],
                                   'password':            input_list[2],
-                                  'port1_client':        input_list[3],
-                                  'port1_server':        input_list[4],
-                                  'port2_client':        input_list[5],
-                                  'port2_server':        input_list[6],
+                                  'port0_client_mac':    input_list[3],
+                                  'port0_server_mac':    input_list[4],
+                                  'port1_client_mac':    input_list[5],
+                                  'port1_server_mac':    input_list[6],
                                   'mng_ip':              input_list[7],
                                   'clients_start':       input_list[8],
-                                  'services_start':      input_list[9],
-                                  'servers_start':       input_list[10],
-                                  'dual_port_mask':      input_list[11]}
+                                  'servers_start':       input_list[9],
+                                  'dual_port_mask':      input_list[10],
+                                  'config_file':         input_list[11]}
                 break
         
         if (not trex_host_info):
-            raise ValueError('Trex host name: %s, has not been found under: %s'%(trex_hostname,file_name))
+            raise ValueError('Trex index: %s, has not been found under: %s'%(trex_index,file_name))
         
         return trex_host_info
         
@@ -269,7 +225,7 @@ class TrexHost:
         
     def trex_daemon_server(self, cmd):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called for " + cmd + " service"
-        return self.ssh_object.execute_command("cd /home/trex/trex_core_v3/trex-core/scripts;./trex_daemon_server " + cmd)
+        return self.ssh_object.execute_command("cd /opt/trex/trex_v2_14/trex-core/scripts;./trex_daemon_server " + cmd)
 
     def trex_daemon_server_start(self):
         self.trex_daemon_server("start")
@@ -291,18 +247,18 @@ class TrexHost:
             is_daemon_running = True
         return is_daemon_running
         
-    def run_trex_test(self): 
+    def run_trex_test(self, trex_test_result_queue): 
         self.prepare_trex_to_run()
         self.trex_api.start_trex(**self.params.run_params.get_run_params())
         self.print_output_while_running()
-        return self.trex_api.sample_to_run_finish()
+        result = self.trex_api.sample_to_run_finish()
+        trex_test_result_queue.put(result)
     
     def prepare_trex_to_run(self):
-        # push yaml file to server
         self.trex_api.push_files(self.params.yaml_filename)
-        self.set_trex_yaml()
+        self.set_trex_yaml_path()
 
-    def set_trex_yaml(self):
+    def set_trex_yaml_path(self):
         trex_files_path = self.trex_api.get_trex_files_path()
         yaml_file_path = trex_files_path + self.params.yaml_filename
         self.params.run_params.yaml_file_path = yaml_file_path
@@ -314,31 +270,25 @@ class TrexHost:
             print "CURRENT RESULT OBJECT:"
             obj = self.trex_api.get_result_obj()
             print obj
+            self.print_tx_rate(obj)
             time.sleep(5)
         print('End of TRex run')
+        
+    def print_tx_rate(self, obj):
+        current_tx_rate = int(obj.get_current_tx_rate()['m_tx_bps']) / 1e9
+        print "Tx Rate: " + str(current_tx_rate) + "GB"
+        
 #===============================================================================    
 class TrexTestResult:
     def __init__(self, 
-                 trex_result = None,
-                 ezbox_stats = None,
-                 test_resources = None):
-        self.trex_result = trex_result
-        self.ezbox_stats = ezbox_stats
-        self.test_resources = test_resources
+                 trex_result_list = [],
+                 ezbox_stats = None):
+        self.trex_result_list = trex_result_list
         self.expected_sd = 0.05
         self.test_bool_rc = False
-        
-    def get_rc(self):
-        rc_val = 1
-        if (self.test_bool_rc):
-            rc_val= 0
-            
-        return rc_val
            
-    def set_result(self, trex_result, ezbox_stats, test_resources):
-        self.trex_result = trex_result
-        self.ezbox_stats = ezbox_stats
-        self.test_resources = test_resources
+    def set_result(self, trex_result_list):
+        self.trex_result_list = trex_result_list
         
     def general_checker(self):
         self.get_test_stats()
@@ -352,108 +302,163 @@ class TrexTestResult:
     
     def analyze_drops(self):
         rc = False
-        self.real_sd = abs(self.dropped_packets)/self.trex_client_tx_packets
+        self.real_sd = abs(self.dropped_packets)/self.trex_tx_packets
         if (self.real_sd < self.expected_sd):
             rc = True
         return rc
     
-    def get_test_stats(self):
-        self.ezbox_rx_packets = self.get_ezbox_rx_packets()
-        self.trex_client_tx_packets = self.get_trex_client_tx_packets()
-        self.dropped_packets = self.trex_client_tx_packets - self.ezbox_rx_packets
+    def get_test_stats(self):  
+        self.trex_tx_packets = self.get_trex_tx_packets()
+        self.trex_rx_packets = self.get_trex_rx_packets()
+        self.dropped_packets = self.trex_tx_packets - self.trex_rx_packets
                
     def print_result(self):
+        self.print_trex_cpu_util()
         self.print_packets_by_ports()
         self.print_packets_drop()
         self.print_real_sd()
-        self.print_final_result()
         
+    def get_rc(self):
+        rc_val = 1
+        if (self.test_bool_rc):
+            rc_val= 0   
+        return rc_val
+    
     def print_final_result(self):
         if (self.test_bool_rc):
             print 'Test passed !!!'
         else:
             print 'Test failed !!!'
-    
-    def print_trex_res_obj(self):
-        print (self.trex_result)
+            
+    def print_trex_cpu_util(self):
+        print('\n CPU utilization:')
+        for trex_result in self.trex_result_list:
+            print(trex_result.get_value_list('trex-global.data.m_cpu_util'))
         
     def print_packets_by_ports(self):
-        tx_ptks_dict = self.trex_result.get_last_value('trex-global.data', 'opackets-*')
-        print('TX by ports:')
-        print('  |  '.join(['%s: %s' % (k.split('-')[-1], tx_ptks_dict[k]) for k in sorted(tx_ptks_dict.keys())]))
-        print('RX by ports:')
-        rx_ptks_dict = self.trex_result.get_last_value('trex-global.data', 'ipackets-*')
-        print('  |  '.join(['%s: %s' % (k.split('-')[-1], rx_ptks_dict[k]) for k in sorted(rx_ptks_dict.keys())]))        
+        for trex_result in self.trex_result_list:
+            tx_ptks_dict = trex_result.get_last_value('trex-global.data', 'opackets-*')
+            print('\n TX by ports:')
+            print('  |  '.join(['%s: %s' % (k.split('-')[-1], tx_ptks_dict[k]) for k in sorted(tx_ptks_dict.keys())]))
+            print('\n RX by ports:')
+            rx_ptks_dict = trex_result.get_last_value('trex-global.data', 'ipackets-*')
+            print('  |  '.join(['%s: %s' % (k.split('-')[-1], rx_ptks_dict[k]) for k in sorted(rx_ptks_dict.keys())]))        
         
     def print_packets_drop(self):
-        print('\nTRex_client_tx_packets:%s'%str(self.trex_client_tx_packets))
-        print('\nezbox_rx_packets:%s'%str(self.ezbox_rx_packets))
-        print('\nDropped packets:%s \n'%str(self.dropped_packets))
+        print('\n TRex_total_tx_packets:%s'%str(self.trex_tx_packets))
+        print('\n TRex_total_rx_packets:%s'%str(self.trex_rx_packets))
+        print('\n TRex_total dropped packets:%s \n'%str(self.dropped_packets))
         
     def print_real_sd(self):
         print 'real sd is: ' + str(self.real_sd)
     
-    def get_ezbox_rx_packets(self):
-        ezbox_rx_packets = 0
-        for service in self.test_resources['vip_list']:
-            ezbox_rx_packets += int(self.ezbox_stats['service_stats'][service]['IN_PACKETS'])
-        return ezbox_rx_packets
+    def get_trex_tx_packets(self):              
+        return self.get_trex_packets('tx')
+    
+    def get_trex_rx_packets(self):              
+        return self.get_trex_packets('rx')
+    
+    def get_trex_packets(self, direction):
+        trex_packets = 0
+        direction_str = None
+        if direction == 'tx':
+            direction_str = 'opackets-*'
+        elif direction == 'rx':
+            direction_str = 'ipackets-*'
+        else:
+            raise ValueError('Direction must be either tx or rx')
         
-    def get_trex_client_tx_packets(self):
-        trex_client_tx_packets = 0
-        tx_ptks_dict = self.trex_result.get_last_value('trex-global.data', 'opackets-*')
-        for k in sorted(tx_ptks_dict.keys()):
-            #Sum only clients tx packets(on even port numbers)
-            if (int((k.split('-')[-1]))%2) == 0:
-                trex_client_tx_packets += int(tx_ptks_dict[k])
-                
-        return trex_client_tx_packets
+        for trex_result in self.trex_result_list:
+            tx_ptks_dict = trex_result.get_last_value('trex-global.data', direction_str)
+            for k in sorted(tx_ptks_dict.keys()):
+                trex_packets += int(tx_ptks_dict[k])               
+        return trex_packets
 #=============================================================================== 
 def get_ezbox_stats(ezbox):
     ezbox.get_ipvs_stats();
     stats_results = ezbox.read_stats_on_syslog()
     return stats_results
 #===============================================================================
-def get_trex_test_resources(setup_num, client_count, server_count, service_count):
-    print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+class TrexIpToMacMapper:
+    def __init__(self,
+                 trex_hosts):
+        self.trex_subnet_to_mac_pairs = []
+        self.get_trex_subnet_to_mac_pairs(trex_hosts)
     
-    ezbox = ezbox_host(setup_num)
-    trex = TrexHost(ezbox.setup['trex_hostname'])
-    trex.params.set_test_players(client_count, server_count, service_count) 
-    vip_list = trex.params.get_vip_list()  
-    client_list = trex.params.get_client_list()
-    server_list = trex.params.get_server_list()
+    def get_trex_subnet_to_mac_pairs(self, trex_hosts):
+        for trex in trex_hosts:
+            self.trex_subnet_to_mac_pairs.append(self.get_servers_subnet_and_mac_pair(trex))
+            self.trex_subnet_to_mac_pairs.append(self.get_clients_subnet_and_mac_pair(trex))
+            if trex.params.is_dual_port:
+                self.trex_subnet_to_mac_pairs.append(self.get_dual_servers_subnet_and_mac_pair(trex))
+                self.trex_subnet_to_mac_pairs.append(self.get_dual_clients_subnet_and_mac_pair(trex))
 
-    # create resources dictionary
-    dict={}
-    dict['vip_list']    = vip_list
-    dict['server_list'] = server_list
-    dict['client_list'] = client_list 
-    dict['ezbox']       = ezbox 
-    dict['trex']        = trex 
-    return dict
-
-#===============================================================================
-def init_trex_players(test_resources, test_config={}):
-    print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-    
-    ezbox = test_resources['ezbox']    
-    init_ezbox(ezbox, test_resources['server_list'], test_resources['vip_list'], test_config,)
+    def get_servers_subnet_and_mac_pair(self, trex):
+        servers_first_pair = trex.params.get_server_list_first_pair()
+        server_mac_0 = trex.trex_info['port0_server_mac']
+        return (servers_first_pair, server_mac_0)
         
-#===============================================================================
-def clean_trex_players(test_resources, use_director = False, stop_ezbox = False):
-    print "FUNCTION " + sys._getframe().f_code.co_name + " called"
+    def get_clients_subnet_and_mac_pair(self, trex):
+        clients_first_pair = trex.params.get_client_list_first_pair()
+        client_mac_0 = trex.trex_info['port0_client_mac']
+        return (clients_first_pair, client_mac_0)
+        
+    def get_dual_servers_subnet_and_mac_pair(self, trex):
+        servers_second_pair = trex.params.get_server_list_second_pair()
+        server_mac_1 = trex.trex_info['port1_server_mac']
+        return (servers_second_pair, server_mac_1) 
+        
+    def get_dual_clients_subnet_and_mac_pair(self, trex):
+        clients_second_pair = trex.params.get_client_list_second_pair()
+        client_mac_1 = trex.trex_info['port1_client_mac']
+        return (clients_second_pair, client_mac_1) 
+        
+    def get_mac_for_ip(self, ip_address):
+        matching_mac = None
+        for ip_list, mac in self.trex_subnet_to_mac_pairs:
+            if ip_address in ip_list:
+                matching_mac = mac
+                break                    
+        if matching_mac is None:
+            err_msg =  "failed in matching mac address for ip:%s" %(ip_address)
+            raise RuntimeError(err_msg)              
+        return matching_mac
 
-    ezbox = test_resources['ezbox']
-    trex = test_resources['trex']
+#===============================================================================    
+class TrexPlayers(object):
+    def __init__(self):
+        self.setup_num = None
+        self.trex_hosts = []
+        self.trex_ip_to_mac_mapper = None
+        self.trex_client_list = None
+        self.trex_server_list = None
+        
+    def get_players(self, setup_num, client_count, server_count, trex_hosts_count = 1):
+        self.setup_num = setup_num
+        self.get_trex_hosts(trex_hosts_count, client_count, server_count)
+        self.trex_ip_to_mac_mapper = TrexIpToMacMapper(self.trex_hosts)
+        self.trex_client_list = self.get_client_list()
+        self.trex_server_list = self.get_server_list()
+        
+    def get_trex_hosts(self, trex_hosts_count, client_count, server_count):        
+        clients_per_host = client_count/trex_hosts_count
+        servers_per_host = server_count/trex_hosts_count       
+        for trex_index in range(0,trex_hosts_count):
+            self.trex_hosts.append(TrexHost(trex_index, clients_per_host, servers_per_host))
+                
+    def get_client_list(self):
+        client_list = []
+        for trex in self.trex_hosts:
+            client_list += trex.params.get_client_list()
+        return client_list
+               
+    def get_server_list(self):
+        server_list = []
+        for trex in self.trex_hosts:
+            server_list += trex.params.get_server_list()
+        return server_list
             
-    if ezbox:
-        ezbox.ssh_object.recreate_ssh_object()
-        ezbox.run_app_ssh.recreate_ssh_object()
-        ezbox.syslog_ssh.recreate_ssh_object()
-        ezbox.clean_arp_table()
-        clean_ezbox(ezbox, use_director, stop_ezbox,)
-        
-    if trex:
-        trex.logout()
-        trex.params.remove_trex_yaml_from_localhost()
+    def clean_players(self, use_director = False, stop_ezbox = False):
+        for trex in self.trex_hosts:
+            trex.logout()
+            trex.params.remove_trex_yaml_from_localhost()
