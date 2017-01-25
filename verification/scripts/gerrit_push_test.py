@@ -90,11 +90,12 @@ try:
     
     subprocess.check_call(scripts_path + "make_all.sh all deb", shell=True)
     
+    copy_project()
+    
     coverity=subprocess.Popen([scripts_path + "coverity.sh"])
     
     coding_style=subprocess.Popen([scripts_path + "coding_style.sh"])
     
-    copy_project()
     exec_regression(branch)
     
     coverity.wait()
