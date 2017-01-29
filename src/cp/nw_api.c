@@ -351,6 +351,14 @@ enum nw_api_rc fib_reorder_push_entries_up(struct nw_db_fib_entry *new_fib_entry
 		return NW_API_OK;
 	}
 
+	if (lowest_mask > new_fib_entry->mask_length) {
+		/* in case of adding a new fib entry with mask lower that lowest_mask
+		 * then, we need to add the new fib entry at the end of the table
+		 */
+		new_fib_entry->nps_index = fib_entry_count;
+		return NW_API_OK;
+	}
+
 	for (current_mask = lowest_mask; current_mask <= new_fib_entry->mask_length; current_mask++) {
 		/* Start reorder FIB entries from the lowest mask */
 
@@ -737,8 +745,6 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 		}
 	}
 
-	fib_entry_count--;
-
 	write_log(LOG_DEBUG, "Remove FIB entry (IP=%s, mask length=%d) from index %d",
 		  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index);
 
@@ -755,6 +761,8 @@ enum nw_api_rc nw_api_remove_fib_entry(struct nw_api_fib_entry *fib_entry)
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length);
 		return NW_API_DB_ERROR;
 	}
+
+	fib_entry_count--;
 
 	write_log(LOG_DEBUG, "FIB entry deleted successfully. (IP=%s, mask length=%d, nps_index=%d, result_type=%d, is_lag=%d, output_index=%d) ",
 			  nw_inet_ntoa(cp_fib_entry.dest_ip), cp_fib_entry.mask_length, cp_fib_entry.nps_index, cp_fib_entry.result_type, cp_fib_entry.is_lag, cp_fib_entry.output_index);
