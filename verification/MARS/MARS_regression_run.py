@@ -65,7 +65,7 @@ def run_regression(cmd):
         print cmd
         mars_server.sendline (cmd)
         mars_server.prompt(timeout=36000)         # match the prompt
-        if '*Session RC: 1' in mars_server.before:
+        if not '*Session RC: 0' in mars_server.before:
             err_msg = "Regression Failed"
             raise RuntimeError(err_msg)
         
