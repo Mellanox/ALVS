@@ -317,6 +317,7 @@ class TrexTestResult:
         self.print_packets_by_ports()
         self.print_packets_drop()
         self.print_real_sd()
+        self.print_final_result()
         
     def get_rc(self):
         rc_val = 1

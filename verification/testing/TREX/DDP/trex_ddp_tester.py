@@ -87,7 +87,7 @@ class TrexDdpTester(TrexTester):
         self.test_result.general_checker()
         
     def get_test_rc(self):
-        return 0
+        return self.test_result.get_rc()
     
     def start_test(self):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
