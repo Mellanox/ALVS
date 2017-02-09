@@ -64,6 +64,15 @@
 void packet_processing(void) __fast_path_code;
 bool init_nw_shared_cmem(void);
 
+struct nw_arp_entry {
+	struct nw_arp_result result;
+	union {
+		struct nw_arp_key key;
+
+		EZDP_PAD_HASH_ENTRY(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key));
+	};
+};
+
 struct packet_meta_data {
 	/*byte0*/
 	unsigned number_of_tags                   : EZDP_DECODE_MAC_RESULT_NUMBER_OF_TAGS_SIZE;
@@ -95,8 +104,10 @@ struct cmem_nw_info {
 		struct  nw_if_addresses_result	     ingress_if_addresses_result;
 		/**< ingress interface addresses result */
 	};
-	/**< LAG group result */
 	struct  nw_lag_group_result	     lag_group_result;
+	/**< LAG group result */
+	struct nw_arp_entry	arp_entry;
+	/**< arp entry result */
 };
 
 struct ezdp_decode_result {
@@ -127,6 +138,7 @@ enum nw_arp_processing_result {
 /*temp workarea*/
 union nw_workarea {
 	char                                 arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
+	char                                 arp_prm_hash_wa[EZDP_HASH_PRM_WORK_AREA_SIZE];
 	char                                 table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
 	/**< working areas */
 

@@ -14,7 +14,6 @@ import urllib2
 from time import gmtime, strftime
 from os import listdir
 from os.path import isfile, join
-
 from common_infra import *
 from network_interface_enum import *
 from pexpect import pxssh
@@ -68,7 +67,7 @@ class alvs_ezbox(ezbox_host):
 	
 	def __init__(self, setup_id):
 		# init parent class
-		super(alvs_ezbox, self).__init__(setup_id)
+		super(alvs_ezbox, self).__init__(setup_id,"alvs")
 		self.install_path = "alvs_install"
 	
 	def clean(self, use_director=False, stop_ezbox=False):
@@ -802,7 +801,7 @@ class HttpServer(player):
 	def init_server(self, index_str):
 		self.connect()
 		self.config_interface()
-		self.mac_address = self.get_mac_adress()
+		self.mac_address = self.get_mac_address()
 		self.clear_arp_table()
 		self.start_http_daemon()
 		self.configure_loopback()
@@ -983,7 +982,7 @@ class HttpClient(player):
 	def init_client(self):
 		self.connect()
 		self.config_interface()
-		self.mac_address = self.get_mac_adress()
+		self.mac_address = self.get_mac_address()
 		self.clear_arp_table()
 		self.copy_exec_script()
 		
@@ -1029,293 +1028,6 @@ class HttpClient(player):
 		cmd = "rm -rf %s/%s" %(self.exe_path, self.exe_script)
 		self.execute_command(cmd)
 	
-
-#===============================================================================
-# Function: generic_main
-#
-# Brief:	Generic main function for tests
-#===============================================================================
-def generic_main():
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	usage = "usage: %prog [-s, -m, -c, -i, -f, -b, -d, -n, --start, --stop, --remote_control]"
-	parser = OptionParser(usage=usage, version="%prog 1.0")
-	
-	bool_choices = ['true', 'false', 'True', 'False']
-	cpus_choices=['32','64','128','256','512','1024','2048','4096']
-	parser.add_option("-s", "--setup_num", dest="setup_num",
-					  help="Setup number. range (1..8)					(Mandatory parameter)", type="int")
-	parser.add_option("-m", "--modify_run_cpus", dest="modify_run_cpus", choices=bool_choices,
-					  help="modify run CPUs configuration before running the test. 		(default=True)")
-	parser.add_option("-i", "--install_package", dest="install_package", choices=bool_choices,
-					  help="Use ALVS package file (alvs_<version>.deb")
-	parser.add_option("-f", "--install_file", dest="install_file",
-					  help="installation file name (default=alvs_<version>_amd64.deb)")
-	parser.add_option("-d", "--use_director", dest="use_director", choices=bool_choices,
-					  help="Use director at host 								(default=True)")
-	parser.add_option("--start", "--start_ezbox", dest="start_ezbox", choices=bool_choices,
-					  help="Start the alvs service at the beginning of the test (defualt=False)")
-	parser.add_option("--stop", "--stop_ezbox", dest="stop_ezbox", choices=bool_choices,
-					  help="Stop the alvs service at the end of the test 		(defualt=False)")
-	parser.add_option("--remote_control", "--remote_control", dest="remote_control", choices=bool_choices,
-					  help="Run in remote control mode					 		(defualt=False)")
-	parser.add_option("-c", "--number_of_cpus", dest="num_of_cpus",choices=cpus_choices,
-					  help="Number of CPUs. power of 2 between 32-4096	(Mandatory parameter)")
-	(options, args) = parser.parse_args()
-
-	# validate options
-	if not options.setup_num:
-		raise ValueError('setup_num is not given')
-	if (options.setup_num == 0) or (options.setup_num > 9):
-		raise ValueError('setup_num: ' + str(options.setup_num) + ' is not in range')
-
-	# set user configuration
-	config = {}
-	if options.modify_run_cpus:
-		config['modify_run_cpus'] = bool_str_to_bool(options.modify_run_cpus)
-	if options.install_package:
-		config['install_package'] = bool_str_to_bool(options.install_package)
-	if options.install_file:
-		config['install_file']    = options.install_file
-	if options.use_director:
-		config['use_director']    = bool_str_to_bool(options.use_director)
-	if options.start_ezbox:
-		config['start_ezbox']    = bool_str_to_bool(options.start_ezbox)
-	if options.stop_ezbox:
-		config['stop_ezbox']    = bool_str_to_bool(options.stop_ezbox)
-	if options.remote_control:
-		config['remote_control']    = bool_str_to_bool(options.remote_control)
-	if options.num_of_cpus:
-		config['num_of_cpus'] = options.num_of_cpus
-		
-
-	config['setup_num'] = options.setup_num
-	
-	return config
-
-#===============================================================================
-# init functions
-#===============================================================================
-
-#===============================================================================
-# Function: generic_init
-#
-# Brief:	generic init for tests
-#
-# returns: dictinary with:
-#             'next_vm_idx'
-#             'vip_list'
-#             'setup_list'
-#             'server_list'
-#             'client_list'
-#             'ezbox'
-#===============================================================================
-def generic_init(setup_num, service_count, server_count, client_count):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	next_vm_idx = 0
-	vip_list    = [get_setup_vip(setup_num,i) for i in range(service_count)]
-	setup_list  = get_setup_list(setup_num)
-
-	# Create servers list
-	server_list=[]
-	for i in range(server_count):
-		server = HttpServer(ip       = setup_list[next_vm_idx]['all_ips'][0],
-						    hostname = setup_list[next_vm_idx]['hostname'],
-						    all_eths  = setup_list[next_vm_idx]['all_eths'])
-		server_list.append(server)
-		next_vm_idx+=1
-	
-	# Create clients list
-	client_list=[]
-	for i in range(client_count):
-		client = HttpClient(ip       = setup_list[next_vm_idx]['all_ips'][0],
-						    hostname = setup_list[next_vm_idx]['hostname'],
-						    all_eths = setup_list[next_vm_idx]['all_eths'])
-		client_list.append(client)
-		next_vm_idx+=1
-
-	# get EZbox
-	ezbox = alvs_ezbox(setup_num)
-	
-	
-	# conver to dictionary and return it
-	dict={}
-	dict['next_vm_idx'] = next_vm_idx
-	dict['vip_list']    = vip_list
-	dict['setup_list']  = setup_list
-	dict['server_list'] = server_list
-	dict['client_list'] = client_list 
-	dict['ezbox']       = ezbox 
-
-	return dict
-
-
-#------------------------------------------------------------------------------ 
-def convert_generic_init_to_user_format(dict):
-	return ( dict['server_list'],
-			 dict['ezbox'],
-			 dict['client_list'],
-			 dict['vip_list'] )
-
-
-#------------------------------------------------------------------------------ 
-def init_server(server):
-	print "init server: " + server.str()
-	server.init_server(server.ip)
-
-
-#------------------------------------------------------------------------------ 
-def init_client(client):
-	print "init client: " + client.str()
-	client.init_client()
-
-#------------------------------------------------------------------------------
-def alvs_bringup_env(ezbox, server_list, vip_list, use_director):
-	ezbox.config_vips(vip_list)
-	ezbox.flush_ipvs()
-	
-	# init director
-	if use_director:
-		print 'Start Director'
-		services = dict((vip, []) for vip in vip_list )
-		for server in server_list:
-			services[server.vip].append((server.ip, server.weight))
-		ezbox.init_keepalived(services)
-		#wait for director
-		time.sleep(15)
-		#flush director configurations
-		ezbox.flush_ipvs()
-
-#------------------------------------------------------------------------------
-def fill_default_config(test_config):
-	
-	# define default configuration 
-	default_config = {'setup_num'       : None,  # supply by user
-					  'modify_run_cpus' : True,  # in case modify_run_cpus is false, use_4k_cpus ignored
-					  'use_4k_cpus'     : False,
-					  'install_package' : True,
-					  'install_file'    : None,
-					  'use_director'    : True,
-					  'stats'           : False,
-					  'start_ezbox'		: False,
-					  'stop_ezbox'		: False,
-					  'remote_control'	: False,
-					  'num_of_cpus': "512" }# 
-	
-	# Check user configuration
-	for key in test_config:
-		if key not in default_config:
-			print "WARNING: key %s supply by test_config is not supported" %key
-			
-	# Add missing configuration
-	for key in default_config:
-		if key not in test_config:
-			test_config[key] = default_config[key]
-	
-	# Print configuration
-	print "configuration test_config:"
-	for key in test_config:
-		print "     " + '{0: <16}'.format(key) + ": " + str(test_config[key])
-		
-
-	return test_config
-
-
-#------------------------------------------------------------------------------
-def init_players(test_resources, test_config={}):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-	
-	# init ezbox in another proccess
-	if test_config['start_ezbox']:
-		ezbox_init_proccess = Process(target=test_resources['ezbox'].common_ezbox_bringup,
-								  args=(test_config,))
-	
-		ezbox_init_proccess.start()
-		#change_switch_lag_mode(test_config['setup_num'])
-		
-	# connect Ezbox (proccess work on ezbox copy and not on ezbox object
-	test_resources['ezbox'].connect()
-	
-	for s in test_resources['server_list']:
-		init_server(s)
-	for c in test_resources['client_list']:
-		init_client(c)
-	
-	# Wait for EZbox proccess to finish
-	if test_config['start_ezbox']:
-		ezbox_init_proccess.join()
-	# Wait for all proccess to finish
-		if ezbox_init_proccess.exitcode:
-			print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
-			exit(ezbox_init_proccess.exitcode)
-	time.sleep(6)
-	alvs_bringup_env(test_resources['ezbox'], test_resources['server_list'], test_resources['vip_list'], test_config['use_director'])
-
-#===============================================================================
-# clean functions
-#===============================================================================
-#------------------------------------------------------------------------------ 
-def clean_server(server):
-	print "clean server: " + server.str()
-	
-	# reconnect with new object
-	server.connect()
-	server.clean_server()
-
-
-#------------------------------------------------------------------------------ 
-def clean_client(client):
-	print "clean client: " + client.str()
-
-	# reconnect with new object
-	client.connect()
-	client.clean_client()
-
-
-#------------------------------------------------------------------------------ 
-def clean_ezbox(ezbox, use_director, stop_ezbox):
-	print "Clean EZbox: " + ezbox.setup['name']
-	
-	# reconnect with new object
-	ezbox.connect()
-	ezbox.clean(use_director, stop_ezbox)
-
-
-#------------------------------------------------------------------------------ 
-def clean_players(test_resources, use_director = False, stop_ezbox = False):
-	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-
-	# Add servers, client & EZbox to proccess list
-	# in adition, recreate ssh object for the new proccess (patch)
-	process_list = []
-	for s in test_resources['server_list']:
-		s.ssh.recreate_ssh_object()
-		process_list.append(Process(target=clean_server, args=(s,)))
-		
-	for c in test_resources['client_list']:
-		c.ssh.recreate_ssh_object()
-		process_list.append(Process(target=clean_client, args=(c,)))
-	
-	if test_resources['ezbox']:
-		test_resources['ezbox'].ssh_object.recreate_ssh_object()
-		test_resources['ezbox'].run_app_ssh.recreate_ssh_object()
-		test_resources['ezbox'].syslog_ssh.recreate_ssh_object()
-		process_list.append(Process(target=clean_ezbox, args=(test_resources['ezbox'], use_director, stop_ezbox,)))
-	
-	# run clean for all player parallely
-	for p in process_list:
-		p.start()
-		
-	# Wait for all proccess to finish
-	for p in process_list:
-		p.join()
-		
-	for p in process_list:
-		if p.exitcode:
-			print p, p.exitcode
-			exit(p.exitcode)
-
 
 #===============================================================================
 # Run functions (servers and clients)

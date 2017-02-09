@@ -1,0 +1,16 @@
+Source: atc
+Section: admin
+Priority: extra
+Maintainer: Roy Sror <roysr@mellanox.com>
+Build-Depends: debhelper (>=9)
+Standards-Version: 3.9.8
+Homepage: http://www.mellanox.com
+
+Package: atc
+Architecture: any
+Conflicts: alvs, ddp 
+Depends:  libnl-3-200, debconf (>= 0.2.17)
+Homepage: http://www.mellanox.com
+Description: Traffic control is the name given to the sets of queuing systems and mechanisms by which packets are received and transmitted on a router. 
+             This includes deciding which (and whether) packets to accept at what rate on the input of an interface and determining which packets to transmit in what order at what rate on the output of an interface.
+

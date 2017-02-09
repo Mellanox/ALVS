@@ -40,10 +40,30 @@
 #include "nw_api.h"
 #include "nw_conf.h"
 #include "nw_ops.h"
+#include "cfg.h"
 
 /* linux includes */
 #include <linux/if.h>
 
+/* interface mapping if_map_by_name[interface-id] = interface name */
+char *if_map_by_name[NW_IF_NUM] = {0};
+/* interface mapping if_map_by_index[interface-id] = linux interface index */
+int if_map_by_index[NW_IF_NUM] = {-1, -1, -1, -1};
+
+/*init NW DB manager ops with nw_ops*/
+struct nw_db_manager_ops nw_ops = {
+	.add_fib_entry = &nw_ops_add_fib_entry,
+	.remove_fib_entry = &nw_ops_remove_fib_entry,
+	.modify_fib_entry = &nw_ops_modify_fib_entry,
+	.add_arp_entry = &nw_ops_add_arp_entry,
+	.remove_arp_entry = &nw_ops_remove_arp_entry,
+	.modify_arp_entry = &nw_ops_modify_arp_entry,
+	.enable_if = &nw_ops_enable_if,
+	.disable_if = &nw_ops_disable_if,
+	.modify_if = &nw_ops_modify_if,
+	.add_if_addr = &nw_ops_add_if_addr,
+	.remove_if_addr = &nw_ops_remove_if_addr
+};
 
 /******************************************************************************
  * \brief    Convert NL address to NW API address
@@ -52,6 +72,7 @@
  */
 void nl_addr_to_nw_api_addr(struct nw_api_inet_addr *nw_api_addr, struct nl_addr *nl_addr, int af)
 {
+
 	nw_api_addr->af = af;
 	if (nw_api_addr->af == AF_INET) {
 		nw_api_addr->in.s_addr = *(uint32_t *)nl_addr_get_binary_addr(nl_addr);
@@ -74,6 +95,7 @@ bool neighbor_to_arp_entry(struct rtnl_neigh *neighbor, struct nw_api_arp_entry 
 	memset(arp_entry, 0, sizeof(struct nw_api_arp_entry));
 	if_index = if_lookup_by_index(rtnl_neigh_get_ifindex(neighbor));
 	if (if_index == -1) {
+		write_log(LOG_DEBUG, "linux interface of arp entry wasn't found");
 		return false;
 	}
 	arp_entry->if_index = if_index;
@@ -106,6 +128,7 @@ bool route_to_fib_entry(struct rtnl_route *route_entry, struct nw_api_fib_entry 
 		/* next hop index in case of neighbor or GW will indicate output interface index */
 		if_index = if_lookup_by_index(rtnl_route_nh_get_ifindex(next_hop));
 		if (if_index == -1) {
+			write_log(LOG_NOTICE, "linux interface of fib entry wasn't found");
 			return false;
 		}
 		fib_entry->output_if_index = if_index;
@@ -396,5 +419,59 @@ bool nw_ops_remove_if_addr(struct rtnl_addr *addr_entry)
 	}
 
 	return true;
+}
+
+/******************************************************************************
+ * \brief       interface id lookup using interface linux index
+ *
+ * \param[in]   linux_index - interface linux index
+ *
+ * \return      interface id.
+ *		valid interface id: 0-3 for interfaces eth0-3
+ *		otherwise return -1
+ */
+int32_t if_lookup_by_index(int  __attribute__((__unused__))linux_index)
+{
+#ifdef EZ_SIM
+	/* TODO workaround for simulator */
+	return 0;
+#endif
+
+	/* TODO: this is a workaround for ALVS until real implementation of eth mapping */
+#ifdef CONFIG_ALVS
+	return 0;
+#else
+	int i;
+
+	for (i = 0; i < NW_IF_NUM; i++) {
+		if (if_map_by_index[i] == linux_index) {
+			return i;
+		}
+	}
+	return -1;
+#endif
+}
+
+/******************************************************************************
+ * \brief       interface id lookup using interface name
+ *
+ * \param[in]   if_name - interface name
+ *
+ * \return      interface id.
+ *		valid interface id: 0-3 for interfaces eth0-3
+ *		otherwise return -1
+ */
+int32_t if_lookup_by_name(char *if_name)
+{
+	int i;
+	char *name;
+
+	for (i = 0; i < NW_IF_NUM; i++) {
+		name = if_map_by_name[i];
+		if (!strcmp(if_name, name)) {
+			return i;
+		}
+	}
+	return -1;
 }
 

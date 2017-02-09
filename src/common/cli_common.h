@@ -54,15 +54,18 @@ int32_t write_message(struct cli_msg  *cli,
 /******************************************************************************
  * \brief    Read CLI message from socket
  *
- * \param[in]   cli		- pointer to CLI message
- * \param[in]   socket_fd	- CLI UNIX socket
+ * \param[out]  buff       - buffer pointer for result
+ * \param[in]   socket_fd  - CLI UNIX socket
+ * \param[in]   size       - max size byte to read
  *
  * \return   (-1) for error. read errno set
  *           ( 0) end of file
  *           otherwise, number of bytes actually read
  */
-int32_t read_message(struct cli_msg  *cli,
-		     int              socket_fd);
+int32_t read_message(uint8_t  *buff,
+		     int       socket_fd,
+		     uint32_t  size);
+;
 
 
 

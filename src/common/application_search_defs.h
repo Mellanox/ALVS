@@ -41,8 +41,12 @@
 /*********************************
  * includes & defines
  *********************************/
-
+#ifdef CONFIG_ALVS
 #include "alvs_search_defs.h"
+#endif
+#ifdef CONFIG_TC
+#include "tc_search_defs.h"
+#endif
 
 #define APPLICATION_INFO_MAX_ENTRIES	16
 #define ALVS_APPLICATION_INFO_INDEX	0
@@ -59,12 +63,15 @@ struct application_info_key {
 
 CASSERT(sizeof(struct application_info_key) == 1);
 
-
 union application_info_result {
+#ifdef CONFIG_ALVS
 	struct alvs_app_info_result	alvs_app;
+#endif
+	uint8_t  app_data[16];
 };
 
 CASSERT(sizeof(union application_info_result) == 16);
+
 
 
 #endif /* _APPLICATION_SEARCH_DEFS_H_ */

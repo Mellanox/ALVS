@@ -21,6 +21,7 @@ sys.path.append(my_parentdir)
 from common_infra import *
 from alvs_infra import *
 from unit_tester import Unit_Tester
+from alvs_players_factory import *
 
 server_count   = 0
 client_count   = 0
@@ -30,7 +31,7 @@ class arp_entry_states(Unit_Tester):
 
     def user_init(self, setup_num):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-        self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+        self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
         return dict
     
     def change_config(self, config):

@@ -45,11 +45,26 @@
 static __always_inline
 void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
 {
+	uint32_t rc;
+
+	anl_write_log(LOG_DEBUG, "execute nw_direct_route");
+
 	if (unlikely(nw_calc_egress_if(frame_base, out_if, is_lag) == false)) {
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
 		nw_discard_frame();
 		return;
 	}
+
+	/* Store modified segment data */
+	rc = ezframe_store_buf(frame,
+			       frame_base,
+			       ezframe_get_buf_len(frame),
+			       0);
+	if (rc != 0) {
+		anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+		nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
+	}
+
 	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
 }
 
@@ -71,14 +86,14 @@ bool nw_fib_processing(in_addr_t dest_ip, struct route_entry_result *route_entry
 	/* read iTCAM */
 	cmem_nw.fib_key.dest_ip = dest_ip;
 	tcam_retval.raw_data = ezdp_lookup_int_tcam(NW_FIB_TCAM_SIDE,
-						   NW_FIB_TCAM_PROFILE,
-						   &cmem_nw.fib_key,
-						   sizeof(struct nw_fib_key),
-						   &cmem_wa.nw_wa.int_tcam_result);
+						    NW_FIB_TCAM_PROFILE,
+						    &cmem_nw.fib_key,
+						    sizeof(struct nw_fib_key),
+						    &cmem_wa.nw_wa.int_tcam_result);
 
 	/* check matching */
 	if (unlikely(tcam_retval.assoc_data.match == 0)) {
-		anl_write_log(LOG_DEBUG, "FIB lookup failed. key dest_ip = 0x%08x", dest_ip);
+		anl_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", cmem_nw.fib_key.dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
 		return false;
 	}
@@ -128,14 +143,18 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 		       uint32_t	frame_buff_size)
 {
 	uint32_t rc;
+#if 0
 	uint32_t found_result_size;
 	struct nw_arp_result *arp_res_ptr;
+#endif
+	struct ezdp_lookup_retval	retval;
 
 	cmem_nw.arp_key.ip = route_entry->dest_ip;
 	cmem_nw.arp_key.is_lag = route_entry->is_lag;
 	cmem_nw.arp_key.zero_rsrv1 = 0;
 	cmem_nw.arp_key.out_index = route_entry->output_index;
 
+#if 0
 	rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
 				    (void *)&cmem_nw.arp_key,
 				    sizeof(struct nw_arp_key),
@@ -143,11 +162,29 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 				    0, cmem_wa.nw_wa.arp_hash_wa,
 				    sizeof(cmem_wa.nw_wa.arp_hash_wa));
 
-	if (likely(rc == 0)) {
+#else
+	ezdp_hashed_key_t hashed_key = ezdp_prm_hash_key64(*((uint64_t *)&cmem_nw.arp_key),
+							   0,
+							   sizeof(struct nw_arp_key));
+
+	retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_nw.arp_struct_desc.main_table_addr_desc.raw_data,
+						     true,
+						     sizeof(struct nw_arp_key),
+						     sizeof(struct nw_arp_result),
+						     sizeof(struct nw_arp_entry),
+						     hashed_key,
+						     (void *)&cmem_nw.arp_key,
+						     (void *)&cmem_nw.arp_entry,
+						     cmem_wa.nw_wa.arp_prm_hash_wa,
+						     sizeof(cmem_wa.nw_wa.arp_prm_hash_wa));
+
+#endif
+
+	if (likely(retval.match)) {
 		struct ether_addr *dmac = (struct ether_addr *)frame_base;
 
 		/*copy dst mac*/
-		ezdp_mem_copy(dmac, arp_res_ptr->dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
+		ezdp_mem_copy(dmac, cmem_nw.arp_entry.result.dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
 
 		/*Calc egress if*/
 		if (unlikely(nw_calc_egress_if(frame_base, route_entry->output_index, route_entry->is_lag) == false)) {

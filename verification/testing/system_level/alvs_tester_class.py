@@ -28,7 +28,7 @@ sys.path.insert(0,parentdir)
 from common_infra import *
 from alvs_infra import *
 from tester import Tester
-
+from alvs_players_factory import *
 from multiprocessing import Process
 
 #===============================================================================
@@ -76,16 +76,16 @@ class ALVS_Tester(Tester):
         return copy.deepcopy(self.test_resources['server_list'])
     
     def clean_all_players(self):
-        clean_players(self.test_resources, True, self.config['stop_ezbox'])
+        ALVS_Players_Factory.clean_players(self.test_resources, True, self.config['stop_ezbox'])
     
     def start_test(self):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
         
-        self.config = fill_default_config(generic_main())
+        self.config = ALVS_Players_Factory.fill_default_config(ALVS_Players_Factory.generic_main())
         
         self.user_init(self.config['setup_num'])
         
-        init_players(self.test_resources, self.config)
+        ALVS_Players_Factory.init_players(self.test_resources, self.config)
         
         self.run_user_test()
         
@@ -97,5 +97,3 @@ class ALVS_Tester(Tester):
         
         self.print_test_result()
         
-
-    

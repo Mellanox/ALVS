@@ -1,0 +1,50 @@
+#!/bin/bash
+# prerm script for atc
+#
+# see: dh_installdeb(1)
+
+# Source common multi product functions
+. /usr/share/atc/common_func
+
+# summary of how this script can be called:
+#		* <prerm> `remove'
+#		* <old-prerm> `upgrade' <new-version>
+#		* <new-prerm> `failed-upgrade' <old-version>
+#		* <conflictor's-prerm> `remove' `in-favour' <package> <new-version>
+#		* <deconfigured's-prerm> `deconfigure' `in-favour'
+#		  <package-being-installed> <version> `removing'
+#		  <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+######################################
+# Main
+######################################
+filename=$(basename $0)
+
+rc=0
+case "$1" in
+	remove|upgrade|deconfigure)
+		[ "$?" = 0 ] &&stop_service atc
+		[ "$?" = 0 ] &&remove_service_from_boot atc
+		[ "$?" = 0 ] &&remove_nps_host
+		[ "$?" = 0 ] &&reload_configuration
+		rc=$?
+	;;
+
+	failed-upgrade)
+		[ "$?" = 0 ] &&stop_service atc
+		[ "$?" = 0 ] &&remove_service_from_boot atc
+		[ "$?" = 0 ] &&remove_nps_host
+		[ "$?" = 0 ] &&reload_configuration
+		rc=$?
+	;;
+
+	*)
+		echo "$filename called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+# exit with status
+exit $rc

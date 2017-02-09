@@ -39,6 +39,13 @@
 #define _NW_INIT_H_
 
 #include <stdbool.h>
+#include <stdint.h>
+#include "nw_conf.h"
+
+/* interface mapping if_map_by_name[interface-id] = interface name */
+extern char *if_map_by_name[NW_IF_NUM];
+/* interface mapping if_map_by_index[interface-id] = linux interface index */
+extern int if_map_by_index[NW_IF_NUM];
 
 
 /**************************************************************************//**

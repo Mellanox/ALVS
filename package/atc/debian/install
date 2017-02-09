@@ -1,0 +1,7 @@
+../common/cfg/rsyslog.d/anl.conf        etc/rsyslog.d/
+../common/cfg/sysctl.d/anl.conf         etc/sysctl.d/
+../common/common_func                   usr/share/atc/
+../common/service.init                  usr/share/atc/
+../../bin/atc_daemon                    usr/sbin/
+../../bin/atc_dp                        usr/lib/atc/
+../../bin/atc                           sbin/

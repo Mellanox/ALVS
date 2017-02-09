@@ -14,7 +14,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug.arc.sim">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug.arc.sim">
 					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe.2097543685" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1710694827" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
@@ -551,7 +551,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996" name="Debug_ddp" parent="cdt.managedbuild.config.gnu.exe.debug.arc.sim">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996" name="Debug_ddp" parent="cdt.managedbuild.config.gnu.exe.debug.arc.sim">
 					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe.546281208" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.debug.exe">
 							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1715484817" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
@@ -708,6 +708,9 @@
 									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
 									<listOptionValue builtIn="false" value="/usr/include/"/>
 								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.432272528" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_TC=1"/>
+								</option>
 								<inputType id="com.ezchip.ezide.toolchain.input.1779111005" superClass="com.ezchip.ezide.toolchain.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.301794583" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
@@ -741,58 +744,418 @@
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631" moduleId="org.eclipse.cdt.core.settings" name="Release_atc_dp">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.ezchip.ezide.toolchain.ArcBinaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631" name="Release_atc_dp" parent="cdt.managedbuild.config.gnu.exe.release.arc.sim">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe.707795430" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe">
+							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1058328439" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
+							<builder buildPath="${workspace_loc:/ALVS}" cleanBuildTarget="dp-clean" command="make" id="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim.49949772" incrementalBuildTarget="atc_dp" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim"/>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.compiler.1945898434" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.c.compiler">
+								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.18736053" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.181559024" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.1536013283" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1689836210" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_TC=1"/>
+								</option>
+								<inputType id="com.ezchip.ezide.toolchain.input.2047197368" superClass="com.ezchip.ezide.toolchain.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.182610122" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
+								<option id="gnu.c.link.option.paths.1930445298" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include/"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include/"/>
+								</option>
+								<option id="gnu.c.link.option.libs.190412907" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="${ezdk_base}/dpe/frame/lib/ezdp_linux_arc.a"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="${ezdk_base}/dpe/frame/lib/ezframe_linux_arc.a"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.479106271" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.1830115594" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1764376504" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1347406120" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.1361523861" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783" moduleId="org.eclipse.cdt.core.settings" name="Release_atc_cp">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.ezchip.ezide.toolchain.ArcBinaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783" name="Release_atc_cp" parent="cdt.managedbuild.config.gnu.exe.release.arc.sim">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe.1451014109" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe">
+							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.651870470" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
+							<builder buildPath="${workspace_loc:/ALVS}" cleanBuildTarget="cp-clean" command="make" id="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim.711554721" incrementalBuildTarget="atc_cp" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim"/>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.compiler.95533690" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.c.compiler">
+								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.1510771084" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.909487724" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.2048233153" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1303650224" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_TC=1"/>
+								</option>
+								<inputType id="com.ezchip.ezide.toolchain.input.1456115582" superClass="com.ezchip.ezide.toolchain.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.1683138624" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1088222789" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.1396055639" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1278052832" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1161797295" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.600211192" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169" moduleId="org.eclipse.cdt.core.settings" name="Release_atc_cli">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.ezchip.ezide.toolchain.ArcBinaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169" name="Release_atc_cli" parent="cdt.managedbuild.config.gnu.exe.release.arc.sim">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe.957661852" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe">
+							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1053072440" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
+							<builder buildPath="${workspace_loc:/ALVS}" cleanBuildTarget="cp-clean" command="make" enableCleanBuild="false" id="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim.2031427311" incrementalBuildTarget="atc_cli" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim"/>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.compiler.998898408" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.c.compiler">
+								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.559660880" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.2144963601" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.1731830500" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.367066231" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_TC=1"/>
+								</option>
+								<inputType id="com.ezchip.ezide.toolchain.input.348600184" superClass="com.ezchip.ezide.toolchain.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.753652179" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1017907274" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.1963586100" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1877669983" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1723954477" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.1077076839" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169.1677578072">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169.1677578072" moduleId="org.eclipse.cdt.core.settings" name="Release_alvs_cli">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.ezchip.ezide.toolchain.ArcBinaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169.1677578072" name="Release_alvs_cli" parent="cdt.managedbuild.config.gnu.exe.release.arc.sim">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.314038169.1677578072." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe.135406994" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe">
+							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.1007071307" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
+							<builder buildPath="${workspace_loc:/ALVS}" cleanBuildTarget="cp-clean" command="make" enableCleanBuild="false" id="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim.895447880" incrementalBuildTarget="alvs_cli" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim"/>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.compiler.1355082917" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.c.compiler">
+								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.699235855" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.1845880928" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.643967451" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1089298715" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_TC=1"/>
+								</option>
+								<inputType id="com.ezchip.ezide.toolchain.input.895933726" superClass="com.ezchip.ezide.toolchain.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.510844154" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.179677330" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.1639636681" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1379649330" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.795947973" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.1139563867" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.2067641511">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.2067641511" moduleId="org.eclipse.cdt.core.settings" name="Release_atc">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.ezchip.ezide.toolchain.ArcBinaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.2067641511" name="Release_atc" parent="cdt.managedbuild.config.gnu.exe.release.arc.sim">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.2067641511." name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe.126725008" name="ARC" superClass="cdt.managedbuild.toolchain.gnu.base.arc.sim.release.exe">
+							<targetPlatform binaryParser="com.ezchip.ezide.toolchain.ArcBinaryParser" id="cdt.managedbuild.target.gnu.platform.exe.ARC.459500814" isAbstract="false" name="Linux Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.ARC"/>
+							<builder buildPath="${workspace_loc:/ALVS}" command="make" id="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim.205723164" incrementalBuildTarget="atc" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release.arc.sim"/>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.compiler.14860023" name="ARC GNU C Compiler" superClass="cdt.managedbuild.tool.gnu.arc.c.compiler">
+								<option defaultValue="gnu.c.optimization.level.more" id="arc.c.compiler.option.optimization.level.2091773838" name="Optimization Level" superClass="arc.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.959670795" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.1089173252" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="com.ezchip.ezide.toolchain.input.1662480472" superClass="com.ezchip.ezide.toolchain.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.c.linker.2019435832" name="ARC GNU C Linker" superClass="cdt.managedbuild.tool.gnu.arc.c.linker">
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1260498080" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.assembler.base.1377711497" name="ARC GCC Assembler" superClass="cdt.managedbuild.tool.gnu.arc.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1579008580" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/dp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/frame/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/dpe/sft/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/env/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/agt/agt-cp/include"/>
+									<listOptionValue builtIn="false" value="${ezdk_base}/cpe/dev/include"/>
+									<listOptionValue builtIn="false" value="/usr/include/libnl3"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1119164118" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.arc.archiver.base.141899005" name="ARC GCC Archiver" superClass="cdt.managedbuild.tool.gnu.arc.archiver.base"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="ALVS.cdt.managedbuild.target.gnu.arc.sim.exe.1917485586" name="Executable" projectType="cdt.managedbuild.target.gnu.arc.sim.exe"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release_atc_cli">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Release_sim"/>
+		<configuration configurationName="Debug_sim_dp"/>
+		<configuration configurationName="Debug_alvs_dp"/>
+		<configuration configurationName="Release_atc_dp"/>
+		<configuration configurationName="Release_sim_dp"/>
+		<configuration configurationName="Debug_dp">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Release_atc_cp">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Release_alvs_cli">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
 		<configuration configurationName="Release_dp"/>
 		<configuration configurationName="Release_cp"/>
-		<configuration configurationName="Debug_alvs_dp"/>
-		<configuration configurationName="Debug_ddp"/>
-		<configuration configurationName="Debug DDP">
-			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
-		</configuration>
-		<configuration configurationName="Debug_alvs_cp">
-			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
-		</configuration>
+		<configuration configurationName="Release_alvs_cp"/>
 		<configuration configurationName="Debug_alvs">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
 		</configuration>
 		<configuration configurationName="Debug_sim">
 			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
 		</configuration>
-		<configuration configurationName="Debug_sim_dp"/>
-		<configuration configurationName="Release_sim_dp"/>
-		<configuration configurationName="Debug_cp"/>
-		<configuration configurationName="Debug_ddp_cp">
+		<configuration configurationName="Debug_alvs_cp">
 			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
 		</configuration>
-		<configuration configurationName="Release_sim"/>
-		<configuration configurationName="Debug_dp">
-			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
-		</configuration>
-		<configuration configurationName="Release_alvs_cp"/>
 		<configuration configurationName="Release_alvs_dp">
-			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
-		</configuration>
-		<configuration configurationName="Release_alvs"/>
-		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
 		</configuration>
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
 		</configuration>
 		<configuration configurationName="Release_ddp"/>
+		<configuration configurationName="Release_alvs"/>
+		<configuration configurationName="Debug_ddp_cp">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Debug_ddp"/>
+		<configuration configurationName="Debug DDP">
+			<resource resourceType="PROJECT" workspacePath="/ALVS"/>
+		</configuration>
+		<configuration configurationName="Debug_cp"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.859088874;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.859088874.;cdt.managedbuild.tool.gnu.arc.c.compiler.1763327323;com.ezchip.ezide.toolchain.input.622217215">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.;cdt.managedbuild.tool.gnu.arc.c.compiler.1556300520;com.ezchip.ezide.toolchain.input.1503465901">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1119960614;com.ezchip.ezide.toolchain.input.1081299083">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.363268783.;cdt.managedbuild.tool.gnu.arc.c.compiler.95533690;com.ezchip.ezide.toolchain.input.1456115582">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1658881624;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.1658881624.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1160057681;com.ezchip.ezide.toolchain.input.1638144460">
@@ -801,25 +1164,34 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431.380944747;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431.380944747.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1817533546;com.ezchip.ezide.toolchain.input.1120258284">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1300230153;com.ezchip.ezide.toolchain.input.582659251">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.859088874;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.859088874.;cdt.managedbuild.tool.gnu.arc.c.compiler.1763327323;com.ezchip.ezide.toolchain.input.622217215">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.;cdt.managedbuild.tool.gnu.arc.c.compiler.852698470;com.ezchip.ezide.toolchain.input.2115221000">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.89066996.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1876869573;com.ezchip.ezide.toolchain.input.1630016115">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.;cdt.managedbuild.tool.gnu.arc.c.compiler.1378810151;com.ezchip.ezide.toolchain.input.182737329">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.1864583631.;cdt.managedbuild.tool.gnu.arc.c.compiler.1945898434;com.ezchip.ezide.toolchain.input.2047197368">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.322280661.;cdt.managedbuild.tool.gnu.arc.c.compiler.1741141943;com.ezchip.ezide.toolchain.input.150872860">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.296439396.;cdt.managedbuild.tool.gnu.arc.c.compiler.1556300520;com.ezchip.ezide.toolchain.input.1503465901">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.844055431.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1119960614;com.ezchip.ezide.toolchain.input.1081299083">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.1300230153;com.ezchip.ezide.toolchain.input.582659251">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.1466335934.;cdt.managedbuild.tool.gnu.arc.c.compiler.1378810151;com.ezchip.ezide.toolchain.input.182737329">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.442030493;cdt.managedbuild.config.gnu.exe.debug.arc.sim.1810453646.442030493.;cdt.managedbuild.tool.gnu.arc.debug_sim.c.compiler.4866074;com.ezchip.ezide.toolchain.input.1925840411">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.1543119990;cdt.managedbuild.config.gnu.exe.release.arc.sim.1310950528.134517716.1543119990.;cdt.managedbuild.tool.gnu.arc.c.compiler.48361326;com.ezchip.ezide.toolchain.input.1779111005">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.ezchip.ezide.toolchain.ARC_GCCperProjectProfileC"/>
 		</scannerConfigBuildInfo>
 	</storageModule>

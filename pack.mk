@@ -12,6 +12,10 @@ ifdef CONFIG_ALVS
 	APP_NAME := alvs
 endif
 
+ifdef CONFIG_ATC
+        APP_NAME := atc
+endif
+
 CURRENT_DIR    := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 PACKAGE_FOLEDR := $(CURRENT_DIR)/package
 APP_FOLEDR := $(PACKAGE_FOLEDR)/$(APP_NAME)
@@ -34,6 +38,8 @@ deb-clean:
 deb-distclean: deb-clean
 	rm -rf $(APP_NAME)*.deb
 	rm -rf $(PACKAGE_FOLEDR)/$(APP_NAME)*.changes
+	rm -rf $(PACKAGE_FOLEDR)/$(APP_NAME)*.dsc
+	rm -rf $(PACKAGE_FOLEDR)/$(APP_NAME)*.tar.gz
 
 deb-pack-conv:
 	# rename package in case of debug

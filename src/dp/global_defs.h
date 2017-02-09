@@ -40,11 +40,16 @@
 #ifdef CONFIG_ALVS
 #include "alvs_defs.h"
 #endif
+#ifdef CONFIG_TC
+#include "tc_defs.h"
+#endif
 
 #define ANL_LOG2(x) (x == 2 ? 1 : x == 4 ? 2 : x == 8 ? 3 : x == 16 ? 4 : x == 32 ? 5 : \
 			x == 64 ? 6 : x == 128 ? 7 : x == 256 ? 8 : x == 512 ? 9 : x == 1024 ? 10 : x == 2048 ? 11 : \
 			x == 4096 ? 12 : x == 8192 ? 13 : x == 16384 ? 14 : x == 32768 ? 15 : x == 65536 ? 16 : \
 			x == 131072 ? 17 : x == 262144 ? 18 : 0)
+
+
 
 /* TODO take from netinet/ip.h after fixing includes */
 #define IP_DF           0x4000
@@ -53,17 +58,25 @@ struct net_hdr {
 	struct udphdr udp;
 } __packed;
 
-
 union cmem_workarea {
 #ifdef CONFIG_ALVS
 	union alvs_workarea   alvs_wa;
 #endif
+#ifdef CONFIG_TC
+	union tc_workarea     tc_wa;
+#endif
+
 	union nw_workarea     nw_wa;
 };
+
 
 #ifdef CONFIG_ALVS
 extern struct alvs_cmem         cmem_alvs;
 extern struct alvs_shared_cmem  shared_cmem_alvs;
+#endif
+#ifdef CONFIG_TC
+extern struct tc_cmem         cmem_tc;
+extern struct tc_shared_cmem  shared_cmem_tc;
 #endif
 
 extern struct syslog_wa_info    syslog_work_area;
@@ -71,6 +84,5 @@ extern union cmem_workarea      cmem_wa;
 extern ezframe_t                frame;
 extern uint8_t                  frame_data[EZFRAME_BUF_DATA_SIZE];
 extern struct packet_meta_data  packet_meta_data;
-
 
 #endif  /*GLOBAL_DEFS_H_*/

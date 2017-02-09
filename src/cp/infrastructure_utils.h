@@ -86,6 +86,19 @@ struct infra_tcam_params {
 };
 
 
+/* RTC channel ID */
+#define REAL_TIME_CLOCK_CHANNEL_ID	0
+
+/*! Required parameters for get RTC  */
+struct read_real_time_clock_result {
+	uint32_t         nano_seconds;
+	/* The nanoseconds value */
+
+	uint32_t         seconds;
+	/* The seconds value */
+};
+
+
 /**************************************************************************//**
  * \brief       Get my MAC
  *
@@ -167,6 +180,19 @@ bool infra_modify_entry(uint32_t struct_id, void *key, uint32_t key_size,
  * \return      bool - success or failure
  */
 bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size);
+
+/**************************************************************************//**
+ * \brief       Get an entry from data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_get_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size);
 
 /**************************************************************************//**
  * \brief       Add an entry to a TCAM data structure
@@ -251,7 +277,6 @@ bool infra_clear_posted_counters(uint32_t counter_index,
 bool infra_clear_long_counters(uint32_t counter_index,
 			       uint32_t num_of_counters);
 
-
 /**************************************************************************//**
  * \brief       Copy data to memory (IMEM/EMEM)
  *
@@ -264,5 +289,23 @@ bool infra_clear_long_counters(uint32_t counter_index,
 bool infra_set_memory(struct ezdp_ext_addr *addr,
 		      void *data,
 		      uint32_t data_size);
+
+/**************************************************************************//**
+ * \brief       Read real time clock from NPS
+ *
+ * \param[out]   rtc_result  - RTC read result
+ *
+ * \return      bool - success or failure
+ */
+bool infra_read_real_time_clock(struct read_real_time_clock_result  *rtc_result);
+
+/**************************************************************************//**
+ * \brief       Read real time clock from NPS (seconds only)
+ *
+ * \param[out]  uint32_t seconds - NPS real time clock (seconds)
+ *
+ * \return      bool - success or failure
+ */
+bool infra_read_real_time_clock_seconds(uint32_t *seconds);
 
 #endif /* _INFRASTRUCTURE_UTILS_H_ */

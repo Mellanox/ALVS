@@ -22,7 +22,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 from alvs_infra import *
-
+from alvs_players_factory import *
 
 #===============================================================================
 # Test Globals
@@ -43,7 +43,7 @@ class Test7(ALVS_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		i = 0
 		for s in self.test_resources['server_list']:

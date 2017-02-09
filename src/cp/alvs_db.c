@@ -70,6 +70,7 @@ extern const char *alvs_error_stats_offsets_names[];
 void server_db_aging(void);
 
 #define ALVS_DB_FILE_NAME "alvs.db"
+#define ALVS_DB_SQL_COMMAND_SIZE  512
 
 void server_db_exit_with_error(void);
 
@@ -378,9 +379,9 @@ enum alvs_db_rc internal_db_get_server_count(struct alvs_db_service *service,
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 
-	sprintf(sql, "SELECT COUNT (nps_index) AS server_count FROM servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT COUNT (nps_index) AS server_count FROM servers "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d",
 		service->ip, service->port, service->protocol);
 	if (flags & EXCLUDE_WEIGHT_ZERO) {
@@ -454,10 +455,10 @@ enum alvs_db_rc alvs_clear_overloaded_flag_of_server(struct alvs_db_server *cp_s
 enum alvs_db_rc internal_db_clear_all(void)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "DELETE FROM services;"
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "DELETE FROM services;"
 		"UPDATE servers SET active=0, server_flags=server_flags&%u;",
 		~IP_VS_DEST_F_AVAILABLE);
 
@@ -488,9 +489,9 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 
-	sprintf(sql, "SELECT * FROM services "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM services "
 		"WHERE ip=%d AND port=%d AND protocol=%d;",
 		service->ip, service->port, service->protocol);
 
@@ -553,10 +554,10 @@ enum alvs_db_rc internal_db_get_service(struct alvs_db_service *service,
 enum alvs_db_rc internal_db_add_service(struct alvs_db_service *service)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "INSERT INTO services "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "INSERT INTO services "
 		"(ip, port, protocol, nps_index, flags, sched_alg, connection_scheduled, stats_base, "
 		"in_packet, in_byte, out_packet, out_byte, sched_entries_count) "
 		"VALUES (%d, %d, %d, %d, %d, %d, %ld, %d, %ld, %ld, %ld, %ld, %d);",
@@ -590,10 +591,10 @@ enum alvs_db_rc internal_db_add_service(struct alvs_db_service *service)
 enum alvs_db_rc internal_db_modify_service(struct alvs_db_service *service)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "UPDATE services "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE services "
 		"SET flags=%d, sched_alg=%d, sched_entries_count=%d "
 		"WHERE ip=%d AND port=%d AND protocol=%d;",
 		service->flags, service->sched_alg, service->sched_entries_count,
@@ -650,7 +651,7 @@ enum alvs_db_rc alvs_db_get_service_counters(uint32_t service_index, struct alvs
 enum alvs_db_rc internal_db_save_service_stats(struct alvs_db_service service)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 	enum alvs_db_rc get_counters_rc;
 
@@ -661,7 +662,7 @@ enum alvs_db_rc internal_db_save_service_stats(struct alvs_db_service service)
 		return get_counters_rc;
 	}
 
-	sprintf(sql, "UPDATE services "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE services "
 		"SET in_packet=%ld, in_byte=%ld, out_packet=%ld, out_byte=%ld, connection_scheduled=%ld "
 		"WHERE ip=%d AND port=%d AND protocol=%d;",
 		service.service_stats.in_packet, service.service_stats.in_byte, service.service_stats.out_packet,
@@ -691,10 +692,10 @@ enum alvs_db_rc internal_db_save_service_stats(struct alvs_db_service service)
 enum alvs_db_rc internal_db_delete_service(struct alvs_db_service *service)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "DELETE FROM services "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "DELETE FROM services "
 		"WHERE ip=%d AND port=%d AND protocol=%d;"
 		"UPDATE servers SET active=0, server_flags=server_flags&%u "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d;",
@@ -757,10 +758,10 @@ enum alvs_db_rc internal_db_get_server_list(struct alvs_db_service *service,
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	struct alvs_server_node *node;
 
-	sprintf(sql, "SELECT * FROM servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM servers "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d",
 		service->ip, service->port, service->protocol);
 	if (flags & EXCLUDE_WEIGHT_ZERO) {
@@ -895,7 +896,7 @@ enum alvs_db_rc alvs_db_get_server_counters(uint32_t server_index,
 enum alvs_db_rc internal_db_save_server_stats(struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 	enum alvs_db_rc get_counters_rc;
 
@@ -908,7 +909,7 @@ enum alvs_db_rc internal_db_save_server_stats(struct alvs_db_server *server)
 		return get_counters_rc;
 	}
 
-	sprintf(sql, "UPDATE servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE servers "
 		"SET connection_scheduled=%ld, in_packet=%ld, in_byte=%ld, out_packet=%ld, out_byte=%ld "
 		"WHERE ip=%d AND port=%d AND nps_index=%d;",
 		server->server_stats.connection_scheduled, server->server_stats.in_packet, server->server_stats.in_byte,
@@ -943,9 +944,9 @@ enum alvs_db_rc internal_db_get_server(struct alvs_db_service *service,
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 
-	sprintf(sql, "SELECT * FROM servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM servers "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		service->ip, service->port, service->protocol,
@@ -1010,10 +1011,10 @@ enum alvs_db_rc internal_db_add_server(struct alvs_db_service *service,
 				       struct alvs_db_server *server)
 {
 	int rc;
-	char sql[512];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "INSERT INTO servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "INSERT INTO servers "
 		"(ip, port, srv_ip, srv_port, srv_protocol, nps_index, weight, conn_flags, server_flags, "
 		"u_thresh, l_thresh, active, server_stats_base, service_stats_base, server_on_demand_stats_base,"
 		"server_flags_dp_base, connection_scheduled, in_packet, in_byte, out_packet, out_byte) "
@@ -1054,10 +1055,10 @@ enum alvs_db_rc internal_db_modify_server(struct alvs_db_service *service,
 					  struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "UPDATE servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE servers "
 			"SET weight=%d, conn_flags=%d, server_flags=%d, "
 			"u_thresh=%d, l_thresh=%d "
 			"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
@@ -1091,10 +1092,10 @@ enum alvs_db_rc internal_db_delete_server(struct alvs_db_service *service,
 					  struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "DELETE FROM servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "DELETE FROM servers "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
 		service->ip, service->port, service->protocol,
@@ -1124,10 +1125,10 @@ enum alvs_db_rc internal_db_deactivate_server(struct alvs_db_service *service,
 					  struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "UPDATE servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE servers "
 		"SET active=0, server_flags=server_flags&%u "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
 		"AND ip=%d AND port=%d;",
@@ -1159,10 +1160,10 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 					struct alvs_db_server *server)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "UPDATE servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE servers "
 		"SET weight=%d, active=1, server_flags=server_flags|%u, "
 		"u_thresh=%d, l_thresh=%d, conn_flags=%d "
 		"WHERE srv_ip=%d AND srv_port=%d AND srv_protocol=%d "
@@ -1195,10 +1196,10 @@ enum alvs_db_rc internal_db_activate_server(struct alvs_db_service *service,
 enum alvs_db_rc internal_db_add_application_info(struct alvs_db_application_info *alvs_app_info)
 {
 	int rc;
-	char sql[512];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "INSERT INTO application_info "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "INSERT INTO application_info "
 		"(application_index, is_master, is_backup, m_sync_id, b_sync_id, source_ip) "
 		"VALUES (%d, %d, %d, %d, %d, %d);",
 		alvs_app_info->application_index, alvs_app_info->is_master, alvs_app_info->is_backup,
@@ -1228,9 +1229,9 @@ enum alvs_db_rc internal_db_get_application_info(struct alvs_db_application_info
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 
-	sprintf(sql, "SELECT * FROM application_info "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM application_info "
 		"WHERE application_index=%d;", alvs_app_info->application_index);
 
 	/* Prepare SQL statement */
@@ -1283,10 +1284,10 @@ enum alvs_db_rc internal_db_get_application_info(struct alvs_db_application_info
 enum alvs_db_rc internal_db_modify_application_info(struct alvs_db_application_info *alvs_app_info)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	char *zErrMsg = NULL;
 
-	sprintf(sql, "UPDATE application_info "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "UPDATE application_info "
 		"SET is_master=%d, is_backup=%d, m_sync_id=%d, "
 		"b_sync_id=%d, source_ip=%d "
 		"WHERE application_index=%d;",
@@ -3231,9 +3232,9 @@ enum alvs_db_rc internal_db_get_service_count(uint32_t *service_count)
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 
-	sprintf(sql, "SELECT COUNT (nps_index) AS service_count FROM services;");
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT COUNT (nps_index) AS service_count FROM services;");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
@@ -3288,10 +3289,10 @@ enum alvs_db_rc internal_db_get_service_list(struct alvs_service_node **service_
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	struct alvs_service_node *node;
 
-	sprintf(sql, "SELECT * FROM services;");
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM services;");
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
@@ -3439,7 +3440,7 @@ enum alvs_db_rc alvs_db_print_servers_stats(struct ip_vs_service_user *ip_vs_ser
 enum alvs_db_rc alvs_db_print_services_stats(void)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	sqlite3_stmt *statement;
 	struct alvs_db_service service_internal_db_stats;
 	struct alvs_db_service service_counters;
@@ -3447,7 +3448,7 @@ enum alvs_db_rc alvs_db_print_services_stats(void)
 	memset(&service_counters, 0, sizeof(service_counters));
 
 	/* Prepare SQL statement */
-	sprintf(sql, "SELECT * FROM services");
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM services");
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(alvs_db));
@@ -3509,7 +3510,7 @@ enum alvs_db_rc alvs_db_print_services_stats(void)
 enum alvs_db_rc alvs_db_clear_stats(void)
 {
 	int rc;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	uint32_t server_count, i;
 	sqlite3_stmt *statement;
 	struct alvs_db_service service;
@@ -3518,7 +3519,7 @@ enum alvs_db_rc alvs_db_clear_stats(void)
 
 	/* get all services from internal database */
 	/* Prepare SQL statement */
-	sprintf(sql, "SELECT * FROM services");
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM services");
 	rc = sqlite3_prepare_v2(alvs_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
 		write_log(LOG_CRIT, "SQL error: %s",
@@ -3675,7 +3676,7 @@ void server_db_aging(void)
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[ALVS_DB_SQL_COMMAND_SIZE];
 	struct alvs_db_service cp_service;
 	struct alvs_db_server cp_server;
 	struct alvs_server_info_key nps_server_info_key;
@@ -3688,7 +3689,7 @@ void server_db_aging(void)
 
 	write_log(LOG_DEBUG, "Start aging thread");
 
-	sprintf(sql, "SELECT * FROM servers "
+	snprintf(sql, ALVS_DB_SQL_COMMAND_SIZE, "SELECT * FROM servers "
 		"WHERE active=0;");
 
 	while (!(*alvs_db_cancel_application_flag_ptr)) {

@@ -43,10 +43,10 @@
 #define EZlog_LEVEL EZlog_LEVEL_DEBUG
 #else
 #define LOG_LEVEL LOG_INFO
-#define EZlog_LEVEL EZlog_LEVEL_TRACE
+#define EZlog_LEVEL EZlog_LEVEL_INFO
 #endif
 #define EZlog_COMP EZlog_COMP_CP_ALL
-#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL_PRM
+#define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL
 
 #define LOG_MAX_SIZE 500
 
@@ -58,8 +58,11 @@ void open_log(char *s)
 	int option = LOG_CONS | LOG_PID | LOG_NDELAY;
 
 	openlog(s, option, facility);
-
+#ifdef EZ_SIM
+	EZlog_SetFileName("anl_ezcp_log");
+#else
 	EZlog_SetFileName("/var/log/anl_ezcp_log");
+#endif
 	EZlog_OpenLogFile();
 	EZlog_SetMaximalLogSize(LOG_MAX_SIZE);
 

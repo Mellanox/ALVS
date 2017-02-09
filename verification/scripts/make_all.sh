@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 
 #######################################################################################
 #
@@ -48,6 +48,7 @@ function parse_cmd()
     # check number of arguments
     deb_flag=0
 	make_params="all"
+	deb_params="deb"
     
     test $# -eq 0
     no_args=$?
@@ -75,6 +76,7 @@ function parse_cmd()
                 deb_flag=1
 				if [ $three_args -eq 0 ]; then
 				    make_params=$3
+					deb_params="deb-$3"
 				fi
             else
                 usage
@@ -103,6 +105,14 @@ function compile_git()
     echo "Function: $FUNCNAME called"
     rc=0  # no failure
 
+	echo "perform: make prepare"
+	    make prepare > $make_clean_file
+	    rc=$?
+	    if [ $rc -ne 0 ]; then
+	        echo 'ERROR: make clean failed. for more details look at $make_clean_file'
+	        return $rc
+    fi
+
     echo "perform: make -j  clean"
     make -j  clean > $make_clean_file
     rc=$?
@@ -110,7 +120,6 @@ function compile_git()
         echo 'ERROR: make clean failed. for more details look at $make_clean_file'
         return $rc
     fi
-
     
     echo "perform: make -j  $make_params"
     make -j  $make_params > $make_log_file
@@ -123,7 +132,6 @@ function compile_git()
     # return success
     return $rc
 }
-
 
 #######################################################################################
 
@@ -205,22 +213,9 @@ function make_debug()
 function make_deb()
 {
     echo "Function: $FUNCNAME called"
-    
     FLAGS=$1
-
-    WHOAMI=$(whoami)
-    set -x
-    if [ "$WHOAMI" == "root" ]; then
-        sshpass -p 3tango ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
-    elif [ "$WHOAMI" == "gilf" ]; then
-        sshpass -p 123456 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
-    else
-        sshpass -p $(whoami)11 ssh $WHOAMI@gen-l-vrt-232-071 "cd $alvs_dir; $FLAGS make -f deb.mk $make_params; exit"
-    fi
-    set +x
-    
+	make $deb_params $FLAGS
 }
-
 
 #######################################################################################
 
@@ -232,8 +227,6 @@ function exit_script()
 
     exit $exit_status
 }
-
-
 #######################################################################################
 
 function create_log_folder()

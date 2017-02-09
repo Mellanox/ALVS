@@ -1,0 +1,56 @@
+#!/bin/sh
+# preinst script for atc
+#
+# see: dh_installdeb(1)
+
+# summary of how this script can be called:
+#		* <new-preinst> `install'
+#		* <new-preinst> `install' <old-version>
+#		* <new-preinst> `upgrade' <old-version>
+#		* <old-preinst> `abort-upgrade' <new-version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+
+#-------------------------------------------------------------------------------
+stop_atc()
+{
+	if [ -x "/etc/init.d/atc" ]; then
+		echo " Stopping atc service"
+		service atc stop > /dev/null 2>&1
+	fi
+	return 0
+}
+
+#-------------------------------------------------------------------------------
+
+
+filename=$(basename $0)
+
+rc=0
+case "$1" in
+	install)
+	# Make sure atc is not running
+		stop_atc
+		rc=$?
+	;;
+	
+	upgrade)
+	# Note: incase of upgrade, atc_stop done by prerm
+	;;
+
+	abort-upgrade)
+	#  Called during error handling of an upgrade that failed after unpacking the
+	#  new package because the postrm upgrade action failed.
+ 		stop_atc
+ 		rc=$?
+	;;
+
+	*)
+		echo "preinst called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+# exit with status
+exit $rc

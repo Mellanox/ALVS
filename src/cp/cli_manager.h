@@ -41,6 +41,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cli_defs.h"
+
 
 /******************************************************************************
  * \brief	  CLI thread main application.
@@ -58,6 +60,17 @@ void cli_manager_main(bool *cancel_application_flag);
  */
 void cli_manager_exit(void);
 
+
+/******************************************************************************
+ * \brief	  send intermediate message through CLI socket
+ *
+ * \param[in]     res_cli    - CLI message response to write to CLI socket
+ * \param[in]     is_last    - Is last CLI message
+ *
+ * \return        ( 0)	- success.
+ *                (-1)	- error (probably due to socket error)
+ */
+int cli_manager_send_message(struct cli_msg  *res_cli, bool is_last);
 
 
 #endif /* _CLI_MANAGER_H_ */

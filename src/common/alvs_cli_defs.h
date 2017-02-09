@@ -38,14 +38,6 @@
 /************************************************/
 /* includes                                     */
 /************************************************/
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <stdio.h>
-#include "stdbool.h"
-#include <unistd.h>
-#include <stdint.h>
-#include <ezdp_defs.h>
 #include "cli_defs.h"
 
 /************************************************/
@@ -66,5 +58,11 @@ enum cli_op_type {
 	CLI_OP_TYPE_EXIT,				/*  1 */
 
 };
+
+
+/************************************************/
+/* structures                                   */
+/************************************************/
+
 
 #endif /* _ALVS_CLI_DEFS_H_ */

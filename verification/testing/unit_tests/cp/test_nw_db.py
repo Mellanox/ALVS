@@ -6,6 +6,8 @@ import pexpect
 from __builtin__ import len
 from random import randint
 import socket
+from alvs_players_factory import *
+
 '''
     Global variables
 '''

@@ -13,6 +13,7 @@ from time import sleep
 from common_infra import *
 from alvs_infra import *
 from unit_tester import Unit_Tester
+from alvs_players_factory import *
 
 server_count   = 4
 client_count   = 1
@@ -23,7 +24,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 			
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		w = 1
 		for i,s in enumerate(self.test_resources['server_list']):
@@ -115,7 +116,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 				
 		# create packet
 		data_packet_to_first_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[1]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 00',
@@ -126,7 +127,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		data_packet_to_first_service1.generate_packet()
 		
 		data_packet_to_first_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[1]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 03',
@@ -137,7 +138,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		data_packet_to_first_service2.generate_packet()
 		
 		data_packet_to_second_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[2]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 00',
@@ -148,7 +149,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		data_packet_to_second_service1.generate_packet()
 		
 		data_packet_to_second_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[2]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 03',
@@ -159,7 +160,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		data_packet_to_second_service2.generate_packet()
 		
 		reset_packet_first_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[1]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 00',
@@ -170,7 +171,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		reset_packet_first_service1.generate_packet()
 		
 		reset_packet_first_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[1]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 03',
@@ -181,7 +182,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		reset_packet_first_service2.generate_packet()
 		
 		reset_packet_second_service1 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[2]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 00',
@@ -192,7 +193,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		reset_packet_second_service1.generate_packet()
 		
 		reset_packet_second_service2 = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[2]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 03',
@@ -203,7 +204,7 @@ class Ipvs_Stats_Test(Unit_Tester):
 		reset_packet_second_service2.generate_packet()
 		
 		fin_packet_to_first_service = tcp_packet(mac_da=ezbox.setup['mac_address'],
-		                         mac_sa=client_list[0].get_mac_adress(),
+		                         mac_sa=client_list[0].get_mac_address(),
 		                         ip_dst=ip_to_hex_display(vip_list[1]),
 		                         ip_src='192.168.0.100',
 		                         tcp_source_port = '00 03',

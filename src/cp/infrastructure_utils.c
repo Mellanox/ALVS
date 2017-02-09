@@ -402,6 +402,44 @@ bool infra_delete_entry(uint32_t struct_id, void *key, uint32_t key_size)
 
 	return true;
 }
+
+/**************************************************************************//**
+ * \brief       Get an entry from data structure
+ *
+ * \param[in]   struct_id       - structure id of the search structure
+ * \param[in]   key             - reference to key
+ * \param[in]   key_size        - size of the key in bytes
+ * \param[in]   result          - reference to result
+ * \param[in]   result_size     - size of the result in bytes
+ *
+ * \return      bool - success or failure
+ */
+bool infra_get_entry(uint32_t struct_id, void *key, uint32_t key_size, void *result, uint32_t result_size)
+{
+	EZstatus ez_ret_val;
+	EZapiEntry entry;
+
+	/* Set entry with key and result to add */
+	memset(&entry, 0, sizeof(entry));
+	entry.uiKeySize    = key_size;
+	entry.pucKey       = key;
+	entry.uiResultSize = result_size;
+	entry.pucResult    = result;
+
+	/* Add the entry */
+	ez_ret_val = EZapiStruct_GetEntry(struct_id,
+					  0, /* Channel ID */
+					  &entry);
+
+
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		return false;
+	}
+
+	return true;
+}
+
+
 /**************************************************************************//**
  * \brief       Add an entry to a TCAM data structure
  *
@@ -503,7 +541,11 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 	FILE *fd;
 	uint fscanf_res;
 	/* open address file from sys/class/net folder */
+#ifdef EZ_SIM
+	fd = fopen("/sys/class/net/ens3/address", "r");
+#else
 	fd = fopen("/sys/class/net/eth0/address", "r");
+#endif
 
 	if (fd == NULL) {
 		return false;
@@ -524,7 +566,6 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 
 	return true;
 }
-
 
 /**************************************************************************//**
  * \brief       Read Long Counters Values
@@ -700,7 +741,6 @@ bool infra_clear_long_counters(uint32_t counter_index,
 	return true;
 }
 
-
 /**************************************************************************//**
  * \brief       Copy data to memory (IMEM/EMEM)
  *
@@ -735,6 +775,59 @@ bool infra_set_memory(struct ezdp_ext_addr *addr,
 		write_log(LOG_CRIT, "infra_set_memory: EZapiPrm_WriteMem failed.");
 		return false;
 	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Read real time clock from NPS
+ *
+ * \param[out]   rtc_result  - RTC read result
+ *
+ * \return      bool - success or failure
+ */
+bool infra_read_real_time_clock(struct read_real_time_clock_result  *rtc_result)
+{
+	EZapiChannel_RTCOperationParams  rtc_op_params;
+	EZstatus                         ret_val;
+
+	/* init variables */
+	memset(&rtc_op_params, 0, sizeof(rtc_op_params));
+	rtc_op_params.eOperation = EZapiChannel_RTCOperation_READ;
+
+	/* Read RTC */
+	ret_val = EZapiChannel_Config(REAL_TIME_CLOCK_CHANNEL_ID,
+				      EZapiChannel_ConfigCmd_ExecuteRTCOperation,
+				      &rtc_op_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_ConfigCmd_SetRTCParams failed");
+		return false;
+	}
+
+	/* convert result */
+	rtc_result->nano_seconds = rtc_op_params.uiNanoSeconds;
+	rtc_result->seconds      = rtc_op_params.uiSeconds;
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Read real time clock from NPS (seconds only)
+ *
+ * \param[out]  uint32_t seconds - NPS real time clock (seconds)
+ *
+ * \return      bool - success or failure
+ */
+bool infra_read_real_time_clock_seconds(uint32_t *seconds)
+{
+	/* get current time from NPS real time clock */
+	struct read_real_time_clock_result  rtc_result;
+
+	if (infra_read_real_time_clock(&rtc_result) == false) {
+		return false;
+	}
+
+	*seconds = rtc_result.seconds;
 
 	return true;
 }

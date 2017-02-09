@@ -41,7 +41,7 @@ class Sched_Info_Test(Unit_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		#servers 0-1 relate to the first service will be defined as sh
 		w = 1

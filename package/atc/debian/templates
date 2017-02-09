@@ -1,0 +1,27 @@
+Template: cp_args/port_type
+Type: select
+Choices: 10GE, 40GE, 100GE
+Default: 40GE
+Description: Please choose a port type:
+
+Template: cp_args/net_if_name
+Type: string
+Default: eth0
+Description: Please specify a network interface:
+
+Template: atc_args/if0
+Type: string
+Description: Please specify if0 name:
+
+Template: atc_args/if1
+Type: string
+Description: Please specify if1 name:
+
+Template: atc_args/if2
+Type: string
+Description: Please specify if2 name:
+
+Template: atc_args/if3
+Type: string
+Description: Please specify if3 name:
+

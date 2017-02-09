@@ -10,6 +10,7 @@ sys.path.append(my_parentdir)
 from common_infra import *
 from alvs_infra import *
 from unit_tester import Unit_Tester
+from alvs_players_factory import *
 
 server_count   = 0
 client_count   = 1
@@ -19,7 +20,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 	def change_config(self, config):
 		#need to turn off director
@@ -36,7 +37,7 @@ class Dp_Packet_To_Host_Test(Unit_Tester):
 		client_list = self.test_resources['client_list']
 		vip_list = self.test_resources['vip_list']
 		
-		mac_sa = client_list[0].get_mac_adress()
+		mac_sa = client_list[0].get_mac_address()
 	
 	####################################################################################################################
 	########### scenario 1: send an arp packet to the nps - packet should be send to host, not my mac ##################

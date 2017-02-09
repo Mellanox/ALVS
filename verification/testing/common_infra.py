@@ -14,10 +14,11 @@ import struct
 import socket
 import pprint
 import struct
-
+from multiprocessing import Process
 from pexpect import pxssh
 import pexpect
 from ftplib import FTP
+import zlib
 #from subprocess import check_output
 
 # pythons modules 
@@ -25,6 +26,7 @@ from cmd import Cmd
 from network_interface_enum import *
 cp_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../EZdk/tools/EZcpPyLib/lib"
 sys.path.append(cp_dir)
+print cp_dir
 from ezpy_cp import EZpyCP
 
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,10 +40,23 @@ STRUCT_ID_NW_FIB							= 2
 STRUCT_ID_NW_ARP							= 3
 STRUCT_ID_APPLICATION_INFO					= 11
 
+# TC structs
+STRUCT_ID_TC_CLASSIFIER						= 4
+STRUCT_ID_TC_ACTION_INFO					= 5
+STRUCT_ID_TC_MASK_BITMAP					= 6
+STRUCT_ID_TC_TIMESTAMPS						= 7
+STRUCT_ID_TC_RULES_LIST						= 8
+STRUCT_ID_TC_ACTION_EXTRA_INFO				= 11
+STRUCT_ID_TC_FILTER_ACTIONS					= 12		
 #===============================================================================
 # STATS DEFINES
 #===============================================================================
+TC_NUM_OF_ACTIONS_ON_DEMAND_STATS = 2
 NW_NUM_OF_IF_STATS			 = 20
+
+# TODO - handle more properly (value taken from ALVS_SERVER_STATS_ON_DEMAND_OFFSET
+TC_ACTIONS_ON_DEMAND_OFFSET = 2
+
 
 #===============================================================================
 # Classes
@@ -59,12 +74,11 @@ class arp_entry:
 
 class ezbox_host(object):
 	
-	def __init__(self, setup_id):
-
+	def __init__(self, setup_id, type):
+		self.type=type
 		self.setup = get_ezbox_names(setup_id)
 		self.ssh_object = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.run_app_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
-		
 		self.syslog_ssh = SshConnect(self.setup['host'], self.setup['username'], self.setup['password'])
 		self.cpe = EZpyCP(self.setup['host'], 1234)
 
@@ -83,13 +97,12 @@ class ezbox_host(object):
 			
 		if test_config['modify_run_cpus']:
 			self.service_start()
-			self.modify_run_cpus(cpus_range)
 			self.wait_for_dp_app()
+			self.modify_run_cpus(cpus_range)
 		
 		self.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
 		self.update_port_type("--port_type=%s " % (self.setup['nps_port_type']))
-		self.service_stop()
-		self.service_start()
+		self.service_restart()
 		self.wait_for_dp_app()
 
 
@@ -97,8 +110,8 @@ class ezbox_host(object):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
 		
 	def send_ping(self, ip):
-		self.ssh_object.sendline('ping -c1 -w10 '+ ip + ' > /dev/null 2>&1')
-		exit_code = self.get_execute_command_exit_code(False)
+		self.ssh_object.execute_command('ping -c1 -w10 '+ ip + ' > /dev/null 2>&1')
+		exit_code = self.ssh_object.get_execute_command_exit_code(False)
 		if(exit_code!=0):
 			raise Exception('commmand failed')
 
@@ -106,11 +119,11 @@ class ezbox_host(object):
 		return self.ssh_object.execute_chip_command(chip_cmd)
 	
 	def update_debug_params(self, params=None):
-		cmd = "find /etc/default/alvs | xargs grep -l DEBUG | xargs sed -i '/DEBUG=/c\DEBUG=\"%s\"' " %params
+		cmd = "find /etc/default/%s | xargs grep -l DEBUG | xargs sed -i '/DEBUG=/c\DEBUG=\"%s\"' " %(self.type,params)
 		self.execute_command_on_host(cmd)
 		
 	def update_port_type(self, params=None):
-		cmd = "find /etc/default/alvs | xargs grep -l PORT_TYPE | xargs sed -i '/PORT_TYPE=/c\PORT_TYPE=\"%s\"' " %params
+		cmd = "find /etc/default/%s | xargs grep -l PORT_TYPE | xargs sed -i '/PORT_TYPE=/c\PORT_TYPE=\"%s\"' " %(self.type,params)
 		self.execute_command_on_host(cmd)
 
 	def modify_run_cpus(self, cpus_range):
@@ -125,6 +138,7 @@ class ezbox_host(object):
 		self.execute_network_command("arp -s %s %s"%(ip_address, mac_address))
 
 	def connect(self):
+		process_list=[]
 		self.ssh_object.connect()
 		self.run_app_ssh.connect()
 		self.syslog_ssh.connect()
@@ -408,6 +422,247 @@ class ezbox_host(object):
 		
 		return lag_group
 	
+	def get_classifier_entry(self, filter_key):
+		res = str(self.cpe.cp.struct.lookup(STRUCT_ID_TC_CLASSIFIER, 0, {'key' : "%04x" % filter_key}).result["params"]["entry"]["result"]).split(' ')
+		classifier_result = {
+						 'priority' : (int(res[0], 16) >> 3) & 0x1,
+						 'action_index' : int(''.join(res[1]), 16),
+						 'rules_list_index' : '|'.join([str(int(x,16)) for x in res[2:10]]),
+							}
+		
+		return lag_group
+	
+	def get_all_classifier_entries(self):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_CLASSIFIER, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_CLASSIFIER, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_CLASSIFIER, iterator_params_dict).result['iterator_params']
+			
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'mask_bitmap (binary)' : bin(get_value_from_string_array(key, from_bit=0, to_bit=16, byte_offset=0)),
+					'ipv4_src_mask_val' : 	get_value_from_string_array(key, from_bit=0, to_bit=8, byte_offset=2),
+					'ipv4_dst_mask_val' : 	get_value_from_string_array(key, from_bit=0, to_bit=8, byte_offset=3),
+					'dst_mac' : 			hex(get_value_from_string_array(key, from_bit=0, to_bit=8*6, byte_offset=4)),
+					'src_mac' : 			hex(get_value_from_string_array(key, from_bit=0, to_bit=8*6, byte_offset=10)),
+					'ether_type' : 			hex(get_value_from_string_array(key, from_bit=0, to_bit=8*2, byte_offset=16)),
+					'src_ip' : 				hex(get_value_from_string_array(key, from_bit=0, to_bit=8*4, byte_offset=18)),
+					'dst_ip' : 				hex(get_value_from_string_array(key, from_bit=0, to_bit=8*4, byte_offset=22)),
+					'ip_proto' : 			get_value_from_string_array(key, from_bit=0, to_bit=8*1, byte_offset=26),
+					'ingress_interface' : 	get_value_from_string_array(key, from_bit=0, to_bit=8, byte_offset=27),
+					'l4_src_port (int)' : 	get_value_from_string_array(key, from_bit=0, to_bit=8*2, byte_offset=28),
+					'l4_dst_port (int)' : 	get_value_from_string_array(key, from_bit=0, to_bit=8*2, byte_offset=30),
+					'vlan_id (int)' : 	    get_value_from_string_array(key, from_bit=0, to_bit=12, byte_offset=32),
+					'vlan_prio (int)' : 	get_value_from_string_array(key, from_bit=12, to_bit=15, byte_offset=32),
+					  }
+			
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'priority' : get_value_from_string_array(result, from_byte=12, to_byte=16),
+					 'filter_actions_index' : get_value_from_string_array(result, from_byte=4, to_byte=8),
+					 'rules_list_index' : hex(get_value_from_string_array(result, from_byte=8, to_byte=12)), 
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_CLASSIFIER, iterator_params_dict)			 
+		return entries
+	
+	def get_all_masks_entries(self, interface=None, eth_type=None):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_MASK_BITMAP, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_MASK_BITMAP, channel_id = 0)).result['num_entries']['number_of_entries']
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_MASK_BITMAP, iterator_params_dict).result['iterator_params']
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'interface' : 	get_value_from_string_array(key, from_bit=0, to_bit=2, byte_offset=0),
+					'mask_index' : 	get_value_from_string_array(key, from_bit=2, to_bit=8, byte_offset=0),
+					  }
+
+			if interface!=None and key['interface'] != interface:
+				continue
+			
+			if eth_type!=None and key['eth_type'] != eth_type:
+				continue
+			
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'mask_bitmap (binary)' : bin(get_value_from_string_array(result, from_bit=0, to_bit=16, byte_offset=4)),
+					'ipv4_src_mask_val' : 		get_value_from_string_array(result, from_bit=0, to_bit=8, byte_offset=6),
+					'ipv4_dst_mask_val' : 		get_value_from_string_array(result, from_bit=0, to_bit=8, byte_offset=7),
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_MASK_BITMAP, iterator_params_dict)			 
+		return entries
+	
+	def get_all_actions_entries(self, first_index=None):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_ACTION_INFO, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_ACTION_INFO, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_ACTION_INFO, iterator_params_dict).result['iterator_params']
+			
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'action_index' : hex(get_value_from_string_array(key, from_bit=0, to_bit=32, byte_offset=0)),
+					  }
+
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'action_type' : 			get_value_from_string_array(result, from_bit=8, to_bit=16, byte_offset=0),
+					'control' : 				get_value_from_string_array(result, from_bit=16, to_bit=24, byte_offset=0),
+					'action_extra_data_index' : get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=4),
+					'action_stats' : 			hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=8)),
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+			entries_dictionary[int(key['action_index'],16)]=entry
+		
+		if first_index !=None:
+			entries = []
+			while True:
+				if first_index in entries_dictionary:
+					temp_entry = entries_dictionary[first_index]
+					entries.append(temp_entry)
+					first_index = int(temp_entry['next_action_index'],16)
+					if temp_entry['is_next_action_valid'] == 0:
+						break
+				else:
+					break
+					
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_ACTION_INFO, iterator_params_dict)			 
+		return [entries_dictionary, entries]
+	
+	def get_all_actions_extra_info_entries(self, first_index=None):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_ACTION_EXTRA_INFO, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_ACTION_EXTRA_INFO, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_ACTION_EXTRA_INFO, iterator_params_dict).result['iterator_params']
+			
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'action_index' : hex(get_value_from_string_array(key, from_bit=0, to_bit=32, byte_offset=0)),
+					  }
+
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'is_next_action_valid' : 	get_value_from_string_array(result, from_bit=4, to_bit=5, byte_offset=0),
+					'mask' : 					hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=4)),
+					'val' : 					hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=8)),
+					'off' : 					hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=12)),
+					'at' : 						hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=16)),
+					'offmask' : 				hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=20)),
+					'shift' : 					hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=24)),
+					'next_key_index' : 			hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=28)),			 
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+			entries_dictionary[int(key['action_index'],16)]=entry
+		
+		if first_index !=None:
+			entries = []
+			while True:
+				if first_index in entries_dictionary:
+					temp_entry = entries_dictionary[first_index]
+					entries.append(temp_entry)
+					first_index = int(temp_entry['next_key_index'],16)
+					if temp_entry['is_next_action_valid'] == 0:
+						break
+				else:
+					break
+					
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_ACTION_EXTRA_INFO, iterator_params_dict)			 
+		return [entries_dictionary, entries]
+	
+	def get_all_filter_actions_entries(self):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_FILTER_ACTIONS, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_FILTER_ACTIONS, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_FILTER_ACTIONS, iterator_params_dict).result['iterator_params']
+			
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'filter_actions_index' : hex(get_value_from_string_array(key, from_bit=0, to_bit=32, byte_offset=0)),
+					  }
+
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'next_filter_actions_index' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=4),
+					 'action_index[0]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=8),
+					 'action_index[1]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=12),
+					 'action_index[2]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=16),
+					 'action_index[3]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=20),
+					 'action_index[4]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=24),
+					 'action_index[5]' : 	get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=28),
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+			entries_dictionary[int(key['filter_actions_index'],16)]=entry
+					
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_FILTER_ACTIONS, iterator_params_dict)			 
+		return [entries_dictionary, entries]
+	
+	def get_all_rules_list_entries(self, first_index=None):
+		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_TC_RULES_LIST, { 'channel_id': 0 })).result['iterator_params']
+		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_TC_RULES_LIST, channel_id = 0)).result['num_entries']['number_of_entries']
+
+		entries_dictionary = {}
+		entries = []
+		for i in range(0, num_entries):
+			iterator_params_dict = self.cpe.cp.struct.iterator_get_next(STRUCT_ID_TC_RULES_LIST, iterator_params_dict).result['iterator_params']
+			
+			key = str(iterator_params_dict['entry']['key']).split(' ')
+
+			key = {'rule_index' : hex(get_value_from_string_array(key, from_bit=0, to_bit=32, byte_offset=0)),
+					  }
+
+			result = str(iterator_params_dict['entry']['result']).split(' ')
+			
+			entry = {'is_next_rule_valid' : 	get_value_from_string_array(result, from_bit=4, to_bit=5, byte_offset=0),
+					'filter_actions_index' : 			hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=4)),
+					'next_rule_index' : 		hex(get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=8)),
+					'priority' : 				get_value_from_string_array(result, from_bit=0, to_bit=32, byte_offset=12),
+					 'key' : key,
+					  }
+
+			entries.append(entry)
+			entries_dictionary[int(key['rule_index'],16)]=entry
+		
+		if first_index !=None:
+			entries = []
+			while True:
+				if first_index in entries_dictionary:
+					temp_entry = entries_dictionary[first_index]
+					entries.append(temp_entry)
+					first_index = int(temp_entry['next_rule_index'],16)
+					if temp_entry['is_next_rule_valid'] == 0:
+						break
+				else:
+					break
+					
+		self.cpe.cp.struct.iterator_delete(STRUCT_ID_TC_RULES_LIST, iterator_params_dict)			 
+		return entries
+	
 	def get_all_arp_entries(self):
 		iterator_params_dict = (self.cpe.cp.struct.iterator_create(STRUCT_ID_NW_ARP, { 'channel_id': 0 })).result['iterator_params']
 		num_entries = (self.cpe.cp.struct.get_num_entries(STRUCT_ID_NW_ARP, channel_id = 0)).result['num_entries']['number_of_entries']
@@ -474,6 +729,28 @@ class ezbox_host(object):
 #		 self.ssh_object.prompt()			   # match the prompt
 #		 output = self.ssh_object.before		# print everything before the prompt.
 #		 logging.log(logging.DEBUG, output)
+	
+	def get_actions_statistics(self, action_index=None):
+		
+		counter_offset = TC_ACTIONS_ON_DEMAND_OFFSET + action_index * TC_NUM_OF_ACTIONS_ON_DEMAND_STATS
+		packet_stats =  self.cpe.cp.stat.get_long_counter_values(channel_id=0, 
+																				partition=0, 
+																				range=1, 
+		                                             							start_counter=counter_offset, 
+		                                             	    					num_counters=1, 
+		                                             		  	     			read=0, 
+		                                             		  	     			use_shadow_group=0).result['long_counter_config']['counters']
+
+		bytes_stats =  self.cpe.cp.stat.get_long_counter_values(channel_id=0, 
+																				partition=0, 
+																				range=1, 
+		                                             							start_counter=counter_offset+1, 
+		                                             	    					num_counters=1, 
+		                                             		  	     			read=0, 
+		                                             		  	     			use_shadow_group=0).result['long_counter_config']['counters']
+
+		return [packet_stats[0]['value'], bytes_stats[0]['value']]
+		
 
 	def get_interface_stats(self, interface_id):
 		if interface_id < 0 or interface_id > NUM_OF_INTERFACES:
@@ -786,20 +1063,17 @@ class player(object):
 	def change_interface(self, interface):
 		self.ip = self.all_ips[interface]
 		self.interface = interface
-		
-		
+	
 	def send_ping(self, ip, timeout=10, count=1, size=56):
 		cmd = 'ping -c%s -w%s -s%s %s > /dev/null 2>&1' % (count, timeout, size, ip)
-		self.ssh.ssh_object.sendline(cmd)
-		self.ssh.ssh_object.prompt(timeout=120)
+		self.execute_command(cmd)
 		exit_code = self.ssh.get_execute_command_exit_code()
 		return exit_code
 	
 	def capture_packets(self, params):
 		cmd = 'pkill -HUP -f tcpdump;' + params
 		logging.log(logging.DEBUG,"running command:\n"+cmd)
-		self.ssh.ssh_object.sendline(cmd)
-		self.ssh.ssh_object.prompt()
+		self.execute_command(cmd)
 	
 	def stop_capture(self):
 		cmd = 'pkill -HUP -f tcpdump'
@@ -813,6 +1087,9 @@ class player(object):
 		
 		num_of_packets_received = check_packets_on_pcap(self.dump_pcap_file, self.ssh.ssh_object)
 		
+		cmd = 'rm -f ' + self.dump_pcap_file
+		self.ssh.ssh_object.sendline(cmd)
+		
 		return num_of_packets_received
 	
 	def read_ifconfig(self):
@@ -823,20 +1100,20 @@ class player(object):
 		return exit_code
 	
 	def ifconfig_eth_up(self, eth_up):
-		result, exit_code = self.ssh.execute_command("ifup " + eth_up + " --force")
-		result2, exit_code2 = self.ssh.execute_command("ifconfig " + eth_up + " up")
+		result, exit_code = self.execute_command("ifup " + eth_up + " --force")
+		result2, exit_code2 = self.execute_command("ifconfig " + eth_up + " up")
 		if result == False and result2 == False:
 			err_msg = "Error: command ifup " + eth_up + " failed, exit code: \n%s" %exit_code
 			raise RuntimeError(err_msg)
 
 	def ifconfig_eth_down(self, eth_down):
-		result, exit_code = self.ssh.execute_command("ifdown " + eth_down + " --force")
-		result2, exit_code2 = self.ssh.execute_command("ifconfig " + eth_down + " down")
+		result, exit_code = self.execute_command("ifdown " + eth_down + " --force")
+		result2, exit_code2 = self.execute_command("ifconfig " + eth_down + " down")
 		if result == False and result2 == False:
 			err_msg = "Error: command ifdown " + eth_down + " failed, exit code: \n%s" %exit_code
 			raise RuntimeError(err_msg)
 
-	def get_mac_adress(self):
+	def get_mac_address(self):
 		[result, mac_address] = self.execute_command("cat /sys/class/net/" + self.eth + "/address")
 		if result == False:
 			print "Error while retreive local address"
@@ -880,8 +1157,15 @@ class player(object):
 		cmd = "sshpass -p " + self.password + " scp " + filename + " " + self.username + "@" + self.hostname + ":" + dest
 		rc =  os.system(cmd)
 		if rc:
-			err_msg =  "ERROR: failed to copy %s to %s" %(filename, dest)
-			raise RuntimeError(err_msg)
+			print "ERROR: failed to copy %s to %s" %(filename, dest)
+		return rc
+	
+	def copy_file_from_player(self, filename, dest):
+		cmd = "sshpass -p " + self.password + " scp " + self.username + "@" + self.hostname + ":" + filename + " " + dest
+		rc =  os.system(cmd)
+		if rc:
+			print "ERROR: failed to copy %s to %s" %(filename, dest)
+		return rc
 
 class Host(player):
 	def __init__(self, hostname, all_eths,
@@ -898,19 +1182,19 @@ class Host(player):
 								 exe_path, exe_script, exec_params, dump_pcap_file)
 		# Init class variables
 		self.pcap_files = []
-		self.mac_adress = None
+		self.mac_address = None
 	
 	def init_host(self):
 		self.connect()
 		self.config_interface()
-		self.mac_adress= self.get_mac_adress()
-	
+		self.mac_address= self.get_mac_address()
+		
 	def clean_host(self):
 		self.logout()
 
 	def copy_and_send_pcap(self, pcap_file):
-		copy_pcap(pcap_file)
-		send_pcap(pcap_file)
+		self.copy_pcap(pcap_file)
+		self.send_pcap(pcap_file)
 
 	def copy_pcap(self, pcap_file):
 		logging.log(logging.DEBUG,"Copy packet")
@@ -956,10 +1240,6 @@ class Host(player):
 		pcap_to_send = create_pcap_file(packets_list=packet_list_to_send, output_pcap_file_name=dir + 'verification/testing/dp/temp_packet_%s.pcap'%self.ip)
 		self.pcap_files.append(pcap_to_send)
 		self.send_packet(pcap_to_send)
-	
-	def capture_packets_on_host(self):
-		params = ' tcpdump -w ' + self.dump_pcap_file + ' -n -i ' + self.eth + ' ether host ' + self.mac_address + ' &'
-		self.capture_packets(params)
 
 
 class tcp_packet:
@@ -986,16 +1266,23 @@ class tcp_packet:
 		self.packet = ''
 		self.pcap_file_name = ALVSdir + '/verification/testing/dp/pcap_files/packet' + str(self.packets_counter) + '.pcap'
 		tcp_packet.packets_counter += 1
+		self.replace_mac()
+		
+	def replace_mac(self):
+		self.mac_da = self.mac_da.replace(':',' ')
+		self.mac_sa = self.mac_sa.replace(':',' ')
 	
 	def generate_packet(self):
 		logging.log(logging.DEBUG, "generating the packet, packet size is %d"%self.packet_length)
 		l2_header = self.mac_da + ' ' + self.mac_sa + ' ' + '08 00'
-		data = '45 00 00 2e 00 00 40 00 40 06 00 00 ' + self.ip_src + ' ' + self.ip_dst  
+		total_len = '28' #dec-40
+		data = '45 00 00 ' + total_len + ' 00 00 40 00 40 06 00 00 ' + self.ip_src + ' ' + self.ip_dst  
 		data = data.split()
 		data = map(lambda x: int(x,16), data)
 		ip_checksum = checksum(data)
 		ip_checksum = '%04x'%ip_checksum
-		ip_header = '45 00 00 2e 00 00 40 00 40 06 ' + ip_checksum[0:2] + ' ' + ip_checksum[2:4] + ' ' + self.ip_src + ' ' + self.ip_dst
+		
+		ip_header = '45 00 00 ' + total_len + ' 00 00 40 00 40 06 ' + ip_checksum[0:2] + ' ' + ip_checksum[2:4] + ' ' + self.ip_src + ' ' + self.ip_dst
 		
 		flag = 0
 		if self.tcp_fin_flag:
@@ -1007,21 +1294,27 @@ class tcp_packet:
 		flag = '%02x'%flag
 
 		data = self.tcp_source_port + ' ' + self.tcp_dst_port + ' 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC 00 00 00 00'
+		data = self.ip_src + ' ' + self.ip_dst + ' 00 06 00 14 ' + data
 		data = data.split()
 		data = map(lambda x: int(x,16), data)
 		tcp_checksum = checksum(data)
 		tcp_checksum = '%04x'%tcp_checksum
 		tcp_header = self.tcp_source_port + ' ' + self.tcp_dst_port + ' 00 00 00 00 00 00 00 00 50 ' + flag + ' FF FC ' + tcp_checksum[0:2] + ' ' + tcp_checksum[2:4] + ' 00 00'
-		
+
 		packet = l2_header + ' ' + ip_header + ' ' + tcp_header
+		
 		temp_length = len(packet.split())
-		zero_padding_length = self.packet_length - temp_length
+		zero_padding_length = self.packet_length - temp_length - 4 
 		for i in range(zero_padding_length):
 			packet = packet + ' 00'
 		
+		crc = hex(zlib.crc32(packet) % 2**32)
+		crc = int(crc, 16)
+		crc = '%08x'%crc
+		packet = packet + ' ' + crc[0:2] + ' ' + crc[2:4] + ' ' + crc[4:6] + ' ' + crc[6:8]
+		
 		self.packet = packet[:]
 		string_to_pcap_file(self.packet, self.pcap_file_name)
-		
 		return self.packet
 
 
@@ -1080,12 +1373,12 @@ def change_switch_lag_mode(setup_num, enable_lag = True):
 				if(enable_lag):
 					# create port channel
 					execute_command_on_switch(dict['ip'], 'interface port-channel %s'%dict['port_channel'])
-					execute_command_on_switch(dict['ip'], 'interface port-channel %s\" \"switchport access vlan 101'%dict['port_channel'])
+					execute_command_on_switch(dict['ip'], 'interface port-channel %s\" \"switchport access vlan 1'%dict['port_channel'])
 					# add ports to port channel without vlans
 					for port in dict['ports']:
 						port = 'interface ethernet 1/%s\" \"'%port
 						execute_command_on_switch(dict['ip'], port + 'switchport mode access')
-						execute_command_on_switch(dict['ip'], port + 'switchport access vlan 101')
+						execute_command_on_switch(dict['ip'], port + 'switchport access vlan 1')
 						execute_command_on_switch(dict['ip'], port + 'channel-group %s mode on'%dict['port_channel'])
 				else:
 					for index, port in enumerate(dict['ports']):
@@ -1311,5 +1604,55 @@ def checksum(msg):
 		w = msg[i+1] + (msg[i] << 8)
 		s = carry_around_add(s, w)
 	return ~s & 0xffff
+
+def get_value_from_string_array(str, from_bit=None, to_bit=None, byte_offset=0, from_byte=None, to_byte=None):
+	
+	if from_byte!=None and from_bit == None:
+		from_bit=from_byte*8
+		
+	if to_byte!=None and to_bit == None:
+		to_bit=(to_byte*8)
+		
+	bit_length = to_bit-from_bit
+	
+	from_byte = byte_offset + from_bit/8
+	
+	
+	to_byte = byte_offset + (to_bit/8)
+	if to_bit%8 != 0:
+		to_byte += 1
+	
+	temp = int(''.join(str[from_byte:to_byte]),16)
+	
+	temp = temp >> (((to_byte-byte_offset)*8)-to_bit)
+	temp = temp & ((2**bit_length)-1)
+	return temp
+
+def dict_to_string(dict):
+	st=""
+	for key,val in dict.iteritems():
+		st = st + key + " " + str(val) + " "
+	return st
+	
+def list_to_string(list):
+	if list:
+		return ' '.join(list)
+	return ''
+
+
+def start_and_wait_for_processes(process_list):
+	# run all proccesses
+	for p in process_list:
+		p.start()
+		
+	# Wait for all proccess to finish
+	for p in process_list:
+		p.join()
+		
+	for p in process_list:
+		if p.exitcode:
+			print p, p.exitcode
+			exit(p.exitcode)	
+
 
 

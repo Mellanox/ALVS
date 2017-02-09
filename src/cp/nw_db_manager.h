@@ -42,6 +42,8 @@
 #include <netlink/route/link.h>
 #include <netlink/route/addr.h>
 
+extern int if_map_by_index[4];
+
 /* NW DB manager operations for ARP\FIB\IFC control.
  * Called on netlink changes with libnl structs and should initiate the relevant NW APIs.
  * On false return value, nw_db_manager will exit with an error.
@@ -92,5 +94,19 @@ void nw_db_manager_main(struct nw_db_manager_ops *nw_dp_ops);
  * \return   void
  */
 void nw_db_manager_exit_with_error(void);
+
+/******************************************************************************
+ * \brief    bring up NPS interfaces
+ *
+ * \return   bool
+ */
+bool nw_db_manager_nps_interfaces_bringup(void);
+
+/******************************************************************************
+ * \brief    get nps IF index from linux if index
+ *
+ * \return   int32
+ */
+extern int32_t if_lookup_by_index(int  linux_index);
 
 #endif /* CP_NW_DB_MANAGER_H_ */

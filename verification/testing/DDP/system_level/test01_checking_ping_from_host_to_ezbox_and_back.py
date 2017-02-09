@@ -24,7 +24,7 @@ class Test1(DDP_Tester):
 	def user_init(self, setup_num):
 			print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 			
-			self.test_resources = generic_init_ddp(setup_num, host_count)
+			self.test_resources = DDP_Players_Factory.generic_init_ddp(setup_num, host_count)
 			
 			for host in self.test_resources['host_list']:
 				host.change_interface(Network_Interface.SUBNET1)

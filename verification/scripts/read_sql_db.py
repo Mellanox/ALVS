@@ -21,6 +21,7 @@ local_dir = os.getcwd()
 # copy from ezbox to our vm
 os.system("sshpass -p ezchip scp root@%s-host:/alvs.db %s/alvs_tmp.db"%(sys.argv[1], local_dir))
 os.system("sshpass -p ezchip scp root@%s-host:/nw.db %s/nw_tmp.db"%(sys.argv[1], local_dir))
+os.system("sshpass -p ezchip scp root@%s-host:/tc_flower.db %s/tc_tmp.db"%(sys.argv[1], local_dir))
 
 alvs_tables = os.popen('/swgwork/tomeri/sandbox/sqlite3 %s/alvs_tmp.db ".tables"'%local_dir)
 alvs_tables = alvs_tables.read().split()
@@ -30,10 +31,20 @@ nw_tables = os.popen('/swgwork/tomeri/sandbox/sqlite3 %s/nw_tmp.db ".tables"'%lo
 nw_tables = nw_tables.read().split()
 print "\nTables on nw.db: %s\n"%nw_tables
 
+tc_tables = os.popen('/swgwork/tomeri/sandbox/sqlite3 %s/tc_tmp.db ".tables"'%local_dir)
+tc_tables = tc_tables.read().split()
+print "\nTables on tc.db: %s\n"%tc_tables
+
 for table in alvs_tables:
 	if table in sys.argv:
 		print "\nTable %s:\n"%table
 		os.system('/swgwork/tomeri/sandbox/sqlite3 -header %s %s/alvs_tmp.db "select * from %s"'%(column_or_line,local_dir, table))
+
+for table in tc_tables:
+	if table in sys.argv:
+		print "\nTable %s:\n"%table
+		os.system('/swgwork/tomeri/sandbox/sqlite3 -header %s %s/tc_tmp.db "select * from %s"'%(column_or_line,local_dir, table))
+	
 		
 for table in nw_tables:
 	if table in sys.argv:
@@ -45,3 +56,4 @@ for table in nw_tables:
 
 os.system("rm -f %s/alvs_tmp.db"%local_dir)
 os.system("rm -f %s/nw_tmp.db"%local_dir)
+# os.system("rm -f %s/tc_tmp.db"%local_dir)

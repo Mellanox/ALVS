@@ -111,7 +111,6 @@ reload_configuration()
 	systemctl daemon-reload > /dev/null 2>&1
 	[ "$?" = 0 ] && service rsyslog restart > /dev/null 2>&1
 	[ "$?" = 0 ] && sysctl -p /etc/sysctl.d/anl.conf > /dev/null 2>&1
-	[ "$?" = 0 ] && service networking restart > /dev/null 2>&1
 	return $?
 }
 

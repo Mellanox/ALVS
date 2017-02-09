@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 {
 	struct cli_msg	 cli;
 	struct cli_msg	 rcv_cli;
-	int32_t		 rcv_cli_len;
+	int32_t		 rcv_len;
 	int32_t		 written_len;
 	bool		 rc;
 
@@ -177,11 +177,25 @@ int main(int argc, char *argv[])
 	/************************************************/
 	/* Read response                                */
 	/************************************************/
-	rcv_cli_len = read_message(&rcv_cli, sockfd);
-	print_dbg("rcv_cli_len %d\n", rcv_cli_len);
-	if (rcv_cli_len < 0) {
-		error("read_message failed");
+READ_MESSAGE:
+	/* read header */
+	rcv_len = read_message((uint8_t *)&rcv_cli.header,
+			       sockfd,
+			       sizeof(rcv_cli.header));
+	print_dbg("Header read. rcv_len %d\n", rcv_len);
+	if (rcv_len < 0) {
+		error("read header failed");
 	}
+
+	/* read payload */
+	rcv_len = read_message((uint8_t *)&rcv_cli.payload,
+			       sockfd,
+			       rcv_cli.header.len);
+	print_dbg("Payload read. rcv_len %d\n", rcv_len);
+	if (rcv_len < 0) {
+		error("read payload failed");
+	}
+
 
 	/************************************************/
 	/* handle response                              */
@@ -190,6 +204,16 @@ int main(int argc, char *argv[])
 	rc = handle_response(&rcv_cli);
 	if (rc == false) {
 		error("handle response failed");
+	}
+
+	/************************************************/
+	/* check if need to read more messages          */
+	/************************************************/
+	if (rcv_cli.header.is_last == 0) {
+		/* read next message */
+		print_dbg("is_last = %d. reading next message\n",
+			  rcv_cli.header.is_last);
+		goto READ_MESSAGE;
 	}
 
 	/* finish successfully */

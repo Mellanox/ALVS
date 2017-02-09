@@ -31,7 +31,7 @@ request_count = 10
 server_count = 2
 client_count = 1
 service_count = 1
-
+from alvs_players_factory import *
 
 
 #===============================================================================
@@ -42,7 +42,7 @@ class Test22(ALVS_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		for s in self.test_resources['server_list']:
 			s.vip = self.test_resources['vip_list'][0]

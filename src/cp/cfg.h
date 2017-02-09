@@ -39,6 +39,17 @@
 #define SRC_CP_CFG_H_
 
 #include <EZapiChannel.h>
+#include <stdbool.h>
+
+#define IF_NAME_MAX_LENGTH 64
+
+#if 0
+struct if_info {
+	char	name[IF_NAME_MAX_LENGTH];
+	char	ip_addr[IF_NAME_MAX_LENGTH];
+	char	netmask[IF_NAME_MAX_LENGTH];
+};
+#endif
 
 /**************************************************************************//**
  * \brief       initialize internal configuration data structure
@@ -136,5 +147,27 @@ char *system_cfg_get_dp_bin_file(void);
  */
 char *system_cfg_get_run_cpus(void);
 
+/**************************************************************************//**
+ * \brief       get if name
+ *
+ * \return      string that contains if  name
+ */
+char *system_cfg_get_if_name(int if_id);
+
+#if 0
+/**************************************************************************//**
+ * \brief       get data_if string
+ *
+ * \return      string that contains Main linux data interface
+ */
+char *system_cfg_get_data_if(void);
+
+/**************************************************************************//**
+ * \brief       get nps_if string
+ *
+ * \return      a pointer to if_info struct
+ */
+struct if_info *system_cfg_get_nps_if(int if_id);
+#endif
 
 #endif /* SRC_CP_CFG_H_ */

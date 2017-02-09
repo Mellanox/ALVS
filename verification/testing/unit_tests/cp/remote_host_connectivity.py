@@ -23,7 +23,7 @@ service_count  = 0
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	dict = generic_init(setup_num, service_count, server_count, client_count)
+	dict = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 	
 	return dict
 

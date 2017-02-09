@@ -8,7 +8,7 @@ Homepage: http://www.mellanox.com
 
 Package: alvs
 Architecture: any
-Conflicts: tc, ddp
+Conflicts: atc, ddp
 Depends: ipvsadm, libnl-3-200, debconf (>= 0.2.17)
 Homepage: http://www.mellanox.com
 Description: ALVS is Accelerated Linux Virtual Server (LVS).

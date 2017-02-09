@@ -14,7 +14,7 @@ import sys
 import inspect
 from multiprocessing import Process
 from alvs_tester_class import ALVS_Tester
-
+from alvs_players_factory import *
 
 # pythons modules 
 # local
@@ -37,7 +37,7 @@ class Test3(ALVS_Tester):
 		service_count = 1
 		global  g_setup_num 
 		g_setup_num = setup_num
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		for s in self.test_resources['server_list']:
 			s.vip = self.test_resources['vip_list'][0]

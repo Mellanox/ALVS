@@ -92,7 +92,7 @@ function set_project_flags()
 	elif [ "$project_name" == "ddp" ];then
 	    project_flag="CONFIG_DDP"
 	    project_products="*.deb bin/libfp* bin/synca"
-	elif [ "$project_name" == "tc" ];then
+	elif [ "$project_name" == "atc" ];then
         project_flag="CONFIG_TC"	 
 	else
         echo "ERROR: invalid project name $project_name"
@@ -352,7 +352,7 @@ function update_release_dir()
 { 
     echo -e "\n======= Copy build products to release folder ========="
 
-	target_vm="gen-l-vrt-232-005"
+	target_vm="gen-l-vrt-build11"
 	relative_products_path="products/*"
 
 	cd $wa_path

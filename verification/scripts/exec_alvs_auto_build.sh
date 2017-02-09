@@ -46,7 +46,7 @@ echo "=========================== exec wrapper ================================"
 
 parse_cmd $@
 
-target_vm="gen-l-vrt-232-005"
+target_vm="gen-l-vrt-build11"
 echo "connecting to $target_vm"
 ssh nps_jenkins@$target_vm "/mswg/release/nps/solutions/auto_build.sh $git_project $git_branch $base_commit_num $local_auto_build; exit"
 if [ $? -eq 0 ]; then

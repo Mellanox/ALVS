@@ -58,6 +58,11 @@
 #include "nw_db_manager.h"
 
 
+#ifdef CONFIG_TC
+#include "tc_api.h"
+#include "tc_manager.h"
+#endif  /* def CONFIG_TC */
+
 /* Function Definition */
 void nw_db_manager_init(void);
 void nw_db_manager_delete(void);
@@ -87,6 +92,7 @@ extern bool cancel_application_flag;
 #define NW_DB_MANAGER_NEIGHBOR_FILTERED_STATE \
 	(NUD_INCOMPLETE | NUD_FAILED | NUD_NOARP)
 
+
 /******************************************************************************
  * \brief    a helper function for nl address print
  *
@@ -104,7 +110,6 @@ char *nl_addr_to_str(struct nl_addr *addr)
 	memset(buf, 0, sizeof(bufs[0]));
 	return nl_addr2str(addr, buf, sizeof(bufs[0]));
 }
-
 
 /******************************************************************************
  * \brief	  Network thread main application.

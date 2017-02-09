@@ -46,9 +46,106 @@
 #include "infrastructure.h"
 #include "infrastructure_utils.h"
 #include "nw_search_defs.h"
-#include "nw_conf.h"
 #include "nw_db.h"
 #include "cfg.h"
+
+#if 0
+/******************************************************************************
+ * \brief    configure all NPS interfaces (using macvlan)
+ *
+ * \return   bool
+ */
+bool init_nps_interfaces_bringup(void)
+{
+	int rc, port_id;
+	char temp[256];
+	struct if_info *if_info;
+
+	for (port_id = 0; port_id < NW_IF_NUM; port_id++) {
+		if_info = system_cfg_get_nps_if(port_id);
+		snprintf(temp, sizeof(temp), "ip li add link %s %s type macvlan", system_cfg_get_data_if(), if_map_by_name[port_id]);
+		write_log(LOG_INFO, " %s ", temp);
+		rc = system(temp);
+		if (rc != 0) {
+			write_log(LOG_CRIT, "unable to bring up macvlan %s on %s rc = 0x%08x", if_map_by_name[port_id], system_cfg_get_data_if(), rc);
+			return false;
+		}
+		snprintf(temp, sizeof(temp), "ifconfig %s %s netmask %s", if_map_by_name[port_id], if_info->ip_addr, if_info->netmask);
+		write_log(LOG_INFO, " %s ", temp);
+		rc = system(temp);
+		if (rc != 0) {
+			write_log(LOG_CRIT, "unable to bring up macvlan %s on %s rc = 0x%08x", if_map_by_name[port_id], system_cfg_get_data_if(), rc);
+			return false;
+		}
+		snprintf(temp, sizeof(temp), "echo 2 > /proc/sys/net/ipv4/conf/%s/arp_announce",  if_map_by_name[port_id]);
+		rc = system(temp);
+		if (rc != 0) {
+			write_log(LOG_CRIT, "unable to set macvlan %s arp_announce to 2", if_map_by_name[port_id]);
+			return false;
+		}
+
+		snprintf(temp, sizeof(temp), "echo 1 > /proc/sys/net/ipv4/conf/%s/arp_ignore",  if_map_by_name[port_id]);
+		rc = system(temp);
+		if (rc != 0) {
+			write_log(LOG_CRIT, "unable to set macvlan %s to arp ignore  1", if_map_by_name[port_id]);
+			return false;
+		}
+	}
+
+	/*data IF configuration*/
+	snprintf(temp, sizeof(temp), "echo 2 > /proc/sys/net/ipv4/conf/%s/arp_announce",  system_cfg_get_data_if());
+	rc = system(temp);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "unable to set macvlan %s arp_announce to 2",  system_cfg_get_data_if());
+		return false;
+	}
+
+	snprintf(temp, sizeof(temp), "echo 1 > /proc/sys/net/ipv4/conf/%s/arp_ignore",   system_cfg_get_data_if());
+	rc = system(temp);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "unable to set macvlan %s to arp ignore  1",  system_cfg_get_data_if());
+		return false;
+	}
+
+	/*general ARP configuration*/
+	snprintf(temp, sizeof(temp), "echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore");
+	rc = system(temp);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "unable to set all ports to arp ignore  1");
+		return false;
+	}
+
+	snprintf(temp, sizeof(temp), "echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce");
+	rc = system(temp);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "unable to set all arp_announce to 2");
+		return false;
+	}
+
+	write_log(LOG_INFO, "all NPS interfaces are configured");
+
+	return true;
+}
+#endif
+
+/******************************************************************************
+ * \brief       init if map by name array according to user input
+ *
+ * \param[in]   if_name - interface name
+ *
+ * \return      void
+ */
+void init_if_naming_array(void)
+{
+	int i;
+
+	for (i = 0; i < NW_IF_NUM; i++) {
+		if (system_cfg_get_if_name(i) != NULL) {
+			if_map_by_name[i] = malloc(strlen(system_cfg_get_if_name(i)));
+			strcpy(if_map_by_name[i], system_cfg_get_if_name(i));
+		}
+	}
+}
 
 bool nw_initialize_protocol_decode(void)
 {
@@ -92,6 +189,9 @@ static void build_nw_if_apps(struct nw_if_apps *nw_if_apps)
 	nw_if_apps->alvs_en = 0;
 #ifdef CONFIG_ALVS
 	nw_if_apps->alvs_en = 1;
+#endif
+#ifdef CONFIG_TC
+	nw_if_apps->tc_en = 1;
 #endif
 
 	nw_if_apps->routing_en = (system_cfg_is_routing_app_en() == true) ? 1 : 0;
@@ -214,7 +314,14 @@ bool nw_initialize_if_table(void)
 	if_result.sft_en = (system_cfg_is_qos_app_en() == true || system_cfg_is_firewall_app_en() == true) ? 1 : 0;
 	if_result.path_type = DP_PATH_FROM_NW_PATH;
 	if_result.is_direct_output_lag = 0;
-	if_result.admin_state          = false;
+#if EZ_SIM
+	uint8_t temp_mac_address[6] = {0x00, 0x12, 0x34, 0x56, 0x78, 0x9a}; /* dummy mac */
+
+	memcpy(&if_result.mac_address, temp_mac_address, sizeof(struct ether_addr));
+	if_result.admin_state  = true;
+#else
+	if_result.admin_state  = false;
+#endif
 	for (ind = 0; ind < NW_IF_NUM; ind++) {
 		/* set key */
 		if_key.logical_id = NW_BASE_LOGICAL_ID + ind;
@@ -235,7 +342,11 @@ bool nw_initialize_if_table(void)
 		if_db_entry.logical_id   = if_key.logical_id;
 		if_db_entry.is_lag       = system_cfg_is_lag_en();
 		if_db_entry.lag_group_id = ((system_cfg_is_lag_en()) ? LAG_GROUP_DEFAULT : LAG_GROUP_NULL);
+#if EZ_SIM
+		if_db_entry.admin_state  = true;
+#else
 		if_db_entry.admin_state  = false;
+#endif
 		if_db_entry.app_bitmap   = if_result.app_bitmap;
 		if_db_entry.direct_output_if = if_result.direct_output_if;
 		if_db_entry.is_direct_output_lag = if_result.is_direct_output_lag;
@@ -267,6 +378,7 @@ bool nw_initialize_tables(void)
 		write_log(LOG_CRIT, "nw_initialize_tables failed: nw_initialize_lag_table returned error.");
 		return false;
 	}
+
 	return true;
 }
 
@@ -438,6 +550,16 @@ bool nw_constructor(void)
 		return false;
 	}
 
+	init_if_naming_array();
+
+#if 0
+	/************************************************/
+	/*         configure NPS mac interfaces         */
+	/************************************************/
+	init_nps_interfaces_bringup();
+#endif
+
+
 	return true;
 }
 
@@ -448,5 +570,20 @@ bool nw_constructor(void)
  */
 void nw_destructor(void)
 {
+	int port_id;
+#if 0
+	char temp[256];
+#endif
+
+	for (port_id = 0; port_id < NW_IF_NUM; port_id++) {
+		if (if_map_by_name[port_id]) {
+#if 0
+			snprintf(temp, sizeof(temp), "ip link delete %s", if_map_by_name[port_id]);
+			(void)system(temp);
+#endif
+			free(if_map_by_name[port_id]);
+		}
+	}
+
 	nw_db_destroy();
 }

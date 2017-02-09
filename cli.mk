@@ -10,16 +10,18 @@ CLI_APP_C_SRCS = src/common/cli_common.c \
 ifdef CONFIG_ALVS
 CLI_APP_C_SRCS += src/cli/alvs_cli.c
 endif
-ifdef CONFIG_TC
-CLI_APP_C_SRCS += src/cli/tc_cli.c
+ifdef CONFIG_ATC
+CLI_APP_C_SRCS +=	src/cli/tc_cli.c \
+					src/common/tc_linux_utils.c \
+					src/common/tc_common_utils.c
 endif
 
 
 ifdef CONFIG_ALVS
 	APP_NAME := alvs
 endif
-ifdef CONFIG_TC
-	APP_NAME := tc
+ifdef CONFIG_ATC
+	APP_NAME := atc
 endif
 
 CLI_APP_OBJS = $(patsubst %.c,build/$(APP_NAME)/%.o,$(CLI_APP_C_SRCS)) 
@@ -40,7 +42,7 @@ endif
 ifdef CONFIG_ALVS
 	CLI_APP_C_FLAGS += -DCONFIG_ALVS
 endif
-ifdef CONFIG_TC
+ifdef CONFIG_ATC
 	CLI_APP_C_FLAGS += -DCONFIG_TC
 endif
 

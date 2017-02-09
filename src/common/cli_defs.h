@@ -47,6 +47,13 @@
 #include <stdint.h>
 #include <ezdp_defs.h>
 
+#if defined(CONFIG_ALVS)
+#	include "alvs_cli_defs.h"
+#elif defined(CONFIG_TC)
+#	include "tc_cli_defs.h"
+#	include "tc_common_defs.h"
+#endif
+
 /************************************************/
 /* Defines                                      */
 /************************************************/
@@ -69,7 +76,7 @@
 #define CLI_SOCKET_PATH		CLI_SOCKET_ROOT "/" ANL_CLI_APP_NAME
 
 /* Message buffer max length */
-#define CLI_MSG_SIZE		1024
+#define CLI_MSG_SIZE		(32*1024)
 
 #define CLI_FORMAT_VERSION	1
 
@@ -78,12 +85,22 @@
 /* Enums                                        */
 /************************************************/
 enum cli_error_code {
+	/* general / common error */
 	NO_ERROR_CODE			=  0,
 	DIFFERENT_FORMAT_VERSION,	/* 1 */
 	UNSUPPORTED_CLI_FAMILY,		/* 2 */
 	UNSUPPORTED_CLI_OP_TYPE,	/* 3 */
 	PAYLOAD_LENGTH_EXCEED_MAX_SIZE,	/* 4 */
 	RECEIVED_UNEXPECTED_MSG_TYPE,	/* 5 */
+
+
+	/* non general / common errors */
+#if defined(CONFIG_ALVS)
+	/* Future: place for specific ALVS errors */
+#elif defined(CONFIG_TC)
+	DB_GET_FAILED			=  128,
+#endif
+
 };
 
 enum cli_msg_type {
@@ -105,7 +122,9 @@ struct cli_msg_header {
 	uint8_t		family;		/* bits  8-15 */
 	uint8_t		version;	/* bits  0-7  */
 
-	uint8_t		msg_type;	/* bits 56-63 (only one bit is used) */
+	unsigned	/* reserved */	: 6; /* bits 56-63 */
+	unsigned	is_last		: 1;
+	unsigned	msg_type	: 1;
 	uint8_t		err_code;	/* bits 48-55 */
 	uint16_t	len;		/* bits 31-47 */
 
@@ -123,7 +142,17 @@ CASSERT(sizeof(struct cli_msg_header) == (16));
 union cli_msg_payload {
 	char		raw_data[CLI_MSG_SIZE - sizeof(struct cli_msg_header)];
 
+#if defined(CONFIG_ALVS)
 	/* Future: place for all specific message payload */
+#elif defined(CONFIG_TC)
+	/* request */
+	enum tc_action_type                   tc_action_req;
+	struct get_tc_filter_cli_req_payload  tc_filter_req;
+
+	/* response */
+	struct tc_action        tc_action_res;
+	struct tc_filter        tc_filter_res;
+#endif
 };
 #define CLI_PAYLOAD_SIZE  (CLI_MSG_SIZE - sizeof(struct cli_msg_header))
 CASSERT(sizeof(union cli_msg_payload) == CLI_PAYLOAD_SIZE);

@@ -13,9 +13,14 @@ test_logs_*
 verification/venus/dp/output
 # packaging:
 *.deb
+*.tar.gz
 package/*.changes
+package/*.dsc
+package/*.tar.gz
 package/alvs/debian/alvs
 package/alvs/debian/files
+package/atc/debian/atc
+package/atc/debian/files
 package/build-stamp
 #misc
 log/

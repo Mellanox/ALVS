@@ -61,14 +61,85 @@ struct system_cfg {
 	EZapiChannel_EthIFType port_type;
 	char dp_bin_file[CFG_BUF_MAX_LENGTH];
 	char run_cpus[CFG_BUF_MAX_LENGTH];
+	char if0_name[IF_NAME_MAX_LENGTH];
+	char if1_name[IF_NAME_MAX_LENGTH];
+	char if2_name[IF_NAME_MAX_LENGTH];
+	char if3_name[IF_NAME_MAX_LENGTH];
 };
+
+#if 0
+enum {
+	NAME_OPTION = 0,
+	IP_ADDR_OPTION,
+	NETMASK_OPTION
+};
+
+const char *if_opts[] = {
+	[NAME_OPTION] = "name",
+	[IP_ADDR_OPTION] = "ip",
+	[NETMASK_OPTION] = "netmask",
+	NULL
+};
+#endif
 
 static struct system_cfg system_cfg;
 
+#if 0
+void set_if_configuration(char *if_cfg_name, struct if_info *if_info)
+{
+	char	*subopts, *value;
+
+	subopts = optarg;
+	while (*subopts != '\0') {
+		char *saved = subopts;
+
+		switch (getsubopt(&subopts, (char **)if_opts, &value)) {
+		case NAME_OPTION:
+		{
+			if (value == NULL) {
+				write_log(LOG_ERR, "name value is missing for %s", if_cfg_name);
+				abort();
+			}
+			strcpy(if_info->name, value);
+			break;
+		}
+		case IP_ADDR_OPTION:
+		{
+			if (value == NULL) {
+				write_log(LOG_ERR, "ip address value is missing for %s", if_cfg_name);
+				abort();
+			}
+			strcpy(if_info->ip_addr, value);
+			break;
+		}
+		case NETMASK_OPTION:
+		{
+			if (value == NULL) {
+				write_log(LOG_ERR, "netmask value is missing for %s", if_cfg_name);
+				abort();
+			}
+			strcpy(if_info->netmask, value);
+			break;
+		}
+		default:
+		{
+			/* Unknown suboption. */
+			write_log(LOG_ERR, "Unknown interface suboption `%s'", saved);
+			abort();
+		}
+		}
+	}
+	write_log(LOG_INFO, "Added data %s: name=%s, ip=%s, netmask = %s", if_cfg_name, if_info->name, if_info->ip_addr, if_info->netmask);
+	write_log(LOG_INFO, "Added data %s: name=%s, ip=%s, netmask = %s", if_cfg_name, if_info->name, if_info->ip_addr, if_info->netmask);
+
+}
+#endif
+
 void system_configuration(int argc, char **argv)
 {
-	int option_index;
-	int rc;
+	int	option_index;
+	int	rc;
+
 	struct option long_options[] = {
 		{ "agt_enabled", no_argument, (int *)(&system_cfg.agt), true },
 		{ "statistics", no_argument, (int *)(&system_cfg.stats), true },
@@ -80,16 +151,29 @@ void system_configuration(int argc, char **argv)
 		{ "port_type", required_argument, 0, 'p' },
 		{ "dp_bin_file", required_argument, 0, 'b'},
 		{ "run_cpus", required_argument, 0, 'r'},
+		{ "if0", required_argument, 0, 'w'},
+		{ "if1", required_argument, 0, 'x'},
+		{ "if2", required_argument, 0, 'y'},
+		{ "if3", required_argument, 0, 'z'},
 		{0, 0, 0, 0} };
 
 
 	memset(&system_cfg, 0, sizeof(struct system_cfg));
 
 	/* assigning defaults */
+#ifdef CONFIG_TC
+	strcpy(system_cfg.dp_bin_file, "/usr/lib/atc/atc_dp");
+#endif
+#ifdef CONFIG_ALVS
 	strcpy(system_cfg.dp_bin_file, "/usr/lib/alvs/alvs_dp");
+#endif
 	strcpy(system_cfg.run_cpus, "not_used");
 	system_cfg.port_type = EZapiChannel_EthIFType_40GE;
 	system_cfg.lag_en = false;
+	strcpy(system_cfg.if0_name, "eth0");
+	strcpy(system_cfg.if1_name, "");
+	strcpy(system_cfg.if2_name, "");
+	strcpy(system_cfg.if3_name, "");
 
 	while (true) {
 		rc = getopt_long(argc, argv, "", long_options, &option_index);
@@ -125,12 +209,31 @@ void system_configuration(int argc, char **argv)
 			strcpy(system_cfg.run_cpus, optarg);
 			write_log(LOG_INFO, "Run CPUs On DP: %s", system_cfg.run_cpus);
 			break;
+		case 'w':
+			strcpy(system_cfg.if0_name, optarg);
+			write_log(LOG_INFO, "IF0 name %s", system_cfg.if0_name);
+			break;
+		case 'x':
+			strcpy(system_cfg.if1_name, optarg);
+			write_log(LOG_INFO, "IF1 name %s", system_cfg.if1_name);
+			break;
+		case 'y':
+			strcpy(system_cfg.if2_name, optarg);
+			write_log(LOG_INFO, "IF2 name %s", system_cfg.if2_name);
+			break;
+		case 'z':
+			strcpy(system_cfg.if3_name, optarg);
+			write_log(LOG_INFO, "IF3 name %s", system_cfg.if3_name);
+			break;
 		case '?':
 			break;
 
 		default:
+		{
+			write_log(LOG_ERR, "Unknown argument type!!");
 			abort();
 		}
+	}
 	}
 }
 
@@ -155,6 +258,11 @@ void system_cfg_print(void)
 
 	write_log(LOG_INFO, "DP binary  %s",
 		  (system_cfg.dp_bin_file));
+
+	write_log(LOG_INFO, "NPS Interfaces:  if0: name = %s ", (system_cfg.if0_name));
+	write_log(LOG_INFO, "NPS Interfaces:  if1: name = %s ", (system_cfg.if1_name));
+	write_log(LOG_INFO, "NPS Interfaces:  if2: name = %s ", (system_cfg.if2_name));
+	write_log(LOG_INFO, "NPS Interfaces:  if3: name = %s ", (system_cfg.if3_name));
 }
 
 bool system_cfg_is_routing_app_en(void)
@@ -206,3 +314,65 @@ char *system_cfg_get_run_cpus(void)
 {
 	return system_cfg.run_cpus;
 }
+
+char *system_cfg_get_if_name(int if_id)
+{
+	switch (if_id) {
+	case 0:
+	{
+		return system_cfg.if0_name;
+	}
+	case 1:
+	{
+		return system_cfg.if1_name;
+	}
+	case 2:
+	{
+		return system_cfg.if2_name;
+	}
+	case 3:
+	{
+		return system_cfg.if3_name;
+	}
+	default:
+	{
+		write_log(LOG_ERR, "Requested data interfaces illegal = %d", if_id);
+		return NULL;
+	}
+	}
+}
+
+#if 0
+char *system_cfg_get_data_if(void)
+{
+	return system_cfg.data_if;
+}
+
+
+struct if_info *system_cfg_get_nps_if(int if_id)
+{
+	switch (if_id) {
+	case 0:
+	{
+		return &system_cfg.if0;
+	}
+	case 1:
+	{
+		return &system_cfg.if1;
+	}
+	case 2:
+	{
+		return &system_cfg.if2;
+	}
+	case 3:
+	{
+		return &system_cfg.if3;
+	}
+	default:
+	{
+		write_log(LOG_ERR, "Requested data interfaces illegal = %d", if_id);
+		return NULL;
+	}
+	}
+}
+#endif

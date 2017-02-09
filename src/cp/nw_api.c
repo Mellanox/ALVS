@@ -61,6 +61,9 @@ extern sqlite3 *nw_db;
 extern const char *nw_if_posted_stats_offsets_names[];
 extern const char *remote_if_posted_stats_offsets_names[];
 
+#define NW_DB_FILE_NAME "nw.db"
+#define NW_DB_SQL_COMMAND_SIZE 512
+
 /**************************************************************************//**
  * \brief       internal inet_ntoa - IP to string
  *
@@ -1812,14 +1815,14 @@ enum nw_api_rc remove_lag_group_from_arp_table(unsigned int lag_group_id)
 {
 	int rc;
 	sqlite3_stmt *statement;
-	char sql[256];
+	char sql[NW_DB_SQL_COMMAND_SIZE];
 	struct nw_db_arp_entry arp_entry;
 	struct nw_arp_key key;
 
 	memset(&arp_entry, 0, sizeof(struct nw_db_arp_entry));
 
 	/* read from db the nw interfaces table and search which interface belong to this lag group */
-	sprintf(sql, "SELECT * FROM arp_entries "
+	snprintf(sql, NW_DB_SQL_COMMAND_SIZE, "SELECT * FROM arp_entries "
 		"WHERE is_lag=1 AND lag_group_id=%d;",
 		lag_group_id);
 

@@ -14,6 +14,8 @@ import sys
 import inspect
 from multiprocessing import Process
 from alvs_tester_class import ALVS_Tester
+from alvs_players_factory import *
+
 
 # pythons modules 
 # local
@@ -40,7 +42,7 @@ class Test40(ALVS_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-		self.test_resources = generic_init(setup_num, service_count, server_count, client_count)
+		self.test_resources = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 		
 		sh_service = self.test_resources['vip_list'][0]
 		rr_service = self.test_resources['vip_list'][1]

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+
+#######################################################################################
+#
+#                   Copyright by Mellanox Technologies, 2016
+#
+#  Project:         All NPS_SOLUTION git projects
+#
+#  Description:    This script is used by the debconf frontend
+#		   in order to ask the user for configuration parameters 
+#
+#  Notes:          Note that the config script is run before the package is unpacked. 
+#		   It shouldn't actually edit files on the system, or affect it in 
+#		   any other way.
+#
+#######################################################################################
+######################################
+# Imports
+######################################
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+######################################
+# Local functions
+######################################
+#-------------------------------------------------------------------------------
+ask_net_args(){
+	db_input high cp_args/port_type || true
+	db_input high cp_args/net_if_name || true
+	db_go || true
+}
+
+ask_port_conf(){
+	
+	for i in {0..3}
+		do
+			INTERFACE=if${i}
+			db_beginblock
+			db_input high atc_args/${INTERFACE} || true
+			db_endblock
+			db_go || true			
+	done
+}
+
+######################################
+# Main
+######################################
+ask_net_args
+ask_port_conf

@@ -49,6 +49,9 @@
 #ifdef CONFIG_ALVS
 #include "alvs_aging.h"
 #endif
+#ifdef CONFIG_TC
+#include "tc_flow_aging.h"
+#endif
 #include "version.h"
 
 /* We need this dummy because otherwise EMEM will not be initialized.
@@ -62,6 +65,10 @@ uint16_t dummy __emem_var;
  *****************************************************************************/
 #ifdef CONFIG_ALVS
 struct alvs_cmem           cmem_alvs __cmem_var;
+#endif
+#ifdef CONFIG_TC
+struct tc_cmem         cmem_tc __cmem_var;
+struct tc_shared_cmem  shared_cmem_tc __cmem_shared_var;
 #endif
 
 union cmem_workarea        cmem_wa __cmem_var;
@@ -80,8 +87,6 @@ struct alvs_shared_cmem    shared_cmem_alvs __cmem_shared_var;
 
 struct syslog_wa_info      syslog_work_area __cmem_shared_var;
 struct shared_cmem_network shared_cmem_nw __cmem_shared_var;
-
-
 
 #define MAX_NUM_OF_CPUS 4096
 
@@ -342,20 +347,31 @@ void add_run_cpus(const char *processors_str)
 bool init_memory(enum ezdp_data_mem_space data_ms_type, uintptr_t user_data __unused)
 {
 	switch (data_ms_type) {
-#ifdef CONFIG_ALVS
+
 	case EZDP_CMEM_DATA:
+#ifdef CONFIG_ALVS
 		return init_alvs_private_cmem();
+#endif
+#ifdef CONFIG_TC
+		return init_tc_private_cmem();
 #endif
 	case EZDP_SHARED_CMEM_DATA:
 		anl_open_log();
 #ifdef CONFIG_ALVS
 		return init_nw_shared_cmem() & init_alvs_shared_cmem();
 #else
+#ifdef CONFIG_TC
+		return init_nw_shared_cmem() & init_tc_shared_cmem();
+#endif
 		return init_nw_shared_cmem();
 #endif
-#ifdef CONFIG_ALVS
+
 	case EZDP_EMEM_DATA:
+#ifdef CONFIG_ALVS
 		return init_alvs_emem();
+#endif
+#ifdef CONFIG_TC
+		return init_tc_emem();
 #endif
 	default:
 		return true;
@@ -512,6 +528,19 @@ void packet_processing(void)
 						   frame_data,
 						   port_id);
 		}
+#elif CONFIG_TC
+#if 0
+		if (port_id == TC_TIMER_LOGICAL_ID) {
+			tc_handle_flow_cache_aging_event(frame.job_desc.rx_info.timer_info.event_id);
+			/*frame is discarded by aging event handler*/
+		} else
+#endif
+
+		{
+			nw_recieve_and_parse_frame(&frame,
+						   frame_data,
+						   port_id);
+		}
 #else
 		nw_recieve_and_parse_frame(&frame,
 					   frame_data,
@@ -570,7 +599,6 @@ int main(int argc, char **argv)
 		num_cpus = 1;
 
 		run_cpus[0] = 16;
-
 		/* init the application */
 		result = ezdp_init_local(0, run_cpus[0], init_memory, 0, 0);
 		if (result != 0) {
@@ -627,11 +655,13 @@ int main(int argc, char **argv)
 				printf("ezdp_init_local failed %d %s. Exiting...\n", result, ezdp_get_err_msg());
 				exit(1);
 			}
+
 			result = ezframe_init_local();
 			if (result != 0) {
 				printf("ezframe_init_local failed. %d; %s. Exiting...\n", result, ezdp_get_err_msg());
 				exit(1);
 			}
+
 			/* call to packet processing function */
 			ezdp_run(&packet_processing, num_cpus);
 

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# atc       Manages ATC daemon
+#
+### BEGIN INIT INFO
+# Provides:          ATC
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description: Starts ATC daemon
+# short-description: ATC daemon
+### END INIT INFO
+
+LC_APP_NAME=atc
+UC_APP_NAME=ATC
+
+# Source common service configuration file
+. /usr/share/atc/service.init
+

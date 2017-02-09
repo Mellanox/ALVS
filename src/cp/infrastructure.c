@@ -49,15 +49,19 @@
 
 #include "log.h"
 #include "infrastructure.h"
+#include "infrastructure_utils.h"
+
+#include "tc_init.h"
+
 #include "alvs_conf.h"
 #include "alvs_init.h"
 #include "nw_conf.h"
+#include "tc_conf.h"
 
 #include "cfg.h"
 #include "nw_init.h"
 
 EZagtRPCServer host_server;
-
 
 /* AGT port */
 #define INFRA_AGT_PORT              1234
@@ -228,25 +232,28 @@ enum infra_emem_spaces_params {
 
 
 #define NUM_OF_INT_MEMORY_SPACES            18
+
 #ifdef CONFIG_ALVS
 #	define NUM_OF_EXT_MEMORY_SPACES            6
-#else
-#	define NUM_OF_EXT_MEMORY_SPACES            2
+#endif
+#ifdef CONFIG_TC
+#	define NUM_OF_EXT_MEMORY_SPACES            3
 #endif
 
-#define INFRA_HALF_CLUSTER_SEARCH_SIZE (NW_HALF_CLUSTER_SEARCH_SIZE + ALVS_HALF_CLUSTER_SEARCH_SIZE)
-#define INFRA_1_CLUSTER_SEARCH_SIZE (NW_1_CLUSTER_SEARCH_SIZE + ALVS_1_CLUSTER_SEARCH_SIZE)
-#define INFRA_2_CLUSTER_SEARCH_SIZE (NW_2_CLUSTER_SEARCH_SIZE + ALVS_2_CLUSTER_SEARCH_SIZE)
-#define INFRA_4_CLUSTER_SEARCH_SIZE (NW_4_CLUSTER_SEARCH_SIZE + ALVS_4_CLUSTER_SEARCH_SIZE)
-#define INFRA_16_CLUSTER_SEARCH_SIZE (NW_16_CLUSTER_SEARCH_SIZE + ALVS_16_CLUSTER_SEARCH_SIZE)
-#define INFRA_ALL_CLUSTER_SEARCH_SIZE (NW_ALL_CLUSTER_SEARCH_SIZE + ALVS_ALL_CLUSTER_SEARCH_SIZE)
+#define INFRA_HALF_CLUSTER_SEARCH_SIZE (NW_HALF_CLUSTER_SEARCH_SIZE + ALVS_HALF_CLUSTER_SEARCH_SIZE + TC_HALF_CLUSTER_SEARCH_SIZE)
+#define INFRA_1_CLUSTER_SEARCH_SIZE (NW_1_CLUSTER_SEARCH_SIZE + ALVS_1_CLUSTER_SEARCH_SIZE + TC_1_CLUSTER_SEARCH_SIZE)
+#define INFRA_2_CLUSTER_SEARCH_SIZE (NW_2_CLUSTER_SEARCH_SIZE + ALVS_2_CLUSTER_SEARCH_SIZE + TC_2_CLUSTER_SEARCH_SIZE)
+#define INFRA_4_CLUSTER_SEARCH_SIZE (NW_4_CLUSTER_SEARCH_SIZE + ALVS_4_CLUSTER_SEARCH_SIZE + TC_4_CLUSTER_SEARCH_SIZE)
+#define INFRA_16_CLUSTER_SEARCH_SIZE (NW_16_CLUSTER_SEARCH_SIZE + ALVS_16_CLUSTER_SEARCH_SIZE + TC_16_CLUSTER_SEARCH_SIZE)
+#define INFRA_ALL_CLUSTER_SEARCH_SIZE (NW_ALL_CLUSTER_SEARCH_SIZE + ALVS_ALL_CLUSTER_SEARCH_SIZE + TC_HALF_CLUSTER_DATA_SIZE)
 
-#define INFRA_HALF_CLUSTER_DATA_SIZE (NW_HALF_CLUSTER_DATA_SIZE + ALVS_HALF_CLUSTER_DATA_SIZE)
-#define INFRA_1_CLUSTER_DATA_SIZE (NW_1_CLUSTER_DATA_SIZE + ALVS_1_CLUSTER_DATA_SIZE)
-#define INFRA_2_CLUSTER_DATA_SIZE (NW_2_CLUSTER_DATA_SIZE + ALVS_2_CLUSTER_DATA_SIZE)
-#define INFRA_4_CLUSTER_DATA_SIZE (NW_4_CLUSTER_DATA_SIZE + ALVS_4_CLUSTER_DATA_SIZE)
-#define INFRA_16_CLUSTER_DATA_SIZE (NW_16_CLUSTER_DATA_SIZE + ALVS_16_CLUSTER_DATA_SIZE)
-#define INFRA_ALL_CLUSTER_DATA_SIZE (NW_ALL_CLUSTER_DATA_SIZE + ALVS_ALL_CLUSTER_DATA_SIZE)
+
+#define INFRA_HALF_CLUSTER_DATA_SIZE (NW_HALF_CLUSTER_DATA_SIZE + ALVS_HALF_CLUSTER_DATA_SIZE + TC_HALF_CLUSTER_DATA_SIZE)
+#define INFRA_1_CLUSTER_DATA_SIZE (NW_1_CLUSTER_DATA_SIZE + ALVS_1_CLUSTER_DATA_SIZE + TC_1_CLUSTER_DATA_SIZE)
+#define INFRA_2_CLUSTER_DATA_SIZE (NW_2_CLUSTER_DATA_SIZE + ALVS_2_CLUSTER_DATA_SIZE + TC_2_CLUSTER_DATA_SIZE)
+#define INFRA_4_CLUSTER_DATA_SIZE (NW_4_CLUSTER_DATA_SIZE + ALVS_4_CLUSTER_DATA_SIZE + TC_4_CLUSTER_DATA_SIZE)
+#define INFRA_16_CLUSTER_DATA_SIZE (NW_16_CLUSTER_DATA_SIZE + ALVS_16_CLUSTER_DATA_SIZE + TC_16_CLUSTER_DATA_SIZE)
+#define INFRA_ALL_CLUSTER_DATA_SIZE (NW_ALL_CLUSTER_DATA_SIZE + ALVS_ALL_CLUSTER_DATA_SIZE + TC_ALL_CLUSTER_DATA_SIZE)
 
 
 uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_PARAMS] = {
@@ -278,7 +285,10 @@ uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_P
 	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_0_SIZE, ALVS_EMEM_SEARCH_0_MSID, ALVS_EMEM_SEARCH_0_HEAP},
 	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_1_SIZE, ALVS_EMEM_SEARCH_1_MSID, ALVS_EMEM_SEARCH_1_HEAP},
 	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_2_SIZE, ALVS_EMEM_SEARCH_2_MSID, ALVS_EMEM_SEARCH_2_HEAP},
-	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, ALVS_EMEM_DATA_OUT_OF_BAND_SIZE, ALVS_EMEM_DATA_OUT_OF_BAND_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP}
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, ALVS_EMEM_DATA_OUT_OF_BAND_SIZE, ALVS_EMEM_DATA_OUT_OF_BAND_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP},
+#endif
+#ifdef CONFIG_TC
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, TC_EMEM_SEARCH_0_SIZE, TC_EMEM_SEARCH_0_MSID, TC_EMEM_SEARCH_0_HEAP},
 #endif
 };
 
@@ -415,16 +425,16 @@ bool infra_create_mem_partition(void)
 }
 
 
-#if (NW_TOTAL_ON_DEMAND_STATS + ALVS_TOTAL_ON_DEMAND_STATS <= (260*1024))
-#	define TOTAL_ON_DEMAND_STATS  (260*1024)
+#if ((NW_TOTAL_ON_DEMAND_STATS + ALVS_TOTAL_ON_DEMAND_STATS + TC_TOTAL_ON_DEMAND_STATS) <= (16*1024*1024))
+#	define TOTAL_ON_DEMAND_STATS  (16*1024*1024)
 #else
-#	error "Num of poster statistics exeeds 260K"
+#	error "Num of on demand statistics exceeds 16M"
 #endif
 
-#if (NW_TOTAL_POSTED_STATS + ALVS_TOTAL_POSTED_STATS <= (7680*1024))
+#if ((NW_TOTAL_POSTED_STATS + ALVS_TOTAL_POSTED_STATS + TC_TOTAL_POSTED_STATS) <= (7680*1024))
 #	define TOTAL_POSTED_STATS  (7680*1024)
 #else
-#	error "Num of poster statistics exeeds 7680K"
+#	error "Num of posted statistics exceeds 7680K"
 #endif
 
 
@@ -564,6 +574,41 @@ bool infra_create_timers(void)
 	return true;
 }
 
+/**************************************************************************//**
+ * \brief       Enable real time clock on NPS
+ *
+ * \return      bool - success or failure
+ */
+bool infra_enable_real_time_clock(void)
+{
+	EZapiChannel_RTCParams  rtc_params;
+	EZstatus                ret_val;
+
+	/* init variables */
+	memset(&rtc_params, 0, sizeof(rtc_params));
+
+	/* get RTC configuration (default) */
+	ret_val = EZapiChannel_Status(REAL_TIME_CLOCK_CHANNEL_ID,
+				      EZapiChannel_StatCmd_GetRTCParams,
+				      &rtc_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_StatCmd_GetRTCParams failed");
+		return false;
+	}
+
+	/* Enable RTC */
+	rtc_params.bEnable = TRUE;
+	ret_val = EZapiChannel_Config(REAL_TIME_CLOCK_CHANNEL_ID,
+				      EZapiChannel_ConfigCmd_SetRTCParams,
+				      &rtc_params);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_NOTICE, "EZapiChannel_ConfigCmd_SetRTCParams failed");
+		return false;
+	}
+
+
+	return true;
+}
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at created state
@@ -596,11 +641,13 @@ bool infra_created(void)
 		return false;
 	}
 
+#ifdef CONFIG_ALVS
 	/* create timers */
 	if (infra_create_timers() == false) {
 		write_log(LOG_CRIT, "setup_chip: infra_create_timers failed.");
 		return false;
 	}
+#endif
 
 	/* initialize protocol decode */
 	if (nw_initialize_protocol_decode() == false) {
@@ -610,7 +657,6 @@ bool infra_created(void)
 
 	return true;
 }
-
 
 /**************************************************************************//**
  * \brief       Infrastructure configuration at initialized state
@@ -632,7 +678,12 @@ bool infra_initialized(void)
 		return false;
 	}
 #endif
-
+#ifdef CONFIG_TC
+	if (tc_db_constructor() == false) {
+		write_log(LOG_CRIT, "infra_initialized: tc_db_constructor failed.");
+		return false;
+	}
+#endif
 	/* Load partition */
 	write_log(LOG_DEBUG, "Load partition...");
 	ez_ret_val = EZapiStruct_PartitionConfig(0, EZapiStruct_PartitionConfigCmd_LoadPartition, NULL);
@@ -655,6 +706,17 @@ bool infra_initialized(void)
 #ifdef CONFIG_ALVS
 	if (alvs_initialize_statistics() == false) {
 		write_log(LOG_CRIT, "infra_initialized: alvs_initialize_statistics failed.");
+		return false;
+	}
+#endif
+#ifdef CONFIG_TC
+	if (tc_initialize_statistics() == false) {
+		write_log(LOG_CRIT, "infra_initialized: tc_db_constructor failed.");
+		return false;
+	}
+
+	if (infra_enable_real_time_clock() == false) {
+		write_log(LOG_CRIT, "setup_chip: enable_real_time_clock failed.");
 		return false;
 	}
 #endif

@@ -1,0 +1,93 @@
+#!/bin/bash
+# postinst script for atc
+#
+# see: dh_installdeb(1)
+
+# summary of how this script can be called:
+#		* <postinst> `configure' <most-recently-configured-version>
+#		* <old-postinst> `abort-upgrade' <new version>
+#		* <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#		  <new-version>
+#		* <postinst> `abort-remove'
+#		* <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#		  <failed-install-package> <version> `removing'
+#		  <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+######################################
+# Global
+######################################
+CONFIGFILE=/etc/default/atc
+PORT_CONFIG=''
+
+######################################
+# Imports
+######################################
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# Source common multi product functions
+. /usr/share/atc/common_func
+
+######################################
+# Local functions
+######################################
+#-------------------------------------------------------------------------------
+parse_port_conf()
+{
+			
+	for i in {0..3}
+		do
+			INTERFACE=if${i}
+			
+			db_get atc_args/${INTERFACE}
+			PORT_NAME="${RET}"
+					
+			PORT_CONFIG+="--${INTERFACE} ${PORT_NAME} "
+			
+		done
+
+}
+#-------------------------------------------------------------------------------
+set_port_conf(){
+	parse_port_conf
+	cp -a -f $CONFIGFILE $CONFIGFILE.tmp
+	sed -e "s/^ *PORT_CONFIG=.*/PORT_CONFIG=\"${PORT_CONFIG}\"/"\
+	     < $CONFIGFILE > $CONFIGFILE.tmp
+	mv -f $CONFIGFILE.tmp $CONFIGFILE
+	return 0
+}
+#-------------------------------------------------------------------------------
+######################################
+# Main
+######################################
+filename=$(basename $0)
+
+rc=0
+case "$1" in
+	configure|abort-upgrade)
+		[ "$?" = 0 ] && set_user_params
+		[ "$?" = 0 ] && set_port_conf
+		[ "$?" = 0 ] && configure_service_on_boot atc
+		[ "$?" = 0 ] && add_nps_host
+		[ "$?" = 0 ] && reload_configuration
+		[ "$?" = 0 ] && start_service atc
+		rc=$?
+	;;
+
+	abort-remove|abort-deconfigure)
+		echo "WARNING: $filename called with unsupported argument \`$1'" >&2
+	;;
+
+	*)
+		echo "$filename called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+if [ $rc -ne 0 ]; then
+	echo "ERROR: $filename failed"
+fi
+exit $rc
+

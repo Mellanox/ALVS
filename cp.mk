@@ -2,6 +2,7 @@ RM := rm -rf
 ENV_BASE := ./
 
 EZDK_BASE := $(shell readlink $(ENV_BASE)/EZdk)
+#PATH := $(PATH):$(abspath $(EZDK_BASE)/ldk/toolchain/bin)
 
 CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/include -I$(EZDK_BASE)/cpe/env/include -I$(EZDK_BASE)/cpe/dev/include -I$(EZDK_BASE)/cpe/cp/include -I$(EZDK_BASE)/cpe/agt/agt-cp/include -I$(EZDK_BASE)/cpe/agt/agt/include
 
@@ -19,7 +20,20 @@ CP_C_SRCS = src/cp/nw_db_manager.c \
 			src/cp/main.c \
 			src/cp/version.c \
 			src/cp/cli_manager.c \
-			src/common/cli_common.c
+			src/common/cli_common.c \
+			src/cp/index_pool.c
+
+ifdef CONFIG_ATC
+CP_C_SRCS += src/cp/tc_api.c \
+			 src/cp/tc_flower.c \
+			 src/cp/tc_init.c \
+			 src/cp/tc_manager.c \
+			 src/cp/tc_cli_manager.c \
+			 src/cp/tc_db.c \
+			 src/cp/tc_action.c \
+			 src/common/tc_common_utils.c \
+			 src/common/tc_linux_utils.c
+endif
 
 ifdef CONFIG_ALVS
 CP_C_SRCS += src/cp/alvs_db.c \
@@ -28,7 +42,9 @@ CP_C_SRCS += src/cp/alvs_db.c \
 			 src/cp/alvs_init.c
 endif
 
-ifdef CONFIG_ALVS
+ifdef CONFIG_ATC
+	APP_NAME := atc
+else ifdef CONFIG_ALVS
 	APP_NAME := alvs
 else
 	APP_NAME := nw
@@ -51,16 +67,22 @@ endif
 
 ifdef CONFIG_ALVS
 	CP_C_FLAGS += -DCONFIG_ALVS
+endif 
+ifdef CONFIG_ATC
+	CP_C_FLAGS += -DCONFIG_TC
 endif
 
 # set bin path/name
-CP_BIN := bin/
-CP_BIN := $(CP_BIN)$(PREFIX)
-ifdef CONFIG_ALVS
+CP_BIN := bin/$(PREFIX)
+
+ifdef CONFIG_ATC
+	CP_BIN := $(CP_BIN)atc
+else ifdef CONFIG_ALVS
 	CP_BIN := $(CP_BIN)alvs
 else
 	CP_BIN := $(CP_BIN)nw
 endif
+
 CP_BIN := $(CP_BIN)_daemon
 ifdef SIM
 	CP_C_FLAGS += -DEZ_SIM

@@ -19,7 +19,7 @@ class Test4(DDP_Tester):
 	
 	def user_init(self, setup_num):
 			print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-			self.test_resources = generic_init_ddp(setup_num, host_count)
+			self.test_resources = DDP_Players_Factory.generic_init_ddp(setup_num, host_count)
 			
 	
 	
@@ -30,7 +30,7 @@ class Test4(DDP_Tester):
 		data_ip =remote_host.ip[network] 
 		ip = ezbox.get_unused_ip_on_subnet(ip=data_ip)[0]
 		mac = '01:02:03:04:05:06'
-		
+		print ip
 	   	#########Step 1: Add arp etnry to remote host#################
 	   	x=ezbox.add_arp_entry(ip, mac)
 	   	time.sleep(1)

@@ -15,6 +15,7 @@ from DDP_infra import *
 from ddp_tester import *
 from test_failed_exception import *
 
+
 host_count = 2
 
 class Test2(DDP_Tester):
@@ -22,7 +23,7 @@ class Test2(DDP_Tester):
 	def user_init(self, setup_num):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
-		self.test_resources = generic_init_ddp(setup_num, host_count)
+		self.test_resources = DDP_Players_Factory.generic_init_ddp(setup_num, host_count)
 		
 		for index,host in enumerate(self.test_resources['host_list']):
 			if index==0:

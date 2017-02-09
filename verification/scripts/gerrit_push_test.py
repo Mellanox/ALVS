@@ -92,16 +92,16 @@ try:
     
     copy_project()
     
-    coverity=subprocess.Popen([scripts_path + "coverity.sh"])
+#    coverity=subprocess.Popen([scripts_path + "coverity.sh"])
     
     coding_style=subprocess.Popen([scripts_path + "coding_style.sh"])
     
     exec_regression(branch)
     
-    coverity.wait()
+#    coverity.wait()
     coding_style.wait()
     
-    process_list.append(["Coverity",coverity.returncode])
+#    process_list.append(["Coverity",coverity.returncode])
     process_list.append(["Coding Style",coding_style.returncode])
     exit_code = summary()
 except Exception as error:

@@ -57,9 +57,14 @@ enum infra_internal_search_mem_heaps {
 /*! Search memory heaps possible values. */
 enum infra_external_search_mem_heaps {
 	NW_EMEM_SEARCH_HEAP,
+#ifdef CONFIG_ALVS
 	ALVS_EMEM_SEARCH_0_HEAP,
 	ALVS_EMEM_SEARCH_1_HEAP,
 	ALVS_EMEM_SEARCH_2_HEAP,
+#endif
+#ifdef CONFIG_TC
+	TC_EMEM_SEARCH_0_HEAP,
+#endif
 	INFRA_NOT_VALID_EXTERNAL_HEAP
 };
 

@@ -6,18 +6,25 @@ PATH := $(PATH):$(abspath $(EZDK_BASE)ldk/toolchain/bin)
 
 DP_INC := -Isrc/common -Isrc/dp -I$(EZDK_BASE)dpe/dp/include -I$(EZDK_BASE)dpe/frame/include
 
-DP_C_SRCS = src/dp/anl_log.c \
-			src/dp/log.c \
-			src/dp/main.c \
+DP_C_SRCS = src/dp/main.c \
+			src/dp/anl_log.c \
 			src/dp/nw_init.c \
-			src/dp/version.c
+			src/dp/version.c \
+			src/dp/log.c
 ifdef CONFIG_ALVS
 DP_C_SRCS += src/dp/alvs_init.c \
 			 src/dp/alvs_packet_processing.c
 endif
 
+ifdef CONFIG_ATC
+DP_C_SRCS += src/dp/tc_init.c \
+             src/dp/tc_packet_processing.c
+endif
+
 ifdef CONFIG_ALVS
 	APP_NAME := alvs
+else ifdef CONFIG_ATC
+	APP_NAME := atc
 else
 	APP_NAME := nw
 endif
@@ -37,6 +44,9 @@ endif
 
 ifdef CONFIG_ALVS
 	DP_C_FLAGS += -DCONFIG_ALVS
+endif
+ifdef CONFIG_ATC
+	DP_C_FLAGS += -DCONFIG_TC
 endif
 
 ifdef SIM

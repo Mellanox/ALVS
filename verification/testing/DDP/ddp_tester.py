@@ -14,7 +14,7 @@ import abc
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-
+from ddp_players_factory import *
 
 from DDP_infra import *
 from tester import *
@@ -36,16 +36,16 @@ class DDP_Tester(Tester):
         return self.test_rc
     
     def clean_all_players(self):
-        clean_players(self.test_resources, True, self.config['stop_ezbox'])
+        DDP_Players_Factory.clean_players(self.test_resources, True, self.config['stop_ezbox'])
     
     def start_test(self):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
         
-        self.config = fill_default_config(generic_main())
+        self.config = DDP_Players_Factory.fill_default_config(DDP_Players_Factory.generic_main())
         
         self.user_init(self.config['setup_num'])
         
-        init_players(self.test_resources, self.config)
+        DDP_Players_Factory.init_players(self.test_resources, self.config)
         
         self.run_user_test()
         

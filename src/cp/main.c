@@ -47,9 +47,13 @@
 #include "infrastructure.h"
 #include "cfg.h"
 #include "nw_db_manager.h"
-#include "alvs_db_manager.h"
-#include "alvs_conf.h"
 #include "cli_manager.h"
+#if defined(CONFIG_ALVS)
+#	include "alvs_db_manager.h"
+#	include "alvs_conf.h"
+#elif defined(CONFIG_TC)
+#	include "tc_api.h"
+#endif
 
 
 /******************************************************************************/
@@ -70,6 +74,7 @@ enum object_type {
 	object_type_agt,
 	object_type_nw_db_manager,
 	object_type_alvs_db_manager,
+	object_type_tc_db_manager,
 	object_type_dp_load_thread,
 	object_type_cli_thread,
 
@@ -82,6 +87,7 @@ enum object_type {
 pthread_t main_thread;
 pthread_t nw_db_manager_thread;
 pthread_t alvs_db_manager_thread;
+pthread_t tc_db_manager_thread;
 pthread_t dp_load_thread;
 pthread_t cli_thread;
 
@@ -91,7 +97,6 @@ bool cancel_application_flag;
 extern struct nw_db_manager_ops nw_ops;
 int fd = -1;
 /******************************************************************************/
-
 
 int main(int argc, char **argv)
 {
@@ -187,7 +192,7 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_alvs_db_manager] = true;
 #endif
-
+#ifndef EZ_SIM
 	/************************************************/
 	/* Start CLI main thread                        */
 	/************************************************/
@@ -201,7 +206,22 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	is_object_allocated[object_type_cli_thread] = true;
+#endif
 
+#ifdef CONFIG_TC
+	/************************************************/
+	/* Start ALVS DB manager main thread            */
+	/************************************************/
+	write_log(LOG_DEBUG, "Start TC DB manager thread...");
+	rc = pthread_create(&tc_db_manager_thread, NULL,
+			    (void * (*)(void *))tc_db_manager_main, &cancel_application_flag);
+	if (rc != 0) {
+		write_log(LOG_CRIT, "Cannot start tc_db_manager_thread: pthread_create failed for TC DB manager");
+		main_thread_graceful_stop();
+		exit(1);
+	}
+	is_object_allocated[object_type_tc_db_manager] = true;
+#endif
 
 	/************************************************/
 	/* Wait for signal                              */
@@ -241,17 +261,23 @@ void dp_load_exit_with_error(void)
 void dp_load(void)
 {
 	int rc, i;
-	char temp[256];
+	char temp[256], nps_ip[256];
 	sigset_t sigs_to_block;
 	/* Mask SIGTERM signal for this thread. */
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+#ifdef EZ_SIM
+	strcpy(nps_ip, "192.168.0.2");
+#else
+	strcpy(nps_ip, "nps_if");
+#endif
 
 	/* check connection to NPS */
 	write_log(LOG_INFO, "Waiting for Connection to NPS");
 	for (i = 0; i < WAIT_FOR_NPS && cancel_application_flag == false; i++) {
-		rc = system("ping -c1 -w10 nps_if > /dev/null 2>&1");
+		snprintf(temp, sizeof(temp), "ping -c1 -w10 %s > /dev/null 2>&1", nps_ip);
+		rc = system(temp);
 		if (rc == 0) {
 			write_log(LOG_INFO, "Connection to NPS Succeed");
 			break;
@@ -266,12 +292,23 @@ void dp_load(void)
 	sleep(3);
 
 #ifdef CONFIG_ALVS
+#if EZ_SIM
+#define DP_APP_NAME    "alvs_dp_sim"
+#else
 #define DP_APP_NAME    "alvs_dp"
+#endif
+#endif
+#ifdef CONFIG_TC
+#if EZ_SIM
+#define DP_APP_NAME    "atc_dp_sim"
+#else
+#define DP_APP_NAME    "atc_dp"
+#endif
 #endif
 	/* copy dp bin file to nps */
 	write_log(LOG_INFO, "Copy dp bin file: %s to NPS", system_cfg_get_dp_bin_file());
 	for (i = 0; i < FTP_RETRIES  && cancel_application_flag == false; i++) {
-		sprintf(temp, "{ echo \"user root\"; echo \"put %s /tmp/"DP_APP_NAME"\"; echo \"quit\"; } | ftp -n nps_if;", system_cfg_get_dp_bin_file());
+		snprintf(temp, sizeof(temp), "{ echo \"user root\"; echo \"put %s /tmp/"DP_APP_NAME"\"; echo \"quit\"; } | ftp -n %s;", system_cfg_get_dp_bin_file(), nps_ip);
 		rc = system(temp);
 		if (rc == 0) {
 			write_log(LOG_INFO, "Copy Succeed");
@@ -287,9 +324,9 @@ void dp_load(void)
 	/* run dp bin */
 	for (i = 0; i < DP_RUN_RETRIES  && cancel_application_flag == false; i++) {
 		if (strcmp(system_cfg_get_run_cpus(), "not_used") == 0) {
-			sprintf(temp, "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" &\"; sleep 10;} | telnet nps_if &");
+			snprintf(temp, sizeof(temp), "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" &\"; sleep 10;} | telnet %s &", nps_ip);
 		} else {
-			sprintf(temp, "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" --run_cpus %s &\"; sleep 10;} | telnet nps_if &", system_cfg_get_run_cpus());
+			snprintf(temp, sizeof(temp), "{ echo \"chmod +x /tmp/"DP_APP_NAME"\"; echo \"/tmp/"DP_APP_NAME" --run_cpus %s &\"; sleep 10;} | telnet %s &", system_cfg_get_run_cpus(), nps_ip);
 		}
 		rc = system(temp);
 		if (rc == 0) {
@@ -413,7 +450,6 @@ bool nps_init(void)
 {
 	EZstatus ez_ret_val;
 	EZdev_PlatformParams platform_params;
-
 	/************************************************/
 	/* Initialize Env                               */
 	/************************************************/
@@ -431,7 +467,7 @@ bool nps_init(void)
 	write_log(LOG_DEBUG, "Init EZdev...");
 	platform_params.uiChipPhase = EZdev_CHIP_PHASE_1;
 #ifdef EZ_SIM
-	write_log(LOG_DEBUG, "Platform is simulator.");
+	write_log(LOG_INFO, "Platform is simulator.");
 	platform_params.ePlatform = EZdev_Platform_SIM;
 	platform_params.uiSimNumberOfConnections = 1;
 #else
@@ -503,6 +539,11 @@ void signal_terminate_handler(int signum)
 			alvs_db_manager_exit_with_error();
 		}
 #endif
+#ifdef CONFIG_TC
+		if (self == tc_db_manager_thread) {
+			tc_db_manager_exit_with_error();
+		}
+#endif
 		if (self == dp_load_thread) {
 			dp_load_exit_with_error();
 		}
@@ -545,6 +586,10 @@ void main_thread_graceful_stop(void)
 	}
 	if (is_object_allocated[object_type_cli_thread]) {
 		pthread_join(cli_thread, NULL);
+	}
+
+	if (is_object_allocated[object_type_tc_db_manager]) {
+		pthread_join(tc_db_manager_thread, NULL);
 	}
 
 	infra_db_destructor();

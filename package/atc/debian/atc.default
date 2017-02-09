@@ -1,0 +1,26 @@
+# atc
+
+#####################
+# Network arguments #
+#####################
+
+# host network interface (to add vlan 1, for examlpe, use: eth0.1)
+NETWORK_IF_NAME="eth0"
+
+PORT_TYPE="--port_type=40GE"
+
+###################
+# Debug arguments #
+###################
+DEBUG=""
+
+##########################
+# ATC specific arguments #
+##########################
+APP_FLAGS="--routing_app"
+PORT_CONFIG=""
+
+########################
+# ATC daemon arguments #
+########################
+CP_ARGS="${PORT_TYPE} ${DEBUG} ${APP_FLAGS} ${PORT_CONFIG}"

@@ -23,7 +23,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 from alvs_infra import *
-
+from alvs_players_factory import *
 
 #===============================================================================
 # Test Globals
@@ -43,7 +43,7 @@ num_of_iterations = 3
 def user_init(setup_num):
 	print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 	
-	dict = generic_init(setup_num, service_count, server_count, client_count)
+	dict = ALVS_Players_Factory.generic_init(setup_num, service_count, server_count, client_count)
 	
 	for s in dict['server_list']:
 		s.vip = dict['vip_list'][0]

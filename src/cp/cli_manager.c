@@ -58,6 +58,7 @@
 /************************************************/
 static int    sockfd    = (-1);
 static int    newsockfd = (-1);
+static bool   reconnect;
 static bool  *cli_manager_cancel_application_flag;
 
 
@@ -181,7 +182,51 @@ void cli_manager_init(void)
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
 
 	cli_manager_init_socket();
+
+	reconnect = false;
 }
+
+
+/******************************************************************************
+ * \brief	  send intermediate message through CLI socket
+ *
+ * \param[in]     res_cli    - CLI message response to write to CLI socket
+ * \param[in]     is_last    - Is last CLI message
+ *
+ * \return        ( 0)	- success.
+ *                (-1)	- error (probably due to socket error)
+ */
+int cli_manager_send_message(struct cli_msg  *res_cli, bool is_last)
+{
+	int32_t  written_len;
+	int32_t  l_errno;
+
+	write_log(LOG_DEBUG, "Sending response");
+	cli_manager_print_message(res_cli);
+
+	/* set is_last */
+	res_cli->header.is_last = is_last;
+
+	written_len = write_message(res_cli, newsockfd);
+	if (written_len < 0) {
+		/* handle same as handling error while reading */
+		l_errno = errno;
+		if (l_errno != EINTR) {
+			/* Reconnect & go back to listening */
+			write_log(LOG_NOTICE, "write_message failed with EINTR. reconnecting socket");
+			reconnect = true;
+		} else {
+			write_log(LOG_NOTICE, "write_message failed. errno %d: %s",
+				  l_errno, strerror(l_errno));
+		}
+		return (-1);
+	}
+
+	write_log(LOG_DEBUG, "message written to socket");
+
+	return 0;
+}
+
 
 
 /******************************************************************************
@@ -197,10 +242,9 @@ void cli_manager_poll(void)
 	struct cli_msg	 rcv_cli;
 	struct cli_msg	 res_cli;
 	int32_t          rcv_cli_len;
-	int32_t          written_len;
 	int32_t          rc;
 	struct timeval   timeout;
-	bool             reconnect;
+
 	int32_t          l_errno;
 
 	/************************************************/
@@ -210,15 +254,12 @@ void cli_manager_poll(void)
 	timeout.tv_sec  = 0;
 	timeout.tv_usec = 100;
 
-	reconnect = false;
-
 	/************************************************/
 	/* Connect socket                               */
 	/* Wait for client connection / timeout         */
 	/* Receive & handle messages                    */
 	/************************************************/
 	while (*cli_manager_cancel_application_flag == false) {
-
 		/* check if need to reconnect socket */
 		if ((newsockfd < 0) || (reconnect)) {
 
@@ -254,7 +295,9 @@ void cli_manager_poll(void)
 		/************************************************/
 		write_log(LOG_DEBUG, "New message received. Reading message");
 		/* handle different version of message */
-		rcv_cli_len = read_message(&rcv_cli, newsockfd);
+		rcv_cli_len = read_message((uint8_t *)&rcv_cli,
+					   newsockfd,
+					   sizeof(struct cli_msg));
 
 		/* save errno. errno can overide by other system operation */
 		l_errno = errno;
@@ -294,23 +337,7 @@ void cli_manager_poll(void)
 		/************************************************/
 		/* Send message                                 */
 		/************************************************/
-		write_log(LOG_DEBUG, "Sending response");
-		cli_manager_print_message(&res_cli);
-		written_len = write_message(&res_cli, newsockfd);
-		if (written_len < 0) {
-			/* handle same as handling error while reading */
-			if (errno != EINTR) {
-				/* Reconnect & go back to listening */
-				write_log(LOG_NOTICE, "write_message failed with EINTR. reconnecting socket");
-				reconnect = true;
-				continue;
-			}
-
-			write_log(LOG_NOTICE, "write_message failed");
-			continue;
-		}
-
-		write_log(LOG_DEBUG, "message written to socket");
+		cli_manager_send_message(&res_cli, true);
 	}
 }
 

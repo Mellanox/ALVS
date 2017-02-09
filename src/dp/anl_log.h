@@ -44,6 +44,10 @@
 		write_log_macro(priority, &syslog_work_area, sizeof(syslog_work_area), str, ##__VA_ARGS__)
 
 #else
+#ifdef EZ_SIM
+#define anl_write_log(priority, str, ...)
+#define anl_write_log_simple(priority, str)
+#else
 #define ANL_LOGMASK  LOG_UPTO(LOG_INFO)
 #define anl_write_log(priority, str, ...) { \
 	if (LOG_MASK(priority) & ANL_LOGMASK) { \
@@ -56,7 +60,7 @@
 		write_log(priority, str, sizeof(str), cmem_wa.syslog_work_area, EZDP_SYSLOG_WA); \
 	} \
 }
-
+#endif
 #endif
 /*****************************************************************************/
 /*! \fn void anl_open_log()
