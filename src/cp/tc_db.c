@@ -366,7 +366,7 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params)
 		return TC_API_DB_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "Added action to Database (action index %d, action type %d)",
+	write_log(LOG_DEBUG, "Modified action on Database (action index %d, action type %d)",
 		  tc_action_params->general.index,
 		  tc_action_params->general.family_type);
 
@@ -421,12 +421,8 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
 
 	if (action_info != NULL) {
 		/* Retrieve action info */
-		action_info->created_timestamp = sqlite3_column_int(statement, 2);
-		action_info->nps_index = sqlite3_column_int(statement, 3);
-		action_info->statistics_base.raw_data = sqlite3_column_int(statement, 4);
-		action_info->independent_action = sqlite3_column_int(statement, 5);
-		action_bytes = sqlite3_column_bytes(statement, 9);
-		memcpy(action_info, sqlite3_column_blob(statement, 9), action_bytes);
+		action_bytes = sqlite3_column_bytes(statement, 10);
+		memcpy(action_info, sqlite3_column_blob(statement, 10), action_bytes);
 	}
 
 	if (bind_count != NULL) {

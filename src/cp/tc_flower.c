@@ -994,9 +994,12 @@ enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_para
 	/* get the last mask entry index from db */
 	TC_CHECK_ERROR(get_the_last_mask_entry(tc_filter_params, &last_mask_index));
 
-	if (last_mask_index == mask_index_to_delete) {
-		/* delete mask from db */
-		TC_CHECK_ERROR(delete_mask_entry_from_db(tc_filter_params, mask_index_to_delete));
+	write_log(LOG_DEBUG, "last_mask_index = 0x%x, mask_index_to_delete = 0x%x", last_mask_index, mask_index_to_delete);
+
+	/* delete mask from db */
+	TC_CHECK_ERROR(delete_mask_entry_from_db(tc_filter_params, mask_index_to_delete));
+
+	if (last_mask_index != mask_index_to_delete) {
 
 		/* change the last mask index to replace the deleted mask */
 		TC_CHECK_ERROR(get_result_mask_bitmap(tc_filter_params, last_mask_index, &result_mask_info));
@@ -1322,7 +1325,8 @@ void build_nps_tc_classifier_key(struct tc_filter *tc_filter_params,
 					      tc_filter_params->flower_rule_policy.mask_ipv4_src;
 	nps_classifier_key->dst_ip = tc_filter_params->flower_rule_policy.key_ipv4_dst &
 					      tc_filter_params->flower_rule_policy.mask_ipv4_dst;
-	nps_classifier_key->ether_type = tc_filter_params->flower_rule_policy.key_eth_type;
+	nps_classifier_key->ether_type = tc_filter_params->flower_rule_policy.key_eth_type &
+						tc_filter_params->flower_rule_policy.mask_eth_type;
 	nps_classifier_key->ip_proto = tc_filter_params->flower_rule_policy.key_ip_proto;
 	nps_classifier_key->ingress_logical_id = bswap_32(tc_filter_params->ifindex) >> 24;	/* todo what to put here */
 	nps_classifier_key->l4_dst_port = tc_filter_params->flower_rule_policy.key_l4_dst;

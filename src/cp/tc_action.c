@@ -96,7 +96,7 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 		return TC_API_FAILURE;
 	}
 
-	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params, &action_info));
+	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params));
 
 	TC_CHECK_ERROR(modify_tc_action_on_nps(&action_info));
 
@@ -625,7 +625,7 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 	TC_CHECK_ERROR(check_if_tc_action_exist(tc_action_params, &is_action_exist));
 
 	if (is_action_exist == true) {
-		return modify_tc_action_on_db(tc_action_params, action_info);
+		return modify_tc_action_on_db(tc_action_params);
 	}
 
 	/* allocate indexes for actions */
@@ -726,7 +726,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 		return TC_API_DB_ERROR;
 	}
 
-	write_log(LOG_DEBUG, "Bind count for action (index %d, family type %d) is %d",
+	write_log(LOG_DEBUG, "UnBind count for action (index %d, family type %d) is %d",
 		  tc_action_params->general.index,
 		  tc_action_params->general.family_type,
 		  bind_count);
@@ -734,7 +734,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 	/* reduce bind count by one and update on DB */
 	bind_count--;
 	tc_action_params->general.bindcnt = bind_count;
-	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params, &action_info));
+	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params));
 
 	/* if this action is independent (was created by seperatly action add api) return */
 	if (action_info.independent_action == true) {

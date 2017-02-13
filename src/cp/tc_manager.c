@@ -408,9 +408,13 @@ static int fill_tc_filter_flower_policy(struct nlattr **attr, struct tc_flower_r
 				 &flower_rule_policy->mask_eth_type,
 				 TCA_FLOWER_UNSPEC,
 				 sizeof(flower_rule_policy->key_eth_type));
-	if (err == 0 && flower_rule_policy->key_eth_type != ETH_P_ALL) {
+	if (err == 0 && (bswap_16(flower_rule_policy->key_eth_type) != ETH_P_ALL)) {
+		write_log(LOG_DEBUG, "is_eth_type_set = 1");
 		flower_rule_policy->mask_bitmap.is_eth_type_set = 1;
+	} else if (bswap_16(flower_rule_policy->key_eth_type) == ETH_P_ALL) {
+		flower_rule_policy->mask_eth_type = 0;
 	}
+
 	err = flower_set_key_val(attr, &flower_rule_policy->key_ip_proto,
 				 TCA_FLOWER_KEY_IP_PROTO,
 				 &flower_rule_policy->mask_ip_proto,
@@ -821,6 +825,7 @@ static int fill_tc_filter_flower_options(struct nlattr *attr, struct tc_filter *
 		write_log(LOG_ERR, "fill_tc_filter_action FAILED");
 		return err;
 	}
+
 	return 0;
 }
 
@@ -978,6 +983,29 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 	} else if (nlmsghdr->nlmsg_type == RTM_NEWQDISC || nlmsghdr->nlmsg_type == RTM_DELQDISC) {
 		if (nlmsghdr->nlmsg_type == RTM_NEWQDISC) {
 			write_log(LOG_DEBUG, "nlmsg_type RTM_NEWQDISC");
+			struct tcmsg *t = NLMSG_DATA(nlmsghdr);
+
+			if (t == NULL) {
+				write_log(LOG_CRIT, "traffic control message is NULL");
+				return;
+			}
+			write_log(LOG_DEBUG, "t->tcm_handle = 0x%x", t->tcm_handle);
+			write_log(LOG_DEBUG, "t->tcm_parent = 0x%x", t->tcm_parent);
+			if (t->tcm_info) {
+				write_log(LOG_DEBUG, "t->tcm_info = 0x%x", t->tcm_info);
+				if (t->tcm_parent == TC_H_INGRESS) {
+					write_log(LOG_DEBUG, "RTM_NEWQDISC ENTER");
+					write_log(LOG_DEBUG, "t->tcm_ifindex = %d", t->tcm_ifindex);
+					return;
+				}
+				write_log(LOG_DEBUG, "RTM_NEWQDISC NOT INGRESS");
+				return;
+
+			} else {
+				write_log(LOG_CRIT, "Nothing to do");
+				return;
+			}
+
 		}
 		if (nlmsghdr->nlmsg_type == RTM_DELQDISC) {
 
@@ -997,10 +1025,10 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					write_log(LOG_DEBUG, "tc_delete_all_filters_on_interface ENTER");
 					err = tc_delete_all_filters_on_interface(t->tcm_ifindex);
 					if (err == TC_API_DB_ERROR) {
-						write_log(LOG_CRIT, "TC add filter failed - exit_with_error");
+						write_log(LOG_CRIT, "TC delete qdisc failed - exit_with_error");
 						tc_db_manager_exit_with_error();
 					} else if (err == TC_API_FAILURE) {
-						write_log(LOG_CRIT, "TC delete all filters on this qdisc FAILED");
+						write_log(LOG_CRIT, "TC delete qdisc filters on this qdisc FAILED");
 						return;
 					}
 				}
@@ -1107,6 +1135,8 @@ int tc_get_all_filters_req(void)
 	return sendmsg(tc_rtnl_handle.fd, &msg, 0);
 
 }
+
+
 static int tc_fill_specific_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
 	      int alen)
 {
@@ -1125,6 +1155,8 @@ static int tc_fill_specific_l(struct nlmsghdr *n, int maxlen, int type, const vo
 	return 0;
 
 }
+
+
 int tc_get_all_actions_req(void)
 {
 	char k[16];
@@ -1142,14 +1174,14 @@ int tc_get_all_actions_req(void)
 		.msg_name = &nladdr,
 		.msg_namelen = sizeof(nladdr),
 		.msg_iov = iov,
-		.msg_iovlen = 2,
+		.msg_iovlen = 1,
 	};
 	memset(k, 0, sizeof(k));
 
 	memset(&tca_msg, 0, sizeof(tca_msg));
 	tca_msg.tca_family = AF_UNSPEC;
 
-	nlh.nlmsg_len = NLMSG_LENGTH(sizeof(tca_msg));
+	nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcamsg));
 	write_log(LOG_INFO, "START nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	tail = NLMSG_TAIL_PRIVATE(&nlh);
 	write_log(LOG_INFO, "tail = 0x%p", tail);
@@ -1165,13 +1197,14 @@ int tc_get_all_actions_req(void)
 	tail2->rta_len = (void *)NLMSG_TAIL_PRIVATE(&nlh) - (void *)tail2;
 	tail->rta_len = (void *)NLMSG_TAIL_PRIVATE(&nlh) - (void *)tail;
 	msg_length = NLMSG_ALIGN(nlh.nlmsg_len) - NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
 	nlh.nlmsg_len = NLMSG_LENGTH(msg_length);
 	nlh.nlmsg_type = RTM_GETACTION;
-	nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST | NLM_F_ACK;
+	nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 	nlh.nlmsg_pid = 0;
 	nlh.nlmsg_seq = tc_rtnl_handle.dump = ++tc_rtnl_handle.seq;
 	iov[1].iov_len = msg_length;
-
+	iov[0].iov_len = nlh.nlmsg_len;
 	write_log(LOG_INFO, "nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	return sendmsg(tc_rtnl_handle.fd, &msg, 0);
 
@@ -1378,7 +1411,7 @@ void  tc_db_manager_table_init(void)
 
 	/*getting the answer from Kernel with all saved Tc actions identification*/
 	write_log(LOG_INFO, "tc_get_all_actions_req");
-	err = tc_dump_all_actions();
+	err = tc_dump_all_filters();
 	if (err != 0) {
 		write_log(LOG_CRIT, "Dump all filters FAILED FAILED");
 		tc_db_manager_exit_with_error();
