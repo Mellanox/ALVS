@@ -86,7 +86,7 @@ enum tc_api_rc tc_api_get_action_info(enum tc_action_type type,
 				      bool *is_action_exists);
 enum tc_api_rc tc_api_get_filters_list(uint32_t interface,
 				       uint32_t priority,
-				       struct tc_filter_id *filters_array,
+				       struct tc_filter_id **filters_array,
 				       uint32_t *num_of_filters);
 enum tc_api_rc tc_api_get_filter_info(struct tc_filter_id *tc_filter_id, struct tc_filter *tc_filter_params);
 

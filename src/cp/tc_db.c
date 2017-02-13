@@ -373,10 +373,11 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params)
 	return TC_API_OK;
 }
 
-enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
-				     bool *is_action_exist,
+enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
+				     bool               *is_action_exist,
 				     struct action_info *action_info,
-				     uint32_t *bind_count)
+				     uint32_t           *bind_count,
+				     struct tc_action   *tc_action_from_db)
 {
 	int rc;
 	sqlite3_stmt *statement;
@@ -425,6 +426,22 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
 		memcpy(action_info, sqlite3_column_blob(statement, 10), action_bytes);
 	}
 
+	if (tc_action_from_db != NULL) {
+		struct action_info l_action_info;
+
+		tc_action_from_db->general.index                       = sqlite3_column_int(statement, 0);
+		tc_action_from_db->general.family_type                 = sqlite3_column_int(statement, 1);
+		tc_action_from_db->action_statistics.created_timestamp = sqlite3_column_int(statement, 2);
+		tc_action_from_db->general.bindcnt                     = sqlite3_column_int(statement, 6);
+		tc_action_from_db->general.capab                       = sqlite3_column_int(statement, 7);
+		tc_action_from_db->general.refcnt                      = sqlite3_column_int(statement, 8);
+		tc_action_from_db->general.type                        = sqlite3_column_int(statement, 9);
+
+		action_bytes = sqlite3_column_bytes(statement, 10);
+		memcpy(&l_action_info, sqlite3_column_blob(statement, 10), action_bytes);
+		memcpy(&tc_action_from_db->action_data, &l_action_info.action_data, sizeof(tc_action_from_db->action_data));
+	}
+
 	if (bind_count != NULL) {
 		*bind_count = sqlite3_column_int(statement, 6);
 	}
@@ -436,7 +453,7 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
 
 enum tc_api_rc check_if_tc_action_exist(struct tc_action *tc_action_params, bool *is_action_exist)
 {
-	return get_tc_action_from_db(tc_action_params, is_action_exist, NULL, NULL);
+	return get_tc_action_from_db(tc_action_params, is_action_exist, NULL, NULL, NULL);
 }
 
 enum tc_api_rc get_type_num_of_actions_from_db(enum tc_action_type type, uint32_t *num_of_actions)

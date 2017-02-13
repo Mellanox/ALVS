@@ -79,32 +79,39 @@ void error(char *msg)
  */
 void print_message(struct cli_msg  *cli __unused)
 {
-	uint32_t *raw_data  __unused;
-	uint32_t idx;
+#ifndef NDEBUG
+	uint32_t *raw_data;
+	uint32_t  idx;
 
-	print_dbg("Message header:\n");
-	print_dbg("  version:  %d\n", cli->header.version);
-	print_dbg("  msg_type: %d\n", cli->header.msg_type);
-	print_dbg("  op:       %d\n", cli->header.op);
-	print_dbg("  family:   %d\n", cli->header.family);
-	print_dbg("  len:      %d\n", cli->header.len);
+	/* print header */
+	printf("Message header:\n");
+	printf("  version:  %d\n", cli->header.version);
+	printf("  msg_type: %d\n", cli->header.msg_type);
+	printf("  op:       %d\n", cli->header.op);
+	printf("  family:   %d\n", cli->header.family);
+	printf("  len:      %d\n", cli->header.len);
+	printf("  is_last:  %d\n", cli->header.is_last);
 
 	raw_data = (uint32_t *)&cli->header;
-	print_dbg("Header  0x%08x %08x %08x %08x\n\n",
+	printf("Header  0x%08x %08x %08x %08x\n\n",
 	       raw_data[0], raw_data[1], raw_data[2], raw_data[3]);
 
-
-	print_dbg("Message payload:");
+	/* print payload if exist */
+	if (cli->header.len == 0) {
+		return;
+	}
+	printf("Message payload:\n");
 
 	raw_data = (uint32_t *)cli->payload.raw_data;
-	for (idx = 0; idx < (CLI_PAYLOAD_SIZE/4); idx++) {
+	for (idx = 0; (idx < (CLI_PAYLOAD_SIZE/4)) && (idx < (uint32_t)(cli->header.len/4 + 1)); idx++) {
 		if ((idx % 8) == 0) {
-			print_dbg("\n  0x%08x", raw_data[idx]);
+			printf("\n  0x%08x", raw_data[idx]);
 		} else {
-			print_dbg("  %08x",   raw_data[idx]);
+			printf("  %08x",   raw_data[idx]);
 		}
 	}
-	print_dbg("\n");
+	printf("\n");
+#endif
 }
 
 /******************************************************************************

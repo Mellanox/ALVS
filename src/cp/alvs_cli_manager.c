@@ -89,7 +89,8 @@ void cli_manager_handle_common_message(struct cli_msg  *rcv_cli,
  * \param[in]     rcv_cli    - Received CLI message
  * \param[out]    res_cli    - Response CLI message
  *
- * \return	  void
+ * \return        ( 0) - success. Write message to CLI socket
+ *                (-1) - Failure. Don't write message to CLI socket
  */
 void cli_manager_handle_message(struct cli_msg  *rcv_cli,
 				struct cli_msg  *res_cli)

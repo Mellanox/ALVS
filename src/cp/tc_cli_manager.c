@@ -75,25 +75,39 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 	/* get all filters */
 	tc_api_rc = tc_api_get_filters_list(rcv_cli->payload.tc_filter_req.ifindex,
 					    rcv_cli->payload.tc_filter_req.priority,
-					    filters_array,
+					    &filters_array,
 					    &num_of_filters);
 	if (tc_api_rc != TC_API_OK) {
+		write_log(LOG_WARNING, "tc_api_get_filters_list failed for ifindex 0x%x, priority %d",
+			  rcv_cli->payload.tc_filter_req.ifindex,
+			  rcv_cli->payload.tc_filter_req.priority);
 		goto Exit;
 	}
 
 	if (num_of_filters == 0) {
 		/* no actions */
+		write_log(LOG_DEBUG, "no filters for for ifindex 0x%x, priority %d",
+			  rcv_cli->payload.tc_filter_req.ifindex,
+			  rcv_cli->payload.tc_filter_req.priority);
+
 		res_cli->header.len = 0;
 		return;
 	}
 
 	/* get & send filters */
+	res_cli->header.len = sizeof(res_cli->payload.tc_filter_res);
 	for (idx = 0 ; idx < num_of_filters; idx++) {
 
 		/* get next filter */
+		write_log(LOG_DEBUG, "Get filter %d/%d.  ifindex 0x%x, priority %d, handle %d",
+			  idx+1, num_of_filters, filters_array[idx].ifindex,
+			  filters_array[idx].priority, filters_array[idx].handle);
 		tc_api_rc = tc_api_get_filter_info(&filters_array[idx],
 						   &tc_filter);
 		if (tc_api_rc != TC_API_OK) {
+			write_log(LOG_ERR, "tc_api_get_filter_info failed for idx %d. ifindex 0x%x, priority %d, handle %d",
+			  idx, filters_array[idx].ifindex, filters_array[idx].priority,
+			  filters_array[idx].handle);
 			goto Exit;
 		}
 
@@ -102,8 +116,8 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 		       &tc_filter,
 		       sizeof(res_cli->payload.tc_filter_res));
 
-		/* send message (iof not last */
-		if ((idx + 1) == num_of_filters) {
+		/* send message (if not last */
+		if ((idx + 1) < num_of_filters) {
 			/* not last message */
 			cli_rc = cli_manager_send_message(res_cli, false);
 			if (cli_rc != 0) {

@@ -88,6 +88,7 @@ void cli_manager_print_message(struct cli_msg  *cli)
 	write_log(LOG_DEBUG, "  op:       %d", cli->header.op);
 	write_log(LOG_DEBUG, "  family:   %d", cli->header.family);
 	write_log(LOG_DEBUG, "  len:      %d", cli->header.len);
+	write_log(LOG_DEBUG, "  is_last:  %d", cli->header.is_last);
 }
 
 

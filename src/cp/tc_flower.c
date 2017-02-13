@@ -87,52 +87,44 @@ void tc_flower_destroy(void)
 	index_pool_destroy(&rules_list_index_pool);
 }
 
-enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params_origin)
+enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params)
 {
-	struct tc_filter tc_filter_params;
 	bool is_exist;
 
-	/* copy all parameters to internal variable */
-	TC_CHECK_ERROR(tc_filter_params_fill(tc_filter_params_origin, &tc_filter_params));
-
 	/* check if filter already exist on system */
-	TC_CHECK_ERROR(check_if_filter_exist_on_db(&tc_filter_params, &is_exist));
+	TC_CHECK_ERROR(check_if_filter_exist_on_db(tc_filter_params, &is_exist));
 
 	if (is_exist) {
 		/* if exist execute modify filter instead */
 		write_log(LOG_DEBUG, "Filter exists, modify this flower filter");
-		TC_CHECK_ERROR(tc_modify_flower_filter(&tc_filter_params));
+		TC_CHECK_ERROR(tc_modify_flower_filter(tc_filter_params));
 	} else {
 		/* if not exist execute add filter to system */
 		write_log(LOG_DEBUG, "Filter not exist, add flower filter");
-		TC_CHECK_ERROR(tc_int_add_flower_filter(&tc_filter_params));
+		TC_CHECK_ERROR(tc_int_add_flower_filter(tc_filter_params));
 	}
 
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_delete_flower_filter(struct tc_filter *tc_filter_params_origin)
+enum tc_api_rc tc_delete_flower_filter(struct tc_filter *tc_filter_params)
 {
-
-	struct tc_filter tc_filter_params;
 	bool is_exist;
-
-	TC_CHECK_ERROR(tc_filter_params_fill(tc_filter_params_origin, &tc_filter_params));
 
 	/**************************************************************************************/
 	/*****check if specific filter should be deleted (interface, priority, handle)*********/
 	/*****or all filters on the specific priority should be deleted (interface, priority)*/
 	/**************************************************************************************/
 #ifndef NDEBUG
-	print_flower_filter(&tc_filter_params);
+	print_flower_filter(tc_filter_params);
 #endif
-	if (tc_filter_params.handle == 0) {
+	if (tc_filter_params->handle == 0) {
 		write_log(LOG_DEBUG, "tc_delete_all_priority_flower_filters");
-		TC_CHECK_ERROR(tc_delete_all_priority_flower_filters(&tc_filter_params));
+		TC_CHECK_ERROR(tc_delete_all_priority_flower_filters(tc_filter_params));
 	} else {
-		TC_CHECK_ERROR(check_if_filter_exist_on_db(&tc_filter_params, &is_exist));
+		TC_CHECK_ERROR(check_if_filter_exist_on_db(tc_filter_params, &is_exist));
 		if (is_exist) {
-			TC_CHECK_ERROR(tc_int_delete_flower_filter(&tc_filter_params));
+			TC_CHECK_ERROR(tc_int_delete_flower_filter(tc_filter_params));
 		}
 	}
 
@@ -162,6 +154,7 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 	struct tc_filter old_tc_filter_params;
 	struct rules_list_item first_rule_list_item, old_first_rule_list_item;
 	uint32_t new_filter_actions_index, old_filter_actions_index;
+	int nps_port_index;
 
 	memset(new_action_info_array, 0, sizeof(struct action_info)*MAX_NUM_OF_ACTIONS_IN_FILTER);
 	memset(old_action_id_array, 0, sizeof(struct action_id)*MAX_NUM_OF_ACTIONS_IN_FILTER);
@@ -172,6 +165,12 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 	/* check supported mask */
 	if (create_mask_info(&tc_filter_params->flower_rule_policy, &tc_mask_info) == false) {
 		write_log(LOG_NOTICE, "Unsupported Mask Filter");
+		return TC_API_FAILURE;
+	}
+
+	nps_port_index = if_lookup_by_index(tc_filter_params->ifindex);
+	if (nps_port_index < 0) {
+		write_log(LOG_NOTICE, "Linux ifindex (%d) for TC filter is not supported", tc_filter_params->ifindex);
 		return TC_API_FAILURE;
 	}
 
@@ -239,7 +238,8 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 							     tc_mask_info,
 							     &first_rule_list_item,
 							     second_rule_list_index,
-							     true));
+							     true,
+							     nps_port_index));
 
 		/**************************************************************************************/
 		/************* update the old entry on classifier table (with the old key) ************/
@@ -252,7 +252,8 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 
 				build_nps_tc_classifier_key(&old_tc_filter_params,
 							    &tc_mask_info,
-							    &nps_classifier_key);
+							    &nps_classifier_key,
+							    nps_port_index);
 
 				write_log(LOG_DEBUG, "nps_classifier_key.dst_ip = %08x", nps_classifier_key.dst_ip);
 				if (infra_delete_entry(STRUCT_ID_TC_CLASSIFIER,
@@ -269,7 +270,8 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 									     tc_mask_info,
 									     &old_first_rule_list_item,
 									     old_second_rule_list_index,
-									     true));
+									     true,
+									     nps_port_index));
 			}
 		}
 	}
@@ -292,46 +294,36 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 
 enum tc_api_rc tc_api_get_filters_list(uint32_t interface,
 				       uint32_t priority,
-				       struct tc_filter_id *filters_array,
+				       struct tc_filter_id **filters_array,
 				       uint32_t *num_of_filters)
 {
-	int nps_interface;
-
-	/* use nps interface index instead of linux interface index */
-	nps_interface = if_lookup_by_index(interface);
-	if (nps_interface < 0) {
-		write_log(LOG_NOTICE, "Linux ifindex is not supported");
-		return TC_API_FAILURE;
-	}
-
 	/* get the number of filters that we found */
-	TC_CHECK_ERROR(get_num_of_flower_filters(nps_interface, priority, num_of_filters));
+	TC_CHECK_ERROR(get_num_of_flower_filters(interface, priority, num_of_filters));
 
 	/* allocate an array - this array will hold all the filter IDs */
-	filters_array = (struct tc_filter_id *)malloc((*num_of_filters)*sizeof(struct tc_filter_id));
-	if (filters_array == NULL) {
+	*filters_array = (struct tc_filter_id *)malloc((*num_of_filters)*sizeof(struct tc_filter_id));
+	if (*filters_array == NULL) {
 		write_log(LOG_ERR, "failed to allocate memory");
 		return TC_API_FAILURE;
 	}
 
 	/* fill the array with all the actions indexes related to this type */
-	TC_CHECK_ERROR(get_flower_filters_id_from_db(nps_interface, priority, filters_array, *num_of_filters));
+	TC_CHECK_ERROR(get_flower_filters_id_from_db(interface, priority, *filters_array, *num_of_filters));
 
 	return TC_API_OK;
 }
 
+
 enum tc_api_rc tc_api_get_filter_info(struct tc_filter_id *tc_filter_id, struct tc_filter *tc_filter_params)
 {
-	bool is_filter_exists;
-	int nps_interface_index;
+	struct tc_action *action;
+	bool              is_filter_exists;
+	bool              is_action_exists;
+	uint32_t          idx;
 
-	/* use nps interface index instead of linux interface index */
-	nps_interface_index = if_lookup_by_index(tc_filter_id->ifindex);
-	if (nps_interface_index < 0) {
-		write_log(LOG_NOTICE, "Linux ifindex is not supported");
-		return TC_API_FAILURE;
-	}
-	tc_filter_params->ifindex = nps_interface_index;
+
+
+	tc_filter_params->ifindex = tc_filter_id->ifindex;
 	tc_filter_params->priority = tc_filter_id->priority;
 	tc_filter_params->handle = tc_filter_id->handle;
 
@@ -345,6 +337,16 @@ enum tc_api_rc tc_api_get_filter_info(struct tc_filter_id *tc_filter_id, struct 
 			  tc_filter_params->handle);
 
 		return TC_API_FAILURE;
+	}
+
+	/* get actions counters */
+	for (idx = 0; idx < tc_filter_params->actions.num_of_actions; idx++) {
+		action = &tc_filter_params->actions.action[idx];
+
+		TC_CHECK_ERROR(tc_api_get_action_info(action->general.family_type,
+						      action->general.index,
+						      action,
+						      &is_action_exists));
 	}
 
 	return TC_API_OK;
@@ -766,13 +768,18 @@ enum tc_api_rc add_entry_to_classifier_table(struct tc_filter *tc_filter_params,
 					     struct tc_mask_info tc_mask_info,
 					     struct rules_list_item *first_rule_list_item,
 					     uint32_t second_rule_list_index,
-					     bool modify_entry)
+					     bool modify_entry,
+					     uint32_t nps_port_index)
 {
 	union tc_classifier_key nps_classifier_key;
 	struct tc_classifier_result nps_classifier_result;
 
 	/* build key */
-	build_nps_tc_classifier_key(tc_filter_params, &tc_mask_info, &nps_classifier_key);
+	build_nps_tc_classifier_key(tc_filter_params,
+				    &tc_mask_info,
+				    &nps_classifier_key,
+				    nps_port_index);
+
 
 	/* building result for classifier */
 	memset(&nps_classifier_result, 0, sizeof(struct tc_classifier_result));
@@ -897,7 +904,7 @@ enum tc_api_rc add_actions_to_filter_actions_table(struct action_info *action_in
 	return TC_API_OK;
 }
 
-enum tc_api_rc add_filter_to_mask_table(struct tc_filter *tc_filter_params, struct tc_mask_info tc_mask_info)
+enum tc_api_rc add_filter_to_mask_table(struct tc_filter *tc_filter_params, struct tc_mask_info tc_mask_info, uint32_t nps_port_index)
 {
 	enum tc_api_rc rc;
 	bool is_mask_exist;
@@ -934,9 +941,9 @@ enum tc_api_rc add_filter_to_mask_table(struct tc_filter *tc_filter_params, stru
 		}
 
 		/* create masks table key */
-		build_nps_tc_masks_key(tc_filter_params,
-				      new_mask_index,
-				      &nps_masks_key);
+		build_nps_tc_masks_key(new_mask_index,
+				       &nps_masks_key,
+				       nps_port_index);
 
 		/* create masks table result */
 		build_nps_tc_masks_result(&tc_mask_info,
@@ -978,7 +985,7 @@ enum tc_api_rc get_the_last_mask_entry(struct tc_filter *tc_filter_params, uint3
 	return TC_API_OK;
 }
 
-enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_params)
+enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_params, uint32_t nps_port_index)
 {
 	uint32_t mask_index_to_delete = 0, last_mask_index = 0;
 	struct tc_mask_info result_mask_info;
@@ -1013,9 +1020,10 @@ enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_para
 		/************* replace the deleted entry with the last entry on NPS table ***********/
 		/************************************************************************************/
 		/* create masks table key */
-		build_nps_tc_masks_key(tc_filter_params,
-				       mask_index_to_delete,
-				       &nps_masks_key);
+		build_nps_tc_masks_key(mask_index_to_delete,
+				       &nps_masks_key,
+				       nps_port_index);
+
 
 		/* create masks table result */
 		build_nps_tc_masks_result(&result_mask_info,
@@ -1034,9 +1042,9 @@ enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_para
 	/********************** delete the last entry on NPS table **************************/
 	/************************************************************************************/
 	/* create masks table key */
-	build_nps_tc_masks_key(tc_filter_params,
-			       last_mask_index,
-			       &nps_masks_key);
+	build_nps_tc_masks_key(last_mask_index,
+			       &nps_masks_key,
+			       nps_port_index);
 
 	if (infra_delete_entry(STRUCT_ID_TC_MASK_BITMAP,
 			       &nps_masks_key,
@@ -1102,6 +1110,7 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 	struct rules_list_item first_rule_list_item;
 	struct tc_filter  current_tc_filter_params;
 	uint32_t filter_actions_index, num_of_actions;
+	int nps_port_index;
 	bool is_key_changed;
 
 	memset(&tc_mask_info, 0, sizeof(tc_mask_info));
@@ -1118,6 +1127,13 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 		write_log(LOG_NOTICE, "Unsupported Mask Filter");
 		return TC_API_FAILURE;
 	}
+
+	nps_port_index = if_lookup_by_index(tc_filter_params->ifindex);
+	if (nps_port_index < 0) {
+		write_log(LOG_NOTICE, "Linux ifindex (%d) for TC filter is not supported", tc_filter_params->ifindex);
+		return TC_API_FAILURE;
+	}
+
 	/**************************************************************************************/
 	/******************************** get old actions  ************************************/
 	/**************************************************************************************/
@@ -1167,7 +1183,8 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 								     tc_mask_info,
 								     &first_rule_list_item,
 								     second_rule_list_index,
-								     true));
+								     true,
+								     nps_port_index));
 		} else {
 
 			/**************************************************************************************/
@@ -1179,7 +1196,7 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 			if (is_filters_registered_on_mask == false) {
 				write_log(LOG_DEBUG, "the deleted filter is the only filter on this mask --> deleting this mask too");
 				/* remove entry from mask table only if it is the only filter that use this mask */
-				TC_CHECK_ERROR(remove_mask_from_db_and_dp_table(&current_tc_filter_params));
+				TC_CHECK_ERROR(remove_mask_from_db_and_dp_table(&current_tc_filter_params, nps_port_index));
 			}
 
 			/**************************************************************************************/
@@ -1187,7 +1204,8 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 			/**************************************************************************************/
 			build_nps_tc_classifier_key(&current_tc_filter_params,
 						    &tc_mask_info,
-						    &nps_classifier_key);
+						    &nps_classifier_key,
+						    nps_port_index);
 
 			if (infra_delete_entry(STRUCT_ID_TC_CLASSIFIER,
 					    &nps_classifier_key,
@@ -1228,6 +1246,7 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 	bool is_highest_handle;
 	struct tc_mask_info tc_mask_info;
 	uint32_t filter_actions_index = 0;
+	int nps_port_index;
 
 	memset(action_info, 0, sizeof(struct action_info)*MAX_NUM_OF_ACTIONS_IN_FILTER);
 	memset(&tc_mask_info, 0, sizeof(tc_mask_info));
@@ -1239,6 +1258,12 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 	}
 	if (tc_filter_params->actions.num_of_actions > MAX_NUM_OF_ACTIONS_IN_FILTER) {
 		write_log(LOG_NOTICE, "Num of actions is not supported, supporting up to %d only", MAX_NUM_OF_ACTIONS_IN_FILTER);
+		return TC_API_FAILURE;
+	}
+
+	nps_port_index = if_lookup_by_index(tc_filter_params->ifindex);
+	if (nps_port_index < 0) {
+		write_log(LOG_NOTICE, "Linux ifindex (%d) for TC filter is not supported", tc_filter_params->ifindex);
 		return TC_API_FAILURE;
 	}
 
@@ -1293,12 +1318,13 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 						     tc_mask_info,
 						     &first_rule_list_item,
 						     second_rule_list_index,
-						     false));
+						     false,
+						     nps_port_index));
 
 	/**************************************************************************************/
 	/************************* insert to masks DP table ***********************************/
 	/**************************************************************************************/
-	rc = add_filter_to_mask_table(tc_filter_params, tc_mask_info);
+	rc = add_filter_to_mask_table(tc_filter_params, tc_mask_info, nps_port_index);
 	if (rc != TC_API_OK) {
 		delete_and_free_rule_list_entry(current_rule_list_index);
 		remove_filter_from_db(tc_filter_params);
@@ -1312,7 +1338,8 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 
 void build_nps_tc_classifier_key(struct tc_filter *tc_filter_params,
 				 struct tc_mask_info *tc_mask_info,
-				 union tc_classifier_key *nps_classifier_key)
+				 union tc_classifier_key *nps_classifier_key,
+				 uint32_t nps_port_index)
 {
 	memset(nps_classifier_key, 0, sizeof(union tc_classifier_key));
 
@@ -1321,16 +1348,16 @@ void build_nps_tc_classifier_key(struct tc_filter *tc_filter_params,
 
 	memcpy(&nps_classifier_key->tc_mask_info.mask_bitmap, (void *)&tc_mask_info->mask_bitmap, sizeof(union tc_mask_bitmap));
 
-	nps_classifier_key->src_ip = tc_filter_params->flower_rule_policy.key_ipv4_src &
+	nps_classifier_key->src_ip             = tc_filter_params->flower_rule_policy.key_ipv4_src &
 					      tc_filter_params->flower_rule_policy.mask_ipv4_src;
-	nps_classifier_key->dst_ip = tc_filter_params->flower_rule_policy.key_ipv4_dst &
+	nps_classifier_key->dst_ip             = tc_filter_params->flower_rule_policy.key_ipv4_dst &
 					      tc_filter_params->flower_rule_policy.mask_ipv4_dst;
-	nps_classifier_key->ether_type = tc_filter_params->flower_rule_policy.key_eth_type &
+	nps_classifier_key->ether_type         = tc_filter_params->flower_rule_policy.key_eth_type &
 						tc_filter_params->flower_rule_policy.mask_eth_type;
-	nps_classifier_key->ip_proto = tc_filter_params->flower_rule_policy.key_ip_proto;
-	nps_classifier_key->ingress_logical_id = bswap_32(tc_filter_params->ifindex) >> 24;	/* todo what to put here */
-	nps_classifier_key->l4_dst_port = tc_filter_params->flower_rule_policy.key_l4_dst;
-	nps_classifier_key->l4_src_port = tc_filter_params->flower_rule_policy.key_l4_src;
+	nps_classifier_key->ip_proto           = tc_filter_params->flower_rule_policy.key_ip_proto;
+	nps_classifier_key->ingress_logical_id = bswap_32(nps_port_index) >> 24;
+	nps_classifier_key->l4_dst_port        = tc_filter_params->flower_rule_policy.key_l4_dst;
+	nps_classifier_key->l4_src_port        = tc_filter_params->flower_rule_policy.key_l4_src;
 	memcpy(nps_classifier_key->dst_mac.ether_addr_octet, tc_filter_params->flower_rule_policy.key_eth_dst, ETH_ALEN);
 	memcpy(nps_classifier_key->src_mac.ether_addr_octet, tc_filter_params->flower_rule_policy.key_eth_src, ETH_ALEN);
 
@@ -1381,14 +1408,15 @@ void build_nps_rules_list_result(struct rules_list_item *rules_list,
 	}
 }
 
-void build_nps_tc_masks_key(struct tc_filter *tc_filter_params,
-			   uint32_t new_mask_index,
-			   struct tc_mask_key *nps_masks_key)
+void build_nps_tc_masks_key(uint32_t new_mask_index,
+			    struct tc_mask_key *nps_masks_key,
+			    uint32_t nps_port_index)
 {
-	nps_masks_key->interface = tc_filter_params->ifindex; /* todo need to swap? */
+	nps_masks_key->interface = nps_port_index;
 	nps_masks_key->mask_index = new_mask_index;
 
 	write_log(LOG_DEBUG, "New mask key for new entry is 0x%08x", *(uint8_t *)nps_masks_key);
+
 }
 
 void build_nps_tc_masks_result(struct tc_mask_info *tc_mask_info,

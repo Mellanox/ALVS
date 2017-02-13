@@ -66,7 +66,8 @@ enum tc_api_rc add_entry_to_classifier_table(struct tc_filter *tc_filter_params,
 					     struct tc_mask_info tc_mask_info,
 					     struct rules_list_item *first_rule_list_item,
 					     uint32_t second_rule_list_index,
-					     bool modify_entry);
+					     bool modify_entry,
+					     uint32_t nps_port_index);
 /* filter actions table */
 enum tc_api_rc add_filter_actions(struct tc_filter *tc_filter_params, struct action_info *action_info_array);
 enum tc_api_rc add_actions_to_filter_actions_table(struct action_info *action_info,
@@ -93,9 +94,9 @@ enum tc_api_rc create_and_add_rules_list(struct tc_filter *tc_filter_params,
 					 uint32_t rules_list_size);
 
 /* masks table */
-enum tc_api_rc add_filter_to_mask_table(struct tc_filter *tc_filter_params, struct tc_mask_info tc_mask_info);
+enum tc_api_rc add_filter_to_mask_table(struct tc_filter *tc_filter_params, struct tc_mask_info tc_mask_info, uint32_t nps_port_index);
 enum tc_api_rc get_the_last_mask_entry(struct tc_filter *tc_filter_params, uint32_t *last_mask_entry_index);
-enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_params);
+enum tc_api_rc remove_mask_from_db_and_dp_table(struct tc_filter *tc_filter_params, uint32_t nps_port_index);
 
 /* build nps results & keys */
 void build_nps_tc_filter_actions_key(struct tc_filter_actions_key *nps_filter_actions_key,
@@ -105,9 +106,9 @@ void build_nps_tc_filter_actions_result(struct tc_filter_actions_result *nps_fil
 					struct action_info *action_info);
 void build_nps_tc_masks_result(struct tc_mask_info *tc_mask_info,
 			       struct tc_mask_result *nps_masks_result);
-void build_nps_tc_masks_key(struct tc_filter *tc_filter_params,
-			   uint32_t new_mask_index,
-			   struct tc_mask_key *nps_masks_key);
+void build_nps_tc_masks_key(uint32_t new_mask_index,
+			    struct tc_mask_key *nps_masks_key,
+			    uint32_t nps_port_index);
 void build_nps_rules_list_result(struct rules_list_item *rules_list,
 				 uint32_t next_rule_item,
 				 struct tc_rules_list_result *rules_list_result);
@@ -118,7 +119,8 @@ void build_nps_tc_classifier_result(uint32_t highest_priority_value,
 				    struct tc_classifier_result *nps_classifier_result);
 void build_nps_tc_classifier_key(struct tc_filter *tc_filter_params,
 				 struct tc_mask_info *tc_mask_info,
-				 union tc_classifier_key *nps_classifier_key);
+				 union tc_classifier_key *nps_classifier_key,
+				 uint32_t nps_port_index);
 
 /* add/delete internal functions */
 enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params);

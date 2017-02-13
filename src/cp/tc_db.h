@@ -50,7 +50,8 @@ enum tc_api_rc delete_tc_action_from_db(struct tc_action *tc_action_params);
 enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
 				     bool *is_action_exist,
 				     struct action_info *action_info,
-				     uint32_t *bind_count);
+				     uint32_t *bind_count,
+				     struct tc_action   *tc_action_from_db);
 enum tc_api_rc check_if_tc_action_exist(struct tc_action *tc_action_params, bool *is_action_exist);
 enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params);
 enum tc_api_rc get_type_num_of_actions_from_db(enum tc_action_type type, uint32_t *num_of_actions);

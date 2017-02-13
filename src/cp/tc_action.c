@@ -61,7 +61,7 @@ enum tc_api_rc delete_tc_action(struct tc_action *tc_action_params)
 	struct action_info action_info;
 	bool is_action_exists;
 
-	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL));
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
@@ -89,7 +89,7 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 	struct action_info action_info;
 	bool is_action_exists;
 
-	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL));
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
@@ -121,36 +121,65 @@ enum tc_api_rc tc_api_get_actions_list(enum tc_action_type type, uint32_t *actio
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_api_get_action_info(enum tc_action_type type,
+/* get statistic counters */
+enum tc_api_rc tc_get_action_stats(uint32_t   nps_index,
+				   uint64_t  *in_packets,
+				   uint64_t  *in_bytes)
+{
+	uint64_t counters_value[TC_NUM_OF_ACTION_ON_DEMAND_STATS];
+	uint32_t counter_index;
+
+	counter_index = TC_ACTION_STATS_ON_DEMAND_OFFSET +
+		(nps_index * TC_NUM_OF_ACTION_ON_DEMAND_STATS);
+
+	if (infra_get_long_counters(counter_index,
+				    TC_NUM_OF_ACTION_ON_DEMAND_STATS,
+				    counters_value) == false) {
+		write_log(LOG_CRIT, "infra_get_long_counters failed. nps_index %d, counter_index %d",
+			  nps_index, counter_index);
+		return TC_API_DB_ERROR;
+	}
+
+	*in_packets = counters_value[TC_ACTION_IN_PACKET];
+	*in_bytes   = counters_value[TC_ACTION_IN_BYTES];
+
+	return TC_API_OK;
+}
+
+
+enum tc_api_rc tc_api_get_action_info(enum tc_action_type family_type,
 				      uint32_t action_index,
 				      struct tc_action *tc_action,
 				      bool *is_action_exists)
 {
-	struct action_info action_info;
-	struct tc_action tc_action_params;
-	uint64_t counters_value[TC_NUM_OF_ACTION_ON_DEMAND_STATS];
-	uint32_t last_used_timestamp;
-
-	tc_action_params.general.type = type;
-	tc_action_params.general.index = action_index;
-
-	TC_CHECK_ERROR(get_tc_action_from_db(&tc_action_params, is_action_exists, &action_info, NULL));
+	struct action_info  action_info;
+	bool                rc;
+	struct tc_action    tc_action_params;
+	uint32_t            last_used_timestamp;
+	uint32_t            rtc_seconds;
 
 
-	if (infra_get_long_counters(TC_ACTION_STATS_ON_DEMAND_OFFSET+action_info.nps_index*TC_NUM_OF_ACTION_ON_DEMAND_STATS,
-				    2,
-				    counters_value) == false) {
-		write_log(LOG_ERR, "error while reading long counters of action index %d", action_info.nps_index);
+	tc_action_params.general.index       = action_index;
+	tc_action_params.general.family_type = family_type;
+
+	/* fill Linux info */
+	TC_CHECK_ERROR(get_tc_action_from_db(&tc_action_params, is_action_exists, &action_info, NULL, tc_action));
+
+	/* fill statistic counters */
+	TC_CHECK_ERROR(tc_get_action_stats(action_info.nps_index,
+					   &tc_action->action_statistics.packet_statictics,
+					   &tc_action->action_statistics.bytes_statictics));
+
+	/* fill used timestamp */
+	rc = infra_read_real_time_clock_seconds(&rtc_seconds);
+	if (rc != true) {
+		write_log(LOG_CRIT, "Failed to read RTC.");
 		return TC_API_FAILURE;
 	}
 
 	TC_CHECK_ERROR(get_last_used_action_timestamp(action_info.nps_index, &last_used_timestamp));
-
-	/* fill statistics */
-	tc_action->action_statistics.bytes_statictics = counters_value[TC_ACTION_IN_BYTES];
-	tc_action->action_statistics.packet_statictics = counters_value[TC_ACTION_IN_PACKET];
-	tc_action->action_statistics.created_timestamp = action_info.created_timestamp;
-	tc_action->action_statistics.use_timestamp = last_used_timestamp;
+	tc_action->action_statistics.created_timestamp = rtc_seconds - tc_action->action_statistics.created_timestamp;
+	tc_action->action_statistics.use_timestamp     = rtc_seconds - last_used_timestamp;
 
 	return TC_API_OK;
 }
@@ -283,9 +312,11 @@ enum tc_api_rc add_pedit_action_list_to_table(struct pedit_action_data *pedit)
 
 enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 {
-	struct tc_action_key nps_action_key;
-	struct tc_action_result nps_action_result;
-	uint32_t family_action_type;
+	struct tc_action_key        nps_action_key;
+	struct tc_action_result     nps_action_result;
+	struct tc_timestamp_key     nps_timestamp_key;
+	struct tc_timestamp_result  nps_timestamp_result;
+	uint32_t                    family_action_type;
 
 	family_action_type = action_info->action_id.action_family_type;
 	switch (family_action_type) {
@@ -316,6 +347,21 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 			    &nps_action_result,
 			    sizeof(struct tc_action_result)) == false) {
 		write_log(LOG_CRIT, "Failed to add action entry.");
+		return TC_API_DB_ERROR;
+	}
+
+	/* prepare timestamp key & result */
+	nps_timestamp_key.action_index        = bswap_32(action_info->nps_index);
+	nps_timestamp_result.tc_timestamp_val = action_info->created_timestamp;
+
+	/* add entry to action DP table */
+	if (infra_add_entry(STRUCT_ID_TC_TIMESTAMPS,
+			    &nps_timestamp_key,
+			    sizeof(nps_timestamp_key),
+			    &nps_timestamp_result,
+			    sizeof(nps_timestamp_result)) == false) {
+		write_log(LOG_CRIT, "Failed to add timestamp entry. key %d",
+			  nps_timestamp_key.action_index);
 		return TC_API_DB_ERROR;
 	}
 
@@ -580,7 +626,7 @@ enum tc_api_rc get_last_used_action_timestamp(uint32_t  action_index,
 	struct tc_timestamp_result  timestamp_result;
 	bool                        rc;
 
-	timestamp_key.action_index = action_index;
+	timestamp_key.action_index = bswap_32(action_index);
 	rc = infra_get_entry(STRUCT_ID_TC_TIMESTAMPS,
 			&timestamp_key,
 			sizeof(timestamp_key),
@@ -719,7 +765,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 	uint32_t bind_count;
 
 	/* get action info from database */
-	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, &bind_count));
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, &bind_count, NULL));
 
 	if (is_action_exists == false) {
 		write_log(LOG_ERR, "deleted action is not exist on db");
