@@ -84,27 +84,30 @@ class ezbox_host(object):
 
 	def common_ezbox_bringup(self, test_config={}):
 		print "init EZbox: " + self.setup['name']
-		# start daemon and DP
 		self.connect()
-		cpus_range = "16-" + str(int(test_config['num_of_cpus']) - 1)
+		self.bringup_app_with_single_cpu(test_config)
+		self.bringup_app_with_user_params(test_config)
+		
+	def bringup_app_with_single_cpu(self, test_config):
+		self.set_single_cpu()		
 		if test_config['install_package']:
 			self.copy_and_install_package(test_config['install_file'])
+		else:
+			self.service_restart()			
+		self.wait_for_dp_app()
+		
+	def bringup_app_with_user_params(self, test_config):
+		stats = ''
+		cpus_range = "16-" + str(int(test_config['num_of_cpus']) - 1)
 		
 		if test_config['stats']:
 			stats = '--statistics'
-		else:
-			stats = ''
-			
-		if test_config['modify_run_cpus']:
-			self.service_start()
-			self.wait_for_dp_app()
-			self.modify_run_cpus(cpus_range)
 		
+		self.modify_run_cpus(cpus_range)		
 		self.update_debug_params("--run_cpus %s --agt_enabled %s " % (cpus_range, stats))
 		self.update_port_type("--port_type=%s " % (self.setup['nps_port_type']))
 		self.service_restart()
 		self.wait_for_dp_app()
-
 
 	def reset_ezbox(self):
 		os.system("/.autodirect/LIT/SCRIPTS/rreboot " + self.setup['name'])
@@ -125,6 +128,9 @@ class ezbox_host(object):
 	def update_port_type(self, params=None):
 		cmd = "find /etc/default/%s | xargs grep -l PORT_TYPE | xargs sed -i '/PORT_TYPE=/c\PORT_TYPE=\"%s\"' " %(self.type,params)
 		self.execute_command_on_host(cmd)
+		
+	def set_single_cpu(self):
+		self.update_debug_params("--run_cpus 16")
 
 	def modify_run_cpus(self, cpus_range):
 		cpus="0,"+cpus_range
