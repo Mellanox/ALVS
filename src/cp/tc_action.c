@@ -352,7 +352,7 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 
 	/* prepare timestamp key & result */
 	nps_timestamp_key.action_index        = bswap_32(action_info->nps_index);
-	nps_timestamp_result.tc_timestamp_val = action_info->created_timestamp;
+	nps_timestamp_result.tc_timestamp_val = bswap_32(action_info->created_timestamp);
 
 	/* add entry to action DP table */
 	if (infra_add_entry(STRUCT_ID_TC_TIMESTAMPS,
@@ -636,7 +636,7 @@ enum tc_api_rc get_last_used_action_timestamp(uint32_t  action_index,
 		return TC_API_DB_ERROR;
 	}
 
-	*last_used_timestamp = timestamp_result.tc_timestamp_val;
+	*last_used_timestamp = bswap_32(timestamp_result.tc_timestamp_val);
 
 	return TC_API_OK;
 }
