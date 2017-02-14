@@ -1376,22 +1376,15 @@ enum tc_api_rc tc_delete_all_flower_filters_on_interface(uint32_t interface)
 	int rc;
 	sqlite3_stmt *statement;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
-	int nps_port_index;
 
 	write_log(LOG_DEBUG, "Deleting all filters with interface = %d", interface);
 
-	nps_port_index = if_lookup_by_index(interface);
-	if (nps_port_index < 0) {
-		write_log(LOG_NOTICE, "Linux ifindex is not supported");
-		return TC_API_FAILURE;
-	}
-	write_log(LOG_DEBUG, "Deleting all filters on nps_port_index = %d", nps_port_index);
 	/* get all filters with this interface and later we will delete them */
 	snprintf(sql,
 		 TC_DB_SQL_COMMAND_SIZE,
 		 "SELECT * FROM filters_table WHERE "
 		 "interface = %d ORDER BY priority DESC, handle ASC;",
-		 nps_port_index);
+		 interface);
 
 	/* Prepare SQL statement */
 	rc = sqlite3_prepare_v2(tc_db, sql, -1, &statement, NULL);
@@ -1409,7 +1402,7 @@ enum tc_api_rc tc_delete_all_flower_filters_on_interface(uint32_t interface)
 
 		tc_filter_params.handle = sqlite3_column_int(statement, 2);
 		tc_filter_params.priority = sqlite3_column_int(statement, 1);
-		tc_filter_params.ifindex = nps_port_index;
+		tc_filter_params.ifindex = interface;
 
 		TC_CHECK_ERROR(tc_int_delete_flower_filter(&tc_filter_params));
 
