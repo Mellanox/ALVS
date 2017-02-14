@@ -98,6 +98,9 @@ bool tc_init_db(void)
 	 * ipv4_dst_mask
 	 * l4_src_mask
 	 * l4_dst_mask
+	 * mask_flow_bitmap
+	 * filter_actions_index
+	 * protocol
 	 *
 	 * Key:
 	 * priority
@@ -132,6 +135,7 @@ bool tc_init_db(void)
 		"l4_dst_mask INT NOT NULL,"		/* 21 */
 		"mask_flow_bitmap INT NOT NULL,"	/* 22 */
 		"filter_actions_index INT NOT NULL,"	/* 23 */
+		"protocol INT NOT NULL,"		/* 24 */
 		"PRIMARY KEY (priority, handle, interface));";
 
 	/* Execute SQL statement */
@@ -609,8 +613,9 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 		"l4_src_mask,"
 		"l4_dst_mask, "
 		"mask_flow_bitmap, "
-		"filter_actions_index) "
-		 "VALUES (%d, %d, %d, %d, ?, %d, %ld, %ld, %d, %d, %d, %d, %d, %d, %ld, %ld, %d, %d, %d, %d, %d, %d, %d, %d);",
+		"filter_actions_index, "
+		"protocol) "
+		 "VALUES (%d, %d, %d, %d, ?, %d, %ld, %ld, %d, %d, %d, %d, %d, %d, %ld, %ld, %d, %d, %d, %d, %d, %d, %d, %d, %d);",
 		 tc_filter_params->ifindex,			/* interface */
 		 tc_filter_params->priority,			/* priority */
 		 tc_filter_params->handle,			/* handle */
@@ -633,7 +638,8 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 		 tc_filter_params->flower_rule_policy.mask_l4_src,	/* l4_src_mask */
 		 tc_filter_params->flower_rule_policy.mask_l4_dst,	/* l4_dst_mask */
 		 tc_filter_params->flower_rule_policy.mask_bitmap.raw_data, /* mask_flow_bitmap */
-		 filter_actions_index);				/* filter_actions_index */
+		 filter_actions_index,					/* filter_actions_index */
+		 tc_filter_params->protocol);				/* protocol */
 
 	rc = sqlite3_prepare_v2(tc_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
@@ -706,7 +712,8 @@ enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 		 "ipv4_dst_key=%d, "
 		 "l4_src_key=%d, "
 		 "l4_dst_key=%d, "
-		 "filter_actions_index=%d "
+		 "filter_actions_index=%d, "
+		 "protocol=%d "
 		 "WHERE priority=%d AND handle=%d AND interface=%d;",
 		 tc_filter_params->ifindex,			/* interface */
 		 tc_filter_params->actions.num_of_actions,	/* num_of_actions */
@@ -719,6 +726,7 @@ enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 		 tc_filter_params->flower_rule_policy.key_l4_src,	/* l4_src_key */
 		 tc_filter_params->flower_rule_policy.key_l4_dst,
 		 filter_actions_index,
+		 tc_filter_params->protocol,
 		 tc_filter_params->priority,
 		 tc_filter_params->handle,
 		 tc_filter_params->ifindex);				/* l4_dst_key */
@@ -1784,6 +1792,7 @@ enum tc_api_rc get_flower_filter_from_db(struct tc_filter *tc_filter_params, boo
 	tc_filter_params->flower_rule_policy.mask_l4_src = sqlite3_column_int(statement, 20);
 	tc_filter_params->flower_rule_policy.mask_l4_dst = sqlite3_column_int(statement, 21);
 	tc_filter_params->flower_rule_policy.mask_bitmap.raw_data = sqlite3_column_int(statement, 22);
+	tc_filter_params->protocol = sqlite3_column_int(statement, 24);
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
