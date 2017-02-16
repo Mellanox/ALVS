@@ -568,6 +568,64 @@ bool infra_get_my_mac(struct ether_addr *my_mac)
 }
 
 /**************************************************************************//**
+ * \brief       Read Double Counters Values
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ *
+ */
+bool infra_get_double_counters(uint32_t counter_index,
+			       uint32_t num_of_counters,
+			       uint64_t *frames_value,
+			       uint64_t *bytes_value)
+{
+	union {
+		uint64_t raw_data;
+		struct {
+			uint32_t value_lsb;
+			uint32_t value_msb;
+		};
+	} value;
+
+	uint32_t i;
+	EZstatus ret_val;
+	EZapiStat_DoubleCounter *double_counter;
+	EZapiStat_DoubleCounterConfig double_counter_config;
+
+	double_counter = (EZapiStat_DoubleCounter *)malloc(sizeof(EZapiStat_DoubleCounter) * num_of_counters);
+	if (double_counter == NULL) {
+		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
+		return false;
+	}
+	memset(double_counter, 0, sizeof(EZapiStat_LongCounter) * num_of_counters);
+	memset(&double_counter_config, 0, sizeof(double_counter_config));
+
+	double_counter_config.pasCounters = double_counter;
+	double_counter_config.uiStartCounter = counter_index;
+	double_counter_config.uiNumCounters = num_of_counters;
+	double_counter_config.bRange = TRUE;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetDoubleCounters, &double_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetDoubleCounters failed.");
+		free(double_counter);
+		return false;
+	}
+
+	for (i = 0; i < num_of_counters; i++) {
+		value.value_lsb = double_counter[i].uiByteValue;
+		value.value_msb = double_counter[i].uiByteValueMSB;
+		bytes_value[i] = value.raw_data;
+		value.value_lsb = double_counter[i].uiFrameValue;
+		value.value_msb = double_counter[i].uiFrameValueMSB;
+		frames_value[i] = value.raw_data;
+	}
+
+	free(double_counter);
+	return true;
+}
+
+/**************************************************************************//**
  * \brief       Read Long Counters Values
  * \param[in]   counter_index   - index of starting counter
  *		num_of_counters - number of counters from the starting counter
@@ -735,6 +793,38 @@ bool infra_clear_long_counters(uint32_t counter_index,
 
 	if (EZrc_IS_ERROR(ret_val)) {
 		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
+ * \brief       Clear double counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_double_counters(uint32_t counter_index,
+				 uint32_t num_of_counters)
+{
+	EZstatus ret_val;
+	EZapiStat_DoubleCounterConfig double_counter_config;
+	EZapiStat_DoubleCounter double_counter;
+
+	memset(&double_counter_config, 0, sizeof(double_counter_config));
+	memset(&double_counter, 0, sizeof(double_counter));
+
+	double_counter_config.uiPartition = 0;
+	double_counter_config.bRange = true;
+	double_counter_config.uiStartCounter = counter_index;
+	double_counter_config.uiNumCounters = num_of_counters;
+	double_counter_config.pasCounters = &double_counter;
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_ResetDoubleCounters, &double_counter_config);
+
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_ResetDoubleCounters failed.");
 		return false;
 	}
 

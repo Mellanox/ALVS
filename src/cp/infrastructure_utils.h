@@ -234,6 +234,19 @@ bool infra_delete_tcam_entry(uint32_t side, uint32_t table, void *key, uint32_t 
 bool infra_delete_all_entries(uint32_t struct_id);
 
 /**************************************************************************//**
+ * \brief       Read Double Counters Values
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		[out] counters_value - pointer to the array of results (array of uint64 size must be num_of_couinters)
+ * \return      bool
+ *
+ */
+bool infra_get_double_counters(uint32_t counter_index,
+			       uint32_t num_of_counters,
+			       uint64_t *frames_value,
+			       uint64_t *bytes_value);
+
+/**************************************************************************//**
  * \brief       Read Long Counters Values, read several counters (num_of_counters)
  * \param[in]   counter_index   - index of starting counter
  *		num_of_counters - number of counters from the starting counter
@@ -276,6 +289,16 @@ bool infra_clear_posted_counters(uint32_t counter_index,
  */
 bool infra_clear_long_counters(uint32_t counter_index,
 			       uint32_t num_of_counters);
+
+/**************************************************************************//**
+ * \brief       Clear double counters values - set to a several counters (num_of_counters)
+ *
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ * \return      bool
+ */
+bool infra_clear_double_counters(uint32_t counter_index,
+				 uint32_t num_of_counters);
 
 /**************************************************************************//**
  * \brief       Copy data to memory (IMEM/EMEM)

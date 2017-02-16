@@ -151,6 +151,7 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 
 	/* set logical ID */
 	eth_rx_channel_params.uiLogicalID = logical_id;
+	eth_rx_channel_params.uiHeaderOffset = FRAME_HEADER_OFFSET;
 
 	ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetEthRXChannelParams, &eth_rx_channel_params);
 	if (EZrc_IS_ERROR(ret_val)) {
@@ -213,12 +214,16 @@ enum infra_imem_spaces_params {
 };
 
 /*! EMEM spaces configuration parameters possible values. */
+
+#define EMEM_SPACES_DEFAULT_NUM_OF_COPIES 2
+
 enum infra_emem_spaces_params {
 	INFRA_EMEM_SPACES_PARAMS_TYPE               = 0,
 	INFRA_EMEM_SPACES_PARAMS_PROTECTION         = 1,
 	INFRA_EMEM_SPACES_PARAMS_SIZE               = 2,
 	INFRA_EMEM_SPACES_PARAMS_MSID               = 3,
 	INFRA_EMEM_SPACES_PARAMS_HEAP               = 4,
+	INFRA_EMEM_SPACES_PARAMS_NUM_OF_COPIES      = 5,
 	INFRA_NUM_OF_EMEM_SPACES_PARAMS
 };
 
@@ -237,7 +242,7 @@ enum infra_emem_spaces_params {
 #	define NUM_OF_EXT_MEMORY_SPACES            6
 #endif
 #ifdef CONFIG_TC
-#	define NUM_OF_EXT_MEMORY_SPACES            3
+#	define NUM_OF_EXT_MEMORY_SPACES            4
 #endif
 
 #define INFRA_HALF_CLUSTER_SEARCH_SIZE (NW_HALF_CLUSTER_SEARCH_SIZE + ALVS_HALF_CLUSTER_SEARCH_SIZE + TC_HALF_CLUSTER_SEARCH_SIZE)
@@ -279,16 +284,17 @@ uint32_t imem_spaces_params[NUM_OF_INT_MEMORY_SPACES][INFRA_NUM_OF_IMEM_SPACES_P
 
 
 uint32_t emem_spaces_params[NUM_OF_EXT_MEMORY_SPACES][INFRA_NUM_OF_EMEM_SPACES_PARAMS] = {
-	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, NW_EMEM_SEARCH_SIZE, NW_EMEM_SEARCH_MSID, NW_EMEM_SEARCH_HEAP},
-	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, NW_EMEM_DATA_SIZE, NW_EMEM_DATA_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, NW_EMEM_SEARCH_SIZE, NW_EMEM_SEARCH_MSID, NW_EMEM_SEARCH_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, NW_EMEM_DATA_SIZE, NW_EMEM_DATA_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
 #ifdef CONFIG_ALVS
-	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_0_SIZE, ALVS_EMEM_SEARCH_0_MSID, ALVS_EMEM_SEARCH_0_HEAP},
-	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_1_SIZE, ALVS_EMEM_SEARCH_1_MSID, ALVS_EMEM_SEARCH_1_HEAP},
-	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_2_SIZE, ALVS_EMEM_SEARCH_2_MSID, ALVS_EMEM_SEARCH_2_HEAP},
-	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, ALVS_EMEM_DATA_OUT_OF_BAND_SIZE, ALVS_EMEM_DATA_OUT_OF_BAND_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_0_SIZE, ALVS_EMEM_SEARCH_0_MSID, ALVS_EMEM_SEARCH_0_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_1_SIZE, ALVS_EMEM_SEARCH_1_MSID, ALVS_EMEM_SEARCH_1_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, ALVS_EMEM_SEARCH_2_SIZE, ALVS_EMEM_SEARCH_2_MSID, ALVS_EMEM_SEARCH_2_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
+	{EZapiChannel_ExtMemSpaceType_GENERAL, EZapiChannel_ExtMemSpaceECCType_OUT_OF_BAND, ALVS_EMEM_DATA_OUT_OF_BAND_SIZE, ALVS_EMEM_DATA_OUT_OF_BAND_MSID, INFRA_NOT_VALID_EXTERNAL_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
 #endif
 #ifdef CONFIG_TC
-	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, TC_EMEM_SEARCH_0_SIZE, TC_EMEM_SEARCH_0_MSID, TC_EMEM_SEARCH_0_HEAP},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, TC_EMEM_SEARCH_0_SIZE, TC_EMEM_SEARCH_0_MSID, TC_EMEM_SEARCH_0_HEAP, EMEM_SPACES_DEFAULT_NUM_OF_COPIES},
+	{EZapiChannel_ExtMemSpaceType_SEARCH, EZapiChannel_ExtMemSpaceECCType_NONE, TC_EMEM_SEARCH_1_SIZE, TC_EMEM_SEARCH_1_MSID, TC_EMEM_SEARCH_1_HEAP, 1},
 #endif
 };
 
@@ -408,8 +414,9 @@ bool infra_create_mem_partition(void)
 			ext_mem_space_params.uiSize = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_SIZE];
 			ext_mem_space_params.eECCType = (EZapiChannel_ExtMemSpaceECCType)emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_PROTECTION];
 			ext_mem_space_params.uiMSID = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_MSID];
+
 			if (ext_mem_space_params.eType == EZapiChannel_ExtMemSpaceType_SEARCH) {
-				ext_mem_space_params.uiCopies = 2;
+				ext_mem_space_params.uiCopies = emem_spaces_params[ind][INFRA_EMEM_SPACES_PARAMS_NUM_OF_COPIES];
 			}
 
 			ret_val = EZapiChannel_Config(0, EZapiChannel_ConfigCmd_SetExtMemSpaceParams, &ext_mem_space_params);
@@ -488,7 +495,7 @@ bool infra_create_statistics(void)
 
 	on_demand_group_params.uiStartCounter = 0;
 	on_demand_group_params.uiNumCounters = TOTAL_ON_DEMAND_STATS;
-
+	on_demand_group_params.eGroupType = EZapiStat_GroupType_STANDARD;
 	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetGroupParams, &on_demand_group_params);
 
 	if (EZrc_IS_ERROR(ret_val)) {

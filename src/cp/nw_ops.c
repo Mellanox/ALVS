@@ -432,11 +432,6 @@ bool nw_ops_remove_if_addr(struct rtnl_addr *addr_entry)
  */
 int32_t if_lookup_by_index(int  __attribute__((__unused__))linux_index)
 {
-#ifdef EZ_SIM
-	/* TODO workaround for simulator */
-	return 0;
-#endif
-
 	/* TODO: this is a workaround for ALVS until real implementation of eth mapping */
 #ifdef CONFIG_ALVS
 	return 0;

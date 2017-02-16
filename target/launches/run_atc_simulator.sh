@@ -106,7 +106,7 @@ function run_demo_cp()
 {
 	echo "running demo cp..."
 	
-	host_app_flags="--data_if ens3 --if0 name=nps_mac0,ip=192.168.100.1,netmask=255.255.255.0 --if1 name=nps_mac1,ip=192.168.101.1,netmask=255.255.255.0 --if2 name=nps_mac2,ip=192.168.102.1,netmask=255.255.255.0 --if3 name=nps_mac3,ip=192.168.103.1,netmask=255.255.255.0 --port_type 10GE --dp_bin_file $bin_dir/atc_dp_sim --routing_app"
+	host_app_flags="--if0 nps_mac0 --if1 nps_mac1 --if2 nps_mac2 --if3 nps_mac3 --port_type 10GE --dp_bin_file $bin_dir/atc_dp_sim --routing_app --agt_enabled"
 	host_app_bin=$bin_dir/atc_daemon_sim
 
 	if [ ! -f "$host_app_bin" ]; then
@@ -184,6 +184,7 @@ echo $PATH | grep -q  "/.autodirect/sw_tools/OpenSource/minicom/INSTALLS/minicom
 if [ -n "$?" ] ;
 	then export PATH=$PATH:/.autodirect/sw_tools/OpenSource/minicom/INSTALLS/minicom-2.7/linux_x86_64/bin;
 fi 
+export LM_LICENSE_FILE=27020@mtlxls03-slv02:27020@mtlxls03-slv01:27020@mtlxls03
 
 set_global_variables
 create_workspace

@@ -42,6 +42,7 @@ enum tc_external_msid {
 	TC_POSTED_STATS_MSID = NW_POSTED_STATS_MSID,
 	TC_ON_DEMAND_STATS_MSID = NW_ON_DEMAND_STATS_MSID,
 	TC_EMEM_SEARCH_0_MSID = NUM_OF_NW_EXTERNAL_MSIDS,
+	TC_EMEM_SEARCH_1_MSID,
 	NUM_OF_TC_EXTERNAL_MSIDS
 };
 
@@ -70,6 +71,7 @@ enum tc_external_msid {
 #	define TC_16_CLUSTER_DATA_SIZE        0
 #	define TC_ALL_CLUSTER_DATA_SIZE       1
 #	define TC_EMEM_SEARCH_0_SIZE          3150
+#	define TC_EMEM_SEARCH_1_SIZE          1000 /* todo need to calculate */
 #else
 #	define TC_HALF_CLUSTER_SEARCH_SIZE    0
 #	define TC_1_CLUSTER_SEARCH_SIZE       0
@@ -123,7 +125,7 @@ enum tc_error_stats_offsets {
 /* On demand Statistics offsets */
 #define TC_ACTION_STATS_ON_DEMAND_OFFSET           NW_ON_DENAMD_STATS_LAST_OFFSET
 #ifdef CONFIG_TC
-#	define TC_TOTAL_ON_DEMAND_STATS            (TC_NUM_OF_ACTIONS * TC_NUM_OF_ACTION_ON_DEMAND_STATS)
+#	define TC_TOTAL_ON_DEMAND_STATS            (TC_NUM_OF_ACTIONS*TC_NUM_OF_ACTION_ON_DEMAND_STATS)
 #else
 #	define TC_TOTAL_ON_DEMAND_STATS            0
 #endif

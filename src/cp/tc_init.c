@@ -53,31 +53,35 @@
 bool tc_initialize_statistics(void)
 {
 	EZstatus ret_val;
-	EZapiStat_LongCounterConfig long_counter_config;
+	EZapiStat_DoubleCounterConfig double_counter_config;
 
 	/* Set on demand statistics values to be 0 */
-	memset(&long_counter_config, 0, sizeof(long_counter_config));
-	long_counter_config.pasCounters = malloc(sizeof(EZapiStat_LongCounter));
-	if (long_counter_config.pasCounters == NULL) {
-		write_log(LOG_CRIT, "infra_initialize_statistics: long_counter_config malloc failed.");
+	memset(&double_counter_config, 0, sizeof(double_counter_config));
+	double_counter_config.pasCounters = (EZapiStat_DoubleCounter *)malloc(sizeof(EZapiStat_DoubleCounter));
+	if (double_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: double_counter_config malloc failed.");
 		return false;
 	}
-	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
+	memset(double_counter_config.pasCounters, 0, sizeof(EZapiStat_DoubleCounter));
 
-	long_counter_config.uiPartition = 0;
-	long_counter_config.bRange = TRUE;
-	long_counter_config.uiStartCounter = TC_ACTION_STATS_ON_DEMAND_OFFSET;
-	long_counter_config.uiNumCounters = TC_TOTAL_ON_DEMAND_STATS;
-	long_counter_config.uiRangeStep = 1;
-	long_counter_config.pasCounters[0].uiValue = 0;
-	long_counter_config.pasCounters[0].uiValueMSB = 0;
-	long_counter_config.pasCounters[0].bEnableThresholdMsg = FALSE;
-	long_counter_config.pasCounters[0].uiThreshold = 58;
+	double_counter_config.uiPartition = 0;
+	double_counter_config.bRange = TRUE;
+	double_counter_config.uiStartCounter = TC_ACTION_STATS_ON_DEMAND_OFFSET;
+	double_counter_config.uiNumCounters = TC_TOTAL_ON_DEMAND_STATS;
+	double_counter_config.uiRangeStep = 1;
 
-	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
-	free(long_counter_config.pasCounters);
+	double_counter_config.pasCounters[0].uiByteValue = 0;
+	double_counter_config.pasCounters[0].uiByteValueMSB = 0;
+	double_counter_config.pasCounters[0].uiFrameValue = 0;
+	double_counter_config.pasCounters[0].uiFrameValueMSB = 0;
+	double_counter_config.pasCounters[0].bEnableThresholdMsg = TRUE;
+	double_counter_config.pasCounters[0].uiThresholdByte = 50;
+	double_counter_config.pasCounters[0].uiThresholdFrame = 44;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetDoubleCounters, &double_counter_config);
+	free(double_counter_config.pasCounters);
 	if (EZrc_IS_ERROR(ret_val)) {
-		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed.");
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetDoubleCounters failed.");
 		return false;
 	}
 
@@ -193,7 +197,7 @@ bool tc_db_constructor(void)
 	table_params.max_num_of_entries = TC_ACTION_TIMESTAMP_TABLE_SIZE;
 	table_params.updated_from_dp = true;
 	table_params.is_external = true;
-	table_params.search_mem_heap = TC_EMEM_SEARCH_0_HEAP;
+	table_params.search_mem_heap = TC_EMEM_SEARCH_1_HEAP;
 	retcode = infra_create_table(STRUCT_ID_TC_TIMESTAMPS, &table_params);
 	if (retcode == false) {
 		write_log(LOG_CRIT, "Failed to create tc action timestamp table");

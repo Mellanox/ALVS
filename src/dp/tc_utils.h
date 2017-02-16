@@ -196,8 +196,10 @@ void tc_utils_update_action_stats(void)
 {
 	/*update packets and bytes per action*/
 	anl_write_log(LOG_INFO, "STATS cmem_tc.action_res.action_stats_addr=%08x", cmem_tc.action_res.action_stats_addr);
-	ezdp_inc_single_ctr_async(cmem_tc.action_res.action_stats_addr + TC_ACTION_IN_PACKET, 1);
-	ezdp_inc_single_ctr_async(cmem_tc.action_res.action_stats_addr + TC_ACTION_IN_BYTES, ezframe_get_len(&frame));
+
+	ezdp_inc_dual_ctr_async(cmem_tc.action_res.action_stats_addr,
+				ezframe_get_len(&frame),
+				1);
 }
 
 /******************************************************************************
@@ -223,6 +225,7 @@ void tc_utils_update_action_timestamp(uint32_t action_index)
 				     EZDP_UNCONDITIONAL,
 				     cmem_wa.tc_wa.timestamp_table_wa,
 				     sizeof(cmem_wa.tc_wa.timestamp_table_wa));
+
 #ifndef NDEBUG
 	if (rc != 0) {
 		anl_write_log(LOG_WARNING, "ezdp_modify_table_entry action_index 0x%x", action_index);

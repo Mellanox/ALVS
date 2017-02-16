@@ -126,22 +126,13 @@ enum tc_api_rc tc_get_action_stats(uint32_t   nps_index,
 				   uint64_t  *in_packets,
 				   uint64_t  *in_bytes)
 {
-	uint64_t counters_value[TC_NUM_OF_ACTION_ON_DEMAND_STATS];
-	uint32_t counter_index;
-
-	counter_index = TC_ACTION_STATS_ON_DEMAND_OFFSET +
-		(nps_index * TC_NUM_OF_ACTION_ON_DEMAND_STATS);
-
-	if (infra_get_long_counters(counter_index,
-				    TC_NUM_OF_ACTION_ON_DEMAND_STATS,
-				    counters_value) == false) {
-		write_log(LOG_CRIT, "infra_get_long_counters failed. nps_index %d, counter_index %d",
-			  nps_index, counter_index);
-		return TC_API_DB_ERROR;
+	if (infra_get_double_counters(TC_ACTION_STATS_ON_DEMAND_OFFSET+nps_index*TC_NUM_OF_ACTION_ON_DEMAND_STATS,
+				      1,
+				      in_packets,
+				      in_bytes) == false) {
+		write_log(LOG_ERR, "error while reading double counters of action index %d", nps_index);
+		return TC_API_FAILURE;
 	}
-
-	*in_packets = counters_value[TC_ACTION_IN_PACKET];
-	*in_bytes   = counters_value[TC_ACTION_IN_BYTES];
 
 	return TC_API_OK;
 }
@@ -510,7 +501,7 @@ enum tc_api_rc prepare_action_info(struct tc_action *tc_action_params, struct ac
 	write_log(LOG_DEBUG, "Statistics base is 0x%08x", action_info->statistics_base.raw_data);
 
 	/* clear statistics */
-	if (infra_clear_long_counters(TC_ACTION_STATS_ON_DEMAND_OFFSET + action_info->nps_index * TC_NUM_OF_ACTION_ON_DEMAND_STATS,
+	if (infra_clear_double_counters(TC_ACTION_STATS_ON_DEMAND_OFFSET + action_info->nps_index * TC_NUM_OF_ACTION_ON_DEMAND_STATS,
 				      TC_NUM_OF_ACTION_ON_DEMAND_STATS) == false) {
 		write_log(LOG_ERR, "ERROR, failed to clear statistics");
 		return TC_API_FAILURE;
