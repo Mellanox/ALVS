@@ -106,8 +106,8 @@ bool init_nw_shared_cmem(void)
 	/*Init arp DB*/
 	result = ezdp_init_hash_struct_desc(STRUCT_ID_NW_ARP,
 					    &shared_cmem_nw.arp_struct_desc,
-					    cmem_wa.nw_wa.arp_hash_wa,
-					    sizeof(cmem_wa.nw_wa.arp_hash_wa));
+					    cmem_wa.nw_wa.arp_prm_hash_wa,
+					    sizeof(cmem_wa.nw_wa.arp_prm_hash_wa));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 		       STRUCT_ID_NW_ARP, result, ezdp_get_err_msg());

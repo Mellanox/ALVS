@@ -130,15 +130,6 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 	cmem_nw.arp_key.zero_rsrv1 = 0;
 	cmem_nw.arp_key.out_index = route_entry->output_index;
 
-#if 0
-	rc = ezdp_lookup_hash_entry(&shared_cmem_nw.arp_struct_desc,
-				    (void *)&cmem_nw.arp_key,
-				    sizeof(struct nw_arp_key),
-				    (void **)&arp_res_ptr, &found_result_size,
-				    0, cmem_wa.nw_wa.arp_hash_wa,
-				    sizeof(cmem_wa.nw_wa.arp_hash_wa));
-
-#else
 	ezdp_hashed_key_t hashed_key = ezdp_prm_hash_key64(*((uint64_t *)&cmem_nw.arp_key),
 							   0,
 							   sizeof(struct nw_arp_key));
@@ -153,8 +144,6 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 						     (void *)&cmem_nw.arp_entry,
 						     cmem_wa.nw_wa.arp_prm_hash_wa,
 						     sizeof(cmem_wa.nw_wa.arp_prm_hash_wa));
-
-#endif
 
 	if (likely(retval.match)) {
 		struct ether_addr *dmac = (struct ether_addr *)frame_base;

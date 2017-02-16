@@ -577,15 +577,6 @@ enum tc_processing_rc tc_handle_slow_classification_process(ezframe_t  __cmem   
 
 	while (mask_index < (base_mask_index + TC_MASKS_NUM_PER_PORT_AND_PROTO) && tc_lookup_classifier_bitmask(mask_index) == 0) {
 		if (tc_build_classifier_key(l2_hdr, ip_hdr, l4_hdr) == true) {
-#if 0
-			rc = ezdp_lookup_hash_entry(&shared_cmem_tc.tc_classifier_struct_desc,
-						    (void *)&cmem_tc.classifier_key,
-						    sizeof(union tc_classifier_key),
-						    (void **)&classifier_res,
-						    &found_result_size, 0,
-						    cmem_wa.tc_wa.classifier_hash_wa,
-						    sizeof(cmem_wa.tc_wa.classifier_hash_wa));
-#endif
 			ezdp_hashed_key_t hashed_key = ezdp_prm_hash_bulk_key((uint8_t *)&cmem_tc.classifier_key, sizeof(union tc_classifier_key));
 
 			retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_tc.tc_classifier_struct_desc.main_table_addr_desc.raw_data,

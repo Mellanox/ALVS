@@ -92,11 +92,12 @@ struct packet_meta_data {
 struct cmem_nw_info {
 
 	struct  nw_if_result            ingress_if_result;
-
 	/* FIB & ARP are not used in the same time - saving CMEM */
+	struct nw_arp_key                    arp_key;
+	/**< arp key */
 	union {
-		struct nw_arp_key                    arp_key;
-		/**< arp key */
+		struct nw_arp_entry                  arp_entry;
+		/**< arp entry result */
 		struct nw_fib_key                    fib_key;
 		/**< FIB key */
 		struct  nw_if_result		     egress_if_result;
@@ -106,8 +107,6 @@ struct cmem_nw_info {
 	};
 	struct  nw_lag_group_result	     lag_group_result;
 	/**< LAG group result */
-	struct nw_arp_entry	arp_entry;
-	/**< arp entry result */
 };
 
 struct ezdp_decode_result {
@@ -137,17 +136,13 @@ enum nw_arp_processing_result {
 
 /*temp workarea*/
 union nw_workarea {
-	char                                 arp_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct nw_arp_result), sizeof(struct nw_arp_key))];
 	char                                 arp_prm_hash_wa[EZDP_HASH_PRM_WORK_AREA_SIZE];
 	char                                 table_work_area[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct nw_if_result))];
 	/**< working areas */
-
 	struct ezdp_decode_result            ezdp_decode_result;
 	/**< protocol decode result */
-
 	struct nw_fib_result                 fib_result;
 	/**< FIB result */
-
 	struct ezdp_lookup_int_tcam_result   int_tcam_result;
 	/**< DP general result for iTCAM */
 } __packed;

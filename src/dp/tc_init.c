@@ -51,8 +51,8 @@ bool init_tc_shared_cmem(void)
 	/*Init tc classifier DB*/
 	result = ezdp_init_hash_struct_desc(STRUCT_ID_TC_CLASSIFIER,
 					    &shared_cmem_tc.tc_classifier_struct_desc,
-					    cmem_wa.tc_wa.classifier_hash_wa,
-					    sizeof(cmem_wa.tc_wa.classifier_hash_wa));
+					    cmem_wa.tc_wa.classifier_prm_hash_wa,
+					    sizeof(cmem_wa.tc_wa.classifier_prm_hash_wa));
 	if (result != 0) {
 		printf("ezdp_init_hash_struct_desc of %d struct fail. Error Code %d. Error String %s\n",
 		       STRUCT_ID_TC_CLASSIFIER, result, ezdp_get_err_msg());

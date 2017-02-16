@@ -115,10 +115,10 @@ struct tc_cmem {
 	union {
 		struct tc_mask_result                   mask_res;
 		/**< mask result */
-		struct classifier_entry			class_entry;
-		/**< classifier entry */
 		struct tc_timestamp_result              timestamp_res;
 		/**< timestamp result */
+		struct classifier_entry			class_entry;
+		/**< classifier entry */
 		struct tc_pedit_action_info_result      action_pedit_info_res;
 		/**< pedit result */
 #if 0
@@ -155,7 +155,6 @@ union tc_workarea {
 	char flow_cache_classifier_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct tc_flow_cache_classifier_result), sizeof(struct tc_flow_cache_classifier_key))];
 	char flow_cache_idx_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct tc_flow_cache_idx_result))];
 #endif
-	char classifier_hash_wa[EZDP_HASH_WORK_AREA_SIZE(sizeof(struct tc_classifier_result), sizeof(union tc_classifier_key))];
 	char classifier_prm_hash_wa[EZDP_HASH_PRM_WORK_AREA_SIZE];
 	char action_info_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct tc_action_result))];
 	char filter_actions_index_table_wa[EZDP_TABLE_WORK_AREA_SIZE(sizeof(struct tc_filter_actions_result))];
