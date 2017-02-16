@@ -142,7 +142,7 @@ class ezbox_host(object):
 		self.ssh_object.connect()
 		self.run_app_ssh.connect()
 		self.syslog_ssh.connect()
-		self.syslog_ssh.execute_command('tail -f /var/log/syslog | grep anl', False)
+		self.syslog_ssh.execute_command('tail -f /var/log/syslog', False)
 
 	def logout(self):
 		self.ssh_object.logout()
