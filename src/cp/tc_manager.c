@@ -733,7 +733,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 			return -1;
 		}
 
-	for (;i < MAX_NUM_OF_ACTIONS_IN_FILTER; i++) {
+	for (; i < MAX_NUM_OF_ACTIONS_IN_FILTER; i++) {
 		if (tc_actions_orders_attr[i]) {
 			action = &tc_actions->action[k];
 			write_log(LOG_INFO, "action pointer after attr %p, %d", action, i);
@@ -755,20 +755,21 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 				}
 			}
 
-				if ((action_attrs[TCA_ACT_INDEX] == NULL) ||
+#if 0
+			if ((action_attrs[TCA_ACT_INDEX] == NULL) ||
 				nla_len(action_attrs[TCA_ACT_INDEX]) <
-					(int)sizeof(action->general.index)) {
-					if (action_attrs[TCA_ACT_INDEX] == NULL) {
-						write_log(LOG_ERR, "action_attrs[TCA_ACT_INDEX] = NULL");
-					} else {
-						write_log(LOG_ERR, "nla_len = %d", nla_len(action_attrs[TCA_ACT_INDEX]));
-					}
-					//return -1;
+				(int)sizeof(action->general.index)) {
+				if (action_attrs[TCA_ACT_INDEX] == NULL) {
+					write_log(LOG_ERR, "action_attrs[TCA_ACT_INDEX] = NULL");
 				} else {
+					write_log(LOG_ERR, "nla_len = %d", nla_len(action_attrs[TCA_ACT_INDEX]));
+				}
+				/* return -1; */
+			} else {
 				action->general.index = nla_get_u32(action_attrs[TCA_ACT_INDEX]);
 				write_log(LOG_INFO, "general.index = %d", action->general.index);
-				}
-
+			}
+#endif
 			if (action_attrs[TCA_ACT_KIND]) {
 				const char *act_kind  = nla_get_string(action_attrs[TCA_ACT_KIND]);
 				struct nlattr *act_options = action_attrs[TCA_ACT_OPTIONS];
@@ -779,35 +780,29 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 				}
 
 				if (!strcmp(act_kind, "gact")) {
-					//if (msg_type == RTM_NEWACTION) {
 					err = fill_general_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d GACT FAILED", i);
 						return -1;
 					}
-					//}
-					write_log(LOG_INFO, "gact %d",i);
+					write_log(LOG_INFO, "gact %d", i);
 					action->general.type |= TC_ACTION_TYPE_GACT_FAMILY;
 				} else if (!strcmp(act_kind, "pedit")) {
-					//if (msg_type == RTM_NEWACTION) {
 					err = fill_pedit_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d PEDIT FAILED", i);
 						return -1;
 					}
-					//}
 					write_log(LOG_INFO, "pedit %d", i);
 					action->general.type |= TC_ACTION_TYPE_PEDIT_FAMILY;
 
 				} else if (!strcmp(act_kind, "mirred")) {
-					//if (msg_type == RTM_NEWACTION) {
 					err = fill_mirred_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d IRRED FAILED", i);
 						return -1;
 					}
-					//}
-					write_log(LOG_INFO, "mirred %d",i);
+					write_log(LOG_INFO, "mirred %d", i);
 					action->general.type |= TC_ACTION_TYPE_MIRRED_FAMILY;
 				} else {
 					write_log(LOG_ERR, "Action %d UNSUPPORTED operation", i);
