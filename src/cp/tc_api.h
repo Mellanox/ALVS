@@ -79,7 +79,7 @@ void tc_db_manager_exit_with_error(void);
 
 enum tc_api_rc tc_delete_all_filters_on_interface(uint32_t interface);
 
-enum tc_api_rc tc_api_get_actions_list(enum tc_action_type type, uint32_t *action_indexes, uint32_t *num_of_actions);
+enum tc_api_rc tc_api_get_actions_list(enum tc_action_type type, uint32_t **action_indexes, uint32_t *num_of_actions);
 enum tc_api_rc tc_api_get_action_info(enum tc_action_type type,
 				      uint32_t action_index,
 				      struct tc_action *tc_action,

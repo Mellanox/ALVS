@@ -133,20 +133,22 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_api_get_actions_list(enum tc_action_type type, uint32_t *actions_array, uint32_t *num_of_actions)
+enum tc_api_rc tc_api_get_actions_list(enum tc_action_type  type,
+				       uint32_t           **actions_array,
+				       uint32_t            *num_of_actions)
 {
 	/* get number of actions from this type */
 	TC_CHECK_ERROR(get_type_num_of_actions_from_db(type, num_of_actions));
 
 	/* allocate an array - this array will hold all the actions indexes */
-	actions_array = (uint32_t *)malloc((*num_of_actions) * sizeof(uint32_t));
-	if (actions_array == NULL) {
+	*actions_array = (uint32_t *)malloc((*num_of_actions) * sizeof(uint32_t));
+	if (*actions_array == NULL) {
 		write_log(LOG_ERR, "failed to allocate memory");
 		return TC_API_FAILURE;
 	}
 
 	/* fill the array with all the actions indexes related to this type */
-	TC_CHECK_ERROR(get_type_action_indexes_from_db(type, actions_array, *num_of_actions));
+	TC_CHECK_ERROR(get_type_action_indexes_from_db(type, *actions_array, *num_of_actions));
 
 	return TC_API_OK;
 }

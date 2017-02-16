@@ -78,7 +78,7 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 					    &filters_array,
 					    &num_of_filters);
 	if (tc_api_rc != TC_API_OK) {
-		write_log(LOG_WARNING, "tc_api_get_filters_list failed for ifindex 0x%x, priority %d",
+		write_log(LOG_ERR, "tc_api_get_filters_list failed for ifindex 0x%x, priority %d",
 			  rcv_cli->payload.tc_filter_req.ifindex,
 			  rcv_cli->payload.tc_filter_req.priority);
 		goto Exit;
@@ -97,8 +97,7 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 	/* get & send filters */
 	res_cli->header.len = sizeof(res_cli->payload.tc_filter_res);
 	for (idx = 0 ; idx < num_of_filters; idx++) {
-
-		/* get next filter */
+		/* get filter */
 		write_log(LOG_DEBUG, "Get filter %d/%d.  ifindex 0x%x, priority %d, handle %d",
 			  idx+1, num_of_filters, filters_array[idx].ifindex,
 			  filters_array[idx].priority, filters_array[idx].handle);
@@ -106,8 +105,8 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 						   &tc_filter);
 		if (tc_api_rc != TC_API_OK) {
 			write_log(LOG_ERR, "tc_api_get_filter_info failed for idx %d. ifindex 0x%x, priority %d, handle %d",
-			  idx, filters_array[idx].ifindex, filters_array[idx].priority,
-			  filters_array[idx].handle);
+				  idx, filters_array[idx].ifindex, filters_array[idx].priority,
+				  filters_array[idx].handle);
 			goto Exit;
 		}
 
@@ -168,32 +167,46 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 
 	/* get all action indexes */
 	tc_api_rc = tc_api_get_actions_list(rcv_cli->payload.tc_action_req,
-					    action_indexes, &num_of_actions);
+					    &action_indexes, &num_of_actions);
 	if (tc_api_rc != TC_API_OK) {
 		goto Exit;
 	}
+	if (tc_api_rc != TC_API_OK) {
+		write_log(LOG_ERR, "tc_api_get_actions_list failed for action 0x%x",
+			  rcv_cli->payload.tc_action_req);
+		goto Exit;
+	}
 
+
+	write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 	if (num_of_actions == 0) {
 		/* no actions */
+		write_log(LOG_DEBUG, "no filters for for action 0x%x",
+			  rcv_cli->payload.tc_action_req);
+
 		res_cli->header.len = 0;
 		return;
 	}
 
 	/* get & send actions */
+	res_cli->header.len = sizeof(res_cli->payload.tc_action_res);
 	for (idx = 0 ; idx < num_of_actions; idx++) {
-
-		/* get next action */
+		/* get action */
+		write_log(LOG_DEBUG, "Get action %d/%d.  action index 0x%x",
+			  idx+1, num_of_actions, action_indexes[idx]);
 		tc_api_rc = tc_api_get_action_info(rcv_cli->payload.tc_action_req,
 						   action_indexes[idx],
 						   &tc_action,
 						   &is_action_exists);
 		if (tc_api_rc != TC_API_OK) {
+			write_log(LOG_ERR, "tc_api_get_action_info failed for idx %d. action index 0x%x",
+				  idx, action_indexes[idx]);
 			goto Exit;
 		}
 
+		write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 		if (is_action_exists == false) {
-			res_cli->header.len = 0;
-			return;
+			continue;
 		}
 
 		/* copy action to message result */
@@ -201,8 +214,9 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 		       &tc_action,
 		       sizeof(res_cli->payload.tc_action_res));
 
+		write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 		/* send message (iof not last */
-		if ((idx + 1) == num_of_actions) {
+		if ((idx + 1) < num_of_actions) {
 			/* not last message */
 			cli_rc = cli_manager_send_message(res_cli, false);
 			if (cli_rc != 0) {
