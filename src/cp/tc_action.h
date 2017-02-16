@@ -160,4 +160,11 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 				 struct action_info *action_info,
 				 bool independent_action);
 
+enum tc_api_rc prepare_pedit_action_info(struct tc_action    *action,
+					 struct action_info  *action_info);
+
+enum tc_api_rc delete_and_free_pedit_action_entries(struct pedit_action_data *pedit);
+
+enum tc_api_rc add_pedit_action_list_to_table(struct pedit_action_data *pedit);
+
 #endif /* _TC_FLOWER_API_H_ */

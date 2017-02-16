@@ -48,6 +48,14 @@ struct index_pool action_extra_info_index_pool;
 enum tc_api_rc add_tc_action(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
+	bool is_action_exist;
+
+	/* check if action exists */
+	TC_CHECK_ERROR(check_if_tc_action_exist(tc_action_params, &is_action_exist));
+
+	if (is_action_exist == true) {
+		return modify_tc_action(tc_action_params);
+	}
 
 	TC_CHECK_ERROR(tc_int_add_action(tc_action_params,
 					 &action_info,
@@ -96,7 +104,29 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 		return TC_API_FAILURE;
 	}
 
-	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params));
+	/* set action id values */
+	action_info.action_id.action_family_type = tc_action_params->general.family_type;
+	action_info.action_id.linux_action_index = tc_action_params->general.index;
+	action_info.action_type = tc_action_params->general.type;
+	if (tc_action_params->general.type == TC_ACTION_TYPE_PEDIT_FAMILY) {
+		struct pedit_action_data old_pedit_action_data;
+
+		memcpy(&old_pedit_action_data, &action_info.action_data.pedit, sizeof(old_pedit_action_data));
+
+		TC_CHECK_ERROR(prepare_pedit_action_info(tc_action_params, &action_info));
+
+		TC_CHECK_ERROR(add_pedit_action_list_to_table(&action_info.action_data.pedit));
+
+		write_log(LOG_INFO, "delete all pedit data that related to action index %d", action_info.nps_index);
+		TC_CHECK_ERROR(delete_and_free_pedit_action_entries(&old_pedit_action_data));
+
+	} else {
+		memcpy(&action_info.action_data, &tc_action_params->action_data, sizeof(action_info.action_data));
+	}
+
+	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params, &action_info));
+
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	TC_CHECK_ERROR(modify_tc_action_on_nps(&action_info));
 
@@ -400,11 +430,10 @@ enum tc_api_rc prepare_mirred_action_info(struct tc_action    *action,
 }
 
 enum tc_api_rc prepare_pedit_action_info(struct tc_action    *action,
-					  struct action_info  *action_info)
+					 struct action_info  *action_info)
 {
 
 	int i = 0;
-
 
 	if (action->action_data.pedit.num_of_keys > MAX_NUM_OF_KEYS_IN_PEDIT_DATA) {
 		write_log(LOG_ERR, "The num_of_keys = %d, exceeds the allowed maximum %d",
@@ -651,11 +680,6 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 				 struct action_info *action_info,
 				 bool independent_action)
 {
-	bool is_action_exist;
-
-	/* check if action exists */
-	TC_CHECK_ERROR(check_if_tc_action_exist(tc_action_params, &is_action_exist));
-
 	/* set action id values */
 	action_info->action_id.action_family_type = tc_action_params->general.family_type;
 	action_info->action_id.linux_action_index = tc_action_params->general.index;
@@ -663,11 +687,6 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 
 	/* allocate indexes for actions */
 	action_info->independent_action = independent_action;
-
-	if (is_action_exist == true) {
-		return modify_tc_action_on_db(tc_action_params);
-	}
-
 
 	TC_CHECK_ERROR(prepare_action_info(tc_action_params, action_info));
 
@@ -773,7 +792,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 	/* reduce bind count by one and update on DB */
 	bind_count--;
 	tc_action_params->general.bindcnt = bind_count;
-	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params));
+	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params, &action_info));
 
 	/* if this action is independent (was created by seperatly action add api) return */
 	if (action_info.independent_action == true) {

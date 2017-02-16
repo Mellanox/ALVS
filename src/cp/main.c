@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 	}
 	is_object_allocated[object_type_alvs_db_manager] = true;
 #endif
-#ifndef EZ_SIM
+
 	/************************************************/
 	/* Start CLI main thread                        */
 	/************************************************/
@@ -211,7 +211,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	is_object_allocated[object_type_cli_thread] = true;
-#endif
 
 #ifdef CONFIG_TC
 	/************************************************/
@@ -272,6 +271,8 @@ void dp_load(void)
 	sigemptyset(&sigs_to_block);
 	sigaddset(&sigs_to_block, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+
+
 #ifdef EZ_SIM
 	strcpy(nps_ip, "192.168.0.2");
 #else

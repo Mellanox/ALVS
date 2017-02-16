@@ -345,15 +345,16 @@ enum tc_api_rc delete_tc_action_from_db(struct tc_action *tc_action_params)
 	return TC_API_OK;
 }
 
-enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params)
+enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct action_info *action_info)
 {
 	enum tc_api_rc rc;
 	char *zErrMsg = NULL;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
+	sqlite3_stmt *statement;
 
 	snprintf(sql, TC_DB_SQL_COMMAND_SIZE,
 		 "UPDATE actions_table "
-		 "SET bind_value=%d, capab=%d, refcnt=%d, action_type=%d "
+		 "SET bind_value=%d, capab=%d, refcnt=%d, action_type=%d, action_data=? "
 		 "WHERE linux_action_index=%d AND action_family_type=%d;",
 		 tc_action_params->general.bindcnt,		/* bind_value */
 		 tc_action_params->general.capab,		/* capab */
@@ -362,10 +363,28 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params)
 		 tc_action_params->general.index,		/* linux_action_index */
 		 tc_action_params->general.family_type);	/* action_family_type */
 
-	/* Execute SQL command */
-	rc = sqlite3_exec(tc_db, sql, NULL, NULL, &zErrMsg);
+	rc = sqlite3_prepare_v2(tc_db, sql, -1, &statement, NULL);
 	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s",
+			  sqlite3_errmsg(tc_db));
+		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		return TC_API_DB_ERROR;
+	}
+
+	rc = sqlite3_bind_blob(statement, 1, action_info, sizeof(struct action_info), SQLITE_STATIC);
+
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s",
+			  sqlite3_errmsg(tc_db));
+		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		return TC_API_DB_ERROR;
+	}
+
+	/* Execute SQL statement */
+	rc = sqlite3_step(statement);
+	if (rc != SQLITE_DONE) {
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
+		write_log(LOG_CRIT, "Last SQL command: %s", sql);
 		sqlite3_free(zErrMsg);
 		return TC_API_DB_ERROR;
 	}
@@ -373,6 +392,8 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params)
 	write_log(LOG_DEBUG, "Modified action on Database (action index %d, action type %d)",
 		  tc_action_params->general.index,
 		  tc_action_params->general.family_type);
+
+	sqlite3_finalize(statement);
 
 	return TC_API_OK;
 }

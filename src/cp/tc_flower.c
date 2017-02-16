@@ -136,8 +136,18 @@ enum tc_api_rc add_filter_actions(struct tc_filter *tc_filter_params, struct act
 	uint32_t i;
 
 	for (i = 0; i < tc_filter_params->actions.num_of_actions; i++) {
+		bool is_action_exist;
 
-		TC_CHECK_ERROR(tc_int_add_action(&tc_filter_params->actions.action[i], &action_info_array[i], false));
+		/* check if action exists */
+		TC_CHECK_ERROR(check_if_tc_action_exist(&tc_filter_params->actions.action[i], &is_action_exist));
+
+		if (is_action_exist == true) {
+			/* need to modify the bindcnt, refcnt */
+			TC_CHECK_ERROR(modify_tc_action_on_db(&tc_filter_params->actions.action[i], &action_info_array[i]));
+		} else {
+			TC_CHECK_ERROR(tc_int_add_action(&tc_filter_params->actions.action[i], &action_info_array[i], false));
+		}
+
 	}
 
 	return TC_API_OK;
@@ -1326,11 +1336,13 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 	/**************************************************************************************/
 	rc = add_filter_to_mask_table(tc_filter_params, tc_mask_info, nps_port_index);
 	if (rc != TC_API_OK) {
+		write_log(LOG_ERR, "failed to add filter to mask table");
 		delete_and_free_rule_list_entry(current_rule_list_index);
 		remove_filter_from_db(tc_filter_params);
 		delete_and_free_action_info_entries(tc_filter_params->actions.num_of_actions, action_info);
 		return rc;
 	}
+
 
 	return TC_API_OK;
 
