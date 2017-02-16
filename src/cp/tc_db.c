@@ -742,6 +742,8 @@ enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 	for (i = 0; i < tc_filter_params->actions.num_of_actions; i++) {
 		action_id_array[i].action_family_type = action_info_array[i].action_id.action_family_type;
 		action_id_array[i].linux_action_index = action_info_array[i].action_id.linux_action_index;
+		write_log(LOG_DEBUG, "action_id_array[%d].action_family_type = %d", i,action_id_array[i].action_family_type);
+		write_log(LOG_DEBUG, "action_id_array[%d].linux_action_index = %d", i,action_id_array[i].linux_action_index);
 	}
 
 	rc = sqlite3_bind_blob(statement, 1, action_id_array, tc_filter_params->actions.num_of_actions*sizeof(struct action_id), SQLITE_STATIC);
@@ -2125,8 +2127,9 @@ enum tc_api_rc get_result_mask_bitmap(struct tc_filter *tc_filter_params,
 	rc = sqlite3_step(statement);
 
 	/* In case of error return 0 */
-	if (rc != SQLITE_DONE) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(tc_db));
+	if (rc != SQLITE_ROW) {
+		write_log(LOG_CRIT, "return value: %d, SQL error: %s", rc, sqlite3_errmsg(tc_db));
+		write_log(LOG_CRIT, "last SQL command: %s", sql);
 		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}

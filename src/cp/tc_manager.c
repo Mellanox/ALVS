@@ -63,6 +63,8 @@
 
 
 bool *tc_db_manager_cancel_application_flag;
+int tc_get_all_filters_req(int linux_interface);
+int tc_dump_all_filters(void);
 
 struct iproute2_rtnl_handle {
 	int			fd;
@@ -708,37 +710,65 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 		return -1;
 	}
 
-	for (i = 0; i < (MAX_NUM_OF_ACTIONS_IN_FILTER + 1); i++) {
-		tc_actions_orders_policy[i].type = NLA_NESTED;
-	}
 
-	err = nla_parse_nested(tc_actions_orders_attr, MAX_NUM_OF_ACTIONS_IN_FILTER, attr, tc_actions_orders_policy);
-	if (err != 0) {
-		write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
-		return -1;
-	}
+	if (msg_type == RTM_DELACTION) {
+		err = nla_parse_nested(tc_actions_orders_attr, MAX_NUM_OF_ACTIONS_IN_FILTER, attr, NULL);
+		if (err != 0) {
+			write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
+			return -1;
+		}
+		i = 1;
+	} else if (msg_type == RTM_NEWACTION) {
+		for (i = 0; i < (MAX_NUM_OF_ACTIONS_IN_FILTER + 1); i++) {
+			tc_actions_orders_policy[i].type = NLA_NESTED;
+		}
+		err = nla_parse_nested(tc_actions_orders_attr, MAX_NUM_OF_ACTIONS_IN_FILTER, attr, tc_actions_orders_policy);
+		if (err != 0) {
+			write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
+			return -1;
+		}
+		i = 0;
+	} else {
+			write_log(LOG_ERR, "wrong msg_type for this action");
+			return -1;
+		}
 
-	for (i = 0; i < MAX_NUM_OF_ACTIONS_IN_FILTER; i++) {
+	for (;i < MAX_NUM_OF_ACTIONS_IN_FILTER; i++) {
 		if (tc_actions_orders_attr[i]) {
 			action = &tc_actions->action[k];
-			write_log(LOG_INFO, "action pointer after attr %p", action);
+			write_log(LOG_INFO, "action pointer after attr %p, %d", action, i);
 
 			struct nlattr *action_attrs[TCA_ACT_MAX + 1];
 
-			err = nla_parse_nested(action_attrs, TCA_ACT_MAX, tc_actions_orders_attr[i], act_policy);
-			if (err != 0) {
-				write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
-				return -1;
-			}
 			if (msg_type == RTM_DELACTION) {
+				err = nla_parse_nested(action_attrs, TCA_ACT_MAX, tc_actions_orders_attr[i], NULL);
+				if (err != 0) {
+					write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
+					return -1;
+				}
+
+			} else {
+				err = nla_parse_nested(action_attrs, TCA_ACT_MAX, tc_actions_orders_attr[i], act_policy);
+				if (err != 0) {
+					write_log(LOG_ERR, "nla_parse_nested - problem parsing services");
+					return -1;
+				}
+			}
+
 				if ((action_attrs[TCA_ACT_INDEX] == NULL) ||
 				nla_len(action_attrs[TCA_ACT_INDEX]) <
 					(int)sizeof(action->general.index)) {
-					write_log(LOG_ERR, "no index specified");
-					return -1;
-				}
+					if (action_attrs[TCA_ACT_INDEX] == NULL) {
+						write_log(LOG_ERR, "action_attrs[TCA_ACT_INDEX] = NULL");
+					} else {
+						write_log(LOG_ERR, "nla_len = %d", nla_len(action_attrs[TCA_ACT_INDEX]));
+					}
+					//return -1;
+				} else {
 				action->general.index = nla_get_u32(action_attrs[TCA_ACT_INDEX]);
-			}
+				write_log(LOG_INFO, "general.index = %d", action->general.index);
+				}
+
 			if (action_attrs[TCA_ACT_KIND]) {
 				const char *act_kind  = nla_get_string(action_attrs[TCA_ACT_KIND]);
 				struct nlattr *act_options = action_attrs[TCA_ACT_OPTIONS];
@@ -749,32 +779,35 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 				}
 
 				if (!strcmp(act_kind, "gact")) {
-					if (msg_type == RTM_NEWACTION) {
+					//if (msg_type == RTM_NEWACTION) {
 					err = fill_general_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d GACT FAILED", i);
 						return -1;
 					}
-					}
+					//}
+					write_log(LOG_INFO, "gact %d",i);
 					action->general.type |= TC_ACTION_TYPE_GACT_FAMILY;
 				} else if (!strcmp(act_kind, "pedit")) {
-					if (msg_type == RTM_NEWACTION) {
+					//if (msg_type == RTM_NEWACTION) {
 					err = fill_pedit_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d PEDIT FAILED", i);
 						return -1;
 					}
-					}
+					//}
+					write_log(LOG_INFO, "pedit %d", i);
 					action->general.type |= TC_ACTION_TYPE_PEDIT_FAMILY;
 
 				} else if (!strcmp(act_kind, "mirred")) {
-					if (msg_type == RTM_NEWACTION) {
+					//if (msg_type == RTM_NEWACTION) {
 					err = fill_mirred_action(act_options, action);
 					if (err) {
 						write_log(LOG_ERR, "Action %d IRRED FAILED", i);
 						return -1;
 					}
-					}
+					//}
+					write_log(LOG_INFO, "mirred %d",i);
 					action->general.type |= TC_ACTION_TYPE_MIRRED_FAMILY;
 				} else {
 					write_log(LOG_ERR, "Action %d UNSUPPORTED operation", i);
@@ -996,6 +1029,19 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 				if (t->tcm_parent == TC_H_INGRESS) {
 					write_log(LOG_DEBUG, "RTM_NEWQDISC ENTER");
 					write_log(LOG_DEBUG, "t->tcm_ifindex = %d", t->tcm_ifindex);
+					/*sending TC DUMP request to get all TC filters saved in kernel*/
+					err = tc_get_all_filters_req(t->tcm_ifindex);
+					if (err < 0) {
+						write_log(LOG_CRIT, "Request for DUMP of all tc_filters FAILED");
+						tc_db_manager_exit_with_error();
+					}
+
+					/*getting the answer from Kernel with all saved Tc filters identification*/
+					err = tc_dump_all_filters();
+					if (err != 0) {
+						write_log(LOG_CRIT, "Dump all filters FAILED");
+						tc_db_manager_exit_with_error();
+					}
 					return;
 				}
 				write_log(LOG_DEBUG, "RTM_NEWQDISC NOT INGRESS");
@@ -1105,7 +1151,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
  *
  * \return      answer from kernel sendmsg request
  */
-int tc_get_all_filters_req(void)
+int tc_get_all_filters_req(int linux_interface)
 {
 	struct nlmsghdr nlh;
 	struct sockaddr_nl nladdr = { .nl_family = AF_NETLINK, .nl_groups = netlinkl_mgrp(RTNLGRP_TC) };
@@ -1124,7 +1170,7 @@ int tc_get_all_filters_req(void)
 	tc_msg.tcm_family = AF_UNSPEC;
 	tc_msg.tcm_parent = TC_H_ROOT;
 	tc_msg.tcm_handle = TC_H_INGRESS;
-	tc_msg.tcm_ifindex = 2;/*TODO - not hardcoded*/
+	tc_msg.tcm_ifindex = linux_interface;/*TODO - not hardcoded*/
 
 	nlh.nlmsg_len = NLMSG_LENGTH(sizeof(tc_msg));
 	nlh.nlmsg_type = RTM_GETTFILTER;
@@ -1166,14 +1212,12 @@ int tc_get_all_actions_req(void)
 	struct tcamsg tca_msg;
 	struct rtattr *tail, *tail2;
 	int msg_length;
-	struct iovec iov[2] = {
-		{ .iov_base = &nlh, .iov_len = sizeof(nlh) },
-		{ .iov_base = &tca_msg, .iov_len = sizeof(tca_msg) }
-	};
+	struct iovec iov = { .iov_base = &nlh, .iov_len = sizeof(nlh) };
+
 	struct msghdr msg = {
 		.msg_name = &nladdr,
 		.msg_namelen = sizeof(nladdr),
-		.msg_iov = iov,
+		.msg_iov = &iov,
 		.msg_iovlen = 1,
 	};
 	memset(k, 0, sizeof(k));
@@ -1203,8 +1247,7 @@ int tc_get_all_actions_req(void)
 	nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 	nlh.nlmsg_pid = 0;
 	nlh.nlmsg_seq = tc_rtnl_handle.dump = ++tc_rtnl_handle.seq;
-	iov[1].iov_len = msg_length;
-	iov[0].iov_len = nlh.nlmsg_len;
+	iov.iov_len = nlh.nlmsg_len;
 	write_log(LOG_INFO, "nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	return sendmsg(tc_rtnl_handle.fd, &msg, 0);
 
@@ -1401,8 +1444,8 @@ void  tc_db_manager_table_init(void)
 		write_log(LOG_CRIT, "Dump all filters FAILED");
 		tc_db_manager_exit_with_error();
 	}
-
 	/*sending TC DUMP request to get all TC actions saved in kernel*/
+	write_log(LOG_INFO, "tc_get_all_actions_req");
 	err = tc_get_all_actions_req();
 	if (err < 0) {
 		write_log(LOG_CRIT, "Dump all actions FAILED = err = %d", err);
@@ -1410,13 +1453,13 @@ void  tc_db_manager_table_init(void)
 	}
 
 	/*getting the answer from Kernel with all saved Tc actions identification*/
-	write_log(LOG_INFO, "tc_get_all_actions_req");
 	err = tc_dump_all_filters();
 	if (err != 0) {
 		write_log(LOG_CRIT, "Dump all filters FAILED FAILED");
 		tc_db_manager_exit_with_error();
 	}
 
+#if 0
 	/*sending TC DUMP request to get all TC filters saved in kernel*/
 	err = tc_get_all_filters_req();
 	if (err < 0) {
@@ -1430,8 +1473,7 @@ void  tc_db_manager_table_init(void)
 		write_log(LOG_CRIT, "Dump all filters FAILED");
 		tc_db_manager_exit_with_error();
 	}
-
-
+#endif
 }
 
 

@@ -450,11 +450,6 @@ enum tc_api_rc prepare_action_info(struct tc_action *tc_action_params, struct ac
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
-	/* set action id values */
-	action_info->action_id.action_family_type = tc_action_params->general.family_type;
-	action_info->action_id.linux_action_index = tc_action_params->general.index;
-	action_info->action_type = tc_action_params->general.type;
-
 	/* allocate action index */
 	if (index_pool_alloc(&action_index_pool, &action_info->nps_index) == false) {
 		write_log(LOG_ERR, "Can't add action. Reached maximum.");
@@ -661,12 +656,19 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 	/* check if action exists */
 	TC_CHECK_ERROR(check_if_tc_action_exist(tc_action_params, &is_action_exist));
 
+	/* set action id values */
+	action_info->action_id.action_family_type = tc_action_params->general.family_type;
+	action_info->action_id.linux_action_index = tc_action_params->general.index;
+	action_info->action_type = tc_action_params->general.type;
+
+	/* allocate indexes for actions */
+	action_info->independent_action = independent_action;
+
 	if (is_action_exist == true) {
 		return modify_tc_action_on_db(tc_action_params);
 	}
 
-	/* allocate indexes for actions */
-	action_info->independent_action = independent_action;
+
 	TC_CHECK_ERROR(prepare_action_info(tc_action_params, action_info));
 
 	/* add action to SQL DB */
@@ -760,7 +762,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 
 	if (is_action_exists == false) {
 		write_log(LOG_ERR, "deleted action is not exist on db");
-		return TC_API_DB_ERROR;
+		return TC_API_FAILURE;
 	}
 
 	write_log(LOG_DEBUG, "UnBind count for action (index %d, family type %d) is %d",

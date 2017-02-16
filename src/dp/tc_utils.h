@@ -192,14 +192,15 @@ void tc_discard_frame(void)
  * \return
  */
 static __always_inline
-void tc_utils_update_action_stats(void)
+void tc_utils_update_action_stats(uint16_t packet_length)
 {
 	/*update packets and bytes per action*/
 	anl_write_log(LOG_INFO, "STATS cmem_tc.action_res.action_stats_addr=%08x", cmem_tc.action_res.action_stats_addr);
 
 	ezdp_inc_dual_ctr_async(cmem_tc.action_res.action_stats_addr,
-				ezframe_get_len(&frame),
+				packet_length,
 				1);
+
 }
 
 /******************************************************************************

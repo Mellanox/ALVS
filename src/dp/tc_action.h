@@ -237,26 +237,25 @@ enum tc_action_rc tc_action_handle_highest_priority(ezframe_t __cmem * frame,
 				      (cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_PEDIT_FAMILY ? "PEDIT" : "other");
 
 			/************************************************/
-			/* common handle:                               */
-			/* Update stat & timestamp                      */
-			/************************************************/
-			tc_utils_update_action_stats();
-			tc_utils_update_action_timestamp(action_index);
-
-			/************************************************/
 			/* handle action                                */
 			/************************************************/
 			if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_GACT_FAMILY) {
 				rc = tc_action_handle_gact(cmem_tc.action_res.action_type);
+				tc_utils_update_action_stats(ip_hdr->tot_len);
+				tc_utils_update_action_timestamp(action_index);
 				if (rc != TC_ACTION_RC_CHECK_NEXT_ACTION) {
 					return rc;
 				}
 			} else if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_MIRRED_FAMILY) {
+				tc_utils_update_action_stats(ip_hdr->tot_len);
+				tc_utils_update_action_timestamp(action_index);
 				return tc_action_handle_mirred(frame,  frame_base);
 			} else if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_PEDIT_FAMILY) {
 				anl_write_log(LOG_DEBUG, "PEDIT enter");
 				rc = tc_action_handle_pedit(frame, frame_base, ip_hdr, cmem_tc.action_res.action_data.action_extra_info_index);
 				if (rc != TC_ACTION_RC_PACKET_STOLEN) {
+					tc_utils_update_action_stats(ip_hdr->tot_len);
+					tc_utils_update_action_timestamp(action_index);
 					/*handle optional control*/
 					rc = tc_action_handle_gact(cmem_tc.action_res.control);
 					if (rc != TC_ACTION_RC_CHECK_NEXT_ACTION) {
@@ -273,7 +272,7 @@ enum tc_action_rc tc_action_handle_highest_priority(ezframe_t __cmem * frame,
 
 			i++;
 			action_index = cmem_tc.filter_action_idx_res.action_index_array[i];
-		} while (action_index != TC_ACTION_INVALID_VALUE); /*continue to loop over all actions*/
+		} while (action_index != TC_ACTION_INVALID_VALUE && i < MAX_NUM_OF_ACTIONS_IN_FILTER); /*continue to loop over all actions*/
 
 		filter_actions_index = cmem_tc.filter_action_idx_res.next_filter_actions_index;
 	} while (cmem_tc.filter_action_idx_res.is_next_filter_actions_index_valid);
