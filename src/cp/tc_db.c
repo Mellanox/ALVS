@@ -1782,6 +1782,7 @@ enum tc_api_rc get_flower_filter_from_db(struct tc_filter *tc_filter_params, boo
 
 	memcpy(actions_array, sqlite3_column_blob(statement, 4), actions_array_bytes);
 
+	tc_filter_params->type = TC_FILTER_FLOWER;
 	tc_filter_params->actions.num_of_actions = sqlite3_column_int(statement, 3);
 
 	/* get all actions of this filter */
