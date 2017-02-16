@@ -105,11 +105,16 @@ int main(int argc, char **argv)
 	cancel_application_flag = false;
 	main_thread = pthread_self();
 
-	open_log("anl_daemon");
+#ifdef CONFIG_ALVS
+	open_log("alvs_daemon");
+#endif
+#ifdef CONFIG_TC
+	open_log("atc_daemon");
+#endif
 
 	fd = open("/var/lock/nps_cp.lock", O_RDWR|O_CREAT|O_EXCL, 0444);
 	if (fd == -1) {
-		write_log(LOG_ERR, "ALVS locked, not posible to load alvs daemon. consider to delete file /var/lock/nps_cp.lock");
+		write_log(LOG_ERR, "application locked, not posible to run app daemon. consider to delete file /var/lock/nps_cp.lock");
 		exit(1);
 	}
 

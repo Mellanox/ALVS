@@ -32,7 +32,7 @@
 *  Project:             NPS400 ALVS application
 *  File:                anl_log.c
 *  Created on:          May 18, 2016
-*  Desc:                performs logging functionality for ANL DP
+*  Desc:                performs logging functionality for ANL (Accelerated network Linux) Data path
 *
 */
 
@@ -52,10 +52,18 @@ bool anl_open_log(void)
 	syslog_info.send_cb = anl_send;
 	syslog_info.dest_port = SYSLOG_UDP_SERVER_PORT;
 
+#ifdef CONFIG_ALVS
 	syslog_info.applic_name_size =
 		snprintf(syslog_info.applic_name,
 			 SYSLOG_APPLIC_NAME_STRING_SIZE,
-			 " anl_dp ");
+			 " alvs_dp ");
+#endif
+#ifdef CONFIG_TC
+	syslog_info.applic_name_size =
+		snprintf(syslog_info.applic_name,
+			 SYSLOG_APPLIC_NAME_STRING_SIZE,
+			 " atc_dp ");
+#endif
 
 	/*get IP from string*/
 	inet_aton(SYSLOG_SERVER_IP, &dest_ip);
