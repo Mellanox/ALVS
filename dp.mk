@@ -9,6 +9,8 @@ DP_INC := -Isrc/common -Isrc/dp -I$(EZDK_BASE)dpe/dp/include -I$(EZDK_BASE)dpe/f
 DP_C_SRCS = src/dp/main.c \
 			src/dp/anl_log.c \
 			src/dp/nw_init.c \
+			src/dp/nw_routing.c \
+			src/dp/nw_utils.c \
 			src/dp/version.c \
 			src/dp/log.c
 ifdef CONFIG_ALVS

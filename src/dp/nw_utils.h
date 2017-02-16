@@ -41,6 +41,12 @@
 #include "nw_search_defs.h"
 
 /******************************************************************************
+ * \brief         discard frame due to unexpected error. frame can not be sent to host.
+ * \return        void
+ */
+void nw_discard_frame(void)  __slow_path_code;
+
+/******************************************************************************
  * \brief         update interface stat counter - special couters for nw
  * \return        void
  */
@@ -48,17 +54,6 @@ static __always_inline
 void nw_interface_inc_counter(uint32_t counter_id)
 {
 	ezdp_add_posted_ctr(cmem_nw.ingress_if_result.stats_base + counter_id, 1);
-}
-
-/******************************************************************************
- * \brief         discard frame due to unexpected error. frame can not be sent to host.
- * \return        void
- */
-static __always_inline
-void nw_discard_frame(void)
-{
-	/*drop frame*/
-	ezframe_free(&frame, 0);
 }
 
 /******************************************************************************

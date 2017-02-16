@@ -42,31 +42,7 @@
  * \brief         send frame directly to the interface given by direct_if
  * \return        void
  */
-static __always_inline
-void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)
-{
-	uint32_t rc;
-
-	anl_write_log(LOG_DEBUG, "execute nw_direct_route");
-
-	if (unlikely(nw_calc_egress_if(frame_base, out_if, is_lag) == false)) {
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
-		nw_discard_frame();
-		return;
-	}
-
-	/* Store modified segment data */
-	rc = ezframe_store_buf(frame,
-			       frame_base,
-			       ezframe_get_buf_len(frame),
-			       0);
-	if (rc != 0) {
-		anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
-		nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
-	}
-
-	ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
-}
+void nw_direct_route(ezframe_t __cmem * frame, uint8_t __cmem * frame_base, uint8_t out_if, bool is_lag)  __fast_path_code;
 
 /******************************************************************************
  * \brief       perform FIB lookup and get dest_ip for transmission
