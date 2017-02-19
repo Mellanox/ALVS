@@ -16,6 +16,7 @@ import cmd
 from cmd import Cmd
 dir = os.path.dirname(parentdir)
 from test_failed_exception import *
+from synca_commands import *
 #===============================================================================
 # Classes
 #===============================================================================
@@ -58,12 +59,10 @@ class DDP_ezbox(ezbox_host):
 	def service_restart(self):
 		self.ddp_service("restart")
 	
-	
 	def clean(self,stop_ezbox):
 		if stop_ezbox:
 			self.service_stop()
 		self.logout()
-
 	
 	def check_if_eth_is_up(self, eth_up_index):
 		interface = self.get_interface(eth_up_index)
@@ -72,14 +71,12 @@ class DDP_ezbox(ezbox_host):
 			raise TestFailedException ("ERROR eth %s is not up" %eth_up_index)
 		print "eth %s is up" %eth_up_index
 			
-		
 	def check_if_eth_is_down(self, eth_down_index):
 		interface = self.get_interface(eth_down_index)
 		print 'admin state is: ' , interface['admin_state']
 		if interface['admin_state']==1:
 			raise TestFailedException ("ERROR eth %s is not down" %eth_down_index)
 		print "eth %s is down" %eth_down_index
-	
 	
 class Remote_Host(player):
 	def __init__(self, ip, hostname, all_eths,
@@ -96,24 +93,31 @@ class Remote_Host(player):
 		self.lib_path = '/usr/lib/'
 		self.fp_so = 'bin/libfp.so'
 		self.dump_pcap_file = '/tmp/remote_host_dump.pcap'
+		self.synca_ssh = SshConnect(hostname, username, password)
+		self.synca_commands = synca_commands(self.synca_ssh) 
 		
 	def start_sync_agent(self,ezbox_mng_ip):
 		func_name = sys._getframe().f_code.co_name
 		print "FUNCTION %s called " %(func_name)
-		self.connect()
+		self.prepare_env()
+		self.run_synca(ezbox_mng_ip)
 		
+	def prepare_env(self):
+		self.connect()
 		self.kill_synca_process()
 		self.remove_exe_dir()
 		self.create_exe_dir()
-
 		self.copy_file_to_player(self.exe_script, self.exe_path)
 		self.copy_file_to_player(self.fp_so, self.lib_path)
+		self.ssh.recreate_ssh_object()
 		
+	def run_synca(self, ezbox_mng_ip):
+		print "connecting to synca ssh"
+		self.synca_ssh.connect()
 		all_eths_str = ','.join(self.all_eths)
-		self.exec_params='--ip %s --port 1235 --if %s > /dev/null 2>&1 &' %(ezbox_mng_ip, all_eths_str)
-		self.execute('./synca','')
-		self.logout()
-	
+		cmd = 'cd /root/DDP_install; ./synca --ip %s --port 1235 --if %s --cli' %(ezbox_mng_ip, all_eths_str)
+		self.synca_commands.execute_synca_command(cmd)
+		
 	def kill_synca_process(self):
 		self.execute_command('pkill -SIGINT synca')
 

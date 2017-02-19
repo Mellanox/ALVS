@@ -93,8 +93,8 @@ class DDP_Players_Factory(Players_Factory):
 		
 		ezbox = DDP_ezbox(setup_num, remote_host)
 		
-		
-		
+		remote_host.start_sync_agent(ezbox.setup['mng_ip'])
+
 		# conver to dictionary and return it
 		dict={}
 		dict['next_vm_idx']	= next_vm_idx
