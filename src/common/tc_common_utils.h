@@ -40,30 +40,42 @@
  * \brief      get action string name
  *
  * \param[in]  type   - TC filter type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - filter type
  */
-char *tc_get_filter_type_str(enum tc_filter_type type);
+char *tc_get_filter_type_str(enum tc_filter_type  type,
+			     char                *buf,
+			     int                  len);
 
 
 /******************************************************************************
  * \brief      get action family string name
  *
  * \param[in]  type   - action type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - family name
  */
-char *tc_get_action_family_str(enum tc_action_type type);
+char *tc_get_action_family_str(enum tc_action_type  type,
+			       char                *buf,
+			       int                  len);
 
 
 /******************************************************************************
  * \brief      get action string name
  *
  * \param[in]  type   - action type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - family name
  */
-char *tc_get_action_str(enum tc_action_type type);
+char *tc_get_action_str(enum tc_action_type  type,
+			char                *buf,
+			int                  len);
 
 
 /******************************************************************************

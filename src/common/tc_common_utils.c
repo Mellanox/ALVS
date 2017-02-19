@@ -38,10 +38,10 @@
 ****************************************************************************/
 
 #include <string.h>
+#include <stdio.h>
 #include <linux/pkt_cls.h>
 
 #include "tc_common_defs.h"
-
 
 extern int action_a2n(char *arg, int *result);
 
@@ -49,10 +49,14 @@ extern int action_a2n(char *arg, int *result);
  * \brief      get action string name
  *
  * \param[in]  type   - TC filter type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - filter type
  */
-char *tc_get_filter_type_str(enum tc_filter_type type)
+char *tc_get_filter_type_str(enum tc_filter_type  type,
+			     char                *buf,
+			     int                  len)
 {
 	if (type == TC_FILTER_FLOWER) {
 		return "flower";
@@ -63,17 +67,23 @@ char *tc_get_filter_type_str(enum tc_filter_type type)
 	}
 
 	/* else */
-	return "unknown/unsupported";
+	snprintf(buf, len, "[%d]", type);
+	return buf;
 }
+
 
 /******************************************************************************
  * \brief      get action family string name
  *
  * \param[in]  type   - action type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - family name
  */
-char *tc_get_action_family_str(enum tc_action_type type)
+char *tc_get_action_family_str(enum tc_action_type  type,
+			       char                *buf,
+			       int                  len)
 {
 	uint32_t family_type;
 
@@ -89,22 +99,29 @@ char *tc_get_action_family_str(enum tc_action_type type)
 	}
 
 	/* else */
-	return "unknown/unsupported";
+	snprintf(buf, len, "[%d]", type);
+	return buf;
+
 }
+
 
 /******************************************************************************
  * \brief      get action string name
  *
  * \param[in]  type   - action type
+ * \param[in]  buf    - WA buffer. size should be greater than 32 Bytes
+ * \param[in]  len    - buffer length
  *
  * \return     pointer to string - family name
  */
-char *tc_get_action_str(enum tc_action_type type)
+char *tc_get_action_str(enum tc_action_type  type,
+			char                *buf,
+			int                  len)
 {
 	if (type == TC_ACTION_TYPE_GACT_DROP) {
 		return "drop";
 	} else if (type == TC_ACTION_TYPE_GACT_OK) {
-		return  "ok";
+		return  "pass";
 	} else if (type == TC_ACTION_TYPE_GACT_PIPE) {
 		return "pipe";
 	} else if (type == TC_ACTION_TYPE_GACT_CONTINUE) {
@@ -126,9 +143,10 @@ char *tc_get_action_str(enum tc_action_type type)
 	}
 
 	/* else */
-	return "unknown/unsupported";
-}
+	snprintf(buf, len, "[%d]", type);
+	return buf;
 
+}
 
 
 int convert_linux_gact_action_to_action_type(int linux_action,

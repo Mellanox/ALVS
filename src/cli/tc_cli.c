@@ -511,11 +511,12 @@ bool handle_common_response(struct cli_msg  *cli)
 void print_filter_info(struct tc_filter *filter)
 {
 	char tmp_buff[64];
+	char tmp_buff2[32];
 
 	printf("filter protocol %s pref %u %s handle 0x%x\n",
 	       ll_proto_n2a(filter->protocol, tmp_buff, sizeof(tmp_buff)),
 	       filter->priority,
-	       tc_get_filter_type_str(filter->type),
+	       tc_get_filter_type_str(filter->type, tmp_buff2, sizeof(tmp_buff2)),
 	       filter->handle);
 }
 
@@ -529,12 +530,14 @@ void print_filter_info(struct tc_filter *filter)
  */
 void print_action_info(struct tc_action *action)
 {
+	char tmp_buff[32];
+
 	printf("\t");
-	printf("%s action ", tc_get_action_family_str(action->general.type));
+	printf("%s action ", tc_get_action_family_str(action->general.type, tmp_buff, sizeof(tmp_buff)));
 	if (action->general.type == TC_ACTION_TYPE_PEDIT_FAMILY) {
-		printf("%s\n\t", tc_get_action_str(action->action_data.pedit.control_action_type));
+		printf("%s\n\t", tc_get_action_str(action->action_data.pedit.control_action_type, tmp_buff, sizeof(tmp_buff)));
 	} else {
-		printf("%s\n\t", tc_get_action_str(action->general.type));
+		printf("%s\n\t", tc_get_action_str(action->general.type, tmp_buff, sizeof(tmp_buff)));
 	}
 	printf(" index %u ref %u bind %u installed %u sec used %u sec\n\t",
 	       action->general.index,
