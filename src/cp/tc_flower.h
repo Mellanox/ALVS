@@ -52,9 +52,9 @@ void print_flower_filter(struct tc_filter *tc_filter_handle);
 
 bool tc_flower_init(void);
 void tc_flower_destroy(void);
-enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params_origin);
-enum tc_api_rc tc_delete_flower_filter(struct tc_filter *tc_filter_params_origin);
-enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params);
+enum tc_api_rc tc_flower_filter_add(struct tc_filter *tc_filter_params_origin);
+enum tc_api_rc tc_flower_filter_delete(struct tc_filter *tc_filter_params_origin);
+enum tc_api_rc tc_flower_filter_modify(struct tc_filter *tc_filter_params);
 bool get_ip_mask_value(uint32_t ip_mask, uint8_t *mask_value);
 bool is_mask_valid(struct tc_flower_rule_policy *flower_rule_policy);
 bool create_mask_info(struct tc_flower_rule_policy *flower_rule_policy, struct tc_mask_info *mask_info);

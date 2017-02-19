@@ -532,7 +532,7 @@ void print_action_info(struct tc_action *action)
 	printf("\t");
 	printf("%s action ", tc_get_action_family_str(action->general.type));
 	if (action->general.type == TC_ACTION_TYPE_PEDIT_FAMILY) {
-		printf("%s\n\t", tc_get_action_str(action->action_data.pedit.type));
+		printf("%s\n\t", tc_get_action_str(action->action_data.pedit.control_action_type));
 	} else {
 		printf("%s\n\t", tc_get_action_str(action->general.type));
 	}

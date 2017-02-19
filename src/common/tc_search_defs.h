@@ -400,7 +400,7 @@ struct tc_action_key {
 CASSERT(sizeof(struct tc_action_key) == 4);
 
 
-struct mirred_action_data {
+struct mirred_info {
 	uint8_t             output_if;
 #ifdef NPS_BIG_ENDIAN
 	unsigned             is_output_lag           : 1;
@@ -413,7 +413,7 @@ struct mirred_action_data {
 	unsigned             /*reserved*/            : 16;
 } __packed;
 
-CASSERT(sizeof(struct mirred_action_data) == 4);
+CASSERT(sizeof(struct mirred_info) == 4);
 
 
 /*result*/
@@ -438,7 +438,7 @@ struct tc_action_result {
 		/*future use - add data action index or actual data for this action*/
 		uint32_t                    action_extra_info_index;
 
-		struct mirred_action_data  mirred;
+		struct mirred_info  mirred;
 	} action_data;
 	/*byte8-11*/
 	ezdp_sum_addr_t       action_stats_addr;

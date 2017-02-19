@@ -45,7 +45,16 @@
 struct index_pool action_index_pool;
 struct index_pool action_extra_info_index_pool;
 
-enum tc_api_rc add_tc_action(struct tc_action *tc_action_params)
+/******************************************************************************
+ * \brief    Add action or modify action if action exist
+ *
+ * param[in] tc_action_params - reference to action configuration
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_add_action(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exist;
@@ -54,7 +63,7 @@ enum tc_api_rc add_tc_action(struct tc_action *tc_action_params)
 	TC_CHECK_ERROR(check_if_tc_action_exist(tc_action_params, &is_action_exist));
 
 	if (is_action_exist == true) {
-		return modify_tc_action(tc_action_params);
+		return tc_action_modify(tc_action_params);
 	}
 
 	TC_CHECK_ERROR(tc_int_add_action(tc_action_params,
@@ -64,15 +73,29 @@ enum tc_api_rc add_tc_action(struct tc_action *tc_action_params)
 	return TC_API_OK;
 }
 
-enum tc_api_rc delete_tc_action(struct tc_action *tc_action_params)
+/******************************************************************************
+ * \brief    Delete action
+ *
+ * param[in] tc_action_params - reference to action configuration
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_delete_action(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exists;
+
+	write_log(LOG_INFO, "Delete Action (family type %d, index %d)",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
 
 	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
+		write_log(LOG_NOTICE, "Action not exist");
 		return TC_API_FAILURE;
 	}
 
@@ -89,18 +112,36 @@ enum tc_api_rc delete_tc_action(struct tc_action *tc_action_params)
 
 	TC_CHECK_ERROR(delete_tc_action_from_db(tc_action_params));
 
+	write_log(LOG_INFO, "Action (family type %d, index %d) was deleted successfully",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
+
 	return TC_API_OK;
 }
 
-enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
+/******************************************************************************
+ * \brief    Modify action
+ *
+ * param[in] tc_action_params - reference to action configuration
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exists;
+
+	write_log(LOG_INFO, "Modify Action (family type %d, index %d)",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
 
 	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
+		write_log(LOG_NOTICE, "Action not exist");
 		return TC_API_FAILURE;
 	}
 
@@ -109,7 +150,7 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 	action_info.action_id.linux_action_index = tc_action_params->general.index;
 	action_info.action_type = tc_action_params->general.type;
 	if (tc_action_params->general.type == TC_ACTION_TYPE_PEDIT_FAMILY) {
-		struct pedit_action_data old_pedit_action_data;
+		struct tc_pedit_action_data old_pedit_action_data;
 
 		memcpy(&old_pedit_action_data, &action_info.action_data.pedit, sizeof(old_pedit_action_data));
 
@@ -130,12 +171,29 @@ enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params)
 
 	TC_CHECK_ERROR(modify_tc_action_on_nps(&action_info));
 
+	write_log(LOG_INFO, "Action (family type %d, index %d) was modified successfully",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
+
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_api_get_actions_list(enum tc_action_type  type,
+
+/******************************************************************************
+ * \brief    Get actions array of actions type
+ *
+ * param[in]  type           - type of the action
+ * param[out] action_indexes - reference to action indexes array
+ * param[out] num_of_actions - reference to number of actions on array
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_get_actions_list(enum tc_action_type  type,
 				       uint32_t           **actions_array,
 				       uint32_t            *num_of_actions)
+
 {
 	/* get number of actions from this type */
 	TC_CHECK_ERROR(get_type_num_of_actions_from_db(type, num_of_actions));
@@ -169,8 +227,19 @@ enum tc_api_rc tc_get_action_stats(uint32_t   nps_index,
 	return TC_API_OK;
 }
 
-
-enum tc_api_rc tc_api_get_action_info(enum tc_action_type family_type,
+/******************************************************************************
+ * \brief    Get action data, statistics and timestamps
+ *
+ * param[in]  type             - type of the action
+ * param[in] action_indexe     - action index
+ * param[out] tc_action        - reference to action information (statistics, timestamp, configuration)
+ * param[out] is_action_exists - reference to bool variable that indicates if action was found on DB
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_get_action_info(enum tc_action_type family_type,
 				      uint32_t action_index,
 				      struct tc_action *tc_action,
 				      bool *is_action_exists)
@@ -207,6 +276,11 @@ enum tc_api_rc tc_api_get_action_info(enum tc_action_type family_type,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief    init actions index pools
+ *
+ * \return   bool
+ */
 bool tc_action_init(void)
 {
 	/* init index pools */
@@ -224,6 +298,11 @@ bool tc_action_init(void)
 	return true;
 }
 
+/******************************************************************************
+ * \brief    close action (index pools)
+ *
+ * \return   bool
+ */
 void tc_action_destroy(void)
 {
 	/* destroy action index pool */
@@ -250,8 +329,8 @@ void build_nps_action_info_result(struct action_info *action_info,
 
 	switch (family_action_type) {
 	case (TC_ACTION_TYPE_MIRRED_FAMILY):
-		nps_action_result->action_data.mirred.output_if     = action_info->action_data.mirred.output_if;
-		nps_action_result->action_data.mirred.is_output_lag = action_info->action_data.mirred.is_output_lag;
+		nps_action_result->action_data.mirred.output_if     = action_info->action_data.mirred.ifindex;
+		nps_action_result->action_data.mirred.is_output_lag = false;
 	break;
 	case (TC_ACTION_TYPE_PEDIT_FAMILY):
 		if (action_info->action_data.pedit.num_of_keys) {
@@ -268,7 +347,7 @@ void build_nps_action_info_result(struct action_info *action_info,
 	}
 }
 
-enum tc_api_rc add_pedit_action_list_to_table(struct pedit_action_data *pedit)
+enum tc_api_rc add_pedit_action_list_to_table(struct tc_pedit_action_data *pedit)
 {
 	int i;
 	struct tc_action_key nps_action_key;
@@ -408,7 +487,6 @@ enum tc_api_rc prepare_mirred_action_info(struct tc_action    *action,
 
 	switch (action->general.type) {
 	case TC_ACTION_TYPE_MIRRED_EGR_REDIRECT:
-		action_info->action_data.mirred.is_output_lag = false;
 
 		output_if = if_lookup_by_index(action->action_data.mirred.ifindex);
 		if (output_if < 0) {
@@ -416,7 +494,7 @@ enum tc_api_rc prepare_mirred_action_info(struct tc_action    *action,
 				  action->action_data.mirred.ifindex);
 			return TC_API_FAILURE;
 		}
-		action_info->action_data.mirred.output_if = (uint8_t)output_if;
+		action_info->action_data.mirred.ifindex = (uint8_t)output_if;
 		break;
 
 	case TC_ACTION_TYPE_MIRRED_EGR_MIRROR:
@@ -445,10 +523,10 @@ enum tc_api_rc prepare_pedit_action_info(struct tc_action    *action,
 	}
 	memset(&action_info->action_data.pedit,
 	       0,
-	       sizeof(struct pedit_action_data));
+	       sizeof(struct tc_pedit_action_data));
 
 	action_info->action_data.pedit.num_of_keys = action->action_data.pedit.num_of_keys;
-	action_info->action_data.pedit.control_action_type = action->action_data.pedit.type;
+	action_info->action_data.pedit.control_action_type = action->action_data.pedit.control_action_type;
 
 	for (i = 0; i < action_info->action_data.pedit.num_of_keys; i++) {
 		struct pedit_key_data *key_data = &action_info->action_data.pedit.key_data[i];
@@ -459,7 +537,7 @@ enum tc_api_rc prepare_pedit_action_info(struct tc_action    *action,
 			return TC_API_FAILURE;
 		}
 		write_log(LOG_DEBUG, "Allocated action_extra_index = %d", key_data->key_index);
-		memcpy(&key_data->pedit_key_data, &action->action_data.pedit.pedit_key_data[i], sizeof(struct tc_pedit_key_data));
+		memcpy(&key_data->pedit_key_data, &action->action_data.pedit.key_data[i].pedit_key_data, sizeof(struct tc_pedit_key_data));
 	}
 
 	for (; i < MAX_NUM_OF_KEYS_IN_PEDIT_DATA; i++) {
@@ -536,7 +614,7 @@ enum tc_api_rc prepare_action_info(struct tc_action *tc_action_params, struct ac
 	return TC_API_OK;
 }
 
-enum tc_api_rc delete_and_free_pedit_action_entries(struct pedit_action_data *pedit)
+enum tc_api_rc delete_and_free_pedit_action_entries(struct tc_pedit_action_data *pedit)
 {
 	int i;
 
@@ -682,6 +760,10 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 				 struct action_info *action_info,
 				 bool independent_action)
 {
+	write_log(LOG_INFO, "Add Action (family type %d, index %d)",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
+
 	/* set action id values */
 	action_info->action_id.action_family_type = tc_action_params->general.family_type;
 	action_info->action_id.linux_action_index = tc_action_params->general.index;
@@ -698,10 +780,9 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 	/* build key for action DP table */
 	TC_CHECK_ERROR(add_tc_action_to_nps_table(action_info));
 
-	write_log(LOG_DEBUG, "Binded Action was added to table, index 0x%08x, type %d, stats_base 0x%08x, no next action",
-		  action_info->action_id.linux_action_index,
-		  action_info->action_id.action_family_type,
-		  action_info->statistics_base.raw_data);
+	write_log(LOG_INFO, "Action (family type %d, index %d) was added successfully",
+		  tc_action_params->general.family_type,
+		  tc_action_params->general.index);
 
 	return TC_API_OK;
 }

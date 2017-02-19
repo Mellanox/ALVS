@@ -87,7 +87,7 @@ void tc_flower_destroy(void)
 	index_pool_destroy(&rules_list_index_pool);
 }
 
-enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params)
+enum tc_api_rc tc_flower_filter_add(struct tc_filter *tc_filter_params)
 {
 	bool is_exist;
 
@@ -97,7 +97,7 @@ enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params)
 	if (is_exist) {
 		/* if exist execute modify filter instead */
 		write_log(LOG_DEBUG, "Filter exists, modify this flower filter");
-		TC_CHECK_ERROR(tc_modify_flower_filter(tc_filter_params));
+		TC_CHECK_ERROR(tc_flower_filter_modify(tc_filter_params));
 	} else {
 		/* if not exist execute add filter to system */
 		write_log(LOG_DEBUG, "Filter not exist, add flower filter");
@@ -107,7 +107,7 @@ enum tc_api_rc tc_add_flower_filter(struct tc_filter *tc_filter_params)
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_delete_flower_filter(struct tc_filter *tc_filter_params)
+enum tc_api_rc tc_flower_filter_delete(struct tc_filter *tc_filter_params)
 {
 	bool is_exist;
 
@@ -119,7 +119,6 @@ enum tc_api_rc tc_delete_flower_filter(struct tc_filter *tc_filter_params)
 	print_flower_filter(tc_filter_params);
 #endif
 	if (tc_filter_params->handle == 0) {
-		write_log(LOG_DEBUG, "tc_delete_all_priority_flower_filters");
 		TC_CHECK_ERROR(tc_delete_all_priority_flower_filters(tc_filter_params));
 	} else {
 		TC_CHECK_ERROR(check_if_filter_exist_on_db(tc_filter_params, &is_exist));
@@ -153,7 +152,7 @@ enum tc_api_rc add_filter_actions(struct tc_filter *tc_filter_params, struct act
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
+enum tc_api_rc tc_flower_filter_modify(struct tc_filter *tc_filter_params)
 {
 	struct tc_mask_info tc_mask_info;
 	struct action_info new_action_info_array[MAX_NUM_OF_ACTIONS_IN_FILTER];
@@ -171,6 +170,11 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 	memset(&tc_mask_info, 0, sizeof(struct tc_mask_info));
 	memset(&old_tc_filter_params, 0, sizeof(struct tc_filter));
 	memset(&first_rule_list_item, 0, sizeof(struct rules_list_item));
+
+	write_log(LOG_INFO, "Modify Filter (interface %d, priority %d, handle %d)",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
 
 	/* check supported mask */
 	if (create_mask_info(&tc_filter_params->flower_rule_policy, &tc_mask_info) == false) {
@@ -299,10 +303,27 @@ enum tc_api_rc tc_modify_flower_filter(struct tc_filter *tc_filter_params)
 						 tc_filter_params->actions.num_of_actions,
 						 new_action_info_array));
 
+	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was modified successfully",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
+
 	return TC_API_OK;
 }
 
-enum tc_api_rc tc_api_get_filters_list(uint32_t interface,
+/******************************************************************************
+ * \brief    Get filters array from DB, query by the parameters interface and priority
+ *
+ * param[in]  interface      - interface of filter
+ * param[in]  priority       - filter priority, if priority is equal to 0, get all filters from this interface (no matter priority value)
+ * param[out] filters_array  - reference to an array of filters (each element on this array will have interface, priority & handle value)
+ * param[out] num_of_filters - reference to number of filters that we found on DB
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_get_filters_list(uint32_t interface,
 				       uint32_t priority,
 				       struct tc_filter_id **filters_array,
 				       uint32_t *num_of_filters)
@@ -323,8 +344,19 @@ enum tc_api_rc tc_api_get_filters_list(uint32_t interface,
 	return TC_API_OK;
 }
 
-
-enum tc_api_rc tc_api_get_filter_info(struct tc_filter_id *tc_filter_id, struct tc_filter *tc_filter_params)
+/******************************************************************************
+ * \brief    Get filter information (configurations & binded actions)
+ *
+ * param[in]  type             - type of the action
+ * param[in] action_indexe     - action index
+ * param[out] tc_action        - reference to action information (statistics, timestamp, configuration)
+ * param[out] is_action_exists - reference to bool variable that indicates if action was found on DB
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_get_filter_info(struct tc_filter_id *tc_filter_id, struct tc_filter *tc_filter_params)
 {
 	struct tc_action *action;
 	bool              is_filter_exists;
@@ -353,62 +385,14 @@ enum tc_api_rc tc_api_get_filter_info(struct tc_filter_id *tc_filter_id, struct 
 	for (idx = 0; idx < tc_filter_params->actions.num_of_actions; idx++) {
 		action = &tc_filter_params->actions.action[idx];
 
-		TC_CHECK_ERROR(tc_api_get_action_info(action->general.family_type,
-						      action->general.index,
-						      action,
-						      &is_action_exists));
+		TC_CHECK_ERROR(tc_get_action_info(action->general.family_type,
+						  action->general.index,
+						  action,
+						  &is_action_exists));
 	}
 
 	return TC_API_OK;
 }
-
-#if 0
-enum tc_api_rc get_flower_filter_statistics(struct tc_filter *tc_filter_params,
-					    struct action_stats  *action_stats_array)
-{
-	uint32_t i, num_of_actions = 0, created_timestamp;
-	uint64_t counter_values[TC_NUM_OF_ACTION_ON_DEMAND_STATS];
-	struct action_info action_info[MAX_NUM_OF_ACTIONS_IN_FILTER];
-	struct tc_filter tc_filter_params;
-	uint32_t counter_index;
-
-	/* set the key for the filters_table sql table (handle, priority and interface) */
-	tc_filter_params.handle   = handle;
-	tc_filter_params.priority = priority;
-	tc_filter_params.ifindex  = ingress_interface;
-
-	TC_CHECK_ERROR(get_flower_filter_action_info(&tc_filter_params, action_info, &num_of_actions));
-
-	TC_CHECK_ERROR(get_filter_created_timestamp(&tc_filter_params, &created_timestamp));
-
-	for (i = 0; i < num_of_actions; i++) {
-		/*TODO alla - I think it should be * TC_NUM_OF_ACTION_ON_DEMAND_STATS*/
-
-		/* get statistic counters */
-		counter_index = TC_ACTION_STATS_ON_DEMAND_OFFSET +
-			(action_info[i].action_index * TC_NUM_OF_ACTION_ON_DEMAND_STATS);
-
-		if (infra_get_long_counters(counter_index,
-					    TC_NUM_OF_ACTION_ON_DEMAND_STATS,
-					    counter_values) == false) {
-			return TC_API_DB_ERROR;
-		}
-
-		action_stats_array[i].in_packets        = counter_values[TC_ACTION_IN_PACKET];
-		action_stats_array[i].in_bytes          = counter_values[TC_ACTION_IN_BYTES];
-
-		/* get timestamp */
-		action_stats_array[i].created_timestamp = created_timestamp;
-		TC_CHECK_ERROR(get_last_used_action_timestamp(action_info[i].action_index,
-						       &action_stats_array[i].last_used_timestamp));
-
-		/* get action type */
-		action_stats_array[i].action_type = action_info[i].action_type;
-	}
-
-	return TC_API_OK;
-}
-#endif
 
 /********************************************************************************************/
 /*******************************          Functions            ******************************/
@@ -1128,6 +1112,11 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 	memset(&current_tc_filter_params, 0, sizeof(struct tc_filter));
 	memset(actions_id_array, 0, sizeof(struct action_id));
 
+	write_log(LOG_INFO, "Delete Filter (interface %d, priority %d, handle %d)",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
+
 	/**************************************************************************************/
 	/******************* get filter parameters *************************/
 	/**************************************************************************************/
@@ -1242,6 +1231,11 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 	/**************************************************************************************/
 	TC_CHECK_ERROR(delete_and_free_action_entries(num_of_actions, actions_id_array));
 
+	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was deleted successfully",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
+
 	return TC_API_OK;
 
 }
@@ -1261,6 +1255,11 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 	memset(action_info, 0, sizeof(struct action_info)*MAX_NUM_OF_ACTIONS_IN_FILTER);
 	memset(&tc_mask_info, 0, sizeof(tc_mask_info));
 	memset(&first_rule_list_item, 0, sizeof(struct rules_list_item));
+
+	write_log(LOG_INFO, "Adding Filter (interface %d, priority %d, handle %d)",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
 
 	if (create_mask_info(&tc_filter_params->flower_rule_policy, &tc_mask_info) == false) {
 		write_log(LOG_NOTICE, "Unsupported Mask Filter");
@@ -1343,6 +1342,10 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 		return rc;
 	}
 
+	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was added successfully",
+		  tc_filter_params->ifindex,
+		  tc_filter_params->priority,
+		  tc_filter_params->handle);
 
 	return TC_API_OK;
 

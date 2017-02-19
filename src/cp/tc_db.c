@@ -236,9 +236,21 @@ bool tc_init_db(void)
 	return true;
 }
 
+/******************************************************************************
+ * \brief	close ATC DB
+ *
+ *
+ * \return	bool
+ *              true -  function succeed
+ *              false - function failed
+ */
 bool tc_destroy_db(void)
 {
-	if (sqlite3_close(tc_db) != SQLITE_OK) {
+	int rc;
+
+	rc = sqlite3_close(tc_db);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_ERR, "Return Code for sqlite3_close is %d", rc);
 		return false;
 	}
 	return true;
@@ -248,6 +260,17 @@ bool tc_destroy_db(void)
 /************************************* Actions Table *****************************************/
 /*********************************************************************************************/
 
+/******************************************************************************
+ * \brief	add action to DB
+ *
+ * \param[in]   tc_action_params    - action configuration (received from netlink)
+ * \param[in]   action_info         - action extra information (NPS data, entry index, statistics)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc add_tc_action_to_db(struct tc_action *tc_action_params, struct action_info *action_info)
 {
 	enum tc_api_rc rc;
@@ -322,6 +345,16 @@ enum tc_api_rc add_tc_action_to_db(struct tc_action *tc_action_params, struct ac
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	delete action to DB
+ *
+ * \param[in]   tc_action_params    - action configuration
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc delete_tc_action_from_db(struct tc_action *tc_action_params)
 {
 	enum tc_api_rc rc;
@@ -345,6 +378,17 @@ enum tc_api_rc delete_tc_action_from_db(struct tc_action *tc_action_params)
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	modify tc action on DB
+ *
+ * \param[in]   tc_action_params  - holds action index and family type
+ * \param[in]   action_info       - action extra information (NPS data, entry index, statistics)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct action_info *action_info)
 {
 	enum tc_api_rc rc;
@@ -398,6 +442,21 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get action from DB
+ *
+ * \param[in]   tc_action_params  - holds action index and family type
+ * \param[out]  is_action_exist   - bool, set to true if action exist on DB
+ * \param[out]  action_info       - action extra information (NPS data, entry index, statistics)
+ * \param[out]  bind_count        - action bind cound value
+ * \param[out]  tc_action_from_db - action configuration received from DB
+ *
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
 				     bool               *is_action_exist,
 				     struct action_info *action_info,
@@ -476,11 +535,33 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	check if TC action exist on DB
+ *
+ * \param[in]   tc_action_params  - holds action index and family type
+ * \param[out]  is_action_exist   - bool, set to true if action exist on DB
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc check_if_tc_action_exist(struct tc_action *tc_action_params, bool *is_action_exist)
 {
 	return get_tc_action_from_db(tc_action_params, is_action_exist, NULL, NULL, NULL);
 }
 
+/******************************************************************************
+ * \brief	get number of actions on DB from a specific family type
+ *
+ * \param[in]   type           - family type of actions
+ * \param[out]  num_of_actions - number of actions that we found
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_type_num_of_actions_from_db(enum tc_action_type type, uint32_t *num_of_actions)
 {
 
@@ -527,6 +608,18 @@ enum tc_api_rc get_type_num_of_actions_from_db(enum tc_action_type type, uint32_
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the array of actions from DB that belong to this family type
+ *
+ * \param[in]   type           - family type of actions
+ * \param[out]  actions_array  - array (size num_of_actions) of the action that we found
+ * \param[in]   num_of_actions - number of actions that we found
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_type_action_indexes_from_db(enum tc_action_type type, uint32_t *actions_array, uint32_t num_of_actions)
 {
 	int rc;
@@ -585,6 +678,19 @@ enum tc_api_rc get_type_action_indexes_from_db(enum tc_action_type type, uint32_
 /****************************************************************************************************/
 /************************************ Flower Filter Table *******************************************/
 /****************************************************************************************************/
+
+/******************************************************************************
+ * \brief	add flower filter to DB
+ *
+ * \param[in]   tc_filter_params     - filter configurations
+ * \param[in]   filter_actions_index - filter actions index of this filter
+ * \param[in]   rule_list_index      - rule list index of this filter
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 					  uint32_t filter_actions_index,
 					  uint16_t rule_list_index)
@@ -704,6 +810,18 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	modify flower filter on DB
+ *
+ * \param[in]   tc_filter_params     - reference to filter configurations
+ * \param[in]   action_info_array    - array of all the actions on this filter (each element has action information)
+ * \param[in]   filter_actions_index - filter actions index of this filter
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 					     struct action_info *action_info_array,
 					     uint32_t filter_actions_index)
@@ -789,6 +907,17 @@ enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	check if the handle of the filter is the highest in priority
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[in]   result           - reference to boolean variable, true if the handle is the highest or false if not
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc check_if_handle_is_highest(struct tc_filter *tc_filter_params, bool *result)
 {
 	int rc;
@@ -895,6 +1024,17 @@ enum tc_api_rc check_if_handle_is_highest(struct tc_filter *tc_filter_params, bo
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the size of the rule list (rule list are all the filters that have the same key&mask and different priority)
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[out]  rules_list_size  - reference to rule list size (uint32)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_rules_list_size(struct tc_filter *tc_filter_params, uint32_t *rules_list_size)
 {
 	int rc;
@@ -981,6 +1121,18 @@ enum tc_api_rc get_rules_list_size(struct tc_filter *tc_filter_params, uint32_t 
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	prepare the rule list items on an array
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[in]   rules_list_size  - reference to rule list array
+ * \param[in]   rules_list_size  - reference to rule list size (uint32)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc prepare_rules_list_items(struct tc_filter *tc_filter_params,
 					struct rules_list_item *rules_list,
 					uint32_t rules_list_size)
@@ -1090,6 +1242,16 @@ enum tc_api_rc prepare_rules_list_items(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	remove filter from DB
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc remove_filter_from_db(struct tc_filter *tc_filter_params)
 {
 	enum tc_api_rc rc;
@@ -1114,6 +1276,17 @@ enum tc_api_rc remove_filter_from_db(struct tc_filter *tc_filter_params)
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	check if filter exist on DB
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[out]  is_exist - reference to boolean, return true if exist, false if not exist
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc check_if_filter_exist_on_db(struct tc_filter *tc_filter_params, bool *is_exist)
 {
 	int rc;
@@ -1159,6 +1332,17 @@ enum tc_api_rc check_if_filter_exist_on_db(struct tc_filter *tc_filter_params, b
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get filter rule list index
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[out]  filter_rule_index - reference to filter rule index
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_filter_rule_from_db(struct tc_filter *tc_filter_params, uint16_t *filter_rule_index)
 {
 	int rc;
@@ -1205,6 +1389,17 @@ enum tc_api_rc get_filter_rule_from_db(struct tc_filter *tc_filter_params, uint1
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	check if filter mask is already exist on DB
+ *
+ * \param[in]   tc_filter_params - reference to filter configurations
+ * \param[out]  is_mask_exist - reference to boolean, true if exist
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc check_if_filters_registered_on_mask(struct tc_filter *tc_filter_params, bool *is_mask_exist)
 {
 	int rc;
@@ -1287,6 +1482,18 @@ enum tc_api_rc check_if_filters_registered_on_mask(struct tc_filter *tc_filter_p
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the key&mask of the old filter (used this function on modify - modify can also change key&mask of filter)
+ *
+ * \param[in]   tc_filter_params     - reference to filter configurations
+ * \param[out]  old_tc_filter_params - reference to the old tc filter configuration (key & mask)
+ * \param[out]  is_key_changed       - reference to boolean, true if changed
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_old_filter_key(struct tc_filter *tc_filter_params, struct tc_filter *old_tc_filter_params, bool *is_key_changed)
 {
 	int rc;
@@ -1408,7 +1615,7 @@ enum tc_api_rc tc_delete_all_flower_filters_on_interface(uint32_t interface)
 	sqlite3_stmt *statement;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
 
-	write_log(LOG_DEBUG, "Deleting all filters with interface = %d", interface);
+	write_log(LOG_INFO, "Deleting all filters with interface = %d", interface);
 
 	/* get all filters with this interface and later we will delete them */
 	snprintf(sql,
@@ -1474,7 +1681,7 @@ enum tc_api_rc tc_delete_all_priority_flower_filters(struct tc_filter *tc_filter
 	sqlite3_stmt *statement;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
 
-	write_log(LOG_DEBUG, "Deleting all filters with interface = %d and priority 0x%x",
+	write_log(LOG_INFO, "Deleting all filters with interface = %d and priority 0x%x",
 		  tc_filter_params->ifindex, tc_filter_params->priority);
 
 	/* get all filters with this priority and interface and later we will delete them */
@@ -1526,6 +1733,19 @@ enum tc_api_rc tc_delete_all_priority_flower_filters(struct tc_filter *tc_filter
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get all actions of the flower filter
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[out]  action_info - reference to array of elements of action info
+ * \param[out]  num_of_actions - reference to the number if actions that we found (uint32)
+ * \param[out]  filter_actions_index - reference to the filter actions index of the filter
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_flower_filter_actions(struct tc_filter *tc_filter_params,
 					 struct action_id *actions_array,
 					 uint32_t *num_of_actions,
@@ -1594,6 +1814,18 @@ enum tc_api_rc get_flower_filter_actions(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the number of the flower filters that we found on DB (query by interface & priority)
+ *
+ * \param[in]   interface - interface index (linux index)
+ * \param[out]  priority - priority value, if equal to 0 get all filters from this interface (all priorities)
+ * \param[out]  num_of_filters - reference to the number if actions that we found (uint32)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_num_of_flower_filters(uint32_t interface, uint32_t priority, uint32_t *num_of_filters)
 {
 	int rc;
@@ -1648,6 +1880,19 @@ enum tc_api_rc get_num_of_flower_filters(uint32_t interface, uint32_t priority, 
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get array of the flower filters that we found on DB (query by interface & priority)
+ *
+ * \param[in]   interface - interface index (linux index)
+ * \param[out]  priority - priority value, if equal to 0 get all filters from this interface (all priorities)
+ * \param[out]  filters_array - reference of the array of the filters that we found
+ * \param[in]   num_of_filters - the number if actions that we can store on the array (filters_array)
+ *
+ * \return	enum tc_api_rc:
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_flower_filters_id_from_db(uint32_t interface,
 					     uint32_t priority,
 					     struct tc_filter_id *filters_array,
@@ -1721,6 +1966,16 @@ enum tc_api_rc get_flower_filters_id_from_db(uint32_t interface,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the flower filter info from DB
+ *
+ * \param[in/out] tc_filter_params - reference to the filter configuration
+ * \param[out]    is_filter_exists - reference to boolean, true if filter exist
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_flower_filter_from_db(struct tc_filter *tc_filter_params, bool *is_filter_exists)
 {
 	int rc;
@@ -1827,6 +2082,16 @@ enum tc_api_rc get_flower_filter_from_db(struct tc_filter *tc_filter_params, boo
 /**********************************     Masks Table     *********************************************/
 /****************************************************************************************************/
 
+/******************************************************************************
+ * \brief	check if this mask is already exist on mask table on DB
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[out]  is_mask_exist - reference to boolean, true if mask exist
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc check_if_mask_already_exist(struct tc_filter *tc_filter_params, bool *is_mask_exist)
 {
 	int rc;
@@ -1907,6 +2172,17 @@ enum tc_api_rc check_if_mask_already_exist(struct tc_filter *tc_filter_params, b
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the next index in available on the mask table
+ *		mask table entries should be sequence and without empty entries
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[out]  new_mask_index - reference to the new mask index that we found
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_new_mask_index(struct tc_filter *tc_filter_params, uint32_t *new_mask_index)
 {
 	int rc;
@@ -1953,6 +2229,17 @@ enum tc_api_rc get_new_mask_index(struct tc_filter *tc_filter_params, uint32_t *
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	add mask to mask table
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[in]   new_mask_index - new mask index of the entry that we want to write
+ * \param[in]   tc_mask_info - the mask info that we want to save
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc add_mask_to_mask_table_db(struct tc_filter *tc_filter_params,
 					 uint32_t new_mask_index,
 					 struct tc_mask_info tc_mask_info)
@@ -2004,6 +2291,16 @@ enum tc_api_rc add_mask_to_mask_table_db(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get mask index of a specific mask entry (used on delete mask)
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[out]  mask_index_to_delete - reference to the mask index that we found
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_mask_index_to_delete(struct tc_filter *tc_filter_params, uint32_t *mask_index_to_delete)
 {
 	enum tc_api_rc rc;
@@ -2071,6 +2368,16 @@ enum tc_api_rc get_mask_index_to_delete(struct tc_filter *tc_filter_params, uint
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	Delete mask entry from DB
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[out]  mask_index_to_delete - mask entry to delete
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc delete_mask_entry_from_db(struct tc_filter *tc_filter_params, uint32_t mask_index_to_delete)
 {
 	enum tc_api_rc rc;
@@ -2095,6 +2402,18 @@ enum tc_api_rc delete_mask_entry_from_db(struct tc_filter *tc_filter_params, uin
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	repalce deleted entry on mask table with the last entry in mask table
+ *		on delete we replace the last entry with the deleted entry (used only when we want to delete not the last entry)
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[in]   last_mask_index - mask entry of the last entry
+ * \param[in]   mask_index_to_delete - mask entry to delete
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc replace_deleted_entry_with_last_mask_entry(struct tc_filter *tc_filter_params,
 							  uint32_t last_mask_index,
 							  uint32_t mask_index_to_delete)
@@ -2122,6 +2441,17 @@ enum tc_api_rc replace_deleted_entry_with_last_mask_entry(struct tc_filter *tc_f
 	return TC_API_OK;
 }
 
+/******************************************************************************
+ * \brief	get the mask info from mask table
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[in]   mask_index - mask index that we want to find
+ * \param[out]  result_mask_info - reference of the mask info that we found on DB
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
 enum tc_api_rc get_result_mask_bitmap(struct tc_filter *tc_filter_params,
 				      uint32_t mask_index,
 				      struct tc_mask_info *result_mask_info)
@@ -2168,86 +2498,20 @@ enum tc_api_rc get_result_mask_bitmap(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
-
 #if 0
-
-enum tc_api_rc check_if_mask_already_exist(struct tc_filter *tc_filter_params, bool *is_mask_exist)
+/******************************************************************************
+ * \brief	increment bind value on DB
+ *
+ * \param[in]   tc_filter_params - reference to the filter configuration
+ * \param[in]   mask_index - mask index that we want to find
+ * \param[out]  result_mask_info - reference of the mask info that we found on DB
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
+enum tc_api_rc increment_bind_value_on_db(struct tc_action *tc_action)
 {
-	int rc;
-	sqlite3_stmt *statement;
-	char sql[TC_DB_SQL_COMMAND_SIZE];
-	uint64_t eth_src_mask_uint64 = 0;
-	uint64_t eth_dst_mask_uint64 = 0;
-	struct tc_flower_rule_policy *flower_rule_policy;
-	uint32_t mask_count;
-
-	flower_rule_policy = &tc_filter_params->flower_rule_policy;
-
-	memcpy(&eth_dst_mask_uint64, flower_rule_policy->mask_eth_dst, ETH_ALEN);
-	memcpy(&eth_src_mask_uint64, flower_rule_policy->mask_eth_src, ETH_ALEN);
-
-	/* check if exist on sql filter table another entry with the same mask, table but different priority */
-	snprintf(sql,
-		 TC_DB_SQL_COMMAND_SIZE,
-		 "SELECT COUNT (mask_index) AS mask_count FROM masks_table WHERE "
-		 "interface=%d AND "
-		 "eth_type_mask=%d AND "
-		 "eth_dst_mask=%ld AND "
-		 "eth_src_mask=%ld AND "
-		 "ip_proto_mask=%d AND "
-		 "ipv4_src_mask=%d AND "
-		 "ipv4_dst_mask=%d AND "
-		 "l4_src_mask=%d AND "
-		 "l4_dst_mask=%d;",
-		 tc_filter_params->ifindex,
-		 flower_rule_policy->mask_eth_type,
-		 eth_dst_mask_uint64,
-		 eth_src_mask_uint64,
-		 flower_rule_policy->mask_ip_proto,
-		 flower_rule_policy->mask_ipv4_src,
-		 flower_rule_policy->mask_ipv4_dst,
-		 flower_rule_policy->mask_l4_src,
-		 flower_rule_policy->mask_l4_dst);
-
-	/* Prepare SQL statement */
-	write_log(LOG_DEBUG, "SQL command: %s", sql);
-	rc = sqlite3_prepare_v2(tc_db, sql, -1, &statement, NULL);
-	if (rc != SQLITE_OK) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(tc_db));
-		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
-		return TC_API_DB_ERROR;
-	}
-	/* Execute SQL statement */
-	rc = sqlite3_step(statement);
-
-	/* Error */
-	if (rc < SQLITE_ROW) {
-		write_log(LOG_CRIT, "SQL error: %s", sqlite3_errmsg(tc_db));
-		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
-		sqlite3_finalize(statement);
-		return TC_API_DB_ERROR;
-	}
-
-	/* mask not found */
-	if (rc == SQLITE_DONE) {
-		write_log(LOG_DEBUG, "Not Found mask on mask_table");
-		sqlite3_finalize(statement);
-		return TC_API_DB_ERROR;
-	}
-
-	mask_count = sqlite3_column_int(statement, 0);
-
-	write_log(LOG_INFO, "mask_count = %d", mask_count);
-	if (mask_count == 0) {
-		*is_mask_exist = false;
-		write_log(LOG_DEBUG, "this mask is not exist on masks table");
-	} else {
-		*is_mask_exist = true;
-		write_log(LOG_DEBUG, "this mask is already exist on masks table");
-	}
-
-	sqlite3_finalize(statement);
-
 	return TC_API_OK;
 }
 #endif

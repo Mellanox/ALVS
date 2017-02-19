@@ -61,7 +61,6 @@
 
 #include "tc_common_utils.h"
 
-
 bool *tc_db_manager_cancel_application_flag;
 int tc_get_all_filters_req(int linux_interface);
 int tc_dump_all_filters(void);
@@ -223,14 +222,14 @@ static void tc_print_pedit_action(struct tc_action *action)
 {
 	int i = 0;
 
-	tc_print_action_type(action->action_data.pedit.type, 0);
+	tc_print_action_type(action->action_data.pedit.control_action_type, 0);
 	write_log(LOG_INFO, "num_of_keys = %d", action->action_data.pedit.num_of_keys);
 	for (i = 0; i < action->action_data.pedit.num_of_keys; i++) {
-		write_log(LOG_INFO, "pedit_key_data[%d].at = 0x%x", i, bswap_32(action->action_data.pedit.pedit_key_data[i].at));
-		write_log(LOG_INFO, "pedit_key_data[%d].mask = 0x%x", i, bswap_32(action->action_data.pedit.pedit_key_data[i].mask));
-		write_log(LOG_INFO, "pedit_key_data[%d].off = 0x%x", i, bswap_32(action->action_data.pedit.pedit_key_data[i].off));
-		write_log(LOG_INFO, "pedit_key_data[%d].offmask = 0x%x", i, bswap_32(action->action_data.pedit.pedit_key_data[i].offmask));
-		write_log(LOG_INFO, "pedit_key_data[%d].val = 0x%x", i, bswap_32(action->action_data.pedit.pedit_key_data[i].val));
+		write_log(LOG_INFO, "pedit_key_data[%d].at = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.at));
+		write_log(LOG_INFO, "pedit_key_data[%d].mask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.mask));
+		write_log(LOG_INFO, "pedit_key_data[%d].off = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.off));
+		write_log(LOG_INFO, "pedit_key_data[%d].offmask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.offmask));
+		write_log(LOG_INFO, "pedit_key_data[%d].val = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.val));
 	}
 }
 static void tc_print_action_general_info(struct tc_action_general *action_general)
@@ -615,7 +614,7 @@ static int fill_pedit_action(struct nlattr *act_options, struct tc_action *actio
 		action->general.refcnt = p_edit->refcnt;
 
 		action->action_data.pedit.num_of_keys = p_edit->nkeys;
-		err = convert_linux_gact_action_to_action_type(p_edit->action, &action->action_data.pedit.type);
+		err = convert_linux_gact_action_to_action_type(p_edit->action, &action->action_data.pedit.control_action_type);
 		if (err) {
 			write_log(LOG_ERR, "Action unkown gact actions: %d",  p_edit->action);
 			return -1;
@@ -623,17 +622,17 @@ static int fill_pedit_action(struct nlattr *act_options, struct tc_action *actio
 		int k;
 
 		for (k = 0; k < p_edit->nkeys; k++) {
-			action->action_data.pedit.pedit_key_data[k].at =
+			action->action_data.pedit.key_data[k].pedit_key_data.at =
 					 p_edit->keys[k].at;
-			action->action_data.pedit.pedit_key_data[k].mask =
+			action->action_data.pedit.key_data[k].pedit_key_data.mask =
 					 p_edit->keys[k].mask;
-			action->action_data.pedit.pedit_key_data[k].off =
+			action->action_data.pedit.key_data[k].pedit_key_data.off =
 					 p_edit->keys[k].off;
-			action->action_data.pedit.pedit_key_data[k].offmask =
+			action->action_data.pedit.key_data[k].pedit_key_data.offmask =
 					 p_edit->keys[k].offmask;
-			action->action_data.pedit.pedit_key_data[k].shift =
+			action->action_data.pedit.key_data[k].pedit_key_data.shift =
 					 p_edit->keys[k].shift;
-			action->action_data.pedit.pedit_key_data[k].val =
+			action->action_data.pedit.key_data[k].pedit_key_data.val =
 					 p_edit->keys[k].val;
 
 		}
@@ -1064,7 +1063,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 				write_log(LOG_DEBUG, "t->tcm_info = 0x%x", t->tcm_info);
 				if (t->tcm_parent == TC_H_INGRESS) {
 					write_log(LOG_DEBUG, "tc_delete_all_filters_on_interface ENTER");
-					err = tc_delete_all_filters_on_interface(t->tcm_ifindex);
+					err = tc_delete_all_filters_on_interface(t->tcm_ifindex, TC_FILTER_FLOWER);
 					if (err == TC_API_DB_ERROR) {
 						write_log(LOG_CRIT, "TC delete qdisc failed - exit_with_error");
 						tc_db_manager_exit_with_error();
@@ -1103,7 +1102,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					int i = 0;
 
 					for (i = 0; i < tc_filter_handle.actions.num_of_actions; i++) {
-					err = add_tc_action(&tc_filter_handle.actions.action[i]);
+					err = tc_add_action(&tc_filter_handle.actions.action[i]);
 					if (err == TC_API_DB_ERROR) {
 						write_log(LOG_CRIT, "TC add action failed - exit_with_error");
 						tc_db_manager_exit_with_error();
@@ -1116,7 +1115,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					int i = 0;
 
 					for (i = 0; i < tc_filter_handle.actions.num_of_actions; i++) {
-					err = delete_tc_action(&tc_filter_handle.actions.action[i]);
+					err = tc_delete_action(&tc_filter_handle.actions.action[i]);
 					if (err == TC_API_DB_ERROR) {
 						write_log(LOG_CRIT, "TC delete action failed - exit_with_error");
 						tc_db_manager_exit_with_error();

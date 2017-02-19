@@ -73,10 +73,10 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 
 
 	/* get all filters */
-	tc_api_rc = tc_api_get_filters_list(rcv_cli->payload.tc_filter_req.ifindex,
-					    rcv_cli->payload.tc_filter_req.priority,
-					    &filters_array,
-					    &num_of_filters);
+	tc_api_rc = tc_get_filters_list(rcv_cli->payload.tc_filter_req.ifindex,
+					rcv_cli->payload.tc_filter_req.priority,
+					&filters_array,
+					&num_of_filters);
 	if (tc_api_rc != TC_API_OK) {
 		write_log(LOG_ERR, "tc_api_get_filters_list failed for ifindex 0x%x, priority %d",
 			  rcv_cli->payload.tc_filter_req.ifindex,
@@ -101,8 +101,8 @@ void cli_manager_handle_get_tc_filter(struct cli_msg  *rcv_cli,
 		write_log(LOG_DEBUG, "Get filter %d/%d.  ifindex 0x%x, priority %d, handle %d",
 			  idx+1, num_of_filters, filters_array[idx].ifindex,
 			  filters_array[idx].priority, filters_array[idx].handle);
-		tc_api_rc = tc_api_get_filter_info(&filters_array[idx],
-						   &tc_filter);
+		tc_api_rc = tc_get_filter_info(&filters_array[idx],
+					       &tc_filter);
 		if (tc_api_rc != TC_API_OK) {
 			write_log(LOG_ERR, "tc_api_get_filter_info failed for idx %d. ifindex 0x%x, priority %d, handle %d",
 				  idx, filters_array[idx].ifindex, filters_array[idx].priority,
@@ -166,8 +166,8 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 	write_log(LOG_DEBUG, "action_req 0x%x", rcv_cli->payload.tc_action_req);
 
 	/* get all action indexes */
-	tc_api_rc = tc_api_get_actions_list(rcv_cli->payload.tc_action_req,
-					    &action_indexes, &num_of_actions);
+	tc_api_rc = tc_get_actions_list(rcv_cli->payload.tc_action_req,
+					&action_indexes, &num_of_actions);
 	if (tc_api_rc != TC_API_OK) {
 		goto Exit;
 	}
@@ -194,10 +194,10 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 		/* get action */
 		write_log(LOG_DEBUG, "Get action %d/%d.  action index 0x%x",
 			  idx+1, num_of_actions, action_indexes[idx]);
-		tc_api_rc = tc_api_get_action_info(rcv_cli->payload.tc_action_req,
-						   action_indexes[idx],
-						   &tc_action,
-						   &is_action_exists);
+		tc_api_rc = tc_get_action_info(rcv_cli->payload.tc_action_req,
+					       action_indexes[idx],
+					       &tc_action,
+					       &is_action_exists);
 		if (tc_api_rc != TC_API_OK) {
 			write_log(LOG_ERR, "tc_api_get_action_info failed for idx %d. action index 0x%x",
 				  idx, action_indexes[idx]);

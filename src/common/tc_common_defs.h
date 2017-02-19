@@ -79,10 +79,17 @@ struct tc_pedit_key_data {
 	 uint32_t           shift;
 
 };
+
+struct pedit_key_data {
+	uint32_t key_index;
+	struct tc_pedit_key_data pedit_key_data;
+
+};
+
 struct tc_pedit_action_data {
-	uint8_t                   num_of_keys;
-	enum tc_action_type       type;
-	struct tc_pedit_key_data  pedit_key_data[MAX_NUM_OF_KEYS_IN_PEDIT_DATA];
+	enum tc_action_type control_action_type;
+	uint8_t num_of_keys;
+	struct pedit_key_data key_data[MAX_NUM_OF_KEYS_IN_PEDIT_DATA];
 
 };
 

@@ -43,6 +43,7 @@
 #include "tc_conf.h"
 #include "tc_api.h"
 #include "index_pool.h"
+#include "tc_common_defs.h"
 
 
 /************************************************/
@@ -70,19 +71,6 @@ struct action_stats {
 	enum tc_action_type action_type;
 };
 
-struct pedit_key_data {
-	uint32_t key_index;
-	struct tc_pedit_key_data pedit_key_data;
-
-};
-
-struct pedit_action_data {
-	enum tc_action_type control_action_type;
-	uint8_t num_of_keys;
-	struct pedit_key_data key_data[MAX_NUM_OF_KEYS_IN_PEDIT_DATA];
-
-};
-
 struct action_id {
 	uint32_t linux_action_index;
 	enum tc_action_type action_family_type;
@@ -95,8 +83,8 @@ struct action_info {
 	bool independent_action;
 	struct ezdp_sum_addr statistics_base;
 	union {
-		struct mirred_action_data mirred;
-		struct pedit_action_data pedit;
+		struct tc_mirred_action_data mirred;
+		struct tc_pedit_action_data pedit;
 	} action_data;
 	uint32_t created_timestamp;
 };
@@ -105,11 +93,30 @@ struct action_info {
 /* Function declaration                         */
 /************************************************/
 
-enum tc_api_rc add_tc_action(struct tc_action *tc_action_params);
-enum tc_api_rc delete_tc_action(struct tc_action *tc_action_params);
-enum tc_api_rc modify_tc_action(struct tc_action *tc_action_params);
+/******************************************************************************
+ * \brief    init actions index pools
+ *
+ * \return   bool
+ */
 bool tc_action_init(void);
+
+/******************************************************************************
+ * \brief    close action (index pools)
+ *
+ * \return   bool
+ */
 void tc_action_destroy(void);
+
+/******************************************************************************
+ * \brief    Modify action
+ *
+ * param[in] tc_action_params - reference to action configuration
+ *
+ * \return   enum tc_api_rc - TC_API_OK       - function succeed
+ *                            TC_API_FAILURE  - function failed due to wrong configuration
+ *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
+ */
+enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params);
 
 /**************************************************************************//**
  * \brief       prepare general action information
@@ -163,8 +170,8 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 enum tc_api_rc prepare_pedit_action_info(struct tc_action    *action,
 					 struct action_info  *action_info);
 
-enum tc_api_rc delete_and_free_pedit_action_entries(struct pedit_action_data *pedit);
+enum tc_api_rc delete_and_free_pedit_action_entries(struct tc_pedit_action_data *pedit);
 
-enum tc_api_rc add_pedit_action_list_to_table(struct pedit_action_data *pedit);
+enum tc_api_rc add_pedit_action_list_to_table(struct tc_pedit_action_data *pedit);
 
 #endif /* _TC_FLOWER_API_H_ */
