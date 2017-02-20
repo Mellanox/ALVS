@@ -132,7 +132,7 @@ enum nw_external_msid {
 #define NW_16_CLUSTER_DATA_SIZE        0
 #define NW_ALL_CLUSTER_DATA_SIZE       0
 
-#define NW_EMEM_SEARCH_SIZE            9
+#define NW_EMEM_SEARCH_SIZE            10
 #define NW_EMEM_DATA_SIZE              1
 
 

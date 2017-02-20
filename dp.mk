@@ -2,6 +2,8 @@ RM := rm -rf
 ENV_BASE := ./
 
 EZDK_BASE := $(shell readlink $(ENV_BASE)/EZdk)
+CC_PATH := $(abspath $(EZDK_BASE)ldk/toolchain/bin)
+CC := $(CC_PATH)/arceb-linux-gcc
 PATH := $(PATH):$(abspath $(EZDK_BASE)ldk/toolchain/bin)
 
 DP_INC := -Isrc/common -Isrc/dp -I$(EZDK_BASE)dpe/dp/include -I$(EZDK_BASE)dpe/frame/include
@@ -68,7 +70,7 @@ endif
 make_dp: $(DP_OBJS) 
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARC GNU C Linker'
-	arceb-linux-gcc -L$(EZDK_BASE)dpe/dp/lib/ -L$(EZDK_BASE)dpe/frame/lib/ -o "$(DP_BIN)" $(DP_OBJS) $(DP_LIBS)
+	$(CC) -L$(EZDK_BASE)dpe/dp/lib/ -L$(EZDK_BASE)dpe/frame/lib/ -o "$(DP_BIN)" $(DP_OBJS) $(DP_LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	-print_memory_usage.sh $(DP_BIN)
@@ -78,7 +80,7 @@ build/$(APP_NAME)/%.o: %.c
 	@echo 'EZDK path $(EZDK_BASE) '
 	@echo 'Building file: $<'
 	@echo 'Invoking: ARC GNU C Compiler'
-	arceb-linux-gcc $(DP_C_FLAGS) -Wall -c -fmessage-length=0 -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" $(DP_INC) -o "$@" "$<"
+	$(CC) $(DP_C_FLAGS) -Wall -c -fmessage-length=0 -mq-class -mlong-calls -mbitops -munaligned-access -mcmem -mswape -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" $(DP_INC) -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

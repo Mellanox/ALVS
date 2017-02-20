@@ -427,7 +427,7 @@ void print_app_info(void)
 	anl_write_log(LOG_DEBUG, "Memory layout:");
 
 	/* print memory section info */
-	ezdp_get_mem_section_info(&mem_info, 0);
+	ezdp_get_mem_section_info(&mem_info);
 
 	anl_write_log(LOG_DEBUG, "  private_cmem size is             %d bytes",
 		      mem_info.private_cmem_size);
@@ -580,7 +580,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	ezdp_get_mem_section_info(&mem_info, 0);
+	ezdp_get_mem_section_info(&mem_info);
 	/* validate that at least 256 bytes thread cache is enabled*/
 	if (mem_info.cache_size < 256) {
 		printf("Too many cmem variables. Thread cache size is zero. private_cmem_size is %d shared_cmem_size is %d. Exiting...\n",
