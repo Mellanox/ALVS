@@ -178,7 +178,6 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 	}
 
 
-	write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 	if (num_of_actions == 0) {
 		/* no actions */
 		write_log(LOG_DEBUG, "no filters for for action 0x%x",
@@ -204,7 +203,6 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 			goto Exit;
 		}
 
-		write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 		if (is_action_exists == false) {
 			continue;
 		}
@@ -214,7 +212,6 @@ void cli_manager_handle_get_family_actions(struct cli_msg  *rcv_cli,
 		       &tc_action,
 		       sizeof(res_cli->payload.tc_action_res));
 
-		write_log(LOG_ALERT, "    >> Line %d pass", __LINE__);
 		/* send message (iof not last */
 		if ((idx + 1) < num_of_actions) {
 			/* not last message */

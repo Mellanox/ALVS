@@ -242,7 +242,7 @@ enum tc_api_rc tc_get_action_stats(uint32_t   nps_index,
 enum tc_api_rc tc_get_action_info(enum tc_action_type family_type,
 				      uint32_t action_index,
 				      struct tc_action *tc_action,
-				      bool *is_action_exists)
+				      bool *is_action_exist)
 {
 	struct action_info  action_info;
 	bool                rc;
@@ -255,8 +255,11 @@ enum tc_api_rc tc_get_action_info(enum tc_action_type family_type,
 	tc_action_params.general.family_type = family_type;
 
 	/* fill Linux info */
-	TC_CHECK_ERROR(get_tc_action_from_db(&tc_action_params, is_action_exists, &action_info, NULL, tc_action));
+	TC_CHECK_ERROR(get_tc_action_from_db(&tc_action_params, is_action_exist, &action_info, NULL, tc_action));
 
+	if (*is_action_exist != true) {
+		return TC_API_OK;
+	}
 	/* fill statistic counters */
 	TC_CHECK_ERROR(tc_get_action_stats(action_info.nps_index,
 					   &tc_action->action_statistics.packet_statictics,
@@ -857,10 +860,10 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exists;
-	uint32_t bind_count;
+	int bind_count;
 
 	/* get action info from database */
-	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, &bind_count, NULL));
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action_params, &is_action_exists, &action_info, NULL, NULL));
 
 	if (is_action_exists == false) {
 		write_log(LOG_ERR, "deleted action is not exist on db");
@@ -873,9 +876,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 		  bind_count);
 
 	/* reduce bind count by one and update on DB */
-	bind_count--;
-	tc_action_params->general.bindcnt = bind_count;
-	TC_CHECK_ERROR(modify_tc_action_on_db(tc_action_params, &action_info));
+	TC_CHECK_ERROR(decrement_tc_action_bind_value(tc_action_params, &bind_count));
 
 	/* if this action is independent (was created by seperatly action add api) return */
 	if (action_info.independent_action == true) {

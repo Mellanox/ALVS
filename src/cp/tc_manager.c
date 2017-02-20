@@ -1206,13 +1206,16 @@ int tc_get_all_actions_req(void)
 	struct tcamsg tca_msg;
 	struct rtattr *tail, *tail2;
 	int msg_length;
-	struct iovec iov = { .iov_base = &nlh, .iov_len = sizeof(nlh) };
+	struct iovec iov[2] = {
+		{ .iov_base = &nlh, .iov_len = sizeof(nlh) },
+		{ .iov_base = &tca_msg, .iov_len = sizeof(tca_msg) }
+	};
 
 	struct msghdr msg = {
 		.msg_name = &nladdr,
 		.msg_namelen = sizeof(nladdr),
-		.msg_iov = &iov,
-		.msg_iovlen = 1,
+		.msg_iov = iov,
+		.msg_iovlen = 2,
 	};
 	memset(k, 0, sizeof(k));
 
@@ -1241,7 +1244,7 @@ int tc_get_all_actions_req(void)
 	nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 	nlh.nlmsg_pid = 0;
 	nlh.nlmsg_seq = tc_rtnl_handle.dump = ++tc_rtnl_handle.seq;
-	iov.iov_len = nlh.nlmsg_len;
+	iov[1].iov_len = msg_length;
 	write_log(LOG_INFO, "nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	return sendmsg(tc_rtnl_handle.fd, &msg, 0);
 
@@ -1438,6 +1441,7 @@ void  tc_db_manager_table_init(void)
 		write_log(LOG_CRIT, "Dump all filters FAILED");
 		tc_db_manager_exit_with_error();
 	}
+#if 0
 	/*sending TC DUMP request to get all TC actions saved in kernel*/
 	write_log(LOG_INFO, "tc_get_all_actions_req");
 	err = tc_get_all_actions_req();
@@ -1453,7 +1457,6 @@ void  tc_db_manager_table_init(void)
 		tc_db_manager_exit_with_error();
 	}
 
-#if 0
 	/*sending TC DUMP request to get all TC filters saved in kernel*/
 	err = tc_get_all_filters_req();
 	if (err < 0) {

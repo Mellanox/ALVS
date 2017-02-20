@@ -106,7 +106,7 @@ enum tc_api_rc delete_tc_action_from_db(struct tc_action *tc_action_params);
 enum tc_api_rc get_tc_action_from_db(struct tc_action *tc_action_params,
 				     bool *is_action_exist,
 				     struct action_info *action_info,
-				     uint32_t *bind_count,
+				     int *bind_count,
 				     struct tc_action   *tc_action_from_db);
 
 /******************************************************************************
@@ -161,6 +161,29 @@ enum tc_api_rc get_type_num_of_actions_from_db(enum tc_action_type type, uint32_
  *		TC_API_DB_ERROR - function failed due to critical error
  */
 enum tc_api_rc get_type_action_indexes_from_db(enum tc_action_type type, uint32_t *actions_array, uint32_t num_of_actions);
+
+/******************************************************************************
+ * \brief	increment bind value on DB
+ *
+ * \param[in]   tc_action - reference to the action configuration
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
+enum tc_api_rc increment_tc_action_bind_value(struct tc_action *tc_action);
+
+/******************************************************************************
+ * \brief	decrement bind value on DB
+ *
+ * \param[in]   tc_action - reference to the action configuration
+ * \param[out]  bind_value - reference to the new bind value
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
+enum tc_api_rc decrement_tc_action_bind_value(struct tc_action *tc_action, int *bind_value);
 
 /* flower filter table functions */
 

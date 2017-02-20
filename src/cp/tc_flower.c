@@ -141,8 +141,11 @@ enum tc_api_rc add_filter_actions(struct tc_filter *tc_filter_params, struct act
 		TC_CHECK_ERROR(check_if_tc_action_exist(&tc_filter_params->actions.action[i], &is_action_exist));
 
 		if (is_action_exist == true) {
-			/* need to modify the bindcnt, refcnt */
-			TC_CHECK_ERROR(modify_tc_action_on_db(&tc_filter_params->actions.action[i], &action_info_array[i]));
+			/* modify bind count */
+			TC_CHECK_ERROR(increment_tc_action_bind_value(&tc_filter_params->actions.action[i]));
+
+			/* get action info to array */
+			TC_CHECK_ERROR(get_tc_action_from_db(&tc_filter_params->actions.action[i], &is_action_exist, &action_info_array[i], NULL, NULL));
 		} else {
 			TC_CHECK_ERROR(tc_int_add_action(&tc_filter_params->actions.action[i], &action_info_array[i], false));
 		}
@@ -623,7 +626,7 @@ bool create_mask_info(struct tc_flower_rule_policy *flower_rule_policy, struct t
 	/* only ipv4 masks can be not full */
 	/* set dsp ip mask value */
 	if (mask_info->mask_bitmap.is_ipv4_dst_set) {
-		if (get_ip_mask_value(flower_rule_policy->mask_ipv4_dst, &mask_info->ipv4_dst_mask_val) == false) {
+		if (get_ip_mask_value(bswap_32(flower_rule_policy->mask_ipv4_dst), &mask_info->ipv4_dst_mask_val) == false) {
 			write_log(LOG_ERR, "Ipv4 dst mask is not supported");
 			return false;
 		}
@@ -634,7 +637,7 @@ bool create_mask_info(struct tc_flower_rule_policy *flower_rule_policy, struct t
 
 	/* set src ip mask value */
 	if (mask_info->mask_bitmap.is_ipv4_src_set) {
-		if (get_ip_mask_value(flower_rule_policy->mask_ipv4_src, &mask_info->ipv4_src_mask_val) == false) {
+		if (get_ip_mask_value(bswap_32(flower_rule_policy->mask_ipv4_src), &mask_info->ipv4_src_mask_val) == false) {
 			write_log(LOG_ERR, "Ipv4 src mask is not supported");
 			return false;
 		}

@@ -460,7 +460,7 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct
 enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
 				     bool               *is_action_exist,
 				     struct action_info *action_info,
-				     uint32_t           *bind_count,
+				     int                *bind_count,
 				     struct tc_action   *tc_action_from_db)
 {
 	int rc;
@@ -671,6 +671,110 @@ enum tc_api_rc get_type_action_indexes_from_db(enum tc_action_type type, uint32_
 
 	/* finalize SQL statement */
 	sqlite3_finalize(statement);
+
+	return TC_API_OK;
+}
+
+/******************************************************************************
+ * \brief	increment bind value on DB
+ *
+ * \param[in]   tc_action - reference to the action configuration
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
+enum tc_api_rc increment_tc_action_bind_value(struct tc_action *tc_action)
+{
+	bool is_action_exist;
+	enum tc_api_rc rc;
+	char *zErrMsg = NULL;
+	char sql[TC_DB_SQL_COMMAND_SIZE];
+	struct tc_action action_on_db;
+
+	memset(&action_on_db, 0, sizeof(struct tc_action));
+
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action, &is_action_exist, NULL, NULL, &action_on_db));
+
+	action_on_db.general.bindcnt++;
+	action_on_db.general.refcnt++;
+
+	snprintf(sql, TC_DB_SQL_COMMAND_SIZE,
+		 "UPDATE actions_table "
+		 "SET bind_value=%d, refcnt=%d "
+		 "WHERE linux_action_index=%d AND action_family_type=%d;",
+		 action_on_db.general.bindcnt,		/* bind_value */
+		 action_on_db.general.refcnt,		/* bind_value */
+		 tc_action->general.index,		/* linux_action_index */
+		 tc_action->general.family_type);	/* action_family_type */
+
+	/* Execute SQL statement */
+	rc = sqlite3_exec(tc_db, sql, NULL, NULL, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+		return TC_API_DB_ERROR;
+	}
+
+	write_log(LOG_DEBUG, "Bind value & refcnt value were updated to value (bind=%d, refcnt=%d) on action on Database (action index %d, action type %d)",
+		  action_on_db.general.bindcnt,
+		  action_on_db.general.refcnt,
+		  tc_action->general.index,
+		  tc_action->general.family_type);
+
+	return TC_API_OK;
+}
+
+/******************************************************************************
+ * \brief	decrement bind value on DB
+ *
+ * \param[in]   tc_action  - reference to the action configuration
+ * \param[out]  bind_value - reference to the new bind value
+ *
+ *		TC_API_OK - function succeed
+ *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
+ *		TC_API_DB_ERROR - function failed due to critical error
+ */
+enum tc_api_rc decrement_tc_action_bind_value(struct tc_action *tc_action, int *bind_value)
+{
+
+	bool is_action_exist;
+	enum tc_api_rc rc;
+	char *zErrMsg = NULL;
+	char sql[TC_DB_SQL_COMMAND_SIZE];
+	struct tc_action action_on_db;
+
+	memset(&action_on_db, 0, sizeof(struct tc_action));
+
+	TC_CHECK_ERROR(get_tc_action_from_db(tc_action, &is_action_exist, NULL, NULL, &action_on_db));
+
+	action_on_db.general.bindcnt--;
+	*bind_value = action_on_db.general.bindcnt;
+
+	action_on_db.general.refcnt--;
+
+	snprintf(sql, TC_DB_SQL_COMMAND_SIZE,
+		 "UPDATE actions_table "
+		 "SET bind_value=%d, refcnt=%d "
+		 "WHERE linux_action_index=%d AND action_family_type=%d;",
+		 action_on_db.general.bindcnt,		/* bind_value */
+		 action_on_db.general.refcnt,		/* bind_value */
+		 tc_action->general.index,		/* linux_action_index */
+		 tc_action->general.family_type);	/* action_family_type */
+
+	/* Execute SQL statement */
+	rc = sqlite3_exec(tc_db, sql, NULL, NULL, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+		return TC_API_DB_ERROR;
+	}
+
+	write_log(LOG_DEBUG, "Bind value & refcnt value were updated to value (bind=%d, refcnt=%d) on action on Database (action index %d, action type %d)",
+		  action_on_db.general.bindcnt,
+		  action_on_db.general.refcnt,
+		  tc_action->general.index,
+		  tc_action->general.family_type);
 
 	return TC_API_OK;
 }
@@ -2498,20 +2602,4 @@ enum tc_api_rc get_result_mask_bitmap(struct tc_filter *tc_filter_params,
 	return TC_API_OK;
 }
 
-#if 0
-/******************************************************************************
- * \brief	increment bind value on DB
- *
- * \param[in]   tc_filter_params - reference to the filter configuration
- * \param[in]   mask_index - mask index that we want to find
- * \param[out]  result_mask_info - reference of the mask info that we found on DB
- *
- *		TC_API_OK - function succeed
- *		TC_API_FAILURE - function failed due to wrong input params (not exist on DB)
- *		TC_API_DB_ERROR - function failed due to critical error
- */
-enum tc_api_rc increment_bind_value_on_db(struct tc_action *tc_action)
-{
-	return TC_API_OK;
-}
-#endif
+
