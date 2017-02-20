@@ -967,7 +967,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 			tc_print_flower_filter(&tc_filter_handle);
 			write_log(LOG_DEBUG, "tc_parse_del_filter_msg err = %d", err);
 			if (err == 0) {
-				err = tc_delete_filter(&tc_filter_handle);
+				err = tc_filter_delete(&tc_filter_handle);
 				if (err == TC_API_DB_ERROR) {
 					write_log(LOG_CRIT, "TC delete filter failed - exit_with_error");
 					tc_db_manager_exit_with_error();
@@ -988,7 +988,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 			tc_print_flower_filter(&tc_filter_handle);
 			write_log(LOG_DEBUG, "nlmsghdr->nlmsg_flags = 0x%x", nlmsghdr->nlmsg_flags);
 			if (err == 0) {
-				err = tc_add_filter(&tc_filter_handle);
+				err = tc_filter_add(&tc_filter_handle);
 				if (err == TC_API_DB_ERROR) {
 					write_log(LOG_CRIT, "TC add filter failed - exit_with_error");
 					tc_db_manager_exit_with_error();
@@ -1102,7 +1102,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					int i = 0;
 
 					for (i = 0; i < tc_filter_handle.actions.num_of_actions; i++) {
-					err = tc_add_action(&tc_filter_handle.actions.action[i]);
+					err = tc_action_add(&tc_filter_handle.actions.action[i]);
 					if (err == TC_API_DB_ERROR) {
 						write_log(LOG_CRIT, "TC add action failed - exit_with_error");
 						tc_db_manager_exit_with_error();
@@ -1115,7 +1115,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					int i = 0;
 
 					for (i = 0; i < tc_filter_handle.actions.num_of_actions; i++) {
-					err = tc_delete_action(&tc_filter_handle.actions.action[i]);
+					err = tc_action_delete(&tc_filter_handle.actions.action[i]);
 					if (err == TC_API_DB_ERROR) {
 						write_log(LOG_CRIT, "TC delete action failed - exit_with_error");
 						tc_db_manager_exit_with_error();

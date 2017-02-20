@@ -64,7 +64,7 @@ do {												\
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_add_filter(struct tc_filter *tc_filter_params);
+enum tc_api_rc tc_filter_add(struct tc_filter *tc_filter_params);
 
 /******************************************************************************
  * \brief    Delete flower filter
@@ -75,7 +75,7 @@ enum tc_api_rc tc_add_filter(struct tc_filter *tc_filter_params);
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_delete_filter(struct tc_filter *tc_filter_params);
+enum tc_api_rc tc_filter_delete(struct tc_filter *tc_filter_params);
 
 /******************************************************************************
  * \brief    Delete all filters on interface
@@ -98,7 +98,7 @@ enum tc_api_rc tc_delete_all_filters_on_interface(uint32_t interface, enum tc_fi
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_add_action(struct tc_action *tc_action_params);
+enum tc_api_rc tc_action_add(struct tc_action *tc_action_params);
 
 /******************************************************************************
  * \brief    Delete action
@@ -109,7 +109,7 @@ enum tc_api_rc tc_add_action(struct tc_action *tc_action_params);
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_delete_action(struct tc_action *tc_action_params);
+enum tc_api_rc tc_action_delete(struct tc_action *tc_action_params);
 
 /******************************************************************************
  * \brief    Get actions array of actions type

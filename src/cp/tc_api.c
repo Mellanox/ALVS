@@ -89,7 +89,7 @@ void tc_destroy(void)
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_add_filter(struct tc_filter *tc_filter_params)
+enum tc_api_rc tc_filter_add(struct tc_filter *tc_filter_params)
 {
 	switch (tc_filter_params->type) {
 	case TC_FILTER_FLOWER:
@@ -108,7 +108,7 @@ enum tc_api_rc tc_add_filter(struct tc_filter *tc_filter_params)
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_delete_filter(struct tc_filter *tc_filter_params)
+enum tc_api_rc tc_filter_delete(struct tc_filter *tc_filter_params)
 {
 	switch (tc_filter_params->type) {
 	case TC_FILTER_FLOWER:

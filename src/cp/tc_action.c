@@ -54,7 +54,7 @@ struct index_pool action_extra_info_index_pool;
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_add_action(struct tc_action *tc_action_params)
+enum tc_api_rc tc_action_add(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exist;
@@ -82,7 +82,7 @@ enum tc_api_rc tc_add_action(struct tc_action *tc_action_params)
  *                            TC_API_FAILURE  - function failed due to wrong configuration
  *                            TC_API_DB_ERROR - function failed due to problem on DB or NPS
  */
-enum tc_api_rc tc_delete_action(struct tc_action *tc_action_params)
+enum tc_api_rc tc_action_delete(struct tc_action *tc_action_params)
 {
 	struct action_info action_info;
 	bool is_action_exists;
