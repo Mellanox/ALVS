@@ -323,6 +323,7 @@ enum tc_api_rc add_tc_action_to_db(struct tc_action *tc_action_params, struct ac
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(tc_db));
 		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -332,6 +333,7 @@ enum tc_api_rc add_tc_action_to_db(struct tc_action *tc_action_params, struct ac
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		write_log(LOG_CRIT, "Last SQL command: %s", sql);
 		sqlite3_free(zErrMsg);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -421,6 +423,7 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(tc_db));
 		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -430,6 +433,7 @@ enum tc_api_rc modify_tc_action_on_db(struct tc_action *tc_action_params, struct
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		write_log(LOG_CRIT, "Last SQL command: %s", sql);
 		sqlite3_free(zErrMsg);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -498,6 +502,7 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
 	if (rc == SQLITE_DONE) {
 		write_log(LOG_INFO, "Action (index %d, type %d) wasn't found on internal DB", tc_action_params->general.index, tc_action_params->general.family_type);
 		*is_action_exist = false;
+		sqlite3_finalize(statement);
 		return TC_API_OK;
 	}
 
@@ -877,6 +882,7 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(tc_db));
 		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -892,6 +898,7 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 		write_log(LOG_CRIT, "SQL error: %s",
 			  sqlite3_errmsg(tc_db));
 		write_log(LOG_CRIT, "Last SQL Command: %s", sql);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -901,6 +908,7 @@ enum tc_api_rc tc_add_flower_filter_to_db(struct tc_filter *tc_filter_params,
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		write_log(LOG_CRIT, "Failed to bind blob actions: return message %d", rc);
 		sqlite3_free(zErrMsg);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -1003,6 +1011,7 @@ enum tc_api_rc tc_modify_flower_filter_on_db(struct tc_filter *tc_filter_params,
 		write_log(LOG_CRIT, "SQL error: %s", zErrMsg);
 		write_log(LOG_CRIT, "Last SQL command: %s", sql);
 		sqlite3_free(zErrMsg);
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -1664,8 +1673,6 @@ enum tc_api_rc get_old_filter_key(struct tc_filter *tc_filter_params, struct tc_
 	old_tc_filter_params->flower_rule_policy.mask_l4_dst = sqlite3_column_int(statement, 21);
 	old_tc_filter_params->flower_rule_policy.mask_bitmap.raw_data = sqlite3_column_int(statement, 22);
 
-	sqlite3_finalize(statement);
-
 	old_tc_filter_params->ifindex = tc_filter_params->ifindex;
 	old_tc_filter_params->priority = tc_filter_params->priority;
 	old_tc_filter_params->handle = tc_filter_params->handle;
@@ -1695,6 +1702,8 @@ enum tc_api_rc get_old_filter_key(struct tc_filter *tc_filter_params, struct tc_
 	if (old_tc_filter_params->flower_rule_policy.key_l4_dst != tc_filter_params->flower_rule_policy.key_l4_dst) {
 		*is_key_changed = true;
 	}
+
+	sqlite3_finalize(statement);
 #if 0
 	print_filter(old_tc_filter_params);
 #endif
@@ -1905,6 +1914,7 @@ enum tc_api_rc get_flower_filter_actions(struct tc_filter *tc_filter_params,
 
 	if (action_array_bytes > sizeof(struct action_id)*MAX_NUM_OF_ACTIONS_IN_FILTER) {
 		write_log(LOG_ERR, "reading action info failed, number of bytes is too big");
+		sqlite3_finalize(statement);
 		return TC_API_DB_ERROR;
 	}
 
@@ -2468,6 +2478,8 @@ enum tc_api_rc get_mask_index_to_delete(struct tc_filter *tc_filter_params, uint
 
 	/* get the mask index to delete */
 	*mask_index_to_delete = sqlite3_column_int(statement, 0);
+
+	sqlite3_finalize(statement);
 
 	return TC_API_OK;
 }
