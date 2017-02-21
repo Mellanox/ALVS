@@ -235,7 +235,7 @@ enum tc_action_rc tc_action_handle_pedit(ezframe_t __cmem       * frame,
 							false);
 		} else if (packet_meta_data.ip_next_protocol.tcp) {
 			anl_write_log(LOG_DEBUG, "Update TCP header fields pedit_off = %d", cmem_tc.action_pedit_info_res.off);
-			anl_write_log(LOG_INFO, "cmem_tc.action_pedit_info_res.off 0x%x", cmem_tc.action_pedit_info_res.off);
+			anl_write_log(LOG_DEBUG, "cmem_tc.action_pedit_info_res.off 0x%x", cmem_tc.action_pedit_info_res.off);
 			struct l4_hdr *l4_hdr = (struct l4_hdr *)((uint8_t *)ip_hdr + (ip_hdr->ihl << 2));
 			struct tcphdr	*tcp_hdr = (struct tcphdr *)l4_hdr;
 

@@ -69,7 +69,7 @@ bool nw_fib_processing(in_addr_t dest_ip, struct route_entry_result *route_entry
 
 	/* check matching */
 	if (unlikely(tcam_retval.assoc_data.match == 0)) {
-		anl_write_log(LOG_ERR, "FIB lookup failed. key dest_ip = 0x%08x", cmem_nw.fib_key.dest_ip);
+		anl_write_log(LOG_DEBUG, "FIB lookup failed. key dest_ip = 0x%08x", cmem_nw.fib_key.dest_ip);
 		nw_interface_inc_counter(NW_IF_STATS_FAIL_FIB_LOOKUP);
 		return false;
 	}

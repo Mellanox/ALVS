@@ -104,8 +104,10 @@ bool infra_create_intetface(uint32_t side, uint32_t port_number, EZapiChannel_Et
 		ports_on_engine = 12;
 	} else if (type == EZapiChannel_EthIFType_40GE) {
 		ports_on_engine = 3;
+	} else	if (type == EZapiChannel_EthIFType_100GE) {
+		ports_on_engine = 1;
 	} else {
-		write_log(LOG_ERR, "Unsupported interface type, supports only 40GE or 10GE");
+		write_log(LOG_ERR, "Unsupported interface type, supports only 100GE or 40GE or 10GE");
 		return false;
 	}
 
