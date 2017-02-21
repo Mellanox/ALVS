@@ -197,6 +197,9 @@ enum tc_action_rc tc_action_handle_highest_priority(ezframe_t __cmem * frame,
 {
 	enum tc_action_rc	rc;
 	uint32_t		filter_actions_index = match_info->best_match_array[match_info->highest_priority_index].filter_actions_index;
+	uint32_t packet_length;
+
+	packet_length = ezframe_get_len(frame) - packet_meta_data.ip_offset;
 
 	do {
 		anl_write_log(LOG_DEBUG, "handle filter actions index %d, action priority %d",
@@ -241,20 +244,20 @@ enum tc_action_rc tc_action_handle_highest_priority(ezframe_t __cmem * frame,
 			/************************************************/
 			if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_GACT_FAMILY) {
 				rc = tc_action_handle_gact(cmem_tc.action_res.action_type);
-				tc_utils_update_action_stats(ip_hdr->tot_len);
+				tc_utils_update_action_stats(packet_length);
 				tc_utils_update_action_timestamp(action_index);
 				if (rc != TC_ACTION_RC_CHECK_NEXT_ACTION) {
 					return rc;
 				}
 			} else if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_MIRRED_FAMILY) {
-				tc_utils_update_action_stats(ip_hdr->tot_len);
+				tc_utils_update_action_stats(packet_length);
 				tc_utils_update_action_timestamp(action_index);
 				return tc_action_handle_mirred(frame,  frame_base);
 			} else if ((cmem_tc.action_res.action_type & TC_ACTION_FAMILY_MASK) == TC_ACTION_TYPE_PEDIT_FAMILY) {
 				anl_write_log(LOG_DEBUG, "PEDIT enter");
 				rc = tc_action_handle_pedit(frame, frame_base, ip_hdr, cmem_tc.action_res.action_data.action_extra_info_index);
 				if (rc != TC_ACTION_RC_PACKET_STOLEN) {
-					tc_utils_update_action_stats(ip_hdr->tot_len);
+					tc_utils_update_action_stats(packet_length);
 					tc_utils_update_action_timestamp(action_index);
 					/*handle optional control*/
 					rc = tc_action_handle_gact(cmem_tc.action_res.control);
