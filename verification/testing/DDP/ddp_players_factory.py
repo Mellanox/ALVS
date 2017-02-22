@@ -68,7 +68,7 @@ class DDP_Players_Factory(Players_Factory):
 	clean_players = staticmethod(clean_players)
 	
 	
-	def generic_init_ddp(setup_num, host_count):
+	def generic_init_ddp(setup_num, host_count=0 ):
 		print "FUNCTION " + sys._getframe().f_code.co_name + " called"
 		
 		next_vm_idx = 0

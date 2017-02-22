@@ -17,9 +17,12 @@ grandparentdir =  os.path.dirname(parentdir)
 sys.path.append(parentdir)
 sys.path.append(grandparentdir)
 sys.path.append("/.autodirect/swgwork/roysr/sandbox/ALVS/verification/testing/DDP/")
+sys.path.append('/.autodirect/swgwork/roysr/sandbox/ALVS/verification/testing/DDP/ddp_players_factory.py')
+
 
 from trex_infra_utils import *
 from DDP_infra import *
+from ddp_players_factory import *
 
 #===============================================================================
 # Classes
@@ -28,50 +31,27 @@ class TrexDdpPlayers(TrexPlayers):
 
     def __init__(self):
         super(TrexDdpPlayers, self).__init__()
-        self.ezbox = None
-        self.remote_host = None
+        self.ddp_players = None 
+        self.mask = 16
         
     def get_players(self, setup_num, client_count, server_count,trex_hosts_count):
         super(TrexDdpPlayers, self).get_players(setup_num, client_count, server_count, trex_hosts_count)        
-        self.remote_host = self.get_remote_host(setup_num)
-        self.ezbox = DDP_ezbox(setup_num, self.remote_host)
+        self.ddp_players =  DDP_Players_Factory.generic_init_ddp(setup_num)
         
-    def get_remote_host(self, setup_num):
-        remote_host_info = get_remote_host(setup_num)
-        return Remote_Host(ip        = remote_host_info['all_ips'],
-                           hostname  = remote_host_info['hostname'],
-                           all_eths  = remote_host_info['all_eths'])
-
     def init_players(self, test_config={}):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-        # init ezbox in another proccess
-        if test_config['start_ezbox']:
-            ezbox_init_proccess = Process(target=self.ezbox.common_ezbox_bringup,
-                                      args=(test_config,))
-            ezbox_init_proccess.start()
-        
-        # connect Ezbox (proccess work on ezbox copy and not on ezbox object
-        self.ezbox.connect()
-        self.remote_host.connect()
-        
-        # Wait for EZbox proccess to finish
-        if test_config['start_ezbox']:
-            ezbox_init_proccess.join()
-        # Wait for all proccess to finish
-            if ezbox_init_proccess.exitcode:
-                print "ezbox_init_proccess failed. exit code " + str(ezbox_init_proccess.exitcode)
-                exit(ezbox_init_proccess.exitcode)
-        
-        time.sleep(6)
+        DDP_Players_Factory.init_players(self.ddp_players, test_config)
+        self.clean_test_fib_entries()
             
-    def clean_players(self, use_director = False, stop_ezbox = False):
+    def clean_players(self, test_config={}):
         print "FUNCTION " + sys._getframe().f_code.co_name + " called"
-        super(TrexDdpPlayers, self).clean_players(use_director = False, stop_ezbox = False)
-        if self.ezbox:
-            self.ezbox.ssh_object.recreate_ssh_object()
-            self.ezbox.run_app_ssh.recreate_ssh_object()
-            self.ezbox.syslog_ssh.recreate_ssh_object()
-            self.ezbox.clean_arp_table()
-            clean_ezbox(self.ezbox, stop_ezbox)
+        super(TrexDdpPlayers, self).clean_players()
+        DDP_Players_Factory.clean_players(self.ddp_players, True, test_config['stop_ezbox'])
+            
+    def clean_test_fib_entries(self):
+        ezbox = self.ddp_players['ezbox']
+        for trex in self.trex_hosts:
+            for port_info in trex.trex_info['ports_info']:
+                ezbox.delete_fib_entry(port_info['subnet'], self.mask) 
 
 #===============================================================================   

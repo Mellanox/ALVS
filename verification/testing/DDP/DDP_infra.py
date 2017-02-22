@@ -35,7 +35,6 @@ class DDP_ezbox(ezbox_host):
 	
 	def common_ezbox_bringup(self, test_config={}):
 		super(DDP_ezbox, self).common_ezbox_bringup(test_config)
-		self.remote_host.start_sync_agent(self.setup['mng_ip'])
 	
 	def copy_and_install_package(self, ddp_package=None):
 		if ddp_package is None:

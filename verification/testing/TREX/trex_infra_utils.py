@@ -20,6 +20,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir) 
 from common_infra import *
+from players_factory import *
 #===============================================================================
 # Classes
 #===============================================================================
@@ -68,14 +69,12 @@ class TrexTestParams:
     def __init__(self,
                  trex_info,
                  client_count = None,
-                 server_count = None,
-                 is_dual_port = True):
-        self.clients_start = IPAddress(trex_info['clients_start']) 
+                 server_count = None):
+        self.clients_start = IPAddress(trex_info['ports_info'][0]['subnet'])
         self.client_count = client_count
-        self.servers_start = IPAddress(trex_info['servers_start'])
+        self.servers_start = IPAddress(trex_info['ports_info'][1]['subnet'])
         self.server_count = server_count 
         self.dual_port_mask = IPAddress(trex_info['dual_port_mask'])
-        self.is_dual_port = is_dual_port
         self.pcap_list = []
         self.yaml_filename = self.generate_yaml_file_name()
         self.run_params = TrexRunParams(config_file = trex_info['config_file'])
@@ -97,36 +96,6 @@ class TrexTestParams:
         servers_end = self.servers_start + self.server_count 
         return servers_end
     
-    def get_client_list(self):
-        client_list=self.get_client_list_first_pair()
-        client_list+=self.get_client_list_second_pair()
-        return client_list
-    
-    def get_client_list_first_pair(self):
-        return self.get_ip_string_list(self.clients_start,self.get_clients_end())
-    
-    def get_client_list_second_pair(self):
-        client_start = self.clients_start + self.dual_port_mask
-        client_end = self.get_clients_end() + self.dual_port_mask
-        return self.get_ip_string_list(client_start,client_end)
-    
-    def get_server_list(self):
-        server_list=self.get_server_list_first_pair()
-        server_list+=self.get_server_list_second_pair()
-        return server_list
-    
-    def get_server_list_first_pair(self):
-        return self.get_ip_string_list(self.servers_start,self.get_servers_end())
-    
-    def get_server_list_second_pair(self):
-        server_start = self.servers_start + self.dual_port_mask
-        server_end = self.get_servers_end() + self.dual_port_mask
-        return self.get_ip_string_list(server_start,server_end)
-    
-    def get_ip_string_list(self, ip_start, ip_end):
-        ip_list = list(iter_iprange(ip_start,ip_end))
-        return map(str, ip_list)
-        
     def add_trex_pcap(self, trex_pcap):
         self.pcap_list.append(trex_pcap)
         
@@ -148,7 +117,7 @@ class TrexTestParams:
         outfile.write('          tcp_aging      : 0\n')
         outfile.write('          udp_aging      : 0\n')
         outfile.write('  mac        : [0x0,0x0,0x0,0x1,0x0,0x00]\n')
-        outfile.write('  cap_ipg    : true\n')
+        outfile.write('  cap_ipg    : false\n')
         outfile.write('  cap_info : \n')
         
         for trex_pcap in self.pcap_list:
@@ -173,44 +142,48 @@ class TrexPcap:
         self.weight = weight
 #===============================================================================
 class TrexHost:
-    def __init__(self, trex_index, client_count, server_count):
-        self.trex_info = self.get_trex_host_info(trex_index)       
+    def __init__(self, trex_index, client_count, server_count, setup_num):
+        self.trex_info = self.get_trex_host_info(trex_index, setup_num)       
         self.ssh_object = SshConnect(self.trex_info['host'], self.trex_info['username'], self.trex_info['password'])
         self.trex_api =  CTRexClient(self.trex_info['host'])
         self.params = TrexTestParams(self.trex_info, client_count, server_count)
         self.init_trex_host()
         
-    def get_trex_host_info(self, trex_index):
+    def get_trex_host_info(self, trex_index, setup_num):
         if (trex_index < 0 or trex_index > 2):
             raise ValueError('trex index is out of range')
         
         # Open list file
-        file_name = '%s/setup7_trex_hosts.csv' %(g_setups_dir)
+        file_name = '%s/setup%s_trex_hosts.csv' %(g_setups_dir,setup_num)
         infile    = open(file_name, 'r')
         
         # Extract list from file  
         for index,line in enumerate(infile):
-            input_list = line.strip().split(',')
+            info_list = line.strip().split(',')
             if (index == trex_index):
-                trex_host_info = {'host':                input_list[0],
-                                  'username':            input_list[1],
-                                  'password':            input_list[2],
-                                  'port0_client_mac':    input_list[3],
-                                  'port0_server_mac':    input_list[4],
-                                  'port1_client_mac':    input_list[5],
-                                  'port1_server_mac':    input_list[6],
-                                  'mng_ip':              input_list[7],
-                                  'clients_start':       input_list[8],
-                                  'servers_start':       input_list[9],
-                                  'dual_port_mask':      input_list[10],
-                                  'config_file':         input_list[11]}
+                trex_host_info = {'host':              info_list[0],
+                                  'username':          info_list[1],
+                                  'password':          info_list[2],
+                                  'ports_info':        self.get_ports_info(info_list),
+                                  'dual_port_mask':    info_list[15],
+                                  'config_file':       info_list[16]}
                 break
         
-        if (not trex_host_info):
+        if (not info_list):
             raise ValueError('Trex index: %s, has not been found under: %s'%(trex_index,file_name))
         
         return trex_host_info
         
+    def get_ports_info(self,info_list):
+        ports_info = []
+        ports_count = 4
+        index = 3
+        for _ in range(ports_count):
+            port_info = {'mac':info_list[index], 'subnet':info_list[index+1],'gw':info_list[index+2]}
+            ports_info.append(port_info)
+            index+= 3
+        return ports_info
+            
     def init_trex_host(self):
         self.connect()
         if(not self.is_daemon_server_running()):
@@ -284,7 +257,6 @@ class TrexTestResult:
                  trex_result_list = [],
                  ezbox_stats = None):
         self.trex_result_list = trex_result_list
-        self.expected_sd = 0.05
         self.test_bool_rc = False
            
     def set_result(self, trex_result_list):
@@ -296,16 +268,7 @@ class TrexTestResult:
         self.print_result()
         
     def analyze_results(self):
-        drop_rc = self.analyze_drops()
-        if (drop_rc):
-            self.test_bool_rc = True
-    
-    def analyze_drops(self):
-        rc = False
-        self.real_sd = abs(self.dropped_packets)/self.trex_tx_packets
-        if (self.real_sd < self.expected_sd):
-            rc = True
-        return rc
+        self.test_bool_rc = True if (abs(self.dropped_packets) < 5 ) else False
     
     def get_test_stats(self):  
         self.trex_tx_packets = self.get_trex_tx_packets()
@@ -316,7 +279,6 @@ class TrexTestResult:
         self.print_trex_cpu_util()
         self.print_packets_by_ports()
         self.print_packets_drop()
-        self.print_real_sd()
         self.print_final_result()
         
     def get_rc(self):
@@ -349,9 +311,6 @@ class TrexTestResult:
         print('\n TRex_total_tx_packets:%s'%str(self.trex_tx_packets))
         print('\n TRex_total_rx_packets:%s'%str(self.trex_rx_packets))
         print('\n TRex_total dropped packets:%s \n'%str(self.dropped_packets))
-        
-    def print_real_sd(self):
-        print 'real sd is: ' + str(self.real_sd)
     
     def get_trex_tx_packets(self):              
         return self.get_trex_packets('tx')
@@ -374,92 +333,23 @@ class TrexTestResult:
             for k in sorted(tx_ptks_dict.keys()):
                 trex_packets += int(tx_ptks_dict[k])               
         return trex_packets
-#=============================================================================== 
-def get_ezbox_stats(ezbox):
-    ezbox.get_ipvs_stats();
-    stats_results = ezbox.read_stats_on_syslog()
-    return stats_results
 #===============================================================================
-class TrexIpToMacMapper:
-    def __init__(self,
-                 trex_hosts):
-        self.trex_subnet_to_mac_pairs = []
-        self.get_trex_subnet_to_mac_pairs(trex_hosts)
-    
-    def get_trex_subnet_to_mac_pairs(self, trex_hosts):
-        for trex in trex_hosts:
-            self.trex_subnet_to_mac_pairs.append(self.get_servers_subnet_and_mac_pair(trex))
-            self.trex_subnet_to_mac_pairs.append(self.get_clients_subnet_and_mac_pair(trex))
-            if trex.params.is_dual_port:
-                self.trex_subnet_to_mac_pairs.append(self.get_dual_servers_subnet_and_mac_pair(trex))
-                self.trex_subnet_to_mac_pairs.append(self.get_dual_clients_subnet_and_mac_pair(trex))
-
-    def get_servers_subnet_and_mac_pair(self, trex):
-        servers_first_pair = trex.params.get_server_list_first_pair()
-        server_mac_0 = trex.trex_info['port0_server_mac']
-        return (servers_first_pair, server_mac_0)
-        
-    def get_clients_subnet_and_mac_pair(self, trex):
-        clients_first_pair = trex.params.get_client_list_first_pair()
-        client_mac_0 = trex.trex_info['port0_client_mac']
-        return (clients_first_pair, client_mac_0)
-        
-    def get_dual_servers_subnet_and_mac_pair(self, trex):
-        servers_second_pair = trex.params.get_server_list_second_pair()
-        server_mac_1 = trex.trex_info['port1_server_mac']
-        return (servers_second_pair, server_mac_1) 
-        
-    def get_dual_clients_subnet_and_mac_pair(self, trex):
-        clients_second_pair = trex.params.get_client_list_second_pair()
-        client_mac_1 = trex.trex_info['port1_client_mac']
-        return (clients_second_pair, client_mac_1) 
-        
-    def get_mac_for_ip(self, ip_address):
-        matching_mac = None
-        for ip_list, mac in self.trex_subnet_to_mac_pairs:
-            if ip_address in ip_list:
-                matching_mac = mac
-                break                    
-        if matching_mac is None:
-            err_msg =  "failed in matching mac address for ip:%s" %(ip_address)
-            raise RuntimeError(err_msg)              
-        return matching_mac
-
-#===============================================================================    
-class TrexPlayers(object):
+class TrexPlayers(Players_Factory):
     def __init__(self):
         self.setup_num = None
         self.trex_hosts = []
-        self.trex_ip_to_mac_mapper = None
-        self.trex_client_list = None
-        self.trex_server_list = None
         
     def get_players(self, setup_num, client_count, server_count, trex_hosts_count = 1):
         self.setup_num = setup_num
-        self.get_trex_hosts(trex_hosts_count, client_count, server_count)
-        self.trex_ip_to_mac_mapper = TrexIpToMacMapper(self.trex_hosts)
-        self.trex_client_list = self.get_client_list()
-        self.trex_server_list = self.get_server_list()
+        self.get_trex_hosts(trex_hosts_count, client_count, server_count, setup_num)
         
-    def get_trex_hosts(self, trex_hosts_count, client_count, server_count):        
+    def get_trex_hosts(self, trex_hosts_count, client_count, server_count, setup_num):        
         clients_per_host = client_count/trex_hosts_count
         servers_per_host = server_count/trex_hosts_count       
         for trex_index in range(0,trex_hosts_count):
-            self.trex_hosts.append(TrexHost(trex_index, clients_per_host, servers_per_host))
-                
-    def get_client_list(self):
-        client_list = []
-        for trex in self.trex_hosts:
-            client_list += trex.params.get_client_list()
-        return client_list
-               
-    def get_server_list(self):
-        server_list = []
-        for trex in self.trex_hosts:
-            server_list += trex.params.get_server_list()
-        return server_list
+            self.trex_hosts.append(TrexHost(trex_index, clients_per_host, servers_per_host, setup_num))
             
-    def clean_players(self, use_director = False, stop_ezbox = False):
+    def clean_players(self):
         for trex in self.trex_hosts:
             trex.logout()
             trex.params.remove_trex_yaml_from_localhost()
