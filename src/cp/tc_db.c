@@ -500,13 +500,13 @@ enum tc_api_rc get_tc_action_from_db(struct tc_action   *tc_action_params,
 
 	/* action entry not found */
 	if (rc == SQLITE_DONE) {
-		write_log(LOG_INFO, "Action (index %d, type %d) wasn't found on internal DB", tc_action_params->general.index, tc_action_params->general.family_type);
+		write_log(LOG_DEBUG, "Action (index %d, type %d) wasn't found on internal DB", tc_action_params->general.index, tc_action_params->general.family_type);
 		*is_action_exist = false;
 		sqlite3_finalize(statement);
 		return TC_API_OK;
 	}
 
-	write_log(LOG_NOTICE, "Action (index %d, type %d) was found on internal DB", tc_action_params->general.index, tc_action_params->general.family_type);
+	write_log(LOG_DEBUG, "Action (index %d, type %d) was found on internal DB", tc_action_params->general.index, tc_action_params->general.family_type);
 	*is_action_exist = true;
 
 	if (action_info != NULL) {
@@ -1434,7 +1434,7 @@ enum tc_api_rc check_if_filter_exist_on_db(struct tc_filter *tc_filter_params, b
 
 	/* filter entry not found */
 	if (rc == SQLITE_DONE) {
-		write_log(LOG_NOTICE, "Filter wasnt found on internal DB");
+		write_log(LOG_DEBUG, "Filter wasnt found on internal DB");
 		*is_exist = false;
 	} else {
 		*is_exist = true;
@@ -1490,7 +1490,7 @@ enum tc_api_rc get_filter_rule_from_db(struct tc_filter *tc_filter_params, uint1
 
 	/* filter entry not found */
 	if (rc == SQLITE_DONE) {
-		write_log(LOG_NOTICE, "Filter wasn't found on internal DB");
+		write_log(LOG_DEBUG, "Filter wasn't found on internal DB");
 		sqlite3_finalize(statement);
 		return TC_API_FAILURE;
 	}
@@ -1581,7 +1581,7 @@ enum tc_api_rc check_if_filters_registered_on_mask(struct tc_filter *tc_filter_p
 
 	mask_count = sqlite3_column_int(statement, 0);
 
-	write_log(LOG_INFO, "mask_count = %d", mask_count);
+	write_log(LOG_DEBUG, "mask_count = %d", mask_count);
 	if (mask_count == 0) {
 		*is_mask_exist = false;
 		write_log(LOG_DEBUG, "this mask is not exist on masks table");
@@ -1642,7 +1642,7 @@ enum tc_api_rc get_old_filter_key(struct tc_filter *tc_filter_params, struct tc_
 
 	/* filter entry not found */
 	if (rc == SQLITE_DONE) {
-		write_log(LOG_NOTICE, "Filter wasnwt found on internal DB");
+		write_log(LOG_DEBUG, "Filter wasn't found on internal DB");
 		sqlite3_finalize(statement);
 		return TC_API_FAILURE;
 	}
@@ -1728,7 +1728,7 @@ enum tc_api_rc tc_delete_all_flower_filters_on_interface(uint32_t interface)
 	sqlite3_stmt *statement;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
 
-	write_log(LOG_INFO, "Deleting all filters with interface = %d", interface);
+	write_log(LOG_DEBUG, "Deleting all filters with interface = %d", interface);
 
 	/* get all filters with this interface and later we will delete them */
 	snprintf(sql,
@@ -1794,7 +1794,7 @@ enum tc_api_rc tc_delete_all_priority_flower_filters(struct tc_filter *tc_filter
 	sqlite3_stmt *statement;
 	char sql[TC_DB_SQL_COMMAND_SIZE];
 
-	write_log(LOG_INFO, "Deleting all filters with interface = %d and priority 0x%x",
+	write_log(LOG_DEBUG, "Deleting all filters with interface = %d and priority 0x%x",
 		  tc_filter_params->ifindex, tc_filter_params->priority);
 
 	/* get all filters with this priority and interface and later we will delete them */
@@ -1902,7 +1902,7 @@ enum tc_api_rc get_flower_filter_actions(struct tc_filter *tc_filter_params,
 
 	/* filter entry not found */
 	if (rc == SQLITE_DONE) {
-		write_log(LOG_NOTICE, "Filter wasn't found on internal DB");
+		write_log(LOG_DEBUG, "Filter wasn't found on internal DB");
 		sqlite3_finalize(statement);
 		return TC_API_FAILURE;
 	}
@@ -1987,7 +1987,7 @@ enum tc_api_rc get_num_of_flower_filters(uint32_t interface, uint32_t priority, 
 		*num_of_filters = sqlite3_column_int(statement, 0);
 	}
 
-	write_log(LOG_INFO, "number of filters returned is = %d", *num_of_filters);
+	write_log(LOG_DEBUG, "number of filters returned is = %d", *num_of_filters);
 
 	sqlite3_finalize(statement);
 
@@ -2133,7 +2133,7 @@ enum tc_api_rc get_flower_filter_from_db(struct tc_filter *tc_filter_params, boo
 	/* filter entry not found */
 	if (rc == SQLITE_DONE) {
 		*is_filter_exists = false;
-		write_log(LOG_NOTICE, "Filter wasn't found on internal DB");
+		write_log(LOG_DEBUG, "Filter wasn't found on internal DB");
 		sqlite3_finalize(statement);
 		return TC_API_OK;
 	}
@@ -2272,7 +2272,7 @@ enum tc_api_rc check_if_mask_already_exist(struct tc_filter *tc_filter_params, b
 
 	mask_count = sqlite3_column_int(statement, 0);
 
-	write_log(LOG_INFO, "mask_count = %d", mask_count);
+	write_log(LOG_DEBUG, "mask_count = %d", mask_count);
 	if (mask_count == 0) {
 		*is_mask_exist = false;
 		write_log(LOG_DEBUG, "this mask is not exist on masks table");

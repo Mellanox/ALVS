@@ -43,7 +43,7 @@
 #define EZlog_LEVEL EZlog_LEVEL_DEBUG
 #else
 #define LOG_LEVEL LOG_INFO
-#define EZlog_LEVEL EZlog_LEVEL_INFO
+#define EZlog_LEVEL EZlog_LEVEL_ERROR
 #endif
 #define EZlog_COMP EZlog_COMP_CP_ALL
 #define EZlog_SUB_COMP EZlog_SUB_COMP_CP_ALL

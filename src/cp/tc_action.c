@@ -87,7 +87,7 @@ enum tc_api_rc tc_action_delete(struct tc_action *tc_action_params)
 	struct action_info action_info;
 	bool is_action_exists;
 
-	write_log(LOG_INFO, "Delete Action (family type %d, index %d)",
+	write_log(LOG_DEBUG, "Delete Action (family type %d, index %d)",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -95,7 +95,7 @@ enum tc_api_rc tc_action_delete(struct tc_action *tc_action_params)
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
-		write_log(LOG_NOTICE, "Action not exist");
+		write_log(LOG_NOTICE, "Action delete (index %d) not exist", tc_action_params->general.index);
 		return TC_API_FAILURE;
 	}
 
@@ -112,7 +112,7 @@ enum tc_api_rc tc_action_delete(struct tc_action *tc_action_params)
 
 	TC_CHECK_ERROR(delete_tc_action_from_db(tc_action_params));
 
-	write_log(LOG_INFO, "Action (family type %d, index %d) was deleted successfully",
+	write_log(LOG_DEBUG, "Action (family type %d, index %d) was deleted successfully",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -133,7 +133,7 @@ enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params)
 	struct action_info action_info;
 	bool is_action_exists;
 
-	write_log(LOG_INFO, "Modify Action (family type %d, index %d)",
+	write_log(LOG_DEBUG, "Modify Action (family type %d, index %d)",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -141,7 +141,7 @@ enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params)
 
 	/* if action is not exist return an error */
 	if (is_action_exists == false) {
-		write_log(LOG_NOTICE, "Action not exist");
+		write_log(LOG_NOTICE, "Modify action : Action (index %d) not exist", tc_action_params->general.index);
 		return TC_API_FAILURE;
 	}
 
@@ -158,7 +158,7 @@ enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params)
 
 		TC_CHECK_ERROR(add_pedit_action_list_to_table(&action_info.action_data.pedit));
 
-		write_log(LOG_INFO, "delete all pedit data that related to action index %d", action_info.nps_index);
+		write_log(LOG_DEBUG, "delete all pedit data that related to action index %d", action_info.nps_index);
 		TC_CHECK_ERROR(delete_and_free_pedit_action_entries(&old_pedit_action_data));
 
 	} else {
@@ -171,7 +171,7 @@ enum tc_api_rc tc_action_modify(struct tc_action *tc_action_params)
 
 	TC_CHECK_ERROR(modify_tc_action_on_nps(&action_info));
 
-	write_log(LOG_INFO, "Action (family type %d, index %d) was modified successfully",
+	write_log(LOG_DEBUG, "Action (family type %d, index %d) was modified successfully",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -355,7 +355,7 @@ enum tc_api_rc add_pedit_action_list_to_table(struct tc_pedit_action_data *pedit
 	int i;
 	struct tc_action_key nps_action_key;
 
-	write_log(LOG_INFO, "PEDIT action - num_of_keys %d", pedit->num_of_keys);
+	write_log(LOG_DEBUG, "PEDIT action - num_of_keys %d", pedit->num_of_keys);
 
 	for (i = 0; i < pedit->num_of_keys; i++) {
 		/* build key for action DP table */
@@ -363,11 +363,11 @@ enum tc_api_rc add_pedit_action_list_to_table(struct tc_pedit_action_data *pedit
 		struct tc_pedit_action_info_result pedit_action_info_result;
 		struct pedit_key_data *key_data = &pedit->key_data[i];
 
-		write_log(LOG_INFO, "key_index  START 0x%x", pedit->key_data[i].key_index);
+		write_log(LOG_DEBUG, "key_index  START 0x%x", pedit->key_data[i].key_index);
 		/*build key for action_data_extra_params*/
 		memset(&nps_action_key, 0, sizeof(struct tc_action_key));
 		nps_action_key.action_index = bswap_32(key_data->key_index);
-		write_log(LOG_INFO, "key_index  0x%x", key_data->key_index);
+		write_log(LOG_DEBUG, "key_index  0x%x", key_data->key_index);
 
 		memset(&pedit_action_info_result, 0, sizeof(struct tc_pedit_action_info_result));
 		pedit_action_info_result.mask = key_data->pedit_key_data.mask;
@@ -426,7 +426,7 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 	family_action_type = action_info->action_id.action_family_type;
 	switch (family_action_type) {
 	case (TC_ACTION_TYPE_PEDIT_FAMILY):
-		write_log(LOG_INFO, "key_index 2 = 0x%x", action_info->action_data.pedit.key_data[0].key_index);
+		write_log(LOG_DEBUG, "key_index 2 = 0x%x", action_info->action_data.pedit.key_data[0].key_index);
 		if (add_pedit_action_list_to_table(&action_info->action_data.pedit) != TC_API_OK) {
 			write_log(LOG_CRIT, "Failed to add pedit action info.");
 			return TC_API_DB_ERROR;
@@ -439,7 +439,7 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 	/* build key for action DP table */
 	build_nps_action_info_key(action_info,
 				  &nps_action_key);
-	write_log(LOG_INFO, "actions entry key is %d", action_info->action_id.linux_action_index);
+	write_log(LOG_DEBUG, "actions entry key is %d", action_info->action_id.linux_action_index);
 
 	/* build result for action DP table */
 	build_nps_action_info_result(action_info,
@@ -705,7 +705,7 @@ enum tc_api_rc delete_tc_action_from_nps(struct action_info *action_info)
 	family_action_type = action_info->action_id.action_family_type;
 	switch (family_action_type) {
 	case TC_ACTION_TYPE_PEDIT_FAMILY:
-		write_log(LOG_INFO, "delete all pedit data that related to action index %d", action_info->nps_index);
+		write_log(LOG_DEBUG, "delete all pedit data that related to action index %d", action_info->nps_index);
 		TC_CHECK_ERROR(delete_and_free_pedit_action_entries(&action_info->action_data.pedit));
 		break;
 	default:
@@ -763,7 +763,7 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 				 struct action_info *action_info,
 				 bool independent_action)
 {
-	write_log(LOG_INFO, "Add Action (family type %d, index %d)",
+	write_log(LOG_DEBUG, "Add Action (family type %d, index %d)",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -783,7 +783,7 @@ enum tc_api_rc tc_int_add_action(struct tc_action *tc_action_params,
 	/* build key for action DP table */
 	TC_CHECK_ERROR(add_tc_action_to_nps_table(action_info));
 
-	write_log(LOG_INFO, "Action (family type %d, index %d) was added successfully",
+	write_log(LOG_DEBUG, "Action (family type %d, index %d) was added successfully",
 		  tc_action_params->general.family_type,
 		  tc_action_params->general.index);
 
@@ -880,7 +880,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 
 	/* if this action is independent (was created by seperatly action add api) return */
 	if (action_info.independent_action == true) {
-		write_log(LOG_INFO, "action independent - not deleting action");
+		write_log(LOG_DEBUG, "action independent - not deleting action");
 		return TC_API_OK;
 	}
 
@@ -892,7 +892,7 @@ enum tc_api_rc tc_unbind_action_from_filter(struct tc_action *tc_action_params)
 
 		TC_CHECK_ERROR(delete_tc_action_from_db(tc_action_params));
 	} else {
-		write_log(LOG_INFO, "cannot delete action, action is binded to other filters");
+		write_log(LOG_DEBUG, "cannot delete action, action is binded to other filters");
 	}
 
 	return TC_API_OK;

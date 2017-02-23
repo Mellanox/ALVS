@@ -201,49 +201,48 @@ void tc_nl_init(void)
 	tc_rtnl_handle.seq = time(NULL);
 }
 
-/******************************************************************************
- * \brief       Print TC filter identification
- *
- * \return     none
- */
-static void tc_print_action_type(enum tc_action_type type, int i)
-{
-	write_log(LOG_INFO, "action[%d] = %s ", i,
-	(type == TC_ACTION_TYPE_GACT_DROP) ? "drop" :
-	(type == TC_ACTION_TYPE_GACT_OK) ? "OK" :
-	(type == TC_ACTION_TYPE_GACT_RECLASSIFY) ? "reclassify" :
-	(type == TC_ACTION_TYPE_GACT_PIPE) ? "pipe" :
-	(type == TC_ACTION_TYPE_GACT_CONTINUE) ? "continue" :
-	(type == TC_ACTION_TYPE_MIRRED_EGR_REDIRECT) ? "Egress redirect" :
-	(type == TC_ACTION_TYPE_MIRRED_EGR_MIRROR) ? "Egress mirror" :
-	(type == TC_ACTION_TYPE_PEDIT_FAMILY) ? "PEDIT" : "unknown");
-}
 static void tc_print_pedit_action(struct tc_action *action)
 {
 	int i = 0;
 
-	tc_print_action_type(action->action_data.pedit.control_action_type, 0);
-	write_log(LOG_INFO, "num_of_keys = %d", action->action_data.pedit.num_of_keys);
+	write_log(LOG_DEBUG, "num_of_keys = %d",
+		  action->action_data.pedit.num_of_keys);
 	for (i = 0; i < action->action_data.pedit.num_of_keys; i++) {
-		write_log(LOG_INFO, "pedit_key_data[%d].at = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.at));
-		write_log(LOG_INFO, "pedit_key_data[%d].mask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.mask));
-		write_log(LOG_INFO, "pedit_key_data[%d].off = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.off));
-		write_log(LOG_INFO, "pedit_key_data[%d].offmask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.offmask));
-		write_log(LOG_INFO, "pedit_key_data[%d].val = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.val));
+		write_log(LOG_DEBUG, "pedit_key_data[%d].at = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.at));
+		write_log(LOG_DEBUG, "pedit_key_data[%d].mask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.mask));
+		write_log(LOG_DEBUG, "pedit_key_data[%d].off = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.off));
+		write_log(LOG_DEBUG, "pedit_key_data[%d].offmask = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.offmask));
+		write_log(LOG_DEBUG, "pedit_key_data[%d].val = 0x%x", i, bswap_32(action->action_data.pedit.key_data[i].pedit_key_data.val));
 	}
 }
+#if 0
 static void tc_print_action_general_info(struct tc_action_general *action_general)
 {
-	write_log(LOG_INFO, "index = 0x%x, refcnt = 0x%x, bindcnt = 0x%x, capab = 0x%x",
+	write_log(LOG_DEBUG, "index = 0x%x, refcnt = 0x%x, bindcnt = 0x%x, capab = 0x%x",
 		  action_general->index, action_general->refcnt, action_general->bindcnt, action_general->capab);
 }
-static void tc_print_action(struct tc_action *action, int i)
+#endif
+static void tc_print_action_general_info(struct tc_action *action, int idx, uint8_t num_of_actions)
 {
-	tc_print_action_general_info(&action->general);
-	tc_print_action_type(action->general.type, i);
+	struct tc_action_general *action_general = &action->general;
+	char buf[16];
+
+	if (action->general.type == TC_ACTION_TYPE_PEDIT_FAMILY) {
+		write_log(LOG_INFO, "action %d of %d: index = 0x%x, type %s control_action %s",
+			  idx, num_of_actions, action_general->index,
+			  tc_get_action_str(action->general.type, buf, sizeof(buf)),
+			  tc_get_action_str(action->action_data.pedit.control_action_type, buf, sizeof(buf)));
+	} else {
+		write_log(LOG_INFO, "action %d of %d: index = 0x%x, type %s",
+			  idx, num_of_actions, action_general->index,
+			  tc_get_action_str(action->general.type, buf, sizeof(buf)));
+	}
+}
+static void tc_print_action(struct tc_action *action)
+{
 	switch (action->general.type) {
 	case (TC_ACTION_TYPE_PEDIT_FAMILY):
-		write_log(LOG_INFO, "PEDIT_PARAMS START");
+		write_log(LOG_DEBUG, "PEDIT_PARAMS START");
 		tc_print_pedit_action(action);
 	break;
 	default:
@@ -256,18 +255,33 @@ static void tc_print_actions(struct tc_actions *actions)
 	int i = 0;
 	struct tc_action *action;
 
-	write_log(LOG_INFO, "num_of_actions = %d", actions->num_of_actions);
 	for (i = 0; i < actions->num_of_actions; i++) {
 		action = &actions->action[i];
-		tc_print_action(action, i);
+		tc_print_action_general_info(action, i+1, actions->num_of_actions);
+		tc_print_action(action);
 	}
 }
 
-static void tc_print_flower_filter(struct tc_filter *tc_filter_handle)
+static void tc_print_flower_filter(uint16_t event_type,
+				   struct tc_filter *tc_filter_handle)
 {
 	struct tc_flower_rule_policy *flower_rule_policy = &tc_filter_handle->flower_rule_policy;
+	char *event_str;
 
-	write_log(LOG_INFO, "prio 0x%x, Proto 0x%x, hndln 0x%x, ifindex 0x%x, flags 0x%x, type %s",
+	switch (event_type) {
+	case RTM_NEWTFILTER:
+		event_str = "Add filter";
+		break;
+	case RTM_DELTFILTER:
+		event_str = "Delete filter";
+		break;
+	default:
+		return;
+	}
+
+
+	write_log(LOG_INFO, "%s: prio 0x%x, Proto 0x%x, hndln 0x%x, ifindex 0x%x, flags 0x%x, type %s",
+		  event_str,
 		  tc_filter_handle->priority,
 		  bswap_16(tc_filter_handle->protocol),
 		  tc_filter_handle->handle,
@@ -275,15 +289,20 @@ static void tc_print_flower_filter(struct tc_filter *tc_filter_handle)
 		  tc_filter_handle->flags,
 		  (tc_filter_handle->type == TC_FILTER_FLOWER) ? "flower" : "NOT SUPPORTED");
 
+	if (event_type == RTM_DELTFILTER) {
+		/* no filter info - exit */
+		return;
+	}
+
 	if (tc_filter_handle->flower_rule_policy.mask_bitmap.is_eth_dst_set == 1) {
-		write_log(LOG_INFO, "key_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "key_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->key_eth_dst[0],
 			  flower_rule_policy->key_eth_dst[1],
 			  flower_rule_policy->key_eth_dst[2],
 			  flower_rule_policy->key_eth_dst[3],
 			  flower_rule_policy->key_eth_dst[4],
 			  flower_rule_policy->key_eth_dst[5]);
-		write_log(LOG_INFO, "mask_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "mask_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->mask_eth_dst[0],
 			  flower_rule_policy->mask_eth_dst[1],
 			  flower_rule_policy->mask_eth_dst[2],
@@ -293,14 +312,14 @@ static void tc_print_flower_filter(struct tc_filter *tc_filter_handle)
 	}
 
 	if (tc_filter_handle->flower_rule_policy.mask_bitmap.is_eth_src_set == 1) {
-		write_log(LOG_INFO, "key_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "key_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->key_eth_src[0],
 			  flower_rule_policy->key_eth_src[1],
 			  flower_rule_policy->key_eth_src[2],
 			  flower_rule_policy->key_eth_src[3],
 			  flower_rule_policy->key_eth_src[4],
 			  flower_rule_policy->key_eth_src[5]);
-		write_log(LOG_INFO, "mask_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "mask_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->mask_eth_src[0],
 			  flower_rule_policy->mask_eth_src[1],
 			  flower_rule_policy->mask_eth_src[2],
@@ -310,40 +329,41 @@ static void tc_print_flower_filter(struct tc_filter *tc_filter_handle)
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_eth_type_set == 1) {
-		write_log(LOG_INFO, "key_eth_type  0x%x", bswap_16(flower_rule_policy->key_eth_type));
-		write_log(LOG_INFO, "key_eth_mask  0x%x", bswap_16(flower_rule_policy->mask_eth_type));
+		write_log(LOG_DEBUG, "key_eth_type  0x%x", bswap_16(flower_rule_policy->key_eth_type));
+		write_log(LOG_DEBUG, "key_eth_mask  0x%x", bswap_16(flower_rule_policy->mask_eth_type));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ip_proto_set == 1) {
-		write_log(LOG_INFO, "key_ip_proto  0x%x", flower_rule_policy->key_ip_proto);
-		write_log(LOG_INFO, "mask_ip_proto  0x%x", flower_rule_policy->mask_ip_proto);
+		write_log(LOG_DEBUG, "key_ip_proto  0x%x", flower_rule_policy->key_ip_proto);
+		write_log(LOG_DEBUG, "mask_ip_proto  0x%x", flower_rule_policy->mask_ip_proto);
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ipv4_src_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x", bswap_32(flower_rule_policy->key_ipv4_src));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x", bswap_32(flower_rule_policy->mask_ipv4_src));
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x", bswap_32(flower_rule_policy->key_ipv4_src));
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x", bswap_32(flower_rule_policy->mask_ipv4_src));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ipv4_dst_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x", bswap_32(flower_rule_policy->key_ipv4_dst));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x", bswap_32(flower_rule_policy->mask_ipv4_dst));
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x", bswap_32(flower_rule_policy->key_ipv4_dst));
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x", bswap_32(flower_rule_policy->mask_ipv4_dst));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_l4_src_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x",
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x",
 			  bswap_16(flower_rule_policy->key_l4_src));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x",
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x",
 			  bswap_16(flower_rule_policy->mask_l4_src));
 
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_l4_dst_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_dst  0x%x",
+		write_log(LOG_DEBUG, "key_ipv4_dst  0x%x",
 			  bswap_16(flower_rule_policy->key_l4_dst));
-		write_log(LOG_INFO, "mask_ipv4_dst  0x%x",
+		write_log(LOG_DEBUG, "mask_ipv4_dst  0x%x",
 			  bswap_16(flower_rule_policy->mask_l4_dst));
 
 	}
+
 
 	tc_print_actions(&tc_filter_handle->actions);
 
@@ -605,7 +625,7 @@ static int fill_pedit_action(struct nlattr *act_options, struct tc_action *actio
 			write_log(LOG_ERR, "action of type pedit wrong values from netlink");
 			return -1;
 		}
-		write_log(LOG_INFO, "PEDIT COME");
+		write_log(LOG_DEBUG, "PEDIT COME");
 
 		action->general.type = TC_ACTION_TYPE_PEDIT_FAMILY;
 		action->general.index = p_edit->index;
@@ -678,7 +698,7 @@ static int tc_parse_common_part(struct nlmsghdr *msghdr, struct nlattr **attr, s
 
 	err = nlmsg_parse(msghdr, NLMSG_ALIGN(sizeof(struct tcmsg)), attr, TCA_MAX, tca_policy);
 	if (err != 0) {
-		write_log(LOG_INFO, "nlmsg_parse failed err %d", err);
+		write_log(LOG_ERR, "nlmsg_parse failed err %d", err);
 		return -1;
 	}
 
@@ -705,7 +725,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 	struct nlattr *tc_actions_orders_attr[sizeof(tc_actions_orders_policy)];
 
 	if (attr == NULL) {
-		write_log(LOG_INFO, "received no action attributes");
+		write_log(LOG_ERR, "received no action attributes");
 		return -1;
 	}
 
@@ -735,7 +755,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 	for (; i < MAX_NUM_OF_ACTIONS_IN_FILTER; i++) {
 		if (tc_actions_orders_attr[i]) {
 			action = &tc_actions->action[k];
-			write_log(LOG_INFO, "action pointer after attr %p, %d", action, i);
+			write_log(LOG_DEBUG, "action pointer after attr %p, %d", action, i);
 
 			struct nlattr *action_attrs[TCA_ACT_MAX + 1];
 
@@ -766,7 +786,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 				/* return -1; */
 			} else {
 				action->general.index = nla_get_u32(action_attrs[TCA_ACT_INDEX]);
-				write_log(LOG_INFO, "general.index = %d", action->general.index);
+				write_log(LOG_DEBUG, "general.index = %d", action->general.index);
 			}
 #endif
 			if (action_attrs[TCA_ACT_KIND]) {
@@ -784,7 +804,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 						write_log(LOG_ERR, "Action %d GACT FAILED", i);
 						return -1;
 					}
-					write_log(LOG_INFO, "gact %d", i);
+					write_log(LOG_DEBUG, "gact %d", i);
 					action->general.type |= TC_ACTION_TYPE_GACT_FAMILY;
 				} else if (!strcmp(act_kind, "pedit")) {
 					err = fill_pedit_action(act_options, action);
@@ -792,7 +812,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 						write_log(LOG_ERR, "Action %d PEDIT FAILED", i);
 						return -1;
 					}
-					write_log(LOG_INFO, "pedit %d", i);
+					write_log(LOG_DEBUG, "pedit %d", i);
 					action->general.type |= TC_ACTION_TYPE_PEDIT_FAMILY;
 
 				} else if (!strcmp(act_kind, "mirred")) {
@@ -801,7 +821,7 @@ static int fill_tc_filter_action(struct nlattr *attr, struct tc_actions *tc_acti
 						write_log(LOG_ERR, "Action %d IRRED FAILED", i);
 						return -1;
 					}
-					write_log(LOG_INFO, "mirred %d", i);
+					write_log(LOG_DEBUG, "mirred %d", i);
 					action->general.type |= TC_ACTION_TYPE_MIRRED_FAMILY;
 				} else {
 					write_log(LOG_ERR, "Action %d UNSUPPORTED operation", i);
@@ -865,13 +885,13 @@ static int tc_parse_action_msg(struct tc_actions *tc_actions, struct nlmsghdr *m
 
 	err = nlmsg_parse(msghdr, NLMSG_ALIGN(sizeof(struct tcamsg)), attr, TCA_ACT_MAX, NULL);
 	if (err != 0) {
-		write_log(LOG_INFO, "nlmsg_parse failed err %d", err);
+		write_log(LOG_ERR, "nlmsg_parse failed err %d", err);
 		return -1;
 	}
 
 	err = fill_tc_filter_action(attr[TCA_ACT_TAB], tc_actions, msghdr->nlmsg_type);
 	if (err != 0) {
-		write_log(LOG_INFO, "fill_tc_filter_action FAILED");
+		write_log(LOG_ERR, "fill_tc_filter_action FAILED");
 		return -1;
 	}
 
@@ -897,7 +917,8 @@ static int tc_parse_add_filter_msg(struct tc_filter *tc_filter_handle, struct nl
 		write_log(LOG_CRIT, "tc_parse_common_part FAILED");
 		return err;
 	}
-
+	if (tc_filter_handle->handle == 0)
+		return -1;
 	switch (tc_filter_handle->type) {
 	case (TC_FILTER_FLOWER):
 		err = fill_tc_filter_flower_options(attr[TCA_OPTIONS], tc_filter_handle);
@@ -964,7 +985,7 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 		if (nlmsghdr->nlmsg_type == RTM_DELTFILTER) {
 			write_log(LOG_DEBUG, "RTM_DELTFILTER");
 			err = tc_parse_del_filter_msg(&tc_filter_handle, nlmsghdr);
-			tc_print_flower_filter(&tc_filter_handle);
+			tc_print_flower_filter(nlmsghdr->nlmsg_type, &tc_filter_handle);
 			write_log(LOG_DEBUG, "tc_parse_del_filter_msg err = %d", err);
 			if (err == 0) {
 				err = tc_filter_delete(&tc_filter_handle);
@@ -976,16 +997,15 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					return;
 				}
 			}
-			write_log(LOG_INFO, "Delete TFILTER");
-			tc_print_flower_filter(&tc_filter_handle);
-			write_log(LOG_INFO, "EXECUTED");
 			return;
 		}
 
 		if (nlmsghdr->nlmsg_type == RTM_NEWTFILTER) {
 			write_log(LOG_DEBUG, "RTM_NEWTFILTER");
 			err = tc_parse_add_filter_msg(&tc_filter_handle, nlmsghdr);
-			tc_print_flower_filter(&tc_filter_handle);
+			if (tc_filter_handle.handle != 0) {
+				tc_print_flower_filter(nlmsghdr->nlmsg_type, &tc_filter_handle);
+			}
 			write_log(LOG_DEBUG, "nlmsghdr->nlmsg_flags = 0x%x", nlmsghdr->nlmsg_flags);
 			if (err == 0) {
 				err = tc_filter_add(&tc_filter_handle);
@@ -997,11 +1017,6 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 					return;
 				}
 			}
-
-
-			write_log(LOG_INFO, "Add TFILTER");
-			tc_print_flower_filter(&tc_filter_handle);
-			write_log(LOG_INFO, "EXECUTED");
 			return;
 		}
 		if (nlmsghdr->nlmsg_type == RTM_GETTFILTER) {
@@ -1077,17 +1092,16 @@ static void process_packet(uint8_t *buffer, struct sockaddr __attribute__((__unu
 				return;
 			}
 			write_log(LOG_INFO, "Del QDISC");
-			write_log(LOG_INFO, "EXECUTED");
 			return;
 		}
 	} else if (nlmsghdr->nlmsg_type == RTM_GETACTION || nlmsghdr->nlmsg_type == RTM_NEWACTION ||
 		nlmsghdr->nlmsg_type == RTM_DELACTION) {
 		if (nlmsghdr->nlmsg_type == RTM_NEWACTION) {
-			write_log(LOG_INFO, "RTM_NEWACTION");
+			write_log(LOG_INFO, "Add action");
 		} else if (nlmsghdr->nlmsg_type == RTM_DELACTION) {
-			write_log(LOG_INFO, "RTM_DELACTION");
+			write_log(LOG_INFO, "Del action");
 		} else {
-			write_log(LOG_INFO, "RTM_GETACTION");
+			write_log(LOG_INFO, "Get action");
 		}
 		struct tc_action action;
 
@@ -1176,7 +1190,7 @@ int tc_get_all_filters_req(int linux_interface)
 
 }
 
-
+#if 0
 static int tc_fill_specific_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
 	      int alen)
 {
@@ -1223,11 +1237,11 @@ int tc_get_all_actions_req(void)
 	tca_msg.tca_family = AF_UNSPEC;
 
 	nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcamsg));
-	write_log(LOG_INFO, "START nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
+	write_log(LOG_DEBUG, "START nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	tail = NLMSG_TAIL_PRIVATE(&nlh);
-	write_log(LOG_INFO, "tail = 0x%p", tail);
+	write_log(LOG_DEBUG, "tail = 0x%p", tail);
 	strncpy(k, "gact", sizeof("gact") - 1);
-	write_log(LOG_INFO, "sizeof gact %d", (int)sizeof("gact"));
+	write_log(LOG_DEBUG, "sizeof gact %d", (int)sizeof("gact"));
 
 
 	tc_fill_specific_l(&nlh, 16384, TCA_ACT_TAB, NULL, 0);
@@ -1245,11 +1259,11 @@ int tc_get_all_actions_req(void)
 	nlh.nlmsg_pid = 0;
 	nlh.nlmsg_seq = tc_rtnl_handle.dump = ++tc_rtnl_handle.seq;
 	iov[1].iov_len = msg_length;
-	write_log(LOG_INFO, "nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
+	write_log(LOG_DEBUG, "nlh.nlmsg_len nlmsg_len = 0x%x", nlh.nlmsg_len);
 	return sendmsg(tc_rtnl_handle.fd, &msg, 0);
 
 }
-
+#endif
 /******************************************************************************
  * \brief       Getting TC filter saved in kernel
  *
@@ -1286,7 +1300,7 @@ int tc_dump_all_filters(void)
 				if (nladdr.nl_pid != 0 ||
 					nlmsghdr_hdr->nlmsg_pid != tc_rtnl_handle.local.nl_pid ||
 					nlmsghdr_hdr->nlmsg_seq != tc_rtnl_handle.dump) {
-					write_log(LOG_INFO, "GO to skip");
+					write_log(LOG_DEBUG, "GO to skip");
 					nlmsghdr_hdr = NLMSG_NEXT(nlmsghdr_hdr, data_size);
 					continue;
 				}
@@ -1337,7 +1351,7 @@ int tc_dump_all_actions(void)
 				if (nladdr.nl_pid != 0 ||
 					nlmsghdr_hdr->nlmsg_pid != tc_rtnl_handle.local.nl_pid ||
 					nlmsghdr_hdr->nlmsg_seq != tc_rtnl_handle.dump) {
-					write_log(LOG_INFO, "GO to skip");
+					write_log(LOG_DEBUG, "GO to skip");
 					nlmsghdr_hdr = NLMSG_NEXT(nlmsghdr_hdr, data_size);
 					continue;
 				}
@@ -1443,7 +1457,7 @@ void  tc_db_manager_table_init(void)
 	}
 #if 0
 	/*sending TC DUMP request to get all TC actions saved in kernel*/
-	write_log(LOG_INFO, "tc_get_all_actions_req");
+	write_log(LOG_DEBUG, "tc_get_all_actions_req");
 	err = tc_get_all_actions_req();
 	if (err < 0) {
 		write_log(LOG_CRIT, "Dump all actions FAILED = err = %d", err);

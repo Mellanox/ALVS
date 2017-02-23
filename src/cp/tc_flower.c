@@ -174,7 +174,7 @@ enum tc_api_rc tc_flower_filter_modify(struct tc_filter *tc_filter_params)
 	memset(&old_tc_filter_params, 0, sizeof(struct tc_filter));
 	memset(&first_rule_list_item, 0, sizeof(struct rules_list_item));
 
-	write_log(LOG_INFO, "Modify Filter (interface %d, priority %d, handle %d)",
+	write_log(LOG_DEBUG, "Modify Filter (interface %d, priority %d, handle %d)",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);
@@ -306,7 +306,7 @@ enum tc_api_rc tc_flower_filter_modify(struct tc_filter *tc_filter_params)
 						 tc_filter_params->actions.num_of_actions,
 						 new_action_info_array));
 
-	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was modified successfully",
+	write_log(LOG_DEBUG, "Filter (interface %d, priority %d, handle %d) was modified successfully",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);
@@ -406,7 +406,7 @@ void print_flower_filter(struct tc_filter *tc_filter_handle)
 
 	struct tc_flower_rule_policy *flower_rule_policy = &tc_filter_handle->flower_rule_policy;
 
-	write_log(LOG_INFO, "prio 0x%x, Proto 0x%x, handle 0x%x, ifindex 0x%x, flags 0x%x, type %s",
+	write_log(LOG_DEBUG, "prio 0x%x, Proto 0x%x, handle 0x%x, ifindex 0x%x, flags 0x%x, type %s",
 	  tc_filter_handle->priority,
 	  bswap_16(tc_filter_handle->protocol),
 	  tc_filter_handle->handle,
@@ -415,14 +415,14 @@ void print_flower_filter(struct tc_filter *tc_filter_handle)
 	  (tc_filter_handle->type == TC_FILTER_FLOWER) ? "flower" : "NOT SUPPORTED");
 
 	if (tc_filter_handle->flower_rule_policy.mask_bitmap.is_eth_dst_set == 1) {
-		write_log(LOG_INFO, "key_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "key_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->key_eth_dst[0],
 			  flower_rule_policy->key_eth_dst[1],
 			  flower_rule_policy->key_eth_dst[2],
 			  flower_rule_policy->key_eth_dst[3],
 			  flower_rule_policy->key_eth_dst[4],
 			  flower_rule_policy->key_eth_dst[5]);
-		write_log(LOG_INFO, "mask_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "mask_eth_dst %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->mask_eth_dst[0],
 			  flower_rule_policy->mask_eth_dst[1],
 			  flower_rule_policy->mask_eth_dst[2],
@@ -433,14 +433,14 @@ void print_flower_filter(struct tc_filter *tc_filter_handle)
 
 
 	if (tc_filter_handle->flower_rule_policy.mask_bitmap.is_eth_src_set == 1) {
-		write_log(LOG_INFO, "key_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "key_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->key_eth_src[0],
 			  flower_rule_policy->key_eth_src[1],
 			  flower_rule_policy->key_eth_src[2],
 			  flower_rule_policy->key_eth_src[3],
 			  flower_rule_policy->key_eth_src[4],
 			  flower_rule_policy->key_eth_src[5]);
-		write_log(LOG_INFO, "mask_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
+		write_log(LOG_DEBUG, "mask_eth_src %02x:%02x:%02x:%02x:%02x:%02x",
 			  flower_rule_policy->mask_eth_src[0],
 			  flower_rule_policy->mask_eth_src[1],
 			  flower_rule_policy->mask_eth_src[2],
@@ -450,36 +450,36 @@ void print_flower_filter(struct tc_filter *tc_filter_handle)
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_eth_type_set == 1) {
-		write_log(LOG_INFO, "key_eth_type  0x%x", (flower_rule_policy->key_eth_type));
-		write_log(LOG_INFO, "key_eth_mask  0x%x", (flower_rule_policy->mask_eth_type));
+		write_log(LOG_DEBUG, "key_eth_type  0x%x", (flower_rule_policy->key_eth_type));
+		write_log(LOG_DEBUG, "key_eth_mask  0x%x", (flower_rule_policy->mask_eth_type));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ip_proto_set == 1) {
-		write_log(LOG_INFO, "key_ip_proto  0x%x", flower_rule_policy->key_ip_proto);
-		write_log(LOG_INFO, "mask_ip_proto  0x%x", flower_rule_policy->mask_ip_proto);
+		write_log(LOG_DEBUG, "key_ip_proto  0x%x", flower_rule_policy->key_ip_proto);
+		write_log(LOG_DEBUG, "mask_ip_proto  0x%x", flower_rule_policy->mask_ip_proto);
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ipv4_src_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x", (flower_rule_policy->key_ipv4_src));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x", (flower_rule_policy->mask_ipv4_src));
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x", (flower_rule_policy->key_ipv4_src));
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x", (flower_rule_policy->mask_ipv4_src));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_ipv4_dst_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x", (flower_rule_policy->key_ipv4_dst));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x", (flower_rule_policy->mask_ipv4_dst));
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x", (flower_rule_policy->key_ipv4_dst));
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x", (flower_rule_policy->mask_ipv4_dst));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_l4_src_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_src  0x%x",
+		write_log(LOG_DEBUG, "key_ipv4_src  0x%x",
 			  (flower_rule_policy->key_l4_src));
-		write_log(LOG_INFO, "mask_ipv4_src  0x%x",
+		write_log(LOG_DEBUG, "mask_ipv4_src  0x%x",
 			  (flower_rule_policy->mask_l4_src));
 	}
 
 	if (flower_rule_policy->mask_bitmap.is_l4_dst_set == 1) {
-		write_log(LOG_INFO, "key_ipv4_dst  0x%x",
+		write_log(LOG_DEBUG, "key_ipv4_dst  0x%x",
 			  bswap_16(flower_rule_policy->key_l4_dst));
-		write_log(LOG_INFO, "mask_ipv4_dst  0x%x",
+		write_log(LOG_DEBUG, "mask_ipv4_dst  0x%x",
 			  bswap_16(flower_rule_policy->mask_l4_dst));
 
 	}
@@ -667,8 +667,8 @@ enum tc_api_rc add_rules_list_entries_to_table(struct rules_list_item *rules_lis
 	for (i = rules_list_size-1; i > 0; i--) {
 
 		build_nps_rules_list_key(&rules_list[i], &nps_rules_list_key);
-		write_log(LOG_INFO, "build_nps_rules_list_key i = %d", i);
-		write_log(LOG_INFO, "rule_index %d", nps_rules_list_key.rule_index);
+		write_log(LOG_DEBUG, "build_nps_rules_list_key i = %d", i);
+		write_log(LOG_DEBUG, "rule_index %d", nps_rules_list_key.rule_index);
 
 		if (i == rules_list_size-1) {
 			next_rule_index = NOT_VALID_RULE_INDEX;
@@ -677,10 +677,10 @@ enum tc_api_rc add_rules_list_entries_to_table(struct rules_list_item *rules_lis
 		}
 
 		build_nps_rules_list_result(&rules_list[i], next_rule_index, &nps_rules_list_result);
-		write_log(LOG_INFO, "action index %d", rules_list[i].filter_actions_index);
-		write_log(LOG_INFO, "priority %d", rules_list[i].priority);
-		write_log(LOG_INFO, "next_rule_index %d", nps_rules_list_result.next_rule_index);
-		write_log(LOG_INFO, "is_next %d", nps_rules_list_result.is_next_rule_valid);
+		write_log(LOG_DEBUG, "action index %d", rules_list[i].filter_actions_index);
+		write_log(LOG_DEBUG, "priority %d", rules_list[i].priority);
+		write_log(LOG_DEBUG, "next_rule_index %d", nps_rules_list_result.next_rule_index);
+		write_log(LOG_DEBUG, "is_next %d", nps_rules_list_result.is_next_rule_valid);
 		if (infra_modify_entry(STRUCT_ID_TC_RULES_LIST,
 				    &nps_rules_list_key,
 				    sizeof(struct tc_rules_list_key),
@@ -739,7 +739,7 @@ enum tc_api_rc allocate_rule_list_indexes(struct tc_filter *tc_filter_params,
 	/*TOMER - clear NPS_RULES_LIST_RESULT*/
 	memset(&nps_rules_list_key, 0, sizeof(struct tc_rules_list_key));
 	nps_rules_list_key.rule_index = bswap_32(*rule_list_index);
-	write_log(LOG_INFO, "nps_rules_list_key.rule_index %d", nps_rules_list_key.rule_index);
+	write_log(LOG_DEBUG, "nps_rules_list_key.rule_index %d", nps_rules_list_key.rule_index);
 
 	memset(&nps_rules_list_result, 0, sizeof(struct tc_rules_list_result));
 	nps_rules_list_result.filter_actions_index = bswap_32(filter_actions_index);
@@ -1115,7 +1115,7 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 	memset(&current_tc_filter_params, 0, sizeof(struct tc_filter));
 	memset(actions_id_array, 0, sizeof(struct action_id));
 
-	write_log(LOG_INFO, "Delete Filter (interface %d, priority %d, handle %d)",
+	write_log(LOG_DEBUG, "Delete Filter (interface %d, priority %d, handle %d)",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);
@@ -1234,7 +1234,7 @@ enum tc_api_rc tc_int_delete_flower_filter(struct tc_filter *tc_filter_params)
 	/**************************************************************************************/
 	TC_CHECK_ERROR(delete_and_free_action_entries(num_of_actions, actions_id_array));
 
-	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was deleted successfully",
+	write_log(LOG_DEBUG, "Filter (interface %d, priority %d, handle %d) was deleted successfully",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);
@@ -1259,7 +1259,7 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 	memset(&tc_mask_info, 0, sizeof(tc_mask_info));
 	memset(&first_rule_list_item, 0, sizeof(struct rules_list_item));
 
-	write_log(LOG_INFO, "Adding Filter (interface %d, priority %d, handle %d)",
+	write_log(LOG_DEBUG, "Adding Filter (interface %d, priority %d, handle %d)",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);
@@ -1345,7 +1345,7 @@ enum tc_api_rc tc_int_add_flower_filter(struct tc_filter *tc_filter_params)
 		return rc;
 	}
 
-	write_log(LOG_INFO, "Filter (interface %d, priority %d, handle %d) was added successfully",
+	write_log(LOG_DEBUG, "Filter (interface %d, priority %d, handle %d) was added successfully",
 		  tc_filter_params->ifindex,
 		  tc_filter_params->priority,
 		  tc_filter_params->handle);

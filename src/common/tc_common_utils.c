@@ -132,6 +132,8 @@ char *tc_get_action_str(enum tc_action_type  type,
 		return "egress mirror";
 	} else if (type == TC_ACTION_TYPE_PEDIT_IP_ACTION) {
 		return "ip";
+	} else if (type == TC_ACTION_TYPE_PEDIT_FAMILY) {
+		return "pedit";
 	} else if (type == TC_ACTION_TYPE_PEDIT_TCP_ACTION) {
 		return "tcp";
 	} else if (type == TC_ACTION_TYPE_PEDIT_UDP_ACTION) {
