@@ -163,9 +163,9 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 		
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -196,8 +196,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 	
@@ -228,9 +228,9 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 		
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -272,8 +272,8 @@ class State_Sync_Test(Unit_Tester):
 	
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 	
@@ -315,8 +315,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -359,8 +359,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -376,8 +376,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -420,8 +420,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -467,8 +467,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = (eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1)
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -511,8 +511,8 @@ class State_Sync_Test(Unit_Tester):
 		
 		packet = eth_hdr + eth + ip_hdr + udp_hdr + ss_hdr + conn0 + conn1
 	
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(1)
 		
@@ -567,8 +567,8 @@ class State_Sync_Test(Unit_Tester):
 			conn = self.get_ss_conn(6, 0x0, 1, port, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[1])))[2:], str(hex(ip2int(server_list[2].ip)))[2:])
 			packet += conn
 			
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(2)
 		
@@ -675,8 +675,8 @@ class State_Sync_Test(Unit_Tester):
 		conn = self.get_ss_conn(6, 0x100, 7, 32, 80, 80, 0, 0, '0a9d0701', str(hex(ip2int(vip_list[0])))[2:], str(hex(ip2int(server_list[1].ip)))[2:])
 		packet += conn
 			
-		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + 'verification/testing/dp/temp_packet.pcap')
-		client_list[0].send_packet_to_nps(ALVSdir + 'verification/testing/dp/temp_packet.pcap')
+		string_to_pcap_file(' '.join(re.findall('.{%d}' % 2, packet)), output_pcap_file=ALVSdir + '/verification/testing/dp/temp_packet.pcap')
+		client_list[0].send_packet_to_nps(ALVSdir + '/verification/testing/dp/temp_packet.pcap')
 	
 		time.sleep(2)
 		
