@@ -4,7 +4,7 @@ ENV_BASE := ./
 EZDK_BASE := $(shell readlink $(ENV_BASE)/EZdk)
 #PATH := $(PATH):$(abspath $(EZDK_BASE)/ldk/toolchain/bin)
 
-CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/include -I$(EZDK_BASE)/cpe/env/include -I$(EZDK_BASE)/cpe/dev/include -I$(EZDK_BASE)/cpe/cp/include -I$(EZDK_BASE)/cpe/agt/agt-cp/include -I$(EZDK_BASE)/cpe/agt/agt/include
+CP_INC := -I/usr/include/libnl3 -Isrc/common -Isrc/cp -I$(EZDK_BASE)/dpe/dp/include -I$(EZDK_BASE)/cpe/env/include -I$(EZDK_BASE)/cpe/dev/include -I$(EZDK_BASE)/cpe/cp/include -I$(EZDK_BASE)/cpe/agt/agt-cp/include -I$(EZDK_BASE)/cpe/agt/agt/include -I$(EZDK_BASE)/cpe/spy/include -I$(EZDK_BASE)/cpe/agt/agt-spy/include
 
 CP_C_SRCS = src/cp/nw_db_manager.c \
 			src/cp/error_names.c \
@@ -53,7 +53,7 @@ endif
 CP_OBJS = $(patsubst %.c,build/$(APP_NAME)/%.o,$(CP_C_SRCS)) 
 CP_C_DEPS = $(patsubst %.c,build/$(APP_NAME)/%.d,$(CP_C_SRCS))
 
-CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a -ldl -lpthread -lnl-3 -lnl-route-3 -lnl-genl-3 -lm
+CP_LIBS := -l:EZagt_linux_x86_64.a -l:EZagt-cp_linux_x86_64.a -l:EZagt-spy_linux_x86_64.a -l:EZspy_linux_x86_64.a -l:EZcp_linux_x86_64.a -l:EZdev_linux_x86_64.a -l:EZenv_linux_x86_64.a -l:libjsonrpcc.a -l:libev.a -ldl -lpthread -lnl-3 -lnl-route-3 -lnl-genl-3 -lm
 
 CP_C_FLAGS := -DNPS_LITTLE_ENDIAN -Werror -Wall -Wextra
 
@@ -93,7 +93,7 @@ endif
 make_cp: $(CP_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(CP_LIBS)
+	gcc -L$(EZDK_BASE)/cpe/agt/agt-spy/lib/ -L$(EZDK_BASE)/cpe/agt/agt/lib/ -L$(EZDK_BASE)/cpe/spy/lib/ -L$(EZDK_BASE)/cpe/agt/agt-cp/lib -L$(EZDK_BASE)/cpe/cp/lib/ -L$(EZDK_BASE)/cpe/dev/lib -L$(EZDK_BASE)/cpe/env/lib -L$(EZDK_BASE)/cpe/jsonrpc-c/install/linux_x86_64/lib -L$(EZDK_BASE)/cpe/libev/install/linux_x86_64/lib/ -pthread $(CP_INC) -o "$(CP_BIN)" $(CP_OBJS) $(CP_LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

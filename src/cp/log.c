@@ -68,6 +68,16 @@ void open_log(char *s)
 
 	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP,
 		     EZlog_SUB_COMP, EZlog_LEVEL);
+
+#if 0
+	EZlog_SetLog(EZlog_OUTPUT_FILE, EZlog_COMP_SPY,
+		     EZlog_SUB_COMP_LOG_ALL, EZlog_LEVEL_DEBUG);
+
+	EZlog_OpenAdditionalLogFile("/var/log/spy_log", EZlog_COMP_SPY_INDEX);
+
+	EZlog_SetSubComponentLogFile(EZlog_COMP_SPY_INDEX, EZlog_COMP_SPY, EZlog_SUB_COMP);
+#endif
+
 }
 
 void close_log(void)

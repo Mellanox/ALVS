@@ -548,6 +548,7 @@ enum tc_processing_rc tc_handle_slow_classification_process(ezframe_t  __cmem   
 	struct ether_header		*l2_hdr = (struct ether_header *)frame_base;
 	/*in case of reclassify - user must update metadata before*/
 	struct l4_hdr			*l4_hdr = NULL;
+	uint32_t			max_tries = EZDP_LOOKUP_MAX_TRIES;
 #if 0
 	uint8_t match_num;
 #endif
@@ -579,28 +580,38 @@ enum tc_processing_rc tc_handle_slow_classification_process(ezframe_t  __cmem   
 		if (tc_build_classifier_key(l2_hdr, ip_hdr, l4_hdr) == true) {
 			ezdp_hashed_key_t hashed_key = ezdp_prm_hash_bulk_key((uint8_t *)&cmem_tc.classifier_key, sizeof(union tc_classifier_key));
 
-			retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_tc.tc_classifier_struct_desc.main_table_addr_desc.raw_data,
-								     true,
-								     sizeof(union tc_classifier_key),
-								     sizeof(struct tc_classifier_result),
-								     sizeof(struct classifier_entry),
-								     hashed_key,
-								     (void *)&cmem_tc.classifier_key,
-								     (void *)&cmem_tc.class_entry,
-								     cmem_wa.tc_wa.classifier_prm_hash_wa,
-								     sizeof(cmem_wa.tc_wa.classifier_prm_hash_wa));
-			if (retval.match) {
-				classifier_res = &cmem_tc.class_entry.result;
-				anl_write_log(LOG_DEBUG, "Match found in classifier table");
-				tc_save_classifier_result_best_match(classifier_res->priority,
-								     classifier_res->filter_actions_index,
-								     match_info);
-				if (classifier_res->is_rules_list_valid) {
-					anl_write_log(LOG_DEBUG, "classifier match has more entries in rule list. rule index = %d", classifier_res->rules_list_index);
-					tc_scan_rules_list_index(classifier_res->rules_list_index, match_info);
+			do {
+				retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_tc.tc_classifier_struct_desc.main_table_addr_desc.raw_data,
+									     true,
+									     sizeof(union tc_classifier_key),
+									     sizeof(struct tc_classifier_result),
+									     sizeof(struct classifier_entry),
+									     hashed_key,
+									     (void *)&cmem_tc.classifier_key,
+									     (void *)&cmem_tc.class_entry,
+									     cmem_wa.tc_wa.classifier_prm_hash_wa,
+									     sizeof(cmem_wa.tc_wa.classifier_prm_hash_wa));
+				if (likely(retval.success)) {
+
+					classifier_res = &cmem_tc.class_entry.result;
+					anl_write_log(LOG_DEBUG, "Match found in classifier table");
+					tc_save_classifier_result_best_match(classifier_res->priority,
+									     classifier_res->filter_actions_index,
+									     match_info);
+					if (classifier_res->is_rules_list_valid) {
+						anl_write_log(LOG_DEBUG, "classifier match has more entries in rule list. rule index = %d", classifier_res->rules_list_index);
+						tc_scan_rules_list_index(classifier_res->rules_list_index, match_info);
+					}
+					anl_write_log(LOG_DEBUG, "current valid bitmap array - 0x%02x", match_info->match_array_valid_bitmap);
+					break;
+				} else if (likely(!retval.mem_error)) {
+					/* no match */
+					anl_write_log(LOG_DEBUG, "No Match found in classifier table");
+					break;
 				}
-				anl_write_log(LOG_DEBUG, "current valid bitmap array - 0x%02x", match_info->match_array_valid_bitmap);
-			}
+
+				max_tries--;
+			} while (unlikely(max_tries > 0));
 		}
 		mask_index++;
 	}

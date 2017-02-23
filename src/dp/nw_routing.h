@@ -118,11 +118,8 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 		       struct route_entry_result *route_entry,
 		       uint32_t	frame_buff_size)
 {
-	uint32_t rc;
-#if 0
-	uint32_t found_result_size;
-	struct nw_arp_result *arp_res_ptr;
-#endif
+	uint32_t	rc;
+	uint32_t	max_tries = EZDP_LOOKUP_MAX_TRIES;
 	struct ezdp_lookup_retval	retval;
 
 	cmem_nw.arp_key.ip = route_entry->dest_ip;
@@ -133,52 +130,57 @@ enum nw_arp_processing_result nw_arp_processing(ezframe_t __cmem * frame,
 	ezdp_hashed_key_t hashed_key = ezdp_prm_hash_key64(*((uint64_t *)&cmem_nw.arp_key),
 							   0,
 							   sizeof(struct nw_arp_key));
+	do {
+		retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_nw.arp_struct_desc.main_table_addr_desc.raw_data,
+							     true,
+							     sizeof(struct nw_arp_key),
+							     sizeof(struct nw_arp_result),
+							     sizeof(struct nw_arp_entry),
+							     hashed_key,
+							     (void *)&cmem_nw.arp_key,
+							     (void *)&cmem_nw.arp_entry,
+							     cmem_wa.nw_wa.arp_prm_hash_wa,
+							     sizeof(cmem_wa.nw_wa.arp_prm_hash_wa));
 
-	retval.raw_data = ezdp_prm_lookup_hash_entry(shared_cmem_nw.arp_struct_desc.main_table_addr_desc.raw_data,
-						     true,
-						     sizeof(struct nw_arp_key),
-						     sizeof(struct nw_arp_result),
-						     sizeof(struct nw_arp_entry),
-						     hashed_key,
-						     (void *)&cmem_nw.arp_key,
-						     (void *)&cmem_nw.arp_entry,
-						     cmem_wa.nw_wa.arp_prm_hash_wa,
-						     sizeof(cmem_wa.nw_wa.arp_prm_hash_wa));
+		if (likely(retval.success)) {
+			struct ether_addr *dmac = (struct ether_addr *)frame_base;
 
-	if (likely(retval.match)) {
-		struct ether_addr *dmac = (struct ether_addr *)frame_base;
+			/*copy dst mac*/
+			ezdp_mem_copy(dmac, cmem_nw.arp_entry.result.dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
 
-		/*copy dst mac*/
-		ezdp_mem_copy(dmac, cmem_nw.arp_entry.result.dest_mac_addr.ether_addr_octet, sizeof(struct ether_addr));
+			/*Calc egress if*/
+			if (unlikely(nw_calc_egress_if(frame_base, route_entry->output_index, route_entry->is_lag) == false)) {
+				anl_write_log(LOG_DEBUG, "Interface admin state is disabled, dropping packet on ingress");
+				nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
+				return NW_ARP_CRITICAL_ERR;
+			}
+			/*copy src mac*/
+			ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
 
-		/*Calc egress if*/
-		if (unlikely(nw_calc_egress_if(frame_base, route_entry->output_index, route_entry->is_lag) == false)) {
-			anl_write_log(LOG_DEBUG, "Interface admin state is disabled, dropping packet on ingress");
-			nw_interface_inc_counter(NW_IF_STATS_FAIL_INTERFACE_LOOKUP);
-			return NW_ARP_CRITICAL_ERR;
+			/* Store modified segment data */
+			rc = ezframe_store_buf(frame,
+					       frame_base,
+					       frame_buff_size,
+					       0);
+			if (rc != 0) {
+				anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
+				nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
+				return NW_ARP_CRITICAL_ERR;
+			}
+
+			ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
+			return NW_ARP_OK;
+
+		} else if (likely(!retval.mem_error)) {
+			/* no match */
+			anl_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", route_entry->dest_ip);
+			nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
+			return NW_ARP_LOOKUP_FAIL;
 		}
-		/*copy src mac*/
-		ezdp_mem_copy((uint8_t *)dmac+sizeof(struct ether_addr), cmem_nw.egress_if_result.mac_address.ether_addr_octet, sizeof(struct ether_addr));
+		max_tries--;
+	} while (unlikely(max_tries > 0));
 
-		/* Store modified segment data */
-		rc = ezframe_store_buf(frame,
-				       frame_base,
-				       frame_buff_size,
-				       0);
-		if (rc != 0) {
-			anl_write_log(LOG_DEBUG, "Ezframe store buf was failed");
-			nw_interface_inc_counter(NW_IF_STATS_FAIL_STORE_BUF);
-			return NW_ARP_CRITICAL_ERR;
-		}
-
-		ezframe_send_to_if(frame, cmem_nw.egress_if_result.output_channel, 0);
-		return NW_ARP_OK;
-
-	}
-	anl_write_log(LOG_DEBUG, "dest_ip = 0x%x ARP lookup FAILED", route_entry->dest_ip);
-	nw_interface_inc_counter(NW_IF_STATS_FAIL_ARP_LOOKUP);
-	return NW_ARP_LOOKUP_FAIL;
-
+	return NW_ARP_CRITICAL_ERR;
 }
 
 /******************************************************************************

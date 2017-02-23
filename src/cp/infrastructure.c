@@ -43,6 +43,7 @@
 #include <EZapiStat.h>
 #include <EZapiStruct.h>
 #include <EZagtCPMain.h>
+#include <EZagtSpyMain.h>
 #include <EZosTask.h>
 #include <EZagtRPC.h>
 #include <EZapiTCAM.h>
@@ -794,6 +795,13 @@ bool infra_enable_agt(void)
 	ez_ret_val = EZagtCPMain_RegisterFunctions(host_server);
 	if (EZrc_IS_ERROR(ez_ret_val)) {
 		write_log(LOG_CRIT, "Can't register function for AGTcpMAIN");
+		return false;
+	}
+
+	/* Register spy commands */
+	ez_ret_val = EZagtSpyMain_RegisterFunctions(host_server);
+	if (EZrc_IS_ERROR(ez_ret_val)) {
+		write_log(LOG_CRIT, "Can't register function for AGTspyMAIN");
 		return false;
 	}
 
