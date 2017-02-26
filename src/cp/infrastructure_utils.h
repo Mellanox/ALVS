@@ -247,6 +247,20 @@ bool infra_get_double_counters(uint32_t counter_index,
 			       uint64_t *bytes_value);
 
 /**************************************************************************//**
+ * \brief       write Long Counters Values
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		value_lsb - lsb value of the long counters
+ *		value_msb - msb value of the long counters
+ * \return      bool
+ *
+ */
+bool infra_set_long_counters(uint32_t counter_index,
+			     uint32_t num_of_counters,
+			     uint32_t value_lsb,
+			     uint32_t value_msb);
+
+/**************************************************************************//**
  * \brief       Read Long Counters Values, read several counters (num_of_counters)
  * \param[in]   counter_index   - index of starting counter
  *		num_of_counters - number of counters from the starting counter

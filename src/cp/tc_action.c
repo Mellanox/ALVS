@@ -260,22 +260,20 @@ enum tc_api_rc tc_get_action_info(enum tc_action_type family_type,
 	if (*is_action_exist != true) {
 		return TC_API_OK;
 	}
+
 	/* fill statistic counters */
 	TC_CHECK_ERROR(tc_get_action_stats(action_info.nps_index,
 					   &tc_action->action_statistics.packet_statictics,
 					   &tc_action->action_statistics.bytes_statictics));
-
 	/* fill used timestamp */
 	rc = infra_read_real_time_clock_seconds(&rtc_seconds);
 	if (rc != true) {
 		write_log(LOG_CRIT, "Failed to read RTC.");
 		return TC_API_FAILURE;
 	}
-
 	TC_CHECK_ERROR(get_last_used_action_timestamp(action_info.nps_index, &last_used_timestamp));
 	tc_action->action_statistics.created_timestamp = rtc_seconds - tc_action->action_statistics.created_timestamp;
 	tc_action->action_statistics.use_timestamp     = rtc_seconds - last_used_timestamp;
-
 	return TC_API_OK;
 }
 
@@ -419,8 +417,6 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 {
 	struct tc_action_key        nps_action_key;
 	struct tc_action_result     nps_action_result;
-	struct tc_timestamp_key     nps_timestamp_key;
-	struct tc_timestamp_result  nps_timestamp_result;
 	uint32_t                    family_action_type;
 
 	family_action_type = action_info->action_id.action_family_type;
@@ -455,18 +451,11 @@ enum tc_api_rc add_tc_action_to_nps_table(struct action_info *action_info)
 		return TC_API_DB_ERROR;
 	}
 
-	/* prepare timestamp key & result */
-	nps_timestamp_key.action_index        = bswap_32(action_info->nps_index);
-	nps_timestamp_result.tc_timestamp_val = bswap_32(action_info->created_timestamp);
-
-	/* add entry to action DP table */
-	if (infra_add_entry(STRUCT_ID_TC_TIMESTAMPS,
-			    &nps_timestamp_key,
-			    sizeof(nps_timestamp_key),
-			    &nps_timestamp_result,
-			    sizeof(nps_timestamp_result)) == false) {
-		write_log(LOG_CRIT, "Failed to add timestamp entry. key %d",
-			  nps_timestamp_key.action_index);
+	if (infra_set_long_counters(TC_ACTION_TIMESTAMP_ON_DEMEAND_OFFSET + action_info->nps_index,
+				    1,
+				    action_info->created_timestamp,
+				    0) == false) {
+		write_log(LOG_ERR, "Fail to set timestamp of action index = %d", action_info->nps_index);
 		return TC_API_DB_ERROR;
 	}
 
@@ -720,21 +709,17 @@ enum tc_api_rc delete_tc_action_from_nps(struct action_info *action_info)
 enum tc_api_rc get_last_used_action_timestamp(uint32_t  action_index,
 				       uint32_t  *last_used_timestamp)
 {
-	struct tc_timestamp_key     timestamp_key;
-	struct tc_timestamp_result  timestamp_result;
-	bool                        rc;
+	uint64_t	timestamp_value;
 
-	timestamp_key.action_index = bswap_32(action_index);
-	rc = infra_get_entry(STRUCT_ID_TC_TIMESTAMPS,
-			&timestamp_key,
-			sizeof(timestamp_key),
-			&timestamp_result,
-			sizeof(timestamp_result));
-	if (rc == false) {
+	if (infra_get_long_counters(TC_ACTION_TIMESTAMP_ON_DEMEAND_OFFSET + action_index,
+				    1,
+				    &timestamp_value) == false) {
+		write_log(LOG_ERR, "Fail to read timestamp of action index = %d", (action_index));
 		return TC_API_DB_ERROR;
 	}
 
-	*last_used_timestamp = bswap_32(timestamp_result.tc_timestamp_val);
+	*last_used_timestamp = (uint32_t)timestamp_value;
+
 
 	return TC_API_OK;
 }

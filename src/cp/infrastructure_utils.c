@@ -626,6 +626,60 @@ bool infra_get_double_counters(uint32_t counter_index,
 }
 
 /**************************************************************************//**
+ * \brief       write Long Counters Values
+ * \param[in]   counter_index   - index of starting counter
+ *		num_of_counters - number of counters from the starting counter
+ *		value_lsb - lsb value of the long counters
+ *		value_msb - msb value of the long counters
+ * \return      bool
+ *
+ */
+bool infra_set_long_counters(uint32_t counter_index,
+			     uint32_t num_of_counters,
+			     uint32_t value_lsb,
+			     uint32_t value_msb)
+{
+	EZapiStat_LongCounterConfig long_counter_config;
+	EZstatus ret_val;
+
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+
+	/*allocate long stats for saving timestamps of actions*/
+	long_counter_config.pasCounters = (EZapiStat_LongCounter *)malloc(sizeof(EZapiStat_LongCounter));
+	if (long_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: long_counter_config malloc failed.");
+		return false;
+	}
+	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
+	long_counter_config.uiPartition = 0;
+	long_counter_config.uiStartCounter = counter_index;
+	long_counter_config.uiNumCounters = num_of_counters;
+	long_counter_config.bRange = TRUE;
+	long_counter_config.uiRangeStep = 1;
+
+	long_counter_config.uiStartCounter = counter_index;
+	long_counter_config.uiNumCounters = num_of_counters;
+	ret_val = EZapiStat_Status(0, EZapiStat_StatCmd_GetLongCounters, &long_counter_config);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Status: EZapiStat_StatCmd_GetLongCounters failed.");
+		free(long_counter_config.pasCounters);
+		return false;
+	}
+
+	long_counter_config.pasCounters[0].uiValue = value_lsb;
+	long_counter_config.pasCounters[0].uiValueMSB = value_msb;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
+	free(long_counter_config.pasCounters);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed, channel Id 0");
+		return false;
+	}
+
+	return true;
+}
+
+/**************************************************************************//**
  * \brief       Read Long Counters Values
  * \param[in]   counter_index   - index of starting counter
  *		num_of_counters - number of counters from the starting counter
@@ -652,7 +706,7 @@ bool infra_get_long_counters(uint32_t counter_index,
 
 	long_counter = (EZapiStat_LongCounter *)malloc(sizeof(EZapiStat_LongCounter) * num_of_counters);
 	if (long_counter == NULL) {
-		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_PostedCounter");
+		write_log(LOG_ERR, "Failed to allocate memory for EZapiStat_LongCounter");
 		return false;
 	}
 	memset(long_counter, 0, sizeof(EZapiStat_LongCounter) * num_of_counters);

@@ -213,20 +213,15 @@ static __always_inline
 void tc_utils_update_action_timestamp(uint32_t action_index)
 {
 	uint32_t rc __unused;
+	ezdp_sum_addr_t		stat_addr;
+
+	stat_addr = BUILD_SUM_ADDR(EZDP_EXTERNAL_MS,
+				   TC_ON_DEMAND_STATS_MSID,
+				   TC_ACTION_TIMESTAMP_ON_DEMEAND_OFFSET + action_index);
 
 	/* get time form real time cloce */
 	rc = ezdp_get_real_time_clock(&cmem_wa.tc_wa.real_time_clock);
-
-	/* update entry in timestamp table */
-	/* TODO: check if rc from ezdp_get_real_time_clock represent second, if it does, used it for better performance */
-	cmem_tc.timestamp_res.tc_timestamp_val = cmem_wa.tc_wa.real_time_clock.sec;
-	rc = ezdp_modify_table_entry(&shared_cmem_tc.tc_timestamp_struct_desc,
-				     action_index,
-				     &cmem_tc.timestamp_res,
-				     sizeof(cmem_tc.timestamp_res),
-				     EZDP_UNCONDITIONAL,
-				     cmem_wa.tc_wa.timestamp_table_wa,
-				     sizeof(cmem_wa.tc_wa.timestamp_table_wa));
+	ezdp_write_single_ctr_async(stat_addr, cmem_wa.tc_wa.real_time_clock.sec);
 
 #ifndef NDEBUG
 	if (rc != 0) {

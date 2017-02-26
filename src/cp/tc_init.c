@@ -52,8 +52,9 @@
  */
 bool tc_initialize_statistics(void)
 {
-	EZstatus ret_val;
-	EZapiStat_DoubleCounterConfig double_counter_config;
+	EZstatus			ret_val;
+	EZapiStat_DoubleCounterConfig	double_counter_config;
+	EZapiStat_LongCounterConfig	long_counter_config;
 
 	/* Set on demand statistics values to be 0 */
 	memset(&double_counter_config, 0, sizeof(double_counter_config));
@@ -67,14 +68,14 @@ bool tc_initialize_statistics(void)
 	double_counter_config.uiPartition = 0;
 	double_counter_config.bRange = TRUE;
 	double_counter_config.uiStartCounter = TC_ACTION_STATS_ON_DEMAND_OFFSET;
-	double_counter_config.uiNumCounters = TC_TOTAL_ON_DEMAND_STATS;
+	double_counter_config.uiNumCounters = TC_ACTION_STATS_ON_DEMAND_SIZE;
 	double_counter_config.uiRangeStep = 1;
 
 	double_counter_config.pasCounters[0].uiByteValue = 0;
 	double_counter_config.pasCounters[0].uiByteValueMSB = 0;
 	double_counter_config.pasCounters[0].uiFrameValue = 0;
 	double_counter_config.pasCounters[0].uiFrameValueMSB = 0;
-	double_counter_config.pasCounters[0].bEnableThresholdMsg = TRUE;
+	double_counter_config.pasCounters[0].bEnableThresholdMsg = FALSE;
 	double_counter_config.pasCounters[0].uiThresholdByte = 50;
 	double_counter_config.pasCounters[0].uiThresholdFrame = 44;
 
@@ -85,6 +86,31 @@ bool tc_initialize_statistics(void)
 		return false;
 	}
 
+	/*allocate long stats for saving timestamps of actions*/
+	memset(&long_counter_config, 0, sizeof(long_counter_config));
+	long_counter_config.pasCounters = (EZapiStat_LongCounter *)malloc(sizeof(EZapiStat_LongCounter));
+	if (long_counter_config.pasCounters == NULL) {
+		write_log(LOG_CRIT, "infra_initialize_statistics: long_counter_config malloc failed.");
+		return false;
+	}
+	memset(long_counter_config.pasCounters, 0, sizeof(EZapiStat_LongCounter));
+
+	long_counter_config.uiPartition = 0;
+	long_counter_config.bRange = TRUE;
+	long_counter_config.uiStartCounter = TC_ACTION_TIMESTAMP_ON_DEMEAND_OFFSET;
+	long_counter_config.uiNumCounters = TC_ACTION_TIMESTAMPS_ON_DEMAND_SIZE;
+	long_counter_config.uiRangeStep = 1;
+	long_counter_config.pasCounters[0].uiValue = 0;
+	long_counter_config.pasCounters[0].uiValueMSB = 0;
+	long_counter_config.pasCounters[0].bEnableThresholdMsg = FALSE;
+	long_counter_config.pasCounters[0].uiThreshold = 58;
+
+	ret_val = EZapiStat_Config(0, EZapiStat_ConfigCmd_SetLongCounters, &long_counter_config);
+	free(long_counter_config.pasCounters);
+	if (EZrc_IS_ERROR(ret_val)) {
+		write_log(LOG_CRIT, "EZapiStat_Config: EZapiStat_ConfigCmd_SetLongCounters failed, channel Id 0");
+		return false;
+	}
 	return true;
 }
 
