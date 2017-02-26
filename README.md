@@ -24,7 +24,7 @@ git clone git@github.com:Mellanox/ALVS.git
   
   Follow instructions in the above link on how to setup EZdk openNPU enviroment. 
   
-  The version must be 18_0300 or higher.
+  The version must be 18_0400.
   ~~~
   
 ####<b>3. Remove EZdk soft link</b>
